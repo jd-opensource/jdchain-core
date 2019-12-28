@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 节点服务器；
+ * 节点服务实例的启动器；
  * 
  * @author huanghaiquan
  *
