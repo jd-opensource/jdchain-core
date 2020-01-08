@@ -423,7 +423,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
         for(int i = 0; i < asyncResponseLinkedList.size(); i++) {
             TransactionResponse txResponse = BinaryProtocol.decode(asyncResponseLinkedList.get(i));
-            if (isConsistent) {
+            if (!isConsistent) {
                 resp = new TxResponseMessage(txResponse.getContentHash());
             }
             else {
