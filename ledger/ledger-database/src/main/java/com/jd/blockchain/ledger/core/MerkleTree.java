@@ -14,8 +14,8 @@ import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.RecursiveTask;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.Crypto;
+import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.CryptoSetting;
@@ -240,7 +240,7 @@ public class MerkleTree implements Transactional {
 	 * @param hashedData 要参与哈希计算的数据内容；注：此参数值并不会被默克尔树保存；
 	 * @return
 	 */
-	public MerkleDataNode setData(long sn, String key, long version, byte[] hashedData) {
+	public DataNode setData(long sn, String key, long version, byte[] hashedData) {
 		return setData(sn, Bytes.fromString(key), version, hashedData);
 	}
 
@@ -261,7 +261,7 @@ public class MerkleTree implements Transactional {
 	 * @param hashedData 要参与哈希计算的数据内容；注：此参数值并不会被默克尔树保存；
 	 * @return
 	 */
-	public MerkleDataNode setData(long sn, Bytes key, long version, byte[] hashedData) {
+	public DataNode setData(long sn, Bytes key, long version, byte[] hashedData) {
 		if (readonly) {
 			throw new IllegalStateException("This merkle tree is readonly!");
 		}
@@ -277,7 +277,7 @@ public class MerkleTree implements Transactional {
 		return dataNode;
 	}
 
-	public MerkleDataNode getData(long sn) {
+	public DataNode getData(long sn) {
 		DataNode dataNode = updatedDataNodes.get(sn);
 		if (dataNode != null) {
 			return dataNode;
@@ -724,7 +724,7 @@ public class MerkleTree implements Transactional {
 	 * @return 序列号对应的数据节点；<br>
 	 *         如果不存在，则返回 null，注意，此时指定的路径参数 path 依然写入了查找过程的路径；
 	 */
-	private MerkleDataNode seekPath(long sn, MerkleNode[] path) {
+	private DataNode seekPath(long sn, MerkleNode[] path) {
 		/*
 		 * 如果指定的序号超出当前根节点的范围，需要向上扩展根节点；
 		 * 
@@ -787,7 +787,7 @@ public class MerkleTree implements Transactional {
 		if (path != null) {
 			path[path.length - leafPathNode.children[index].getLevel() - 1] = leafPathNode.children[index];
 		}
-		return (MerkleDataNode) leafPathNode.children[index];
+		return (DataNode) leafPathNode.children[index];
 	}
 
 	private Bytes encodeNodeKey(HashDigest hashBytes) {
@@ -891,7 +891,6 @@ public class MerkleTree implements Transactional {
 		 * 
 		 * @see com.jd.blockchain.ledger.MerkleProof#getSN()
 		 */
-		@Override
 		public long getSN() {
 			return sn;
 		}
@@ -1336,7 +1335,7 @@ public class MerkleTree implements Transactional {
 			HashDigest[] childrenHashes = new HashDigest[TREE_DEGREE];
 			byte[] h;
 			for (int i = 0; i < TREE_DEGREE; i++) {
-				int hashSize = NumberMask.TINY.resolveMaskedNumber(bytes, offset);
+				int hashSize = (int) NumberMask.TINY.resolveMaskedNumber(bytes, offset);
 				offset += NumberMask.TINY.getMaskLength(hashSize);
 
 				if (hashSize == 0) {
@@ -1348,7 +1347,7 @@ public class MerkleTree implements Transactional {
 				childrenHashes[i] = new HashDigest(h);
 			}
 
-			int hashSize = NumberMask.TINY.resolveMaskedNumber(bytes, offset);
+			int hashSize = (int) NumberMask.TINY.resolveMaskedNumber(bytes, offset);
 			offset += NumberMask.TINY.getMaskLength(hashSize);
 
 			byte[] nodeHashBytes = new byte[hashSize];
@@ -1406,7 +1405,7 @@ public class MerkleTree implements Transactional {
 	 * @author huanghaiquan
 	 *
 	 */
-	static class DataNode extends AbstractMerkleNode implements MerkleDataNode {
+	public static class DataNode extends AbstractMerkleNode implements MerkleDataNode {
 
 		private long sn;
 
@@ -1452,7 +1451,7 @@ public class MerkleTree implements Transactional {
 		 * 
 		 * @see com.jd.blockchain.ledger.core.MerkleDataNode#getSN()
 		 */
-		@Override
+//		@Override
 		public long getSN() {
 			return sn;
 		}
