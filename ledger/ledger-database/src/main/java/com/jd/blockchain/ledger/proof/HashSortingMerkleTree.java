@@ -209,7 +209,6 @@ public class HashSortingMerkleTree implements Transactional {
 		StringBuilder nodeInfo = new StringBuilder("[P::");
 		for (int i = 0; i < childNodes.length; i++) {
 			if (childNodes[i] != null) {
-//				nodeInfo.append(" ");
 				nodeInfo.append(i);
 			}
 			if (i < childNodes.length - 1) {
@@ -239,7 +238,8 @@ public class HashSortingMerkleTree implements Transactional {
 			nodes.put(k, lnodes);
 		}
 		MerkleKey[] keys = leafNode.getKeys();
-		StringBuilder nodeInfo = new StringBuilder(String.format("[L-%s-%s::", leafNode.getKeyHash(), keys.length));
+		StringBuilder nodeInfo = new StringBuilder(
+				String.format("[L-%s-(k:%s;r=%s)-::", leafNode.getKeyHash(), keys.length, leafNode.getTotalRecords()));
 		for (int i = 0; i < keys.length; i++) {
 			if (keys[i] != null) {
 				nodeInfo.append(BytesUtils.toString(keys[i].getKey()));
@@ -279,6 +279,7 @@ public class HashSortingMerkleTree implements Transactional {
 				// 子节点尚未加载； 注：由于 PathNode#containChild 为 true，故此分支下 childHash 必然不为 null；
 				HashDigest childHash = parentNode.getChildHash(index);
 				childNode = loadMerkleNode(childHash);
+				parentNode.setChildNode(index, childNode);
 			}
 
 			if (childNode instanceof LeafNode) {

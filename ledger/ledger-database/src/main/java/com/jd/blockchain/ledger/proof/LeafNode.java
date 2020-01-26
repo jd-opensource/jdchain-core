@@ -28,7 +28,8 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 		this.keyHash = keyHash;
 	}
 
-	LeafNode(MerkleLeaf leaf) {
+	LeafNode(HashDigest nodeHash, MerkleLeaf leaf) {
+		this.nodeHash = nodeHash;
 		this.keyHash = leaf.getKeyHash();
 		this.keys = leaf.getKeys();
 	}
@@ -104,9 +105,8 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 		return key1.length < key2.length ? -1 : 1;
 	}
 
-	public static LeafNode create(HashDigest childHash, MerkleLeaf entry) {
-		// TODO Auto-generated method stub
-		return null;
+	public static LeafNode create(HashDigest nodeHash, MerkleLeaf leaf) {
+		return new LeafNode(nodeHash, leaf);
 	}
 
 	public long getKeyHash() {
