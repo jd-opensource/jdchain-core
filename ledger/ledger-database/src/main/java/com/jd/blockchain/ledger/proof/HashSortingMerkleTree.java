@@ -1,5 +1,6 @@
 package com.jd.blockchain.ledger.proof;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -21,10 +22,12 @@ import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.BytesUtils;
 
 public class HashSortingMerkleTree implements Transactional {
-
+	
 	public static final int TREE_DEGREE = 16;
 
 	public static final int MAX_LEVEL = 14;
+	
+	private static final Selector NULL_SELECTOR = new NullSelector();
 
 	private HashFunction hashFunc;
 
@@ -37,6 +40,18 @@ public class HashSortingMerkleTree implements Transactional {
 	private boolean readonly;
 
 	private PathNode root;
+
+	/**
+	 * 创建 Merkle 树；
+	 * 
+	 * @param rootHash     节点的根Hash; 如果指定为 null，则实际上创建一个空的 Merkle Tree；
+	 * @param verifyOnLoad 从外部存储加载节点时是否校验节点的哈希；
+	 * @param kvStorage    保存 Merkle 节点的存储服务；
+	 * @param readonly     是否只读；
+	 */
+	public HashSortingMerkleTree(CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
+		this(null, setting, keyPrefix, kvStorage, false);
+	}
 
 	/**
 	 * 创建 Merkle 树；
@@ -98,41 +113,127 @@ public class HashSortingMerkleTree implements Transactional {
 		if (root.getNodeHash() == null) {
 			return null;
 		}
-		byte[] keyBytes = BytesUtils.toBytes(key);
-		long keyHash = KeyIndexer.hash(keyBytes);
-
-		List<HashDigest> hashPaths = new LinkedList<HashDigest>();
-		hashPaths.add(root.getNodeHash());
-
-		boolean success = seekHashPaths(keyBytes, keyHash, root, 0, hashPaths);
-		if (success) {
-			return new HashArrayProof(hashPaths);
-		}
-		return null;
+		return seekProof(BytesUtils.toBytes(key));
 	}
 
-	private boolean seekHashPaths(byte[] key, long keyHash, MerklePath path, int level, List<HashDigest> hashPaths) {
+	/**
+	 * 返回指定 key 最新版本的默克尔证明；
+	 * <p>
+	 * 默克尔证明的根哈希为当前默克尔树的根哈希；<br>
+	 * 默克尔证明的数据哈希为指定 key 的最新版本的值的哈希；
+	 * <p>
+	 * 
+	 * 默克尔证明至少有 4 个哈希路径，包括：根节点哈希 + （0-N)个路径节点哈希 + 叶子节点哈希 + 数据项哈希(Key, Version,
+	 * Value) + 数据值哈希；
+	 * 
+	 * @param key
+	 * @return 默克尔证明
+	 */
+	public MerkleProof getProof(Bytes key) {
+		if (root.getNodeHash() == null) {
+			return null;
+		}
+		return seekProof(key.toBytes());
+	}
+
+	/**
+	 * 返回指定 key 最新版本的默克尔证明；
+	 * <p>
+	 * 默克尔证明的根哈希为当前默克尔树的根哈希；<br>
+	 * 默克尔证明的数据哈希为指定 key 的最新版本的值的哈希；
+	 * <p>
+	 * 
+	 * 默克尔证明至少有 4 个哈希路径，包括：根节点哈希 + （0-N)个路径节点哈希 + 叶子节点哈希 + 数据项哈希(Key, Version,
+	 * Value) + 数据值哈希；
+	 * 
+	 * @param key
+	 * @return 默克尔证明
+	 */
+	public MerkleProof getProof(byte[] key) {
+		if (root.getNodeHash() == null) {
+			return null;
+		}
+		return seekProof(key);
+	}
+
+	private MerkleProof seekProof(byte[] key) {
+		long keyHash = KeyIndexer.hash(key);
+
+		ProofSelector selector = new ProofSelector(root.getNodeHash());
+
+		MerkleData dataEntry = seekDataEntry(key, -1, keyHash, root, 0, selector);
+		if (dataEntry == null) {
+			return null;
+		}
+		selector.addProof(dataEntry.getValueHash());
+		return selector.getProof();
+	}
+
+	public MerkleData getData(String key) {
+		if (root.getNodeHash() == null) {
+			return null;
+		}
+		byte[] keyBytes = BytesUtils.toBytes(key);
+		long keyHash = KeyIndexer.hash(keyBytes);
+		MerkleData dataEntry = seekDataEntry(keyBytes, -1, keyHash, root, 0, NULL_SELECTOR);
+		return dataEntry;
+	}
+
+	public MerkleData getData(byte[] key) {
+		if (root.getNodeHash() == null) {
+			return null;
+		}
+		long keyHash = KeyIndexer.hash(key);
+		MerkleData dataEntry = seekDataEntry(key, -1, keyHash, root, 0, NULL_SELECTOR);
+		return dataEntry;
+	}
+
+	public MerkleData getData(byte[] key, long version) {
+		if (root.getNodeHash() == null) {
+			return null;
+		}
+		long keyHash = KeyIndexer.hash(key);
+		MerkleData dataEntry = seekDataEntry(key, version, keyHash, root, 0, NULL_SELECTOR);
+		return dataEntry;
+	}
+
+	public MerkleData getData(Bytes key) {
+		if (root.getNodeHash() == null) {
+			return null;
+		}
+		byte[] keyBytes = key.toBytes();
+		long keyHash = KeyIndexer.hash(keyBytes);
+
+		MerkleData dataEntry = seekDataEntry(keyBytes, -1, keyHash, root, 0, NULL_SELECTOR);
+		return dataEntry;
+	}
+
+	private MerkleData seekDataEntry(byte[] key, long version, long keyHash, MerklePath path, int level,
+			Selector selector) {
 		HashDigest[] childHashs = path.getChildHashs();
 		byte keyIndex = KeyIndexer.index(keyHash, level);
 
 		HashDigest childHash = childHashs == null ? null : childHashs[keyIndex];
 		if (childHash == null) {
-			return false;
+			return null;
 		}
 
-		hashPaths.add(childHash);
-
+		final int childLevel = level + 1;
 		MerkleElement child = null;
 		if (path instanceof PathNode) {
+			// 从内存中加载；
 			child = ((PathNode) path).getChildNode(keyIndex);
 		}
 		if (child == null) {
+			// 从存储中加载；
 			child = loadMerkleEntry(childHash);
 		}
 
+		selector.select(childHash, child, childLevel);
+
 		if (child instanceof MerklePath) {
 			// Path;
-			return seekHashPaths(key, keyHash, (MerklePath) child, level + 1, hashPaths);
+			return seekDataEntry(key, version, keyHash, (MerklePath) child, childLevel, selector);
 		}
 
 		// Leaf；
@@ -141,21 +242,50 @@ public class HashSortingMerkleTree implements Transactional {
 		MerkleKey[] merkleKeys = leaf.getKeys();
 		for (MerkleKey mkey : merkleKeys) {
 			if (BytesUtils.equals(mkey.getKey(), key)) {
+				if (version > mkey.getVersion()) {
+					// 指定的版本超出最大版本；
+					return null;
+				}
 				HashDigest dataEntryHash = mkey.getDataEntryHash();
-				hashPaths.add(dataEntryHash);
 
 				MerkleData dataEntry = null;
 				if (mkey instanceof KeyEntry) {
+					// 从内存中加载；
 					dataEntry = ((KeyEntry) mkey).getDataNode();
 				}
 				if (dataEntry == null) {
+					// 从存储中加载；
 					dataEntry = loadDataEntry(dataEntryHash);
 				}
-				hashPaths.add(dataEntry.getValueHash());
-				return true;
+
+				selector.select(dataEntryHash, dataEntry, childLevel);
+
+				if (version < 0) {
+					return dataEntry;
+				}
+
+				MerkleData previousEntry = null;
+				while (version < dataEntry.getVersion()) {
+					if (dataEntry.getPreviousEntryHash() == null) {
+						return null;
+					}
+					previousEntry = null;
+					if (dataEntry instanceof MerkleDataEntry) {
+						// 从内存中加载；
+						previousEntry = ((MerkleDataEntry) dataEntry).getPreviousEntry();
+					}
+					if (previousEntry == null) {
+						// 从存储中加载；
+						previousEntry = loadDataEntry(dataEntry.getPreviousEntryHash());
+					}
+					dataEntry = previousEntry;
+
+					selector.select(dataEntryHash, dataEntry, childLevel);
+				}
+				return dataEntry;
 			}
 		}
-		return false;
+		return null;
 	}
 
 	private MerkleData loadDataEntry(HashDigest dataEntryHash) {
@@ -258,8 +388,21 @@ public class HashSortingMerkleTree implements Transactional {
 		setData(key, version, dataHash);
 	}
 
+	public void setData(Bytes key, long version, byte[] data) {
+		HashDigest dataHash = hashFunc.hash(data);
+		setData(key, version, dataHash);
+	}
+
 	public void setData(String key, long version, HashDigest dataHash) {
-		MerkleDataEntry data = new MerkleDataEntry(BytesUtils.toBytes(key), version, dataHash);
+		setData(BytesUtils.toBytes(key), version, dataHash);
+	}
+
+	public void setData(Bytes key, long version, HashDigest dataHash) {
+		setData(key.toBytes(), version, dataHash);
+	}
+
+	public void setData(byte[] key, long version, HashDigest dataHash) {
+		MerkleDataEntry data = new MerkleDataEntry(key, version, dataHash);
 		long keyHash = KeyIndexer.hash(data.getKey());
 		addKeyNode(keyHash, data);
 	}
@@ -353,5 +496,49 @@ public class HashSortingMerkleTree implements Transactional {
 
 	private Bytes encodeNodeKey(HashDigest hashBytes) {
 		return new Bytes(keyPrefix, hashBytes.toBytes());
+	}
+
+	/**
+	 * 默克尔树的节点选择器；<br>
+	 * 
+	 * 用于在树节点的遍历中收集节点信息；
+	 * 
+	 * @author huanghaiquan
+	 *
+	 */
+	private static interface Selector {
+		void select(HashDigest hash, MerkleElement element, int level);
+	}
+	
+	private static class NullSelector implements Selector{
+		@Override
+		public void select(HashDigest hash, MerkleElement element, int level) {
+		}
+		
+	}
+	
+	
+	private static class ProofSelector implements Selector{
+		
+		private List<HashDigest> hashPaths = new ArrayList<HashDigest>();
+		
+		
+		ProofSelector(HashDigest rootHash) {
+			hashPaths.add(rootHash);
+		}
+		
+		void addProof(HashDigest hashPath) {
+			hashPaths.add(hashPath);
+		}
+		
+		
+		@Override
+		public void select(HashDigest hash, MerkleElement element, int level) {
+			hashPaths.add(hash);
+		}
+		
+		MerkleProof getProof() {
+			return new HashArrayProof(hashPaths);
+		}
 	}
 }

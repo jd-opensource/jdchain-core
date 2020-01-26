@@ -73,6 +73,10 @@ class MerkleDataEntry implements MerkleData {
 	public HashDigest getPreviousEntryHash() {
 		return previousEntryHash;
 	}
+	
+	public MerkleDataEntry getPreviousEntry() {
+		return previousEntry;
+	}
 
 	void setPreviousNode(HashDigest dataEntryHash, MerkleDataEntry dataEntry) {
 		this.previousEntryHash = dataEntryHash;

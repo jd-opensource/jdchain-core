@@ -2,6 +2,7 @@ package com.jd.blockchain.ledger.proof;
 
 import com.jd.blockchain.binaryproto.DataContract;
 import com.jd.blockchain.binaryproto.DataField;
+import com.jd.blockchain.binaryproto.NumberEncoding;
 import com.jd.blockchain.binaryproto.PrimitiveType;
 import com.jd.blockchain.consts.DataCodes;
 import com.jd.blockchain.crypto.HashDigest;
@@ -13,7 +14,7 @@ import com.jd.blockchain.crypto.HashDigest;
  *
  */
 @DataContract(code = DataCodes.MERKLE_DATA)
-interface MerkleData extends MerkleElement {
+public interface MerkleData extends MerkleElement {
 
 	/**
 	 * 键；
@@ -24,6 +25,7 @@ interface MerkleData extends MerkleElement {
 	/**
 	 * 键的版本；
 	 */
+//	@DataField(order = 2, primitiveType = PrimitiveType.INT64, numberEncoding = NumberEncoding.LONG)
 	@DataField(order = 2, primitiveType = PrimitiveType.INT64)
 	long getVersion();
 
