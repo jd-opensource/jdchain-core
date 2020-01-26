@@ -315,6 +315,26 @@ public class HashSortingMerkleTreeTest {
 		HashDigest rootHash2 = merkleTree_reload.getRootHash();
 		assertNotNull(rootHash2);
 		assertNotEquals(rootHash, rootHash2);
+		
+		
+		MerkleProof proof = merkleTree_reload.getProof(data28.getKey(), 0);
+		HashDigest[] hashPaths = proof.getHashPaths();
+		assertEquals(6, hashPaths.length);
+		
+		MerkleData data28_reload_0 = merkleTree_reload.getData(data28.getKey(), 0);
+		assertNotNull(data28_reload_0);
+		assertNull(data28_reload_0.getPreviousEntryHash());
+		assertEquals(data28.getKey(), BytesUtils.toString(data28_reload_0.getKey()));
+		assertEquals(datas[28].getVersion(), data28_reload_0.getVersion());
+		assertEquals(SHA256_HASH_FUNC.hash(datas[28].getValue()), data28_reload_0.getValueHash());
+		
+		MerkleData data28_reload_1 = merkleTree_reload.getData(data28.getKey(), 1);
+		assertNotNull(data28_reload_1);
+		assertNotNull(data28_reload_1.getPreviousEntryHash());
+		assertEquals(data28.getKey(), BytesUtils.toString(data28_reload_1.getKey()));
+		assertEquals(data28.getVersion(), data28_reload_1.getVersion());
+		assertEquals(SHA256_HASH_FUNC.hash(data28.getValue()), data28_reload_1.getValueHash());
+		
 
 		merkleTree_reload.print();
 	}

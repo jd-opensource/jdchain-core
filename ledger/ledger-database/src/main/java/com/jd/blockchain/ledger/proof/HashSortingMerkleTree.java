@@ -22,11 +22,11 @@ import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.BytesUtils;
 
 public class HashSortingMerkleTree implements Transactional {
-	
+
 	public static final int TREE_DEGREE = 16;
 
 	public static final int MAX_LEVEL = 14;
-	
+
 	private static final Selector NULL_SELECTOR = new NullSelector();
 
 	private HashFunction hashFunc;
@@ -117,6 +117,26 @@ public class HashSortingMerkleTree implements Transactional {
 	}
 
 	/**
+	 * 返回指定 key 指定版本的默克尔证明；
+	 * <p>
+	 * 默克尔证明的根哈希为当前默克尔树的根哈希；<br>
+	 * 默克尔证明的数据哈希为指定 key 的最新版本的值的哈希；
+	 * <p>
+	 * 
+	 * 默克尔证明至少有 4 个哈希路径，包括：根节点哈希 + （0-N)个路径节点哈希 + 叶子节点哈希 + 数据项哈希(Key, Version,
+	 * Value) + 数据值哈希；
+	 * 
+	 * @param key
+	 * @return 默克尔证明
+	 */
+	public MerkleProof getProof(String key, long version) {
+		if (root.getNodeHash() == null) {
+			return null;
+		}
+		return seekProof(BytesUtils.toBytes(key), version);
+	}
+
+	/**
 	 * 返回指定 key 最新版本的默克尔证明；
 	 * <p>
 	 * 默克尔证明的根哈希为当前默克尔树的根哈希；<br>
@@ -156,12 +176,36 @@ public class HashSortingMerkleTree implements Transactional {
 		return seekProof(key);
 	}
 
+	/**
+	 * 返回指定 key 指定版本的默克尔证明；
+	 * <p>
+	 * 默克尔证明的根哈希为当前默克尔树的根哈希；<br>
+	 * 默克尔证明的数据哈希为指定 key 的最新版本的值的哈希；
+	 * <p>
+	 * 
+	 * 默克尔证明至少有 4 个哈希路径，包括：根节点哈希 + （0-N)个路径节点哈希 + 叶子节点哈希 + 数据项哈希(Key, Version,
+	 * Value) + 数据值哈希；
+	 * 
+	 * @param key
+	 * @return 默克尔证明
+	 */
+	public MerkleProof getProof(byte[] key, long version) {
+		if (root.getNodeHash() == null) {
+			return null;
+		}
+		return seekProof(key, version);
+	}
+
 	private MerkleProof seekProof(byte[] key) {
+		return seekProof(key, -1);
+	}
+
+	private MerkleProof seekProof(byte[] key, long version) {
 		long keyHash = KeyIndexer.hash(key);
 
 		ProofSelector selector = new ProofSelector(root.getNodeHash());
 
-		MerkleData dataEntry = seekDataEntry(key, -1, keyHash, root, 0, selector);
+		MerkleData dataEntry = seekDataEntry(key, version, keyHash, root, 0, selector);
 		if (dataEntry == null) {
 			return null;
 		}
@@ -170,12 +214,16 @@ public class HashSortingMerkleTree implements Transactional {
 	}
 
 	public MerkleData getData(String key) {
+		return getData(key, -1);
+	}
+	
+	public MerkleData getData(String key, long version) {
 		if (root.getNodeHash() == null) {
 			return null;
 		}
 		byte[] keyBytes = BytesUtils.toBytes(key);
 		long keyHash = KeyIndexer.hash(keyBytes);
-		MerkleData dataEntry = seekDataEntry(keyBytes, -1, keyHash, root, 0, NULL_SELECTOR);
+		MerkleData dataEntry = seekDataEntry(keyBytes, version, keyHash, root, 0, NULL_SELECTOR);
 		return dataEntry;
 	}
 
@@ -509,34 +557,31 @@ public class HashSortingMerkleTree implements Transactional {
 	private static interface Selector {
 		void select(HashDigest hash, MerkleElement element, int level);
 	}
-	
-	private static class NullSelector implements Selector{
+
+	private static class NullSelector implements Selector {
 		@Override
 		public void select(HashDigest hash, MerkleElement element, int level) {
 		}
-		
+
 	}
-	
-	
-	private static class ProofSelector implements Selector{
-		
+
+	private static class ProofSelector implements Selector {
+
 		private List<HashDigest> hashPaths = new ArrayList<HashDigest>();
-		
-		
+
 		ProofSelector(HashDigest rootHash) {
 			hashPaths.add(rootHash);
 		}
-		
+
 		void addProof(HashDigest hashPath) {
 			hashPaths.add(hashPath);
 		}
-		
-		
+
 		@Override
 		public void select(HashDigest hash, MerkleElement element, int level) {
 			hashPaths.add(hash);
 		}
-		
+
 		MerkleProof getProof() {
 			return new HashArrayProof(hashPaths);
 		}
