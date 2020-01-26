@@ -1,5 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -56,8 +57,16 @@ public class HashArrayProof implements MerkleProof {
 	}
 
 	@Override
-	public boolean equals(MerkleProof obj) {
-		HashDigest[] path1 = obj.getHashPaths();
+	public int hashCode() {
+		return Arrays.hashCode(hashPaths);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (! (obj instanceof MerkleProof)) {
+			return false;
+		}
+		HashDigest[] path1 = ((MerkleProof)obj).getHashPaths();
 		if (hashPaths.length != path1.length) {
 			return false;
 		}
