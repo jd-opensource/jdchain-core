@@ -10,7 +10,7 @@ import com.jd.blockchain.ledger.core.MerkleProofException;
  * @author huanghaiquan
  *
  */
-class KeyNode implements MerkleKey {
+class KeyEntry implements MerkleKey {
 
 	private byte[] key;
 
@@ -20,19 +20,19 @@ class KeyNode implements MerkleKey {
 
 	private MerkleDataEntry dataEntry;
 
-	public KeyNode(MerkleDataEntry dataNode) {
+	public KeyEntry(MerkleDataEntry dataNode) {
 		this.key = dataNode.getKey();
 		this.version = dataNode.getVersion();
 		this.dataEntry = dataNode;
 	}
 	
-	public KeyNode(MerkleKey merkleKey) {
+	public KeyEntry(MerkleKey merkleKey) {
 		this.key = merkleKey.getKey();
 		this.version = merkleKey.getVersion();
 		this.dataEntryHash = merkleKey.getDataEntryHash();
 	}
 
-	public KeyNode(byte[] key, long version, HashDigest dataNodeHash) {
+	public KeyEntry(byte[] key, long version, HashDigest dataNodeHash) {
 		assert dataNodeHash != null;
 
 		this.key = key;
@@ -80,7 +80,6 @@ class KeyNode implements MerkleKey {
 
 		if (dataEntry != null) {
 			dataEntryHash = dataEntry.update(hashFunc, updatedListener);
-//			dataEntry = null;
 		}
 	}
 

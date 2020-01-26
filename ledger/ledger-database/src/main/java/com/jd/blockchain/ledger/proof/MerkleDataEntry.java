@@ -21,10 +21,10 @@ class MerkleDataEntry implements MerkleData {
 	 */
 	private HashDigest valueHash;
 
-	/**
-	 * 记录数据的逻辑时间戳；
-	 */
-	private long ts;
+//	/**
+//	 * 记录数据的逻辑时间戳；
+//	 */
+//	private long ts;
 
 	/**
 	 * 前一版本的数据节点哈希；
@@ -42,11 +42,11 @@ class MerkleDataEntry implements MerkleData {
 	 * @param valueHash 值的哈希；
 	 * @param ts        记录数据的逻辑时间戳；
 	 */
-	public MerkleDataEntry(byte[] key, long version, HashDigest valueHash, long ts) {
+	public MerkleDataEntry(byte[] key, long version, HashDigest valueHash) {
 		this.key = key;
 		this.version = version;
 		this.valueHash = valueHash;
-		this.ts = ts;
+//		this.ts = ts;
 	}
 
 	@Override
@@ -64,10 +64,10 @@ class MerkleDataEntry implements MerkleData {
 		return valueHash;
 	}
 
-	@Override
-	public long getTs() {
-		return ts;
-	}
+//	@Override
+//	public long getTs() {
+//		return ts;
+//	}
 
 	@Override
 	public HashDigest getPreviousEntryHash() {
@@ -82,7 +82,6 @@ class MerkleDataEntry implements MerkleData {
 	HashDigest update(HashFunction hashFunc, NodeUpdatedListener updatedListener) {
 		if (previousEntryHash == null && previousEntry != null) {
 			previousEntryHash = previousEntry.update(hashFunc, updatedListener);
-//			previousNode = null;
 		}
 		byte[] nodeBytes = BinaryProtocol.encode(this, MerkleData.class);
 		HashDigest nodeHash = hashFunc.hash(nodeBytes);

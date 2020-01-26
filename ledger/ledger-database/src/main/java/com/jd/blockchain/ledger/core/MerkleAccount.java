@@ -6,7 +6,6 @@ import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.CryptoSetting;
-import com.jd.blockchain.ledger.HashProof;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.MerkleSnapshot;
@@ -199,7 +198,7 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 	}
 
 	@Override
-	public HashProof getProof(Bytes key) {
+	public MerkleProof getProof(Bytes key) {
 		MerkleProof dataProof = dataDataset.getProof(key);
 		if (dataProof == null) {
 			return null;
@@ -208,8 +207,7 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 		if (rootProof == null) {
 			return null;
 		}
-		HashDigestList proof = new HashDigestList(rootProof);
-		proof.concat(dataProof);
+		HashArrayProof proof = new HashArrayProof(rootProof, dataProof);
 		return proof;
 	}
 

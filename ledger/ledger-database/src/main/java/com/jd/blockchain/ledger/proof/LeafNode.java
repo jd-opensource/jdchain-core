@@ -38,7 +38,7 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 			if (keyDataNode.getVersion() != 0) {
 				throw new MerkleProofException("The version of the new key is not zero!");
 			}
-			keys = new KeyNode[] { new KeyNode(keyDataNode) };
+			keys = new KeyEntry[] { new KeyEntry(keyDataNode) };
 		} else {
 			// 按升序插入新元素；
 			byte[] newKey = keyDataNode.getKey();
@@ -53,20 +53,20 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 			}
 			if (c == 0) {
 				// 更新 key 的新版本；
-				if (keys[i] instanceof KeyNode) {
-					((KeyNode) keys[i]).updateData(keyDataNode);
+				if (keys[i] instanceof KeyEntry) {
+					((KeyEntry) keys[i]).updateData(keyDataNode);
 				} else {
-					KeyNode keyNode = new KeyNode(keys[i]);
+					KeyEntry keyNode = new KeyEntry(keys[i]);
 					keyNode.updateData(keyDataNode);
 					keys[i] = keyNode;
 				}
 			} else {
 				// 插入新的 key；
-				KeyNode[] newKeyNodes = new KeyNode[count + 1];
+				KeyEntry[] newKeyNodes = new KeyEntry[count + 1];
 				if (i > 0) {
 					System.arraycopy(keys, 0, newKeyNodes, 0, i);
 				}
-				newKeyNodes[i] = new KeyNode(keyDataNode);
+				newKeyNodes[i] = new KeyEntry(keyDataNode);
 				if (i < count) {
 					System.arraycopy(keys, i, newKeyNodes, i + 1, count - i);
 				}
@@ -127,7 +127,7 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 	public long getTotalRecords() {
 		long sum = 0;
 		for (MerkleKey keyNode : keys) {
-			sum += keyNode.getVersion();
+			sum += keyNode.getVersion()+1;
 		}
 		return sum;
 	}
@@ -139,8 +139,8 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 		}
 
 		for (MerkleKey keyNode : keys) {
-			if (keyNode instanceof KeyNode) {
-				KeyNode kn = (KeyNode) keyNode;
+			if (keyNode instanceof KeyEntry) {
+				KeyEntry kn = (KeyEntry) keyNode;
 				if (kn.isModified()) {
 					kn.update(hashFunc, updatedListener);
 				}

@@ -400,7 +400,7 @@ public class MerkleTreeTest {
 		for (Long n : dataNodes.keySet()) {
 			proof = mkt.getProof(n.longValue());
 			assertNotNull(proof);
-			assertEquals(dataNodes.get(n), proof.getHash(0));
+			assertEquals(dataNodes.get(n), proof.getDataHash());
 		}
 	}
 
@@ -482,7 +482,7 @@ public class MerkleTreeTest {
 			proof = mkt.getProof(n.longValue());
 			assertNotNull(proof);
 			HashDigest expHash = dataNodes.get(n);
-			assertEquals(expHash.toBase58(), proof.getHash(0).toBase58());
+			assertEquals(expHash.toBase58(), proof.getDataHash().toBase58());
 		}
 
 	}
@@ -629,7 +629,7 @@ public class MerkleTreeTest {
 					
 					proof = r1_mkt.getProof(n);
 					assertNotNull(proof);
-					assertEquals(expectedNodeHash, proof.getHash(0));
+					assertEquals(expectedNodeHash, proof.getDataHash());
 				}
 			}
 		}
@@ -690,7 +690,7 @@ public class MerkleTreeTest {
 			for (Long n : expectedDataNodes.keySet()) {
 				proof = mkt.getProof(n.longValue());
 				assertNotNull(proof);
-				assertEquals(expectedDataNodes.get(n), proof.getHash(0));
+				assertEquals(expectedDataNodes.get(n), proof.getDataHash());
 			}
 		}
 
@@ -760,7 +760,7 @@ public class MerkleTreeTest {
 			for (Long n : expectedDataNodes.keySet()) {
 				proof = r3_mkt.getProof(n.longValue());
 				assertNotNull(proof);
-				assertEquals(expectedDataNodes.get(n), proof.getHash(0));
+				assertEquals(expectedDataNodes.get(n), proof.getDataHash());
 			}
 		}
 	}

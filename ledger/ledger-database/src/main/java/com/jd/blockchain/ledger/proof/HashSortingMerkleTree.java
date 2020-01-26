@@ -11,6 +11,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.core.HashArrayProof;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage.ExPolicy;
@@ -65,20 +66,103 @@ public class HashSortingMerkleTree implements Transactional {
 	}
 
 	private PathNode loadPathNode(HashDigest rootHash, boolean autoVerifyHash) {
-		// TODO Auto-generated method stub
-		return null;
+		return (PathNode) loadMerkleNode(rootHash);
 	}
 
 	public HashDigest getRootHash() {
 		return root.getNodeHash();
 	}
 
-	public long getDataCount() {
-		throw new IllegalStateException("Not implement");
+	public long getTotalKeys() {
+		return root.getTotalKeys();
 	}
 
-	public MerkleProof getProof(String key, long version) {
-		throw new IllegalStateException("Not implement");
+	public long getTotalRecords() {
+		return root.getTotalRecords();
+	}
+
+	/**
+	 * 返回指定 key 最新版本的默克尔证明；
+	 * <p>
+	 * 默克尔证明的根哈希为当前默克尔树的根哈希；<br>
+	 * 默克尔证明的数据哈希为指定 key 的最新版本的值的哈希；
+	 * <p>
+	 * 
+	 * 默克尔证明至少有 4 个哈希路径，包括：根节点哈希 + （0-N)个路径节点哈希 + 叶子节点哈希 + 数据项哈希(Key, Version,
+	 * Value) + 数据值哈希；
+	 * 
+	 * @param key
+	 * @return 默克尔证明
+	 */
+	public MerkleProof getProof(String key) {
+		if (root.getNodeHash() == null) {
+			return null;
+		}
+		byte[] keyBytes = BytesUtils.toBytes(key);
+		long keyHash = KeyIndexer.hash(keyBytes);
+
+		List<HashDigest> hashPaths = new LinkedList<HashDigest>();
+		hashPaths.add(root.getNodeHash());
+
+		boolean success = seekHashPaths(keyBytes, keyHash, root, 0, hashPaths);
+		if (success) {
+			return new HashArrayProof(hashPaths);
+		}
+		return null;
+	}
+
+	private boolean seekHashPaths(byte[] key, long keyHash, MerklePath path, int level, List<HashDigest> hashPaths) {
+		HashDigest[] childHashs = path.getChildHashs();
+		byte keyIndex = KeyIndexer.index(keyHash, level);
+
+		HashDigest childHash = childHashs == null ? null : childHashs[keyIndex];
+		if (childHash == null) {
+			return false;
+		}
+
+		hashPaths.add(childHash);
+
+		MerkleElement child = null;
+		if (path instanceof PathNode) {
+			child = ((PathNode) path).getChildNode(keyIndex);
+		}
+		if (child == null) {
+			child = loadMerkleEntry(childHash);
+		}
+
+		if (child instanceof MerklePath) {
+			// Path;
+			return seekHashPaths(key, keyHash, (MerklePath) child, level + 1, hashPaths);
+		}
+
+		// Leaf；
+		MerkleLeaf leaf = (MerkleLeaf) child;
+
+		MerkleKey[] merkleKeys = leaf.getKeys();
+		for (MerkleKey mkey : merkleKeys) {
+			if (BytesUtils.equals(mkey.getKey(), key)) {
+				HashDigest dataEntryHash = mkey.getDataEntryHash();
+				hashPaths.add(dataEntryHash);
+
+				MerkleData dataEntry = null;
+				if (mkey instanceof KeyEntry) {
+					dataEntry = ((KeyEntry) mkey).getDataNode();
+				}
+				if (dataEntry == null) {
+					dataEntry = loadDataEntry(dataEntryHash);
+				}
+				hashPaths.add(dataEntry.getValueHash());
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private MerkleData loadDataEntry(HashDigest dataEntryHash) {
+		Bytes key = encodeNodeKey(dataEntryHash);
+		byte[] bytes = storage.get(key);
+		MerkleData dataEntry = BinaryProtocol.decode(bytes);
+		return dataEntry;
 	}
 
 	@Override
@@ -169,13 +253,13 @@ public class HashSortingMerkleTree implements Transactional {
 		lnodes.add(nodeInfo.toString());
 	}
 
-	public void setData(String key, long version, byte[] data, long ts) {
+	public void setData(String key, long version, byte[] data) {
 		HashDigest dataHash = hashFunc.hash(data);
-		setData(key, version, dataHash, ts);
+		setData(key, version, dataHash);
 	}
 
-	public void setData(String key, long version, HashDigest dataHash, long ts) {
-		MerkleDataEntry data = new MerkleDataEntry(BytesUtils.toBytes(key), version, dataHash, ts);
+	public void setData(String key, long version, HashDigest dataHash) {
+		MerkleDataEntry data = new MerkleDataEntry(BytesUtils.toBytes(key), version, dataHash);
 		long keyHash = KeyIndexer.hash(data.getKey());
 		addKeyNode(keyHash, data);
 	}
@@ -194,15 +278,7 @@ public class HashSortingMerkleTree implements Transactional {
 			if (childNode == null) {
 				// 子节点尚未加载； 注：由于 PathNode#containChild 为 true，故此分支下 childHash 必然不为 null；
 				HashDigest childHash = parentNode.getChildHash(index);
-				MerkleElement entry = loadMerkleEntry(childHash);
-				if (entry instanceof MerkleLeaf) {
-					childNode = LeafNode.create(childHash, (MerkleLeaf) entry);
-				} else if (entry instanceof MerklePath) {
-					childNode = PathNode.create(childHash, (MerklePath) entry);
-				} else {
-					throw new IllegalStateException(
-							"Unsupported merkle entry type[" + entry.getClass().getName() + "]!");
-				}
+				childNode = loadMerkleNode(childHash);
 			}
 
 			if (childNode instanceof LeafNode) {
@@ -238,8 +314,19 @@ public class HashSortingMerkleTree implements Transactional {
 		}
 	}
 
-	private MerkleElement loadMerkleEntry(HashDigest childHash) {
-		Bytes key = encodeNodeKey(childHash);
+	private MerkleTreeNode loadMerkleNode(HashDigest nodeHash) {
+		MerkleElement entry = loadMerkleEntry(nodeHash);
+		if (entry instanceof MerkleLeaf) {
+			return LeafNode.create(nodeHash, (MerkleLeaf) entry);
+		} else if (entry instanceof MerklePath) {
+			return PathNode.create(nodeHash, (MerklePath) entry);
+		} else {
+			throw new IllegalStateException("Unsupported merkle entry type[" + entry.getClass().getName() + "]!");
+		}
+	}
+
+	private MerkleElement loadMerkleEntry(HashDigest nodeHash) {
+		Bytes key = encodeNodeKey(nodeHash);
 		byte[] bytes = storage.get(key);
 		MerkleElement entry = BinaryProtocol.decode(bytes);
 		return entry;

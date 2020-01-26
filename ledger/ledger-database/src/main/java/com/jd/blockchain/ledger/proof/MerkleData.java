@@ -34,15 +34,9 @@ interface MerkleData extends MerkleElement {
 	HashDigest getValueHash();
 
 	/**
-	 * 记录数据的逻辑时间戳；
-	 */
-	@DataField(order = 4, primitiveType = PrimitiveType.INT64)
-	long getTs();
-
-	/**
 	 * 前一版本的数据节点哈希；
 	 */
-	@DataField(order = 5, primitiveType = PrimitiveType.BYTES)
+	@DataField(order = 4, primitiveType = PrimitiveType.BYTES)
 	HashDigest getPreviousEntryHash();
 
 }

@@ -1,6 +1,10 @@
 package test.com.jd.blockchain.ledger.proof;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Array;
@@ -12,8 +16,9 @@ import java.util.Random;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.jd.blockchain.crypto.CryptoAlgorithm;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
@@ -22,14 +27,14 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.storage.service.utils.VersioningKVData;
 import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.hash.MurmurHash3;
 import com.jd.blockchain.utils.io.BytesUtils;
-import com.jd.blockchain.utils.security.SHA256Hash;
 
 public class HashSortingMerkleTreeTest {
 
 	private static final Bytes KEY_PREFIX = Bytes.fromString("/MerkleTree");
+	
+	private static final HashFunction SHA256_HASH_FUNC = Crypto.getHashFunction(ClassicAlgorithm.SHA256);
 
 	/**
 	 * 测试 Murmur3 哈希算法的不变性，即同样的输入得到完全一致的输出；
@@ -60,32 +65,92 @@ public class HashSortingMerkleTreeTest {
 		// 数据集合长度为 0 时也能正常生成；
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(0);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
-		HashDigest rootHash = buildMerkleRootHash(datas);
+		HashSortingMerkleTree merkleTree = buildMerkleTree(datas);
+		HashDigest rootHash = merkleTree.getRootHash();
 		assertNotNull(rootHash);
+
+		MerkleProof proof = merkleTree.getProof("KEY_NOT_EXIST");
+		assertNull(proof);
 
 		// 数据集合长度为 1 时也能正常生成；
 		dataList = generateDatas(1);
 		datas = toArray(dataList);
-		rootHash = buildMerkleRootHash(datas);
+		merkleTree = buildMerkleTree(datas);
+		rootHash = merkleTree.getRootHash();
 		assertNotNull(rootHash);
+		testMerkleProof(datas[0], merkleTree, 4);
 
 		// 数据集合长度为 2 时也能正常生成；
 		dataList = generateDatas(2);
 		datas = toArray(dataList);
-		rootHash = buildMerkleRootHash(datas);
+		merkleTree = buildMerkleTree(datas);
+		rootHash = merkleTree.getRootHash();
 		assertNotNull(rootHash);
+		testMerkleProof(datas[0], merkleTree, 4);
+		testMerkleProof(datas[1], merkleTree, 4);
 
 		// 数据集合长度为 100 时也能正常生成；
 		dataList = generateDatas(100);
 		datas = toArray(dataList);
-		rootHash = buildMerkleRootHash(datas);
+		merkleTree = buildMerkleTree(datas);
+		rootHash = merkleTree.getRootHash();
 		assertNotNull(rootHash);
 
 		// 数据集合长度为 1024 时也能正常生成；
 		dataList = generateDatas(1024);
 		datas = toArray(dataList);
-		rootHash = buildMerkleRootHash(datas);
+		merkleTree = buildMerkleTree(datas);
+		rootHash = merkleTree.getRootHash();
 		assertNotNull(rootHash);
+		merkleTree.print();
+		for (VersioningKVData<String, byte[]> data : datas) {
+			testMerkleProof(data, merkleTree, -1);
+		}
+		testMerkleProof1024(datas, merkleTree);
+	}
+	
+	private void testMerkleProof1024(VersioningKVData<String, byte[]>[] datas, HashSortingMerkleTree merkleTree) {
+		testMerkleProof(datas[28], merkleTree, 5);
+		testMerkleProof(datas[103], merkleTree, 5);
+		testMerkleProof(datas[637], merkleTree, 5);
+		testMerkleProof(datas[505], merkleTree, 5);
+		testMerkleProof(datas[93], merkleTree, 5);
+		testMerkleProof(datas[773], merkleTree, 5);
+		testMerkleProof(datas[163], merkleTree, 5);
+		testMerkleProof(datas[5], merkleTree, 5);
+		testMerkleProof(datas[815], merkleTree, 5);
+		testMerkleProof(datas[89], merkleTree, 5);
+		testMerkleProof(datas[854], merkleTree, 6);
+		testMerkleProof(datas[146], merkleTree, 6);
+		testMerkleProof(datas[606], merkleTree, 6);
+		testMerkleProof(datas[1003], merkleTree, 6);
+		testMerkleProof(datas[156], merkleTree, 6);
+		testMerkleProof(datas[861], merkleTree, 6);
+		testMerkleProof(datas[1018], merkleTree, 7);
+		testMerkleProof(datas[260], merkleTree, 7);
+		testMerkleProof(datas[770], merkleTree, 7);
+		testMerkleProof(datas[626], merkleTree, 7);
+		testMerkleProof(datas[182], merkleTree, 7);
+		testMerkleProof(datas[200], merkleTree, 7);
+		testMerkleProof(datas[898], merkleTree, 8);
+		testMerkleProof(datas[244], merkleTree, 8);
+		testMerkleProof(datas[275], merkleTree, 8);
+		testMerkleProof(datas[69], merkleTree, 9);
+		testMerkleProof(datas[560], merkleTree, 9);
+	}
+	
+	private void testMerkleProof(VersioningKVData<String, byte[]> data, HashSortingMerkleTree merkleTree, int expectProofPathCount) {
+		MerkleProof proof = merkleTree.getProof("KEY_NOT_EXIST");
+		assertNull(proof);
+
+		proof = merkleTree.getProof(data.getKey());
+		assertNotNull(proof);
+		HashDigest[] hashPaths = proof.getHashPaths();
+		if (expectProofPathCount > 0) {
+			assertEquals(expectProofPathCount, hashPaths.length);
+		}
+		HashDigest dataHash = SHA256_HASH_FUNC.hash(data.getValue());
+		assertEquals(dataHash, proof.getDataHash());
 	}
 
 	/**
@@ -97,7 +162,7 @@ public class HashSortingMerkleTreeTest {
 		MemoryKVStorage storage = new MemoryKVStorage();
 
 		// 数据集合长度为 100 时也能正常生成；
-		int count = 100;
+		int count = 1024;
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
@@ -105,15 +170,18 @@ public class HashSortingMerkleTreeTest {
 		HashDigest rootHash = merkleTree.getRootHash();
 		assertNotNull(rootHash);
 
-//		MerkleProof[] proofs = new MerkleProof[count];
-//		for (int i = 0; i < count; i++) {
-//			proofs[i] = merkleTree.getProof(datas[i].getKey(), 0);
-//			assertNotNull(proofs[i]);
-//		}
-//
-//		HashSortingMerkleTree merkleTree_reload = new HashSortingMerkleTree(rootHash, cryptoSetting, KEY_PREFIX,
-//				storage, false);
+		assertEquals(count, merkleTree.getTotalKeys());
+		assertEquals(count, merkleTree.getTotalRecords());
 
+		for (VersioningKVData<String, byte[]> data : datas) {
+			testMerkleProof(data, merkleTree, -1);
+		}
+		testMerkleProof1024(datas, merkleTree);
+
+		HashSortingMerkleTree merkleTree_reload = new HashSortingMerkleTree(rootHash, cryptoSetting, KEY_PREFIX,
+				storage, false);
+		assertEquals(count, merkleTree_reload.getTotalKeys());
+		assertEquals(count, merkleTree_reload.getTotalRecords());
 	}
 
 	/**
@@ -222,6 +290,7 @@ public class HashSortingMerkleTreeTest {
 	}
 
 	private static VersioningKVData<String, byte[]>[] toArray(List<VersioningKVData<String, byte[]>> dataList) {
+		@SuppressWarnings("unchecked")
 		VersioningKVData<String, byte[]>[] datas = (VersioningKVData<String, byte[]>[]) Array
 				.newInstance(VersioningKVData.class, dataList.size());
 		dataList.toArray(datas);
@@ -269,9 +338,8 @@ public class HashSortingMerkleTreeTest {
 		HashSortingMerkleTree merkleTree = new HashSortingMerkleTree(null, cryptoSetting, KEY_PREFIX, storage, false);
 		assertTrue(merkleTree.isUpdated());
 
-		long ts = 10;
 		for (int i = 0; i < datas.length; i++) {
-			merkleTree.setData(datas[i].getKey(), datas[i].getVersion(), datas[i].getValue(), ts);
+			merkleTree.setData(datas[i].getKey(), datas[i].getVersion(), datas[i].getValue());
 		}
 
 		assertTrue(merkleTree.isUpdated());
