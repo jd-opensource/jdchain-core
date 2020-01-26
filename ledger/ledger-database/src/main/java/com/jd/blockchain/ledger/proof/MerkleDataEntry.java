@@ -4,7 +4,7 @@ import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 
-class MerkleDataEntry implements MerkleData {
+public class MerkleDataEntry implements MerkleData {
 
 	/**
 	 * 键；

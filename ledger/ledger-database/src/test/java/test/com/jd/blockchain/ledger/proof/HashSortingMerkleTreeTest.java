@@ -17,6 +17,11 @@ import java.util.Random;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.blockchain.binaryproto.DataContractEncoder;
+import com.jd.blockchain.binaryproto.DataSpecification;
+import com.jd.blockchain.binaryproto.impl.DataContractContext;
+import com.jd.blockchain.consts.DataCodes;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
@@ -24,12 +29,17 @@ import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.proof.HashSortingMerkleTree;
+import com.jd.blockchain.ledger.proof.KeyEntry;
+import com.jd.blockchain.ledger.proof.MerkleData;
+import com.jd.blockchain.ledger.proof.MerkleDataEntry;
+import com.jd.blockchain.ledger.proof.MerkleKey;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.storage.service.utils.VersioningKVData;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.hash.MurmurHash3;
 import com.jd.blockchain.utils.io.BytesUtils;
+import com.jd.blockchain.utils.io.NumberMask;
 
 public class HashSortingMerkleTreeTest {
 
@@ -56,6 +66,88 @@ public class HashSortingMerkleTreeTest {
 			assertEquals(h1, hashs[0]);
 			assertEquals(h2, hashs[1]);
 		}
+	}
+
+	/**
+	 * 测试数据序列化；
+	 */
+	@Test
+	public void testDataSerialize() {
+		byte[] key = BytesUtils.toBytes("KEY-1");
+		HashDigest hashDigest = SHA256_HASH_FUNC.hash(key);
+		MerkleData merkleData = new MerkleDataEntry(key, 0, hashDigest);
+		testMerkleDataSerialize(merkleData);
+		merkleData = new MerkleDataEntry(key, 1024, hashDigest);
+		testMerkleDataSerialize(merkleData);
+		merkleData = new MerkleDataEntry(key, NumberMask.LONG.MAX_BOUNDARY_SIZE - 1, hashDigest);
+		testMerkleDataSerialize(merkleData);
+		
+		MerkleKey merkleKey = new KeyEntry(key, 0, hashDigest);
+		testMerkleKeySerialize(merkleKey);
+		merkleKey = new KeyEntry(key, 65536, hashDigest);
+		testMerkleKeySerialize(merkleKey);
+		merkleKey = new KeyEntry(key, NumberMask.LONG.MAX_BOUNDARY_SIZE - 1, hashDigest);
+		testMerkleKeySerialize(merkleKey);
+	}
+
+	private void testMerkleKeySerialize(MerkleKey data) {
+		byte[] dataBytes = BinaryProtocol.encode(data, MerkleKey.class);
+		int offset = 0;
+		int code = BytesUtils.toInt(dataBytes, offset);
+		offset += 12;
+		assertEquals(DataCodes.MERKLE_KEY, code);
+
+		byte[] dataHashBytes = data.getDataEntryHash().toBytes();
+
+		int expectedSize = 12 + NumberMask.NORMAL.getMaskLength(data.getKey().length) + data.getKey().length
+				+ NumberMask.LONG.getMaskLength(data.getVersion())
+				+ NumberMask.NORMAL.getMaskLength(dataHashBytes.length) + dataHashBytes.length;
+
+		assertEquals(expectedSize, dataBytes.length);
+
+		DataContractEncoder dataContractEncoder = DataContractContext.resolve(MerkleKey.class);
+		DataSpecification dataSpec = dataContractEncoder.getSepcification();
+		assertEquals(3, dataSpec.getFields().size());
+		assertEquals(4, dataSpec.getSlices().size());
+
+		System.out.println(dataSpec.toString());
+
+		MerkleKey dataDes = BinaryProtocol.decode(dataBytes);
+
+		assertTrue(BytesUtils.equals(data.getKey(), dataDes.getKey()));
+		assertEquals(data.getVersion(), dataDes.getVersion());
+		assertEquals(data.getDataEntryHash(), dataDes.getDataEntryHash());
+	}
+
+	private void testMerkleDataSerialize(MerkleData data) {
+		byte[] dataBytes = BinaryProtocol.encode(data, MerkleData.class);
+		int offset = 0;
+		int code = BytesUtils.toInt(dataBytes, offset);
+		offset += 12;
+		assertEquals(DataCodes.MERKLE_DATA, code);
+
+		byte[] valueHashBytes = data.getValueHash().toBytes();
+
+		int expectedSize = 12 + NumberMask.NORMAL.getMaskLength(data.getKey().length) + data.getKey().length
+				+ NumberMask.LONG.getMaskLength(data.getVersion())
+				+ NumberMask.NORMAL.getMaskLength(valueHashBytes.length) + valueHashBytes.length
+				+ NumberMask.NORMAL.getMaskLength(0);
+
+		assertEquals(expectedSize, dataBytes.length);
+
+		DataContractEncoder dataContractEncoder = DataContractContext.resolve(MerkleData.class);
+		DataSpecification dataSpec = dataContractEncoder.getSepcification();
+		assertEquals(4, dataSpec.getFields().size());
+		assertEquals(5, dataSpec.getSlices().size());
+
+		System.out.println(dataSpec.toString());
+
+		MerkleData dataDes = BinaryProtocol.decode(dataBytes);
+
+		assertTrue(BytesUtils.equals(data.getKey(), dataDes.getKey()));
+		assertEquals(data.getVersion(), dataDes.getVersion());
+		assertEquals(data.getValueHash(), dataDes.getValueHash());
+		assertEquals(data.getPreviousEntryHash(), dataDes.getPreviousEntryHash());
 	}
 
 	/**
@@ -212,18 +304,18 @@ public class HashSortingMerkleTreeTest {
 				BytesUtils.toBytes("NEW-VALUE-VERSION-1"));
 		VersioningKVData<String, byte[]> data69 = new VersioningKVData<String, byte[]>("KEY-69", 1,
 				BytesUtils.toBytes("NEW-VALUE-VERSION-1"));
-		
+
 		merkleTree_reload.setData(data28.getKey(), data28.getVersion(), data28.getValue());
 		merkleTree_reload.setData(data606.getKey(), data606.getVersion(), data606.getValue());
 		merkleTree_reload.setData(data770.getKey(), data770.getVersion(), data770.getValue());
 		merkleTree_reload.setData(data898.getKey(), data898.getVersion(), data898.getValue());
 		merkleTree_reload.setData(data69.getKey(), data69.getVersion(), data69.getValue());
-		
+
 		merkleTree_reload.commit();
 		HashDigest rootHash2 = merkleTree_reload.getRootHash();
 		assertNotNull(rootHash2);
 		assertNotEquals(rootHash, rootHash2);
-		
+
 		merkleTree_reload.print();
 	}
 

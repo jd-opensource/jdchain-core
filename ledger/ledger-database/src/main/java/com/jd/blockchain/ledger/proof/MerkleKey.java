@@ -13,8 +13,7 @@ public interface MerkleKey extends MerkleElement {
 	@DataField(order = 1, primitiveType = PrimitiveType.BYTES)
 	public byte[] getKey();
 	
-//	@DataField(order = 2, primitiveType = PrimitiveType.INT64, numberEncoding = NumberEncoding.LONG)
-	@DataField(order = 2, primitiveType = PrimitiveType.INT64)
+	@DataField(order = 2, primitiveType = PrimitiveType.INT64, numberEncoding = NumberEncoding.LONG)
 	public long getVersion();
 	
 	@DataField(order = 3, primitiveType = PrimitiveType.BYTES)

@@ -10,7 +10,7 @@ import com.jd.blockchain.ledger.core.MerkleProofException;
  * @author huanghaiquan
  *
  */
-class KeyEntry implements MerkleKey {
+public class KeyEntry implements MerkleKey {
 
 	private byte[] key;
 

@@ -25,8 +25,7 @@ public interface MerkleData extends MerkleElement {
 	/**
 	 * 键的版本；
 	 */
-//	@DataField(order = 2, primitiveType = PrimitiveType.INT64, numberEncoding = NumberEncoding.LONG)
-	@DataField(order = 2, primitiveType = PrimitiveType.INT64)
+	@DataField(order = 2, primitiveType = PrimitiveType.INT64, numberEncoding = NumberEncoding.LONG)
 	long getVersion();
 
 	/**
