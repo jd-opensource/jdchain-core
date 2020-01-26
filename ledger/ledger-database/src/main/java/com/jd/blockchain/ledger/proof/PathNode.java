@@ -3,7 +3,6 @@ package com.jd.blockchain.ledger.proof;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
-import com.jd.blockchain.ledger.MerkleNode;
 
 /**
  * 路径节点；
@@ -11,18 +10,13 @@ import com.jd.blockchain.ledger.MerkleNode;
  * @author huanghaiquan
  *
  */
-class PathNode extends AbstractMerkleNode implements MerklePath {
+class PathNode extends MerkleTreeNode implements MerklePath {
 
 	private long[] childKeys;
 	private long[] childRecords;
 	private HashDigest[] childHashs;
 
-	private transient AbstractMerkleNode[] childNodes;
-
-	@Override
-	public byte getType() {
-		return MerkleElement.PATH_NODE;
-	}
+	private transient MerkleTreeNode[] childNodes;
 
 	public PathNode(int degree) {
 		childKeys = new long[degree];
@@ -39,11 +33,6 @@ class PathNode extends AbstractMerkleNode implements MerklePath {
 		this.childHashs = path.getChildHashs();
 	}
 
-	@Override
-	public byte[] toBytes() {
-		return BinaryProtocol.encode(this, MerklePath.class);
-	}
-
 	public static PathNode resolve(HashDigest nodeHash, byte[] nodeBytes) {
 		MerklePath path = BinaryProtocol.decodeAs(nodeBytes, MerklePath.class);
 		return new PathNode(nodeHash, path);
@@ -53,9 +42,9 @@ class PathNode extends AbstractMerkleNode implements MerklePath {
 		return new PathNode(nodeHash, path);
 	}
 
-	public void setChildNode(byte index, AbstractMerkleNode childPath) {
+	public void setChildNode(byte index, MerkleTreeNode childPath) {
 		if (childNodes == null) {
-			childNodes = new AbstractMerkleNode[childHashs.length];
+			childNodes = new MerkleTreeNode[childHashs.length];
 		}
 		childNodes[index] = childPath;
 		childPath.parent = this;
@@ -94,16 +83,14 @@ class PathNode extends AbstractMerkleNode implements MerklePath {
 	}
 
 	public boolean containChild(byte keyIndex) {
-		return childHashs[keyIndex] != null;
+		return childHashs[keyIndex] != null || (childNodes != null && childNodes[keyIndex] != null);
 	}
 
-	@Override
-	public int getLevel() {
-		// TODO Auto-generated method stub
-		return 0;
+	public MerkleTreeNode getChildNode(byte index) {
+		return childNodes == null ? null : childNodes[index];
 	}
 
-	public MerkleNode[] getChildNodes() {
+	public MerkleTreeNode[] getChildNodes() {
 		return childNodes;
 	}
 
@@ -148,6 +135,11 @@ class PathNode extends AbstractMerkleNode implements MerklePath {
 		updatedListener.onUpdated(nodeHash, this, nodeBytes);
 
 		clearModified();
+	}
+
+	public void print() {
+		// TODO Auto-generated method stub
+
 	}
 
 }

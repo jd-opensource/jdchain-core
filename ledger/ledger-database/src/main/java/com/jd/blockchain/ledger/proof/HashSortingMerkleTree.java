@@ -1,12 +1,19 @@
 package com.jd.blockchain.ledger.proof;
 
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
+import com.jd.blockchain.storage.service.ExPolicyKVStorage.ExPolicy;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.Transactional;
 import com.jd.blockchain.utils.codec.Base58Utils;
@@ -38,8 +45,8 @@ public class HashSortingMerkleTree implements Transactional {
 	 * @param kvStorage    保存 Merkle 节点的存储服务；
 	 * @param readonly     是否只读；
 	 */
-	public HashSortingMerkleTree(HashDigest rootHash, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage,
-			boolean readonly) {
+	public HashSortingMerkleTree(HashDigest rootHash, CryptoSetting setting, Bytes keyPrefix,
+			ExPolicyKVStorage kvStorage, boolean readonly) {
 		this.setting = setting;
 		this.keyPrefix = keyPrefix;
 		this.storage = kvStorage;
@@ -63,7 +70,7 @@ public class HashSortingMerkleTree implements Transactional {
 	}
 
 	public HashDigest getRootHash() {
-		throw new IllegalStateException("Not implement");
+		return root.getNodeHash();
 	}
 
 	public long getDataCount() {
@@ -90,6 +97,77 @@ public class HashSortingMerkleTree implements Transactional {
 
 	}
 
+	public void print() {
+		Map<Integer, List<String>> nodes = new HashMap<Integer, List<String>>();
+		collectNodes(root, 0, nodes);
+
+		for (Integer level : nodes.keySet()) {
+			System.out.printf("--------- LEVE-%s ---------\r\n", level);
+			List<String> nodeInfos = nodes.get(level);
+			for (String nf : nodeInfos) {
+				System.out.printf("%s, ", nf);
+			}
+			System.out.printf("\r\n");
+		}
+	}
+
+	private void collectNodes(PathNode node, int level, Map<Integer, List<String>> nodes) {
+		Integer k = Integer.valueOf(level);
+		List<String> lnodes = nodes.get(k);
+		if (lnodes == null) {
+			lnodes = new LinkedList<String>();
+			nodes.put(k, lnodes);
+		}
+		MerkleTreeNode[] childNodes = node.getChildNodes();
+		if (childNodes == null) {
+			childNodes = new MerkleTreeNode[0];
+		}
+		StringBuilder nodeInfo = new StringBuilder("[P::");
+		for (int i = 0; i < childNodes.length; i++) {
+			if (childNodes[i] != null) {
+//				nodeInfo.append(" ");
+				nodeInfo.append(i);
+			}
+			if (i < childNodes.length - 1) {
+				nodeInfo.append(",");
+			}
+		}
+		nodeInfo.append("]");
+
+		lnodes.add(nodeInfo.toString());
+
+		for (int i = 0; i < childNodes.length; i++) {
+			if (childNodes[i] != null) {
+				if (childNodes[i] instanceof PathNode) {
+					collectNodes((PathNode) childNodes[i], level + 1, nodes);
+				} else {
+					collectNodes((LeafNode) childNodes[i], level + 1, nodes);
+				}
+			}
+		}
+	}
+
+	private void collectNodes(LeafNode leafNode, int level, Map<Integer, List<String>> nodes) {
+		Integer k = Integer.valueOf(level);
+		List<String> lnodes = nodes.get(k);
+		if (lnodes == null) {
+			lnodes = new LinkedList<String>();
+			nodes.put(k, lnodes);
+		}
+		MerkleKey[] keys = leafNode.getKeys();
+		StringBuilder nodeInfo = new StringBuilder(String.format("[L-%s-%s::", leafNode.getKeyHash(), keys.length));
+		for (int i = 0; i < keys.length; i++) {
+			if (keys[i] != null) {
+				nodeInfo.append(BytesUtils.toString(keys[i].getKey()));
+			}
+			if (i < keys.length - 1) {
+				nodeInfo.append(";");
+			}
+		}
+		nodeInfo.append("]");
+
+		lnodes.add(nodeInfo.toString());
+	}
 
 	public void setData(String key, long version, byte[] data, long ts) {
 		HashDigest dataHash = hashFunc.hash(data);
@@ -109,17 +187,26 @@ public class HashSortingMerkleTree implements Transactional {
 	private void addKeyNode(long keyHash, MerkleDataEntry dataEntry, PathNode parentNode, int level) {
 		byte index = KeyIndexer.index(keyHash, level);
 
-		HashDigest childHash = parentNode.getChildHash(index);
-		if (childHash == null) {
-			// 直接追加新节点；
-			LeafNode leafNode = new LeafNode(keyHash);
-			leafNode.addKeyNode(dataEntry);
-			parentNode.setChildNode(index, leafNode);
-		} else {
-			MerkleElement entry = loadMerkleEntry(childHash);
+		boolean hasChild = parentNode.containChild(index);
+		if (hasChild) {
+			// 存在子节点；
+			MerkleTreeNode childNode = parentNode.getChildNode(index);
+			if (childNode == null) {
+				// 子节点尚未加载； 注：由于 PathNode#containChild 为 true，故此分支下 childHash 必然不为 null；
+				HashDigest childHash = parentNode.getChildHash(index);
+				MerkleElement entry = loadMerkleEntry(childHash);
+				if (entry instanceof MerkleLeaf) {
+					childNode = LeafNode.create(childHash, (MerkleLeaf) entry);
+				} else if (entry instanceof MerklePath) {
+					childNode = PathNode.create(childHash, (MerklePath) entry);
+				} else {
+					throw new IllegalStateException(
+							"Unsupported merkle entry type[" + entry.getClass().getName() + "]!");
+				}
+			}
 
-			if (MerkleElement.LEAF_NODE == entry.getType()) {
-				LeafNode leafNode = LeafNode.create(childHash, (LeafNode) entry);
+			if (childNode instanceof LeafNode) {
+				LeafNode leafNode = (LeafNode) childNode;
 				if (keyHash == leafNode.getKeyHash()) {
 					// key哈希冲突，追加新key；
 					leafNode.addKeyNode(dataEntry);
@@ -135,13 +222,19 @@ public class HashSortingMerkleTree implements Transactional {
 					// 递归: 加入新的key；
 					addKeyNode(keyHash, dataEntry, newPath, level + 1);
 				}
-			} else if (MerkleElement.PATH_NODE == entry.getType()) {
-				PathNode pathNode = PathNode.create(childHash, (MerklePath) entry);
+			} else if (childNode instanceof PathNode) {
+				PathNode pathNode = (PathNode) childNode;
 				// 递归: 加入新的key；
 				addKeyNode(keyHash, dataEntry, pathNode, level + 1);
 			} else {
-				throw new IllegalStateException("Unsupported merkle entry type[" + entry.getType() + "]!");
+				throw new IllegalStateException(
+						"Unsupported merkle entry type[" + childNode.getClass().getName() + "]!");
 			}
+		} else {
+			// 直接追加新节点；
+			LeafNode leafNode = new LeafNode(keyHash);
+			leafNode.addKeyNode(dataEntry);
+			parentNode.setChildNode(index, leafNode);
 		}
 	}
 
@@ -156,10 +249,20 @@ public class HashSortingMerkleTree implements Transactional {
 		if (!pathNode.isModified()) {
 			return;
 		}
-//		pathNode.update();
+
+		pathNode.update(hashFunc, new NodeUpdatedListener() {
+
+			@Override
+			public void onUpdated(HashDigest nodeHash, MerkleElement nodeEntry, byte[] nodeBytes) {
+				Bytes key = encodeNodeKey(nodeHash);
+				boolean success = storage.set(key, nodeBytes, ExPolicy.NOT_EXISTING);
+				if (!success) {
+					throw new MerkleProofException("Merkle node already exist!");
+				}
+			}
+		});
 	}
-	
-	
+
 	private Bytes encodeNodeKey(HashDigest hashBytes) {
 		return new Bytes(keyPrefix, hashBytes.toBytes());
 	}

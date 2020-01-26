@@ -2,8 +2,6 @@ package com.jd.blockchain.ledger.proof;
 
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
-import com.jd.blockchain.ledger.MerkleNode;
-import com.jd.blockchain.utils.io.BytesSerializable;
 
 /**
  * Abstract node of merkle tree;
@@ -11,11 +9,11 @@ import com.jd.blockchain.utils.io.BytesSerializable;
  * @author huanghaiquan
  *
  */
-abstract class AbstractMerkleNode implements BytesSerializable, MerkleNode {
+abstract class MerkleTreeNode implements MerkleElement {
 
 	protected HashDigest nodeHash;
 
-	protected AbstractMerkleNode parent;
+	protected MerkleTreeNode parent;
 
 	private boolean modified;
 
@@ -41,18 +39,9 @@ abstract class AbstractMerkleNode implements BytesSerializable, MerkleNode {
 	 * 
 	 * @see com.jd.blockchain.ledger.core.MerkleNode#getNodeHash()
 	 */
-	@Override
 	public HashDigest getNodeHash() {
 		return nodeHash;
 	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.jd.blockchain.ledger.core.MerkleNode#getLevel()
-	 */
-	@Override
-	public abstract int getLevel();
 
 	/**
 	 * 根据修改重新计算节点哈希，并重置节点的修改状态({@link #isModified()})为false；

@@ -1,5 +1,10 @@
 package com.jd.blockchain.ledger.proof;
 
+import com.jd.blockchain.binaryproto.DataContract;
+import com.jd.blockchain.binaryproto.DataField;
+import com.jd.blockchain.binaryproto.NumberEncoding;
+import com.jd.blockchain.binaryproto.PrimitiveType;
+import com.jd.blockchain.consts.DataCodes;
 import com.jd.blockchain.crypto.HashDigest;
 
 /**
@@ -8,6 +13,7 @@ import com.jd.blockchain.crypto.HashDigest;
  * @author huanghaiquan
  *
  */
+@DataContract(code = DataCodes.MERKLE_PATH)
 public interface MerklePath extends MerkleElement {
 
 	/**
@@ -15,6 +21,7 @@ public interface MerklePath extends MerkleElement {
 	 * 
 	 * @return
 	 */
+	@DataField(order = 1, primitiveType = PrimitiveType.INT64, numberEncoding = NumberEncoding.LONG, list = true)
 	long[] getChildKeys();
 
 	/**
@@ -24,6 +31,7 @@ public interface MerklePath extends MerkleElement {
 	 * 
 	 * @return
 	 */
+	@DataField(order = 2, primitiveType = PrimitiveType.INT64, numberEncoding = NumberEncoding.LONG, list = true)
 	long[] getChildRecords();
 
 	/**
@@ -31,5 +39,6 @@ public interface MerklePath extends MerkleElement {
 	 * 
 	 * @return
 	 */
+	@DataField(order = 3, primitiveType = PrimitiveType.BYTES, list = true)
 	HashDigest[] getChildHashs();
 }

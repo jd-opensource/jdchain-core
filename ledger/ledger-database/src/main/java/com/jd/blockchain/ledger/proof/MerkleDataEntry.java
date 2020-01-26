@@ -48,11 +48,6 @@ class MerkleDataEntry implements MerkleData {
 		this.valueHash = valueHash;
 		this.ts = ts;
 	}
-	
-	@Override
-	public byte getType() {
-		return DATA_ENTRY;
-	}
 
 	@Override
 	public byte[] getKey() {

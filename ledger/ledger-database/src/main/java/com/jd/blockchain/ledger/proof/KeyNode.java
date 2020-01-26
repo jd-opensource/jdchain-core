@@ -40,11 +40,6 @@ class KeyNode implements MerkleKey {
 		this.dataEntryHash = dataNodeHash;
 	}
 
-	@Override
-	public byte getType() {
-		return KEY_ENTRY;
-	}
-
 	public MerkleData getDataNode() {
 		return dataEntry;
 	}

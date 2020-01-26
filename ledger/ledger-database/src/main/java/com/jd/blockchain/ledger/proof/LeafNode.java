@@ -3,7 +3,6 @@ package com.jd.blockchain.ledger.proof;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
-import com.jd.blockchain.ledger.MerkleNode;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 
 /**
@@ -12,7 +11,7 @@ import com.jd.blockchain.ledger.core.MerkleProofException;
  * @author huanghaiquan
  *
  */
-class LeafNode extends AbstractMerkleNode implements MerkleNode, MerkleLeaf {
+class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 
 	private static final MerkleKey[] EMPTY_KEYS = {};
 
@@ -34,11 +33,6 @@ class LeafNode extends AbstractMerkleNode implements MerkleNode, MerkleLeaf {
 		this.keys = leaf.getKeys();
 	}
 
-	@Override
-	public byte getType() {
-		return MerkleElement.LEAF_NODE;
-	}
-
 	public void addKeyNode(MerkleDataEntry keyDataNode) {
 		if (keys.length == 0) {
 			if (keyDataNode.getVersion() != 0) {
@@ -52,7 +46,7 @@ class LeafNode extends AbstractMerkleNode implements MerkleNode, MerkleLeaf {
 			int count = keys.length;
 			int c = -1;
 			for (; i < count; i++) {
-				c = compare(keys[i], newKey);
+				c = compare(keys[i].getKey(), newKey);
 				if (c >= 0) {
 					break;
 				}
@@ -83,10 +77,6 @@ class LeafNode extends AbstractMerkleNode implements MerkleNode, MerkleLeaf {
 		setModified();
 	}
 
-	private int compare(MerkleKey merkleKey, byte[] newKey) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
 
 	/**
 	 * Compare this key and specified key;
@@ -99,9 +89,7 @@ class LeafNode extends AbstractMerkleNode implements MerkleNode, MerkleLeaf {
 	 *         key;<br>
 	 *         Return 1 means that the current key is great than the specified key;
 	 */
-	public int compare(MerkleKey keyEntry1, MerkleKey keyEntry2) {
-		byte[] key1 = keyEntry1.getKey();
-		byte[] key2 = keyEntry2.getKey();
+	public int compare(byte[] key1, byte[] key2) {
 		int len = Math.min(key1.length, key2.length);
 		for (int i = 0; i < len; i++) {
 			if (key1[i] == key2[i]) {
@@ -116,20 +104,9 @@ class LeafNode extends AbstractMerkleNode implements MerkleNode, MerkleLeaf {
 		return key1.length < key2.length ? -1 : 1;
 	}
 
-	@Override
-	public byte[] toBytes() {
+	public static LeafNode create(HashDigest childHash, MerkleLeaf entry) {
 		// TODO Auto-generated method stub
 		return null;
-	}
-
-	public static LeafNode create(HashDigest childHash, LeafNode entry) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int getLevel() {
-		return 0;
 	}
 
 	public long getKeyHash() {
