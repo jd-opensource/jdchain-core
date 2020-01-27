@@ -1,7 +1,9 @@
 package com.jd.blockchain.ledger.proof;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +23,7 @@ import com.jd.blockchain.utils.Transactional;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.BytesUtils;
 
-public class HashSortingMerkleTree implements Transactional {
+public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData> {
 
 	public static final int TREE_DEGREE = 16;
 
@@ -249,6 +251,15 @@ public class HashSortingMerkleTree implements Transactional {
 	}
 
 	/**
+	 * 迭代器包含所有最新版本的数据项；
+	 */
+	@Override
+	public Iterator<MerkleData> iterator() {
+		MerkleDataIterator iterator = new MerkleDataIterator(root);
+		return iterator;
+	}
+
+	/**
 	 * 查找指定版本的键对应的数据项；
 	 * 
 	 * @param key
@@ -301,7 +312,7 @@ public class HashSortingMerkleTree implements Transactional {
 				if (version < 0 || version == dataEntry.getVersion()) {
 					return dataEntry;
 				}
-				
+
 				return seekPreviousData(dataEntry, version, childLevel, selector);
 			}
 		}
@@ -328,10 +339,10 @@ public class HashSortingMerkleTree implements Transactional {
 			return previousEntry;
 		}
 		if (version > previousEntry.getVersion()) {
-			//未知异常；前向的数据链的版本本应该是顺序递减 1 直至版本 0 ，发生此错误表明数据链的版本存在错误；
+			// 未知异常；前向的数据链的版本本应该是顺序递减 1 直至版本 0 ，发生此错误表明数据链的版本存在错误；
 			throw new IllegalStateException("Version is illegal in the data entry chain!");
 		}
-		
+
 		return seekPreviousData(previousEntry, version, level, selector);
 	}
 
@@ -587,4 +598,80 @@ public class HashSortingMerkleTree implements Transactional {
 			return new HashArrayProof(hashPaths);
 		}
 	}
+
+	private class MerkleDataIterator implements Iterator<MerkleData> {
+
+		// 读计数器；
+		private long totalKeys;
+
+		// 数据迭代器；
+		private Iterator<MerkleData> dataIterator;
+
+		private LinkedList<Iterator<HashDigest>> indicators = new LinkedList<>();
+
+		public MerkleDataIterator(MerklePath root) {
+			totalKeys = Arrays.stream(root.getChildKeys()).sum();
+			push(root);
+			if (totalKeys > 0) {
+				seekNextLeaf();
+			}
+		}
+
+		private void push(MerklePath node) {
+			Iterator<HashDigest> iterator = Arrays.stream(node.getChildHashs()).iterator();
+			indicators.push(iterator);
+		}
+
+		private boolean seekNextLeaf() {
+			Iterator<HashDigest> iterator = null;
+			while ((iterator = indicators.peek()) != null) {
+				HashDigest childHash = null;
+				while (iterator.hasNext()) {
+					childHash = iterator.next();
+					if (childHash != null) {
+						break;
+					}
+				}
+				if (childHash != null) {
+					MerkleElement child = loadMerkleEntry(childHash);
+					if (child instanceof MerklePath) {
+						push((MerklePath)child);
+						continue;
+					}else if (child instanceof MerkleLeaf) {
+						MerkleLeaf leaf = (MerkleLeaf)child;
+						dataIterator = Arrays.stream(leaf.getDataEntries()).iterator();
+						return true;
+					} else {
+						throw new IllegalStateException("Illegal type of merkle element! --" + child.getClass().getName());
+					}
+				} else {
+					indicators.poll();
+				}
+			}
+
+			return false;
+		}
+
+		@Override
+		public boolean hasNext() {
+			if( dataIterator != null ) {
+				if (dataIterator.hasNext()) {
+					return true;
+				}
+				dataIterator = null;
+				seekNextLeaf();
+				return dataIterator != null && dataIterator.hasNext();
+			}
+			return false;
+		}
+
+		@Override
+		public MerkleData next() {
+			if (hasNext()) {
+				return dataIterator.next();
+			}
+			return null;
+		}
+	}
+
 }

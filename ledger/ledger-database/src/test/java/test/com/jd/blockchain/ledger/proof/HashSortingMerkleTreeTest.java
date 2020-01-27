@@ -11,7 +11,10 @@ import static org.mockito.Mockito.when;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.junit.Test;
@@ -213,6 +216,37 @@ public class HashSortingMerkleTreeTest {
 		testMerkleProof1024(datas, merkleTree);
 	}
 
+	/**
+	 * 测试浏览默克尔树的所有数据节点；
+	 */
+	@Test
+	public void testDataIterator() {
+		int count = 1024;
+		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
+		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
+		HashSortingMerkleTree merkleTree = buildMerkleTree(datas);
+		HashDigest rootHash = merkleTree.getRootHash();
+		assertNotNull(rootHash);
+		assertEquals(count, merkleTree.getTotalKeys());
+		assertEquals(count, merkleTree.getTotalRecords());
+
+		Map<String, VersioningKVData<String, byte[]>> dataMap = new HashMap<String, VersioningKVData<String, byte[]>>();
+		for (VersioningKVData<String, byte[]> data : datas) {
+			dataMap.put(data.getKey(), data);
+		}
+
+		Iterator<MerkleData> dataIterator = merkleTree.iterator();
+		int c = 0;
+		while (dataIterator.hasNext()) {
+			MerkleData data = dataIterator.next();
+			assertNotNull(data);
+			String key = BytesUtils.toString(data.getKey());
+			assertTrue(dataMap.containsKey(key));
+			c++;
+		}
+		assertEquals(count, c);
+	}
+
 	private void testMerkleProof1024(VersioningKVData<String, byte[]>[] datas, HashSortingMerkleTree merkleTree) {
 		testMerkleProof(datas[28], merkleTree, 4);
 		testMerkleProof(datas[103], merkleTree, 4);
@@ -258,8 +292,8 @@ public class HashSortingMerkleTreeTest {
 		}
 		HashDigest dataHash = SHA256_HASH_FUNC.hash(data.getValue());
 		assertEquals(dataHash, proof.getDataHash());
-		assertEquals(dataHash, hashPaths[hashPaths.length-1]);
-		
+		assertEquals(dataHash, hashPaths[hashPaths.length - 1]);
+
 		HashDigest rootHash = merkleTree.getRootHash();
 		assertEquals(rootHash, proof.getRootHash());
 		assertEquals(rootHash, hashPaths[0]);
