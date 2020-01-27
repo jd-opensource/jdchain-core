@@ -651,8 +651,10 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 				return skipped;
 			}
 
-			skipDataEntry(count);
-
+			long skipped = skipDataEntry(count);
+			if (skipped < count) {
+				throw new IllegalStateException("No enough data entry to skip!");
+			}
 			cursor += count;
 
 			return count;
@@ -684,15 +686,57 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			indicators.push(new PathNodeIterator(offset, node));
 		}
 
-		private void skipDataEntry(long count) {
+		/**
+		 * 略过指定数量的数据项；
+		 * 
+		 * @param count
+		 * @return 返回实际略过的数量；
+		 */
+		private long skipDataEntry(long count) {
+			long origCount = count;
 			count -= dataIterator.skip(count);
 			if (count == 0) {
-				return;
+				return origCount;
 			}
 			PathNodeIterator iterator = null;
 			while ((iterator = indicators.peek()) != null) {
-				count -= iterator.skip(count);
+				count -= iterator.skipNext(count);
+				if (count == 0) {
+					return origCount;
+				}
+				HashDigest childHash = null;
+				while (iterator.hasNext()) {
+					childHash = iterator.next();
+					if (childHash != null) {
+						break;
+					}
+				}
+
+				if (childHash != null) {
+					MerkleElement child = loadMerkleEntry(childHash);
+					if (child instanceof MerklePath) {
+						// 路径节点；入栈后继续处理;
+						push(iterator.getChildOffset(), (MerklePath) child);
+						continue;
+					} else if (child instanceof MerkleLeaf) {
+						// 叶子节点；
+						dataIterator = new LeafNodeIterator(iterator.getChildOffset(), (MerkleLeaf) child);
+						count -= dataIterator.skip(count);
+						if (count == 0) {
+							return origCount;
+						} else {
+							continue;
+						}
+					} else {
+						throw new IllegalStateException(
+								"Illegal type of merkle element! --" + child.getClass().getName());
+					}
+				} else {
+					indicators.poll();
+				}
 			}
+
+			return origCount - count;
 		}
 
 		private boolean seekNextLeaf() {
@@ -731,7 +775,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 		private long offset;
 
-		private long totalKeys;
+		private long totalSize;
 
 		private long[] childKeys;
 
@@ -743,7 +787,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			this.offset = offset;
 			this.childHashs = node.getChildHashs();
 			this.childKeys = node.getChildKeys();
-			this.totalKeys = Arrays.stream(childKeys).sum();
+			this.totalSize = Arrays.stream(childKeys).sum();
 		}
 
 		/**
@@ -755,7 +799,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		}
 
 		public long getTotalSize() {
-			return totalKeys;
+			return totalSize;
 		}
 
 		/**
@@ -803,12 +847,22 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		 * @param count 要略过的数据项的数量；
 		 * @return 返回实际略过的数量；
 		 */
-		public long skip(long count) {
+		public long skipNext(long count) {
 			if (count < 0) {
 				throw new IllegalArgumentException("The specified count is out of bound!");
 			}
 
-			return 0;
+			// 检查从下一个区间到结尾，略过的
+			long skipped = 0;
+			int i = cursor + 1;
+			for (; i < childHashs.length; i++) {
+				if ((skipped + childKeys[i]) > count) {
+					break;
+				}
+				skipped += childKeys[i];
+			}
+			cursor = i - 1;
+			return skipped;
 		}
 	}
 

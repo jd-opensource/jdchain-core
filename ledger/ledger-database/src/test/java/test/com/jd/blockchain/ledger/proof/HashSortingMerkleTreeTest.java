@@ -32,6 +32,7 @@ import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.proof.HashSortingMerkleTree;
+import com.jd.blockchain.ledger.proof.HashSortingMerkleTree.MerkleDataIterator;
 import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.ledger.proof.MerkleDataEntry;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
@@ -236,17 +237,59 @@ public class HashSortingMerkleTreeTest {
 		}
 
 		Iterator<MerkleData> dataIterator = merkleTree.iterator();
-		int c = 0;
+		String[] dataKeys = new String[count];
+		int index = 0;
 		while (dataIterator.hasNext()) {
 			MerkleData data = dataIterator.next();
 			assertNotNull(data);
 			String key = BytesUtils.toString(data.getKey());
 			assertTrue(dataMap.containsKey(key));
 			dataMap.remove(key);
-			c++;
+			dataKeys[index] = key;
+			index++;
 		}
 		assertEquals(0, dataMap.size());
-		assertEquals(count, c);
+		assertEquals(count, index);
+		
+		MerkleDataIterator skippingIterator = merkleTree.iterator();
+		testDataIteratorSkipping(dataKeys, skippingIterator, 0);
+		
+		skippingIterator = merkleTree.iterator();
+		testDataIteratorSkipping(dataKeys, skippingIterator, 1);
+		
+		skippingIterator = merkleTree.iterator();
+		testDataIteratorSkipping(dataKeys, skippingIterator, 2);
+		
+		skippingIterator = merkleTree.iterator();
+		testDataIteratorSkipping(dataKeys, skippingIterator, 16);
+		
+		skippingIterator = merkleTree.iterator();
+		testDataIteratorSkipping(dataKeys, skippingIterator, 128);
+		
+		skippingIterator = merkleTree.iterator();
+		testDataIteratorSkipping(dataKeys, skippingIterator, 1023);
+		
+		skippingIterator = merkleTree.iterator();
+		testDataIteratorSkipping(dataKeys, skippingIterator, 1024);
+	}
+	
+	private void testDataIteratorSkipping(String[] expectedKeys, MerkleDataIterator iterator, int skip) {
+		int count = expectedKeys.length;
+		int index = skip;
+		iterator.skip(index);
+		if (skip < count) {
+			assertTrue(iterator.hasNext());
+		}else {
+			assertFalse(iterator.hasNext());
+		}
+		while (iterator.hasNext()) {
+			MerkleData data = iterator.next();
+			assertNotNull(data);
+			String key = BytesUtils.toString(data.getKey());
+			assertEquals(expectedKeys[index], key);
+			index++;
+		}
+		assertEquals(count, index);
 	}
 
 	private void testMerkleProof1024(VersioningKVData<String, byte[]>[] datas, HashSortingMerkleTree merkleTree) {
