@@ -81,7 +81,7 @@ public class HashSortingMerkleTreeTest {
 		testMerkleDataSerialize(merkleData);
 		merkleData = new MerkleDataEntry(key, NumberMask.LONG.MAX_BOUNDARY_SIZE - 1, hashDigest);
 		testMerkleDataSerialize(merkleData);
-		
+
 		MerkleKey merkleKey = new KeyEntry(key, 0, hashDigest);
 		testMerkleKeySerialize(merkleKey);
 		merkleKey = new KeyEntry(key, 65536, hashDigest);
@@ -276,8 +276,8 @@ public class HashSortingMerkleTreeTest {
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
 		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
-		HashDigest rootHash = merkleTree.getRootHash();
-		assertNotNull(rootHash);
+		HashDigest rootHash0 = merkleTree.getRootHash();
+		assertNotNull(rootHash0);
 
 		assertEquals(count, merkleTree.getTotalKeys());
 		assertEquals(count, merkleTree.getTotalRecords());
@@ -287,7 +287,7 @@ public class HashSortingMerkleTreeTest {
 		}
 		testMerkleProof1024(datas, merkleTree);
 
-		HashSortingMerkleTree merkleTree_reload = new HashSortingMerkleTree(rootHash, cryptoSetting, KEY_PREFIX,
+		HashSortingMerkleTree merkleTree_reload = new HashSortingMerkleTree(rootHash0, cryptoSetting, KEY_PREFIX,
 				storage, false);
 		assertEquals(count, merkleTree_reload.getTotalKeys());
 		assertEquals(count, merkleTree_reload.getTotalRecords());
@@ -312,31 +312,77 @@ public class HashSortingMerkleTreeTest {
 		merkleTree_reload.setData(data69.getKey(), data69.getVersion(), data69.getValue());
 
 		merkleTree_reload.commit();
-		HashDigest rootHash2 = merkleTree_reload.getRootHash();
-		assertNotNull(rootHash2);
-		assertNotEquals(rootHash, rootHash2);
-		
-		
+		HashDigest rootHash1 = merkleTree_reload.getRootHash();
+		assertNotNull(rootHash1);
+		assertNotEquals(rootHash0, rootHash1);
+
 		MerkleProof proof = merkleTree_reload.getProof(data28.getKey(), 0);
 		HashDigest[] hashPaths = proof.getHashPaths();
 		assertEquals(6, hashPaths.length);
-		
+
 		MerkleData data28_reload_0 = merkleTree_reload.getData(data28.getKey(), 0);
 		assertNotNull(data28_reload_0);
 		assertNull(data28_reload_0.getPreviousEntryHash());
 		assertEquals(data28.getKey(), BytesUtils.toString(data28_reload_0.getKey()));
 		assertEquals(datas[28].getVersion(), data28_reload_0.getVersion());
 		assertEquals(SHA256_HASH_FUNC.hash(datas[28].getValue()), data28_reload_0.getValueHash());
-		
+
 		MerkleData data28_reload_1 = merkleTree_reload.getData(data28.getKey(), 1);
 		assertNotNull(data28_reload_1);
 		assertNotNull(data28_reload_1.getPreviousEntryHash());
 		assertEquals(data28.getKey(), BytesUtils.toString(data28_reload_1.getKey()));
 		assertEquals(data28.getVersion(), data28_reload_1.getVersion());
 		assertEquals(SHA256_HASH_FUNC.hash(data28.getValue()), data28_reload_1.getValueHash());
-		
 
 		merkleTree_reload.print();
+
+		// 测试不同根哈希加载的默克尔树能够检索的最新版本；
+		HashSortingMerkleTree merkleTree_0 = new HashSortingMerkleTree(rootHash0, cryptoSetting, KEY_PREFIX, storage,
+				false);
+		HashSortingMerkleTree merkleTree_1 = new HashSortingMerkleTree(rootHash1, cryptoSetting, KEY_PREFIX, storage,
+				false);
+		MerkleData data28_reload = merkleTree_0.getData(data28.getKey());
+		assertEquals(0, data28_reload.getVersion());
+		data28_reload = merkleTree_1.getData(data28.getKey());
+		assertEquals(1, data28_reload.getVersion());
+
+		// 测试在修改状态下检索默克尔证明的正确性；
+		VersioningKVData<String, byte[]> data28_2 = new VersioningKVData<String, byte[]>("KEY-28", 2,
+				BytesUtils.toBytes("NEW-VALUE-VERSION-2"));
+
+		MerkleProof proof28_1 = merkleTree_1.getProof("KEY-28", 1);
+		MerkleProof proof606_1 = merkleTree_1.getProof("KEY-606", 1);
+		assertNotNull(proof28_1);
+		assertNotNull(proof606_1);
+
+		// 针对编号为 28 的数据加入一条新版本记录；
+		merkleTree_1.setData(data28_2.getKey(), data28_2.getVersion(), data28_2.getValue());
+
+		// 对于修改中的数据项，其默克尔证明为 null；此外，可以获得未修改的数据项的默克尔证明；
+		MerkleProof proof28_2 = merkleTree_1.getProof("KEY-28", 1);
+		MerkleProof proof606_2 = merkleTree_1.getProof("KEY-606", 1);
+		assertNull(proof28_2);
+		assertNotNull(proof606_2);
+		assertEquals(proof606_1, proof606_2);
+		
+		//当默克尔树提交修改之后，可以重新查找数据项； 
+		merkleTree_1.commit();
+		MerkleProof proof28_3 = merkleTree_1.getProof("KEY-28", 1);
+		MerkleProof proof606_3 = merkleTree_1.getProof("KEY-606", 1);
+		assertNotNull(proof28_3);
+		assertNotNull(proof606_3);
+		//由于默克尔树发生了修改，所有默克尔证明发生了改变；
+		assertFalse(proof28_1.equals(proof28_3));
+		assertFalse(proof606_1.equals(proof606_3));
+		
+		//重新加载默克尔树，默克尔证明是一致的；
+		HashSortingMerkleTree merkleTree_1_1 = new HashSortingMerkleTree(rootHash1, cryptoSetting, KEY_PREFIX, storage,
+				false);
+		MerkleProof proof28_4 = merkleTree_1_1.getProof("KEY-28", 1);
+		assertNotNull(proof28_4);
+		assertEquals(proof28_1, proof28_4);
+		
+		merkleTree_1.print();
 	}
 
 	/**

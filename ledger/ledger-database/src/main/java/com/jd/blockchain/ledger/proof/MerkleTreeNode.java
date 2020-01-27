@@ -24,6 +24,7 @@ abstract class MerkleTreeNode implements MerkleElement {
 	protected void setModified() {
 		if (!modified) {
 			modified = true;
+			nodeHash = null;
 			if (parent != null) {
 				parent.setModified();
 			}

@@ -137,9 +137,4 @@ class PathNode extends MerkleTreeNode implements MerklePath {
 		clearModified();
 	}
 
-	public void print() {
-		// TODO Auto-generated method stub
-
-	}
-
 }

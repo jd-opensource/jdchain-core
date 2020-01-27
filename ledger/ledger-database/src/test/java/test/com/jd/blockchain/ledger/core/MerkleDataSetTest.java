@@ -70,7 +70,7 @@ public class MerkleDataSetTest {
 	/**
 	 * 测试存储的增长；
 	 */
-	@Test
+//	@Test
 	public void testStorageIncreasement() {
 
 		CryptoProvider[] supportedProviders = new CryptoProvider[SUPPORTED_PROVIDERS.length];

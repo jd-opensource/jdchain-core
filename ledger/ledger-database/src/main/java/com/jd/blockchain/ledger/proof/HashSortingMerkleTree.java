@@ -39,6 +39,8 @@ public class HashSortingMerkleTree implements Transactional {
 
 	private boolean readonly;
 
+	private HashDigest rootHash;
+
 	private PathNode root;
 
 	/**
@@ -76,6 +78,7 @@ public class HashSortingMerkleTree implements Transactional {
 				throw new IllegalStateException(
 						"The root path node[" + Base58Utils.encode(rootHash.toBytes()) + "] not exist!");
 			}
+			this.rootHash = rootHash;
 			this.root = rootNode;
 		}
 	}
@@ -85,7 +88,7 @@ public class HashSortingMerkleTree implements Transactional {
 	}
 
 	public HashDigest getRootHash() {
-		return root.getNodeHash();
+		return rootHash;
 	}
 
 	public long getTotalKeys() {
@@ -110,9 +113,6 @@ public class HashSortingMerkleTree implements Transactional {
 	 * @return 默克尔证明
 	 */
 	public MerkleProof getProof(String key) {
-		if (root.getNodeHash() == null) {
-			return null;
-		}
 		return seekProof(BytesUtils.toBytes(key));
 	}
 
@@ -130,9 +130,6 @@ public class HashSortingMerkleTree implements Transactional {
 	 * @return 默克尔证明
 	 */
 	public MerkleProof getProof(String key, long version) {
-		if (root.getNodeHash() == null) {
-			return null;
-		}
 		return seekProof(BytesUtils.toBytes(key), version);
 	}
 
@@ -150,9 +147,6 @@ public class HashSortingMerkleTree implements Transactional {
 	 * @return 默克尔证明
 	 */
 	public MerkleProof getProof(Bytes key) {
-		if (root.getNodeHash() == null) {
-			return null;
-		}
 		return seekProof(key.toBytes());
 	}
 
@@ -170,9 +164,6 @@ public class HashSortingMerkleTree implements Transactional {
 	 * @return 默克尔证明
 	 */
 	public MerkleProof getProof(byte[] key) {
-		if (root.getNodeHash() == null) {
-			return null;
-		}
 		return seekProof(key);
 	}
 
@@ -190,9 +181,6 @@ public class HashSortingMerkleTree implements Transactional {
 	 * @return 默克尔证明
 	 */
 	public MerkleProof getProof(byte[] key, long version) {
-		if (root.getNodeHash() == null) {
-			return null;
-		}
 		return seekProof(key, version);
 	}
 
@@ -201,9 +189,13 @@ public class HashSortingMerkleTree implements Transactional {
 	}
 
 	private MerkleProof seekProof(byte[] key, long version) {
+		if (rootHash == null) {
+			return null;
+		}
+
 		long keyHash = KeyIndexer.hash(key);
 
-		ProofSelector selector = new ProofSelector(root.getNodeHash());
+		ProofSelector selector = new ProofSelector(rootHash);
 
 		MerkleData dataEntry = seekDataEntry(key, version, keyHash, root, 0, selector);
 		if (dataEntry == null) {
@@ -216,7 +208,7 @@ public class HashSortingMerkleTree implements Transactional {
 	public MerkleData getData(String key) {
 		return getData(key, -1);
 	}
-	
+
 	public MerkleData getData(String key, long version) {
 		if (root.getNodeHash() == null) {
 			return null;
@@ -256,6 +248,17 @@ public class HashSortingMerkleTree implements Transactional {
 		return dataEntry;
 	}
 
+	/**
+	 * 查找指定版本的键对应的数据项；
+	 * 
+	 * @param key
+	 * @param version
+	 * @param keyHash
+	 * @param path
+	 * @param level
+	 * @param selector
+	 * @return
+	 */
 	private MerkleData seekDataEntry(byte[] key, long version, long keyHash, MerklePath path, int level,
 			Selector selector) {
 		HashDigest[] childHashs = path.getChildHashs();
@@ -295,7 +298,9 @@ public class HashSortingMerkleTree implements Transactional {
 					return null;
 				}
 				HashDigest dataEntryHash = mkey.getDataEntryHash();
-
+				if (dataEntryHash == null) {
+					return null;
+				}
 				MerkleData dataEntry = null;
 				if (mkey instanceof KeyEntry) {
 					// 从内存中加载；
@@ -351,6 +356,8 @@ public class HashSortingMerkleTree implements Transactional {
 	@Override
 	public void commit() {
 		commit(root);
+
+		rootHash = root.getNodeHash();
 	}
 
 	@Override
@@ -452,14 +459,14 @@ public class HashSortingMerkleTree implements Transactional {
 	public void setData(byte[] key, long version, HashDigest dataHash) {
 		MerkleDataEntry data = new MerkleDataEntry(key, version, dataHash);
 		long keyHash = KeyIndexer.hash(data.getKey());
-		addKeyNode(keyHash, data);
+		setDataEntry(keyHash, data);
 	}
 
-	private void addKeyNode(long keyHash, MerkleDataEntry keyNode) {
-		addKeyNode(keyHash, keyNode, root, 0);
+	private void setDataEntry(long keyHash, MerkleDataEntry dataEntry) {
+		setDataEntry(keyHash, dataEntry, root, 0);
 	}
 
-	private void addKeyNode(long keyHash, MerkleDataEntry dataEntry, PathNode parentNode, int level) {
+	private void setDataEntry(long keyHash, MerkleDataEntry dataEntry, PathNode parentNode, int level) {
 		byte index = KeyIndexer.index(keyHash, level);
 
 		boolean hasChild = parentNode.containChild(index);
@@ -488,12 +495,12 @@ public class HashSortingMerkleTree implements Transactional {
 					newPath.setChildNode(idx, leafNode);
 
 					// 递归: 加入新的key；
-					addKeyNode(keyHash, dataEntry, newPath, level + 1);
+					setDataEntry(keyHash, dataEntry, newPath, level + 1);
 				}
 			} else if (childNode instanceof PathNode) {
 				PathNode pathNode = (PathNode) childNode;
 				// 递归: 加入新的key；
-				addKeyNode(keyHash, dataEntry, pathNode, level + 1);
+				setDataEntry(keyHash, dataEntry, pathNode, level + 1);
 			} else {
 				throw new IllegalStateException(
 						"Unsupported merkle entry type[" + childNode.getClass().getName() + "]!");
