@@ -242,8 +242,10 @@ public class HashSortingMerkleTreeTest {
 			assertNotNull(data);
 			String key = BytesUtils.toString(data.getKey());
 			assertTrue(dataMap.containsKey(key));
+			dataMap.remove(key);
 			c++;
 		}
+		assertEquals(0, dataMap.size());
 		assertEquals(count, c);
 	}
 
