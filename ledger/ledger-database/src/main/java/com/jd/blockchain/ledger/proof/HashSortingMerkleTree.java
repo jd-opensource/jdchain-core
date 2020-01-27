@@ -290,55 +290,49 @@ public class HashSortingMerkleTree implements Transactional {
 		// Leaf；
 		MerkleLeaf leaf = (MerkleLeaf) child;
 
-		MerkleKey[] merkleKeys = leaf.getKeys();
-		for (MerkleKey mkey : merkleKeys) {
-			if (BytesUtils.equals(mkey.getKey(), key)) {
-				if (version > mkey.getVersion()) {
+		MerkleData[] merkleKeys = leaf.getDataEntries();
+		for (MerkleData dataEntry : merkleKeys) {
+			if (BytesUtils.equals(dataEntry.getKey(), key)) {
+				if (version > dataEntry.getVersion()) {
 					// 指定的版本超出最大版本；
 					return null;
 				}
-				HashDigest dataEntryHash = mkey.getDataEntryHash();
-				if (dataEntryHash == null) {
-					return null;
-				}
-				MerkleData dataEntry = null;
-				if (mkey instanceof KeyEntry) {
-					// 从内存中加载；
-					dataEntry = ((KeyEntry) mkey).getDataNode();
-				}
-				if (dataEntry == null) {
-					// 从存储中加载；
-					dataEntry = loadDataEntry(dataEntryHash);
-				}
 
-				selector.select(dataEntryHash, dataEntry, childLevel);
-
-				if (version < 0) {
+				if (version < 0 || version == dataEntry.getVersion()) {
 					return dataEntry;
 				}
-
-				MerkleData previousEntry = null;
-				while (version < dataEntry.getVersion()) {
-					if (dataEntry.getPreviousEntryHash() == null) {
-						return null;
-					}
-					previousEntry = null;
-					if (dataEntry instanceof MerkleDataEntry) {
-						// 从内存中加载；
-						previousEntry = ((MerkleDataEntry) dataEntry).getPreviousEntry();
-					}
-					if (previousEntry == null) {
-						// 从存储中加载；
-						previousEntry = loadDataEntry(dataEntry.getPreviousEntryHash());
-					}
-					dataEntry = previousEntry;
-
-					selector.select(dataEntryHash, dataEntry, childLevel);
-				}
-				return dataEntry;
+				
+				return seekPreviousData(dataEntry, version, childLevel, selector);
 			}
 		}
 		return null;
+	}
+
+	private MerkleData seekPreviousData(MerkleData data, long version, int level, Selector selector) {
+		HashDigest previousHash = data.getPreviousEntryHash();
+		if (previousHash == null) {
+			return null;
+		}
+
+		MerkleData previousEntry = null;
+		if (data instanceof MerkleDataEntry) {
+			// 从内存中加载；
+			previousEntry = ((MerkleDataEntry) data).getPreviousEntry();
+		}
+		if (previousEntry == null) {
+			// 从存储中加载；
+			previousEntry = loadDataEntry(previousHash);
+		}
+		selector.select(previousHash, previousEntry, level);
+		if (previousEntry.getVersion() == version) {
+			return previousEntry;
+		}
+		if (version > previousEntry.getVersion()) {
+			//未知异常；前向的数据链的版本本应该是顺序递减 1 直至版本 0 ，发生此错误表明数据链的版本存在错误；
+			throw new IllegalStateException("Version is illegal in the data entry chain!");
+		}
+		
+		return seekPreviousData(previousEntry, version, level, selector);
 	}
 
 	private MerkleData loadDataEntry(HashDigest dataEntryHash) {
@@ -422,7 +416,7 @@ public class HashSortingMerkleTree implements Transactional {
 			lnodes = new LinkedList<String>();
 			nodes.put(k, lnodes);
 		}
-		MerkleKey[] keys = leafNode.getKeys();
+		MerkleData[] keys = leafNode.getDataEntries();
 		StringBuilder nodeInfo = new StringBuilder(
 				String.format("[L-%s-(k:%s;r=%s)-::", leafNode.getKeyHash(), keys.length, leafNode.getTotalRecords()));
 		for (int i = 0; i < keys.length; i++) {

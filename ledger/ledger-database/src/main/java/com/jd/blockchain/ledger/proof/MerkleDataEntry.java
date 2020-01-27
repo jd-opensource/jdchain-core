@@ -1,8 +1,7 @@
 package com.jd.blockchain.ledger.proof;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.crypto.HashFunction;
+import com.jd.blockchain.ledger.core.MerkleProofException;
 
 public class MerkleDataEntry implements MerkleData {
 
@@ -34,7 +33,7 @@ public class MerkleDataEntry implements MerkleData {
 	/**
 	 * 前一个数据节点；
 	 */
-	private MerkleDataEntry previousEntry;
+	private MerkleData previousEntry;
 
 	/**
 	 * @param key       键；
@@ -74,24 +73,33 @@ public class MerkleDataEntry implements MerkleData {
 		return previousEntryHash;
 	}
 	
-	public MerkleDataEntry getPreviousEntry() {
+	public MerkleData getPreviousEntry() {
 		return previousEntry;
 	}
-
-	void setPreviousNode(HashDigest dataEntryHash, MerkleDataEntry dataEntry) {
-		this.previousEntryHash = dataEntryHash;
-		this.previousEntry = dataEntry;
+	
+	void setPreviousEntryHash(HashDigest previousEntryHash) {
+		this.previousEntryHash = previousEntryHash;
 	}
 
-	HashDigest update(HashFunction hashFunc, NodeUpdatedListener updatedListener) {
-		if (previousEntryHash == null && previousEntry != null) {
-			previousEntryHash = previousEntry.update(hashFunc, updatedListener);
+	void setPreviousEntry(MerkleData previousData) {
+		if (previousEntryHash != null) {
+			throw new IllegalStateException("Hash of previous data entry cann't be rewrited!");
 		}
-		byte[] nodeBytes = BinaryProtocol.encode(this, MerkleData.class);
-		HashDigest nodeHash = hashFunc.hash(nodeBytes);
-		updatedListener.onUpdated(nodeHash, this, nodeBytes);
-		
-		return nodeHash;
+		if (version != previousData.getVersion() + 1) {
+			throw new MerkleProofException("The current version of data entry has not increased by 1!");
+		}
+		this.previousEntry = previousData;
 	}
+
+//	HashDigest update(HashFunction hashFunc, NodeUpdatedListener updatedListener) {
+//		if (previousEntryHash == null && previousEntry != null) {
+//			previousEntryHash = previousEntry.update(hashFunc, updatedListener);
+//		}
+//		byte[] nodeBytes = BinaryProtocol.encode(this, MerkleData.class);
+//		HashDigest nodeHash = hashFunc.hash(nodeBytes);
+//		updatedListener.onUpdated(nodeHash, this, nodeBytes);
+//		
+//		return nodeHash;
+//	}
 
 }

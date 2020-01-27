@@ -13,11 +13,11 @@ import com.jd.blockchain.ledger.core.MerkleProofException;
  */
 class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 
-	private static final MerkleKey[] EMPTY_KEYS = {};
+	private static final MerkleData[] EMPTY_ENTRIES = {};
 
 	private long keyHash;
 
-	private MerkleKey[] keys = EMPTY_KEYS;
+	private MerkleData[] dataEntries = EMPTY_ENTRIES;
 
 	/**
 	 * 创建一个新的叶子节点；
@@ -31,53 +31,59 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 	LeafNode(HashDigest nodeHash, MerkleLeaf leaf) {
 		this.nodeHash = nodeHash;
 		this.keyHash = leaf.getKeyHash();
-		this.keys = leaf.getKeys();
+		this.dataEntries = leaf.getDataEntries();
 	}
 
-	public void addKeyNode(MerkleDataEntry keyDataNode) {
-		if (keys.length == 0) {
-			if (keyDataNode.getVersion() != 0) {
+	public void addKeyNode(MerkleDataEntry dataEntry) {
+		if (dataEntries.length == 0) {
+			if (dataEntry.getVersion() != 0) {
 				throw new MerkleProofException("The version of the new key is not zero!");
 			}
-			keys = new KeyEntry[] { new KeyEntry(keyDataNode) };
+			dataEntries = new MerkleData[] { dataEntry };
 		} else {
 			// 按升序插入新元素；
-			byte[] newKey = keyDataNode.getKey();
+			byte[] newKey = dataEntry.getKey();
 			int i = 0;
-			int count = keys.length;
+			int count = dataEntries.length;
 			int c = -1;
 			for (; i < count; i++) {
-				c = compare(keys[i].getKey(), newKey);
+				c = compare(dataEntries[i].getKey(), newKey);
 				if (c >= 0) {
 					break;
 				}
 			}
 			if (c == 0) {
 				// 更新 key 的新版本；
-				if (keys[i] instanceof KeyEntry) {
-					((KeyEntry) keys[i]).updateData(keyDataNode);
-				} else {
-					KeyEntry keyNode = new KeyEntry(keys[i]);
-					keyNode.updateData(keyDataNode);
-					keys[i] = keyNode;
-				}
+//				MerkleDataEntry entry;
+//				if (dataEntries[i] instanceof MerkleDataEntry) {
+////					((KeyEntry) dataEntries[i]).updateData(dataEntry);
+//					entry = (MerkleDataEntry) dataEntries[i];
+//				} else {
+////					KeyEntry keyNode = new KeyEntry(dataEntries[i]);
+////					keyNode.updateData(dataEntry);
+////					dataEntries[i] = keyNode;
+//					entry = new MerkleDataEntry(dataEntries[i], version, valueHash)
+//				}
+
+				dataEntry.setPreviousEntry(dataEntries[i]);
+				dataEntries[i] = dataEntry;
+
 			} else {
 				// 插入新的 key；
-				KeyEntry[] newKeyNodes = new KeyEntry[count + 1];
+				MerkleData[] newDataEntries = new MerkleData[count + 1];
 				if (i > 0) {
-					System.arraycopy(keys, 0, newKeyNodes, 0, i);
+					System.arraycopy(dataEntries, 0, newDataEntries, 0, i);
 				}
-				newKeyNodes[i] = new KeyEntry(keyDataNode);
+				newDataEntries[i] = dataEntry;
 				if (i < count) {
-					System.arraycopy(keys, i, newKeyNodes, i + 1, count - i);
+					System.arraycopy(dataEntries, i, newDataEntries, i + 1, count - i);
 				}
-				keys = newKeyNodes;
+				dataEntries = newDataEntries;
 			}
 		}
 
 		setModified();
 	}
-
 
 	/**
 	 * Compare this key and specified key;
@@ -114,20 +120,20 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 	}
 
 	@Override
-	public MerkleKey[] getKeys() {
-		return keys;
+	public MerkleData[] getDataEntries() {
+		return dataEntries;
 	}
 
 	@Override
 	public long getTotalKeys() {
-		return keys.length;
+		return dataEntries.length;
 	}
 
 	@Override
 	public long getTotalRecords() {
 		long sum = 0;
-		for (MerkleKey keyNode : keys) {
-			sum += keyNode.getVersion()+1;
+		for (MerkleData dataEntry : dataEntries) {
+			sum += dataEntry.getVersion() + 1;
 		}
 		return sum;
 	}
@@ -138,11 +144,12 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 			return;
 		}
 
-		for (MerkleKey keyNode : keys) {
-			if (keyNode instanceof KeyEntry) {
-				KeyEntry kn = (KeyEntry) keyNode;
-				if (kn.isModified()) {
-					kn.update(hashFunc, updatedListener);
+		for (MerkleData data : dataEntries) {
+			if (data instanceof MerkleDataEntry) {
+				MerkleDataEntry entry = (MerkleDataEntry) data;
+				if (entry.getPreviousEntryHash() == null && entry.getPreviousEntry() != null) {
+					HashDigest entryHash = updateDataEntry(entry.getPreviousEntry(), hashFunc, updatedListener);
+					entry.setPreviousEntryHash(entryHash);
 				}
 			}
 		}
@@ -154,6 +161,22 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 		updatedListener.onUpdated(nodeHash, this, nodeBytes);
 
 		clearModified();
+	}
+
+	private HashDigest updateDataEntry(MerkleData data, HashFunction hashFunc, NodeUpdatedListener updatedListener) {
+		if (data instanceof MerkleDataEntry) {
+			MerkleDataEntry entry = (MerkleDataEntry) data;
+			if (entry.getPreviousEntryHash() == null && entry.getPreviousEntry() != null) {
+				HashDigest entryHash = updateDataEntry(entry.getPreviousEntry(), hashFunc, updatedListener);
+				entry.setPreviousEntryHash(entryHash);
+			}
+		}
+
+		byte[] nodeBytes = BinaryProtocol.encode(data, MerkleData.class);
+		HashDigest entryHash = hashFunc.hash(nodeBytes);
+		updatedListener.onUpdated(entryHash, this, nodeBytes);
+
+		return entryHash;
 	}
 
 }

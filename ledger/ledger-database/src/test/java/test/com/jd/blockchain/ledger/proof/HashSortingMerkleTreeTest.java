@@ -29,10 +29,8 @@ import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.proof.HashSortingMerkleTree;
-import com.jd.blockchain.ledger.proof.KeyEntry;
 import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.ledger.proof.MerkleDataEntry;
-import com.jd.blockchain.ledger.proof.MerkleKey;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.storage.service.utils.VersioningKVData;
@@ -82,42 +80,42 @@ public class HashSortingMerkleTreeTest {
 		merkleData = new MerkleDataEntry(key, NumberMask.LONG.MAX_BOUNDARY_SIZE - 1, hashDigest);
 		testMerkleDataSerialize(merkleData);
 
-		MerkleKey merkleKey = new KeyEntry(key, 0, hashDigest);
-		testMerkleKeySerialize(merkleKey);
-		merkleKey = new KeyEntry(key, 65536, hashDigest);
-		testMerkleKeySerialize(merkleKey);
-		merkleKey = new KeyEntry(key, NumberMask.LONG.MAX_BOUNDARY_SIZE - 1, hashDigest);
-		testMerkleKeySerialize(merkleKey);
+//		MerkleKey merkleKey = new KeyEntry(key, 0, hashDigest);
+//		testMerkleKeySerialize(merkleKey);
+//		merkleKey = new KeyEntry(key, 65536, hashDigest);
+//		testMerkleKeySerialize(merkleKey);
+//		merkleKey = new KeyEntry(key, NumberMask.LONG.MAX_BOUNDARY_SIZE - 1, hashDigest);
+//		testMerkleKeySerialize(merkleKey);
 	}
 
-	private void testMerkleKeySerialize(MerkleKey data) {
-		byte[] dataBytes = BinaryProtocol.encode(data, MerkleKey.class);
-		int offset = 0;
-		int code = BytesUtils.toInt(dataBytes, offset);
-		offset += 12;
-		assertEquals(DataCodes.MERKLE_KEY, code);
-
-		byte[] dataHashBytes = data.getDataEntryHash().toBytes();
-
-		int expectedSize = 12 + NumberMask.NORMAL.getMaskLength(data.getKey().length) + data.getKey().length
-				+ NumberMask.LONG.getMaskLength(data.getVersion())
-				+ NumberMask.NORMAL.getMaskLength(dataHashBytes.length) + dataHashBytes.length;
-
-		assertEquals(expectedSize, dataBytes.length);
-
-		DataContractEncoder dataContractEncoder = DataContractContext.resolve(MerkleKey.class);
-		DataSpecification dataSpec = dataContractEncoder.getSepcification();
-		assertEquals(3, dataSpec.getFields().size());
-		assertEquals(4, dataSpec.getSlices().size());
-
-		System.out.println(dataSpec.toString());
-
-		MerkleKey dataDes = BinaryProtocol.decode(dataBytes);
-
-		assertTrue(BytesUtils.equals(data.getKey(), dataDes.getKey()));
-		assertEquals(data.getVersion(), dataDes.getVersion());
-		assertEquals(data.getDataEntryHash(), dataDes.getDataEntryHash());
-	}
+//	private void testMerkleKeySerialize(MerkleKey data) {
+//		byte[] dataBytes = BinaryProtocol.encode(data, MerkleKey.class);
+//		int offset = 0;
+//		int code = BytesUtils.toInt(dataBytes, offset);
+//		offset += 12;
+//		assertEquals(DataCodes.MERKLE_KEY, code);
+//
+//		byte[] dataHashBytes = data.getDataEntryHash().toBytes();
+//
+//		int expectedSize = 12 + NumberMask.NORMAL.getMaskLength(data.getKey().length) + data.getKey().length
+//				+ NumberMask.LONG.getMaskLength(data.getVersion())
+//				+ NumberMask.NORMAL.getMaskLength(dataHashBytes.length) + dataHashBytes.length;
+//
+//		assertEquals(expectedSize, dataBytes.length);
+//
+//		DataContractEncoder dataContractEncoder = DataContractContext.resolve(MerkleKey.class);
+//		DataSpecification dataSpec = dataContractEncoder.getSepcification();
+//		assertEquals(3, dataSpec.getFields().size());
+//		assertEquals(4, dataSpec.getSlices().size());
+//
+//		System.out.println(dataSpec.toString());
+//
+//		MerkleKey dataDes = BinaryProtocol.decode(dataBytes);
+//
+//		assertTrue(BytesUtils.equals(data.getKey(), dataDes.getKey()));
+//		assertEquals(data.getVersion(), dataDes.getVersion());
+//		assertEquals(data.getDataEntryHash(), dataDes.getDataEntryHash());
+//	}
 
 	private void testMerkleDataSerialize(MerkleData data) {
 		byte[] dataBytes = BinaryProtocol.encode(data, MerkleData.class);
@@ -176,7 +174,7 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(1, merkleTree.getTotalKeys());
 		assertEquals(1, merkleTree.getTotalRecords());
 
-		testMerkleProof(datas[0], merkleTree, 4);
+		testMerkleProof(datas[0], merkleTree, 3);
 
 		// 数据集合长度为 2 时也能正常生成；
 		dataList = generateDatas(2);
@@ -187,8 +185,8 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(2, merkleTree.getTotalKeys());
 		assertEquals(2, merkleTree.getTotalRecords());
 
-		testMerkleProof(datas[0], merkleTree, 4);
-		testMerkleProof(datas[1], merkleTree, 4);
+		testMerkleProof(datas[0], merkleTree, 3);
+		testMerkleProof(datas[1], merkleTree, 3);
 
 		// 数据集合长度为 100 时也能正常生成；
 		dataList = generateDatas(100);
@@ -216,35 +214,35 @@ public class HashSortingMerkleTreeTest {
 	}
 
 	private void testMerkleProof1024(VersioningKVData<String, byte[]>[] datas, HashSortingMerkleTree merkleTree) {
-		testMerkleProof(datas[28], merkleTree, 5);
-		testMerkleProof(datas[103], merkleTree, 5);
-		testMerkleProof(datas[637], merkleTree, 5);
-		testMerkleProof(datas[505], merkleTree, 5);
-		testMerkleProof(datas[93], merkleTree, 5);
-		testMerkleProof(datas[773], merkleTree, 5);
-		testMerkleProof(datas[163], merkleTree, 5);
-		testMerkleProof(datas[5], merkleTree, 5);
-		testMerkleProof(datas[815], merkleTree, 5);
-		testMerkleProof(datas[89], merkleTree, 5);
-		testMerkleProof(datas[854], merkleTree, 6);
-		testMerkleProof(datas[146], merkleTree, 6);
-		testMerkleProof(datas[606], merkleTree, 6);
-		testMerkleProof(datas[1003], merkleTree, 6);
-		testMerkleProof(datas[156], merkleTree, 6);
-		testMerkleProof(datas[861], merkleTree, 6);
-		testMerkleProof(datas[1018], merkleTree, 7);
-		testMerkleProof(datas[260], merkleTree, 7);
-		testMerkleProof(datas[770], merkleTree, 7);
-		testMerkleProof(datas[626], merkleTree, 7);
-		testMerkleProof(datas[182], merkleTree, 7);
-		testMerkleProof(datas[200], merkleTree, 7);
-		testMerkleProof(datas[995], merkleTree, 8);
-		testMerkleProof(datas[583], merkleTree, 8);
-		testMerkleProof(datas[898], merkleTree, 8);
-		testMerkleProof(datas[244], merkleTree, 8);
-		testMerkleProof(datas[275], merkleTree, 8);
-		testMerkleProof(datas[69], merkleTree, 9);
-		testMerkleProof(datas[560], merkleTree, 9);
+		testMerkleProof(datas[28], merkleTree, 4);
+		testMerkleProof(datas[103], merkleTree, 4);
+		testMerkleProof(datas[637], merkleTree, 4);
+		testMerkleProof(datas[505], merkleTree, 4);
+		testMerkleProof(datas[93], merkleTree, 4);
+		testMerkleProof(datas[773], merkleTree, 4);
+		testMerkleProof(datas[163], merkleTree, 4);
+		testMerkleProof(datas[5], merkleTree, 4);
+		testMerkleProof(datas[815], merkleTree, 4);
+		testMerkleProof(datas[89], merkleTree, 4);
+		testMerkleProof(datas[854], merkleTree, 5);
+		testMerkleProof(datas[146], merkleTree, 5);
+		testMerkleProof(datas[606], merkleTree, 5);
+		testMerkleProof(datas[1003], merkleTree, 5);
+		testMerkleProof(datas[156], merkleTree, 5);
+		testMerkleProof(datas[861], merkleTree, 5);
+		testMerkleProof(datas[1018], merkleTree, 6);
+		testMerkleProof(datas[260], merkleTree, 6);
+		testMerkleProof(datas[770], merkleTree, 6);
+		testMerkleProof(datas[626], merkleTree, 6);
+		testMerkleProof(datas[182], merkleTree, 6);
+		testMerkleProof(datas[200], merkleTree, 6);
+		testMerkleProof(datas[995], merkleTree, 7);
+		testMerkleProof(datas[583], merkleTree, 7);
+		testMerkleProof(datas[898], merkleTree, 7);
+		testMerkleProof(datas[244], merkleTree, 7);
+		testMerkleProof(datas[275], merkleTree, 7);
+		testMerkleProof(datas[69], merkleTree, 8);
+		testMerkleProof(datas[560], merkleTree, 8);
 	}
 
 	private void testMerkleProof(VersioningKVData<String, byte[]> data, HashSortingMerkleTree merkleTree,
@@ -260,6 +258,11 @@ public class HashSortingMerkleTreeTest {
 		}
 		HashDigest dataHash = SHA256_HASH_FUNC.hash(data.getValue());
 		assertEquals(dataHash, proof.getDataHash());
+		assertEquals(dataHash, hashPaths[hashPaths.length-1]);
+		
+		HashDigest rootHash = merkleTree.getRootHash();
+		assertEquals(rootHash, proof.getRootHash());
+		assertEquals(rootHash, hashPaths[0]);
 	}
 
 	/**
@@ -316,9 +319,12 @@ public class HashSortingMerkleTreeTest {
 		assertNotNull(rootHash1);
 		assertNotEquals(rootHash0, rootHash1);
 
-		MerkleProof proof = merkleTree_reload.getProof(data28.getKey(), 0);
+		MerkleProof proof = merkleTree_reload.getProof(data28.getKey(), 1);
 		HashDigest[] hashPaths = proof.getHashPaths();
-		assertEquals(6, hashPaths.length);
+		assertEquals(4, hashPaths.length);
+		proof = merkleTree_reload.getProof(data28.getKey(), 0);
+		hashPaths = proof.getHashPaths();
+		assertEquals(5, hashPaths.length);
 
 		MerkleData data28_reload_0 = merkleTree_reload.getData(data28.getKey(), 0);
 		assertNotNull(data28_reload_0);
@@ -364,24 +370,30 @@ public class HashSortingMerkleTreeTest {
 		assertNull(proof28_2);
 		assertNotNull(proof606_2);
 		assertEquals(proof606_1, proof606_2);
-		
-		//当默克尔树提交修改之后，可以重新查找数据项； 
+
+		// 当默克尔树提交修改之后，可以重新查找数据项； 
 		merkleTree_1.commit();
 		MerkleProof proof28_3 = merkleTree_1.getProof("KEY-28", 1);
 		MerkleProof proof606_3 = merkleTree_1.getProof("KEY-606", 1);
 		assertNotNull(proof28_3);
 		assertNotNull(proof606_3);
-		//由于默克尔树发生了修改，所有默克尔证明发生了改变；
+		// 由于默克尔树发生了修改，所有默克尔证明发生了改变；
 		assertFalse(proof28_1.equals(proof28_3));
 		assertFalse(proof606_1.equals(proof606_3));
-		
-		//重新加载默克尔树，默克尔证明是一致的；
+
+		// 验证默克尔证明的长度增长；
+		MerkleProof proof28_5 = merkleTree_1.getProof("KEY-28", 0);
+		assertNotNull(proof28_5);
+		hashPaths = proof28_5.getHashPaths();
+		assertEquals(6, hashPaths.length);
+
+		// 重新加载默克尔树，默克尔证明是一致的；
 		HashSortingMerkleTree merkleTree_1_1 = new HashSortingMerkleTree(rootHash1, cryptoSetting, KEY_PREFIX, storage,
 				false);
 		MerkleProof proof28_4 = merkleTree_1_1.getProof("KEY-28", 1);
 		assertNotNull(proof28_4);
 		assertEquals(proof28_1, proof28_4);
-		
+
 		merkleTree_1.print();
 	}
 

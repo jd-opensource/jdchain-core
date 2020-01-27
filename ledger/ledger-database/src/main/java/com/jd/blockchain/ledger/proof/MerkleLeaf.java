@@ -18,6 +18,6 @@ public interface MerkleLeaf extends MerkleElement{
 	long getKeyHash();
 
 	@DataField(order = 2, refContract = true, list = true)
-	MerkleKey[] getKeys();
+	MerkleData[] getDataEntries();
 
 }
