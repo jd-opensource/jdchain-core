@@ -45,7 +45,7 @@ public class TransactionSetTest {
 
 		// Create a new TransactionSet, it's empty;
 		TransactionSet txset = new TransactionSet(defCryptoSetting, keyPrefix, testStorage, testStorage);
-		assertFalse(txset.isUpdated());
+		assertTrue(txset.isUpdated());
 		assertFalse(txset.isReadonly());
 		assertNull(txset.getRootHash());
 

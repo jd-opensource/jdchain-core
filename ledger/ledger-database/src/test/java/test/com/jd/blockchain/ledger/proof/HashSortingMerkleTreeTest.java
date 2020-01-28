@@ -83,43 +83,7 @@ public class HashSortingMerkleTreeTest {
 		testMerkleDataSerialize(merkleData);
 		merkleData = new MerkleDataEntry(key, NumberMask.LONG.MAX_BOUNDARY_SIZE - 1, hashDigest);
 		testMerkleDataSerialize(merkleData);
-
-//		MerkleKey merkleKey = new KeyEntry(key, 0, hashDigest);
-//		testMerkleKeySerialize(merkleKey);
-//		merkleKey = new KeyEntry(key, 65536, hashDigest);
-//		testMerkleKeySerialize(merkleKey);
-//		merkleKey = new KeyEntry(key, NumberMask.LONG.MAX_BOUNDARY_SIZE - 1, hashDigest);
-//		testMerkleKeySerialize(merkleKey);
 	}
-
-//	private void testMerkleKeySerialize(MerkleKey data) {
-//		byte[] dataBytes = BinaryProtocol.encode(data, MerkleKey.class);
-//		int offset = 0;
-//		int code = BytesUtils.toInt(dataBytes, offset);
-//		offset += 12;
-//		assertEquals(DataCodes.MERKLE_KEY, code);
-//
-//		byte[] dataHashBytes = data.getDataEntryHash().toBytes();
-//
-//		int expectedSize = 12 + NumberMask.NORMAL.getMaskLength(data.getKey().length) + data.getKey().length
-//				+ NumberMask.LONG.getMaskLength(data.getVersion())
-//				+ NumberMask.NORMAL.getMaskLength(dataHashBytes.length) + dataHashBytes.length;
-//
-//		assertEquals(expectedSize, dataBytes.length);
-//
-//		DataContractEncoder dataContractEncoder = DataContractContext.resolve(MerkleKey.class);
-//		DataSpecification dataSpec = dataContractEncoder.getSepcification();
-//		assertEquals(3, dataSpec.getFields().size());
-//		assertEquals(4, dataSpec.getSlices().size());
-//
-//		System.out.println(dataSpec.toString());
-//
-//		MerkleKey dataDes = BinaryProtocol.decode(dataBytes);
-//
-//		assertTrue(BytesUtils.equals(data.getKey(), dataDes.getKey()));
-//		assertEquals(data.getVersion(), dataDes.getVersion());
-//		assertEquals(data.getDataEntryHash(), dataDes.getDataEntryHash());
-//	}
 
 	private void testMerkleDataSerialize(MerkleData data) {
 		byte[] dataBytes = BinaryProtocol.encode(data, MerkleData.class);
@@ -150,6 +114,59 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(data.getVersion(), dataDes.getVersion());
 		assertEquals(data.getValueHash(), dataDes.getValueHash());
 		assertEquals(data.getPreviousEntryHash(), dataDes.getPreviousEntryHash());
+	}
+
+	@Test
+	public void testReadUncommitting() {
+		// 数据集合长度为 1024 时也能正常生成；
+		int count = 1024;
+		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
+		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
+
+		HashSortingMerkleTree merkleTree = buildMerkleTree(datas, false);
+
+		// 未提交之前查不到信息；
+		assertNull(merkleTree.getRootHash());
+		assertEquals(0, merkleTree.getTotalKeys());
+		assertEquals(0, merkleTree.getTotalRecords());
+		MerkleData dt = merkleTree.getData("KEY-69");
+		assertNotNull(dt);
+		assertEquals(0, dt.getVersion());
+		dt = merkleTree.getData("KEY-69", 0);
+		assertNotNull(dt);
+		assertEquals(0, dt.getVersion());
+
+		dt = merkleTree.getData("KEY-69", 1);
+		assertNull(dt);
+
+		VersioningKVData<String, byte[]> data69 = new VersioningKVData<String, byte[]>("KEY-69", 1,
+				BytesUtils.toBytes("NEW-VALUE-VERSION-1"));
+		merkleTree.setData(data69.getKey(), data69.getVersion(), data69.getValue());
+
+		dt = merkleTree.getData("KEY-69", 1);
+		assertNotNull(dt);
+		assertEquals(1, dt.getVersion());
+
+		merkleTree.commit();
+
+		HashDigest rootHash = merkleTree.getRootHash();
+		assertNotNull(rootHash);
+		assertEquals(count, merkleTree.getTotalKeys());
+		assertEquals(count + 1, merkleTree.getTotalRecords()); // 由于 KEY-69 写入了 2 个版本的记录；
+		dt = merkleTree.getData("KEY-69");
+		assertNotNull(dt);
+		assertEquals(1, dt.getVersion());
+		dt = merkleTree.getData("KEY-69", 0);
+		assertNotNull(dt);
+		assertEquals(0, dt.getVersion());
+		dt = merkleTree.getData("KEY-69", 1);
+		assertNotNull(dt);
+		assertEquals(1, dt.getVersion());
+
+		merkleTree.print();
+		for (VersioningKVData<String, byte[]> data : datas) {
+			testMerkleProof(data, merkleTree, -1);
+		}
 	}
 
 	/**
@@ -202,19 +219,35 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(100, merkleTree.getTotalRecords());
 
 		// 数据集合长度为 1024 时也能正常生成；
-		dataList = generateDatas(1024);
+		int count = 1024;
+		dataList = generateDatas(count);
 		datas = toArray(dataList);
 		merkleTree = buildMerkleTree(datas);
 		rootHash = merkleTree.getRootHash();
 		assertNotNull(rootHash);
-		assertEquals(1024, merkleTree.getTotalKeys());
-		assertEquals(1024, merkleTree.getTotalRecords());
+		assertEquals(count, merkleTree.getTotalKeys());
+		assertEquals(count, merkleTree.getTotalRecords());
 
 		merkleTree.print();
 		for (VersioningKVData<String, byte[]> data : datas) {
 			testMerkleProof(data, merkleTree, -1);
 		}
 		testMerkleProof1024(datas, merkleTree);
+
+		// 数据集合长度为 20000 时也能正常生成；
+		count = 20000;
+		dataList = generateDatas(count);
+		datas = toArray(dataList);
+		merkleTree = buildMerkleTree(datas);
+		rootHash = merkleTree.getRootHash();
+		assertNotNull(rootHash);
+		assertEquals(count, merkleTree.getTotalKeys());
+		assertEquals(count, merkleTree.getTotalRecords());
+
+		merkleTree.print();
+		for (VersioningKVData<String, byte[]> data : datas) {
+			testMerkleProof(data, merkleTree, -1);
+		}
 	}
 
 	/**
@@ -250,36 +283,36 @@ public class HashSortingMerkleTreeTest {
 		}
 		assertEquals(0, dataMap.size());
 		assertEquals(count, index);
-		
+
 		MerkleDataIterator skippingIterator = merkleTree.iterator();
 		testDataIteratorSkipping(dataKeys, skippingIterator, 0);
-		
+
 		skippingIterator = merkleTree.iterator();
 		testDataIteratorSkipping(dataKeys, skippingIterator, 1);
-		
+
 		skippingIterator = merkleTree.iterator();
 		testDataIteratorSkipping(dataKeys, skippingIterator, 2);
-		
+
 		skippingIterator = merkleTree.iterator();
 		testDataIteratorSkipping(dataKeys, skippingIterator, 16);
-		
+
 		skippingIterator = merkleTree.iterator();
 		testDataIteratorSkipping(dataKeys, skippingIterator, 128);
-		
+
 		skippingIterator = merkleTree.iterator();
 		testDataIteratorSkipping(dataKeys, skippingIterator, 1023);
-		
+
 		skippingIterator = merkleTree.iterator();
 		testDataIteratorSkipping(dataKeys, skippingIterator, 1024);
 	}
-	
+
 	private void testDataIteratorSkipping(String[] expectedKeys, MerkleDataIterator iterator, int skip) {
 		int count = expectedKeys.length;
 		int index = skip;
 		iterator.skip(index);
 		if (skip < count) {
 			assertTrue(iterator.hasNext());
-		}else {
+		} else {
 			assertFalse(iterator.hasNext());
 		}
 		while (iterator.hasNext()) {
@@ -329,7 +362,7 @@ public class HashSortingMerkleTreeTest {
 		MerkleProof proof = merkleTree.getProof("KEY_NOT_EXIST");
 		assertNull(proof);
 
-		proof = merkleTree.getProof(data.getKey());
+		proof = merkleTree.getProof(data.getKey(), data.getVersion());
 		assertNotNull(proof);
 		HashDigest[] hashPaths = proof.getHashPaths();
 		if (expectProofPathCount > 0) {
@@ -622,11 +655,23 @@ public class HashSortingMerkleTreeTest {
 		CryptoSetting cryptoSetting = createCryptoSetting();
 		MemoryKVStorage storage = new MemoryKVStorage();
 
-		return newMerkleTree(datas, cryptoSetting, storage);
+		return newMerkleTree(datas, cryptoSetting, storage, true);
+	}
+
+	private HashSortingMerkleTree buildMerkleTree(VersioningKVData<String, byte[]>[] datas, boolean commit) {
+		CryptoSetting cryptoSetting = createCryptoSetting();
+		MemoryKVStorage storage = new MemoryKVStorage();
+
+		return newMerkleTree(datas, cryptoSetting, storage, commit);
 	}
 
 	private HashSortingMerkleTree newMerkleTree(VersioningKVData<String, byte[]>[] datas, CryptoSetting cryptoSetting,
 			ExPolicyKVStorage storage) {
+		return newMerkleTree(datas, cryptoSetting, storage, true);
+	}
+
+	private HashSortingMerkleTree newMerkleTree(VersioningKVData<String, byte[]>[] datas, CryptoSetting cryptoSetting,
+			ExPolicyKVStorage storage, boolean commit) {
 		HashSortingMerkleTree merkleTree = new HashSortingMerkleTree(null, cryptoSetting, KEY_PREFIX, storage, false);
 		assertTrue(merkleTree.isUpdated());
 
@@ -636,9 +681,10 @@ public class HashSortingMerkleTreeTest {
 
 		assertTrue(merkleTree.isUpdated());
 
-		merkleTree.commit();
-
-		assertFalse(merkleTree.isUpdated());
+		if (commit) {
+			merkleTree.commit();
+			assertFalse(merkleTree.isUpdated());
+		}
 
 //		merkleTree.print();
 //		System.out.println("---- end tree ----\r\n");

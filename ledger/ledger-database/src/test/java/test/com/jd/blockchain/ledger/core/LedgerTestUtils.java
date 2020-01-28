@@ -183,12 +183,12 @@ public class LedgerTestUtils {
 		BlockchainKeypair testKey = BlockchainKeyGenerator.getInstance().generate();
 		txBuilder.dataAccount(testKey.getAddress()).setBytes("AA", "Value".getBytes(), 1);
 
-		TransactionRequestBuilder txReqBuilder = txBuilder.prepareRequest();
+		TransactionRequestBuilder txReqBuilder = txBuilder.prepareRequest(87329839232L);
 		txReqBuilder.signAsEndpoint(nodeKeypair);
 		if (nodeKeypair != null) {
 			txReqBuilder.signAsNode(nodeKeypair);
 		}
-
+		
 		return txReqBuilder.buildRequest();
 	}
 

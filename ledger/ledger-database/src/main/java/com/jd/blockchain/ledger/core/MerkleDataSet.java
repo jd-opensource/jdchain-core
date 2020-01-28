@@ -4,6 +4,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.proof.HashSortingMerkleTree;
+import com.jd.blockchain.ledger.proof.HashSortingMerkleTree.MerkleDataIterator;
 import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
@@ -138,7 +139,8 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 		// MerkleTree 本身是可缓冲的；
 		merkleKeyPrefix = keyPrefix.concat(MERKLE_TREE_PREFIX);
 		ExPolicyKVStorage merkleTreeStorage = exPolicyStorage;
-		this.merkleTree = new HashSortingMerkleTree(merkleRootHash, setting, merkleKeyPrefix, merkleTreeStorage, readonly);
+		this.merkleTree = new HashSortingMerkleTree(merkleRootHash, setting, merkleKeyPrefix, merkleTreeStorage,
+				readonly);
 
 		this.readonly = readonly;
 	}
@@ -166,60 +168,66 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 //	}
 
 	public byte[][] getLatestValues(long fromIndex, int count) {
-//		if (count > LedgerConsts.MAX_LIST_COUNT) {
-//			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
-//		}
-//		if (fromIndex < 0 || (fromIndex + count) > merkleTree.getDataCount()) {
-//			throw new IllegalArgumentException("Index out of bound!");
-//		}
-//		byte[][] values = new byte[count][];
-//		for (int i = 0; i < count; i++) {
-//			MerkleDataNode dataNode = merkleTree.getData(fromIndex + i);
-//			Bytes dataKey = encodeDataKey(dataNode.getKey());
-//			values[i] = valueStorage.get(dataKey, dataNode.getVersion());
-//		}
-//		return values;
-		
-		throw new IllegalStateException("Not implement!");
+		if (count > LedgerConsts.MAX_LIST_COUNT) {
+			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
+		}
+		if (fromIndex < 0 || (fromIndex + count) > merkleTree.getDataCount()) {
+			throw new IllegalArgumentException("The specified from-index and count are out of bound!");
+		}
+		byte[][] values = new byte[count][];
+		MerkleDataIterator iterator = merkleTree.iterator();
+		iterator.skip(fromIndex);
+		for (int i = 0; i < count && iterator.hasNext(); i++) {
+			MerkleData dataNode = iterator.next();
+			Bytes dataKey = encodeDataKey(dataNode.getKey());
+			values[i] = valueStorage.get(dataKey, dataNode.getVersion());
+		}
+		return values;
+
 	}
 
 	public DataEntry<Bytes, byte[]>[] getLatestDataEntries(long fromIndex, int count) {
-//		if (count > LedgerConsts.MAX_LIST_COUNT) {
-//			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
-//		}
-//		if (fromIndex < 0 || (fromIndex + count) > merkleTree.getDataCount()) {
-//			throw new IllegalArgumentException("Index out of bound!");
-//		}
-//		if (count == 0) {
-//			return EMPTY_ENTRIES;
-//		}
-//		@SuppressWarnings("unchecked")
-//		DataEntry<Bytes, byte[]>[] values = new DataEntry[count];
-//		byte[] bytesValue;
-//		for (int i = 0; i < count; i++) {
-//			MerkleDataNode dataNode = merkleTree.getData(fromIndex + i);
-//			Bytes dataKey = encodeDataKey(dataNode.getKey());
-//			bytesValue = valueStorage.get(dataKey, dataNode.getVersion());
-//			values[i] = new VersioningKVData<Bytes, byte[]>(dataNode.getKey(), dataNode.getVersion(), bytesValue);
-//		}
-//		return values;
-		
-		throw new IllegalStateException("Not implement!");
+		if (count > LedgerConsts.MAX_LIST_COUNT) {
+			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
+		}
+		if (fromIndex < 0 || (fromIndex + count) > merkleTree.getDataCount()) {
+			throw new IllegalArgumentException("Index out of bound!");
+		}
+		if (count == 0) {
+			return EMPTY_ENTRIES;
+		}
+		@SuppressWarnings("unchecked")
+		DataEntry<Bytes, byte[]>[] values = new DataEntry[count];
+		byte[] bytesValue;
+
+		MerkleDataIterator iterator = merkleTree.iterator();
+		iterator.skip(fromIndex);
+		for (int i = 0; i < count && iterator.hasNext(); i++) {
+			MerkleData dataNode = iterator.next();
+			Bytes dataKey = encodeDataKey(dataNode.getKey());
+			bytesValue = valueStorage.get(dataKey, dataNode.getVersion());
+			values[i] = new VersioningKVData<Bytes, byte[]>(new Bytes(dataNode.getKey()), dataNode.getVersion(),
+					bytesValue);
+		}
+		return values;
 	}
 
 	public DataEntry<Bytes, byte[]> getLatestDataEntry(long index) {
-//		if (index < 0 || index + 1 > merkleTree.getDataCount()) {
-//			throw new IllegalArgumentException("Index out of bound!");
-//		}
-//		byte[] bytesValue;
-//		MerkleDataNode dataNode = merkleTree.getData(index);
-//		Bytes dataKey = encodeDataKey(dataNode.getKey());
-//		bytesValue = valueStorage.get(dataKey, dataNode.getVersion());
-//		DataEntry<Bytes, byte[]> entry = new VersioningKVData<Bytes, byte[]>(dataNode.getKey(), dataNode.getVersion(),
-//				bytesValue);
-//		return entry;
-		
-		throw new IllegalStateException("Not implement!");
+		if (index < 0 || index + 1 > merkleTree.getDataCount()) {
+			throw new IllegalArgumentException("Index out of bound!");
+		}
+		byte[] bytesValue;
+		MerkleDataIterator iterator = merkleTree.iterator();
+		iterator.skip(index);
+		if (iterator.hasNext()) {
+			MerkleData dataNode = iterator.next();
+			Bytes dataKey = encodeDataKey(dataNode.getKey());
+			bytesValue = valueStorage.get(dataKey, dataNode.getVersion());
+			DataEntry<Bytes, byte[]> entry = new VersioningKVData<Bytes, byte[]>(new Bytes(dataNode.getKey()),
+					dataNode.getVersion(), bytesValue);
+			return entry;
+		}
+		return null;
 	}
 
 	/**
@@ -229,11 +237,15 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 	 * @return
 	 */
 	public byte[] getValuesAtIndex(int fromIndex) {
-//		MerkleDataNode dataNode = merkleTree.getData(fromIndex);
-//		Bytes dataKey = encodeDataKey(dataNode.getKey());
-//		return valueStorage.get(dataKey, dataNode.getVersion());
+		MerkleDataIterator iterator = merkleTree.iterator();
+		iterator.skip(fromIndex);
+		if (iterator.hasNext()) {
+			MerkleData dataNode = iterator.next();
+			Bytes dataKey = encodeDataKey(dataNode.getKey());
+			return valueStorage.get(dataKey, dataNode.getVersion());
+		}
 		
-		throw new IllegalStateException("Not implement!");
+		return null;
 	}
 
 //	/**
@@ -352,6 +364,10 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 //	}
 
 	private Bytes encodeDataKey(Bytes key) {
+		return new Bytes(dataKeyPrefix, key);
+	}
+
+	private Bytes encodeDataKey(byte[] key) {
 		return new Bytes(dataKeyPrefix, key);
 	}
 

@@ -33,7 +33,7 @@ public interface MerkleData extends MerkleElement {
 	 */
 	@DataField(order = 3, primitiveType = PrimitiveType.BYTES)
 	HashDigest getValueHash();
-
+	
 	/**
 	 * 前一版本的数据节点哈希；
 	 */

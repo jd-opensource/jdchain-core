@@ -29,7 +29,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 	public static final int MAX_LEVEL = 14;
 
-	private static final Selector NULL_SELECTOR = new NullSelector();
+	private static final Acceptor NULL_SELECTOR = new FullAcceptor();
 
 	private HashFunction hashFunc;
 
@@ -91,6 +91,11 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 	public HashDigest getRootHash() {
 		return rootHash;
+	}
+
+	@Deprecated
+	public long getDataCount() {
+		return getTotalKeys();
 	}
 
 	public long getTotalKeys() {
@@ -197,7 +202,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 		long keyHash = KeyIndexer.hash(key);
 
-		ProofSelector selector = new ProofSelector(rootHash);
+		ProofAcceptor selector = new ProofAcceptor(rootHash);
 
 		MerkleData dataEntry = seekDataEntry(key, version, keyHash, root, 0, selector);
 		if (dataEntry == null) {
@@ -212,9 +217,9 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	}
 
 	public MerkleData getData(String key, long version) {
-		if (root.getNodeHash() == null) {
-			return null;
-		}
+//		if (root.getNodeHash() == null) {
+//			return null;
+//		}
 		byte[] keyBytes = BytesUtils.toBytes(key);
 		long keyHash = KeyIndexer.hash(keyBytes);
 		MerkleData dataEntry = seekDataEntry(keyBytes, version, keyHash, root, 0, NULL_SELECTOR);
@@ -222,27 +227,27 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	}
 
 	public MerkleData getData(byte[] key) {
-		if (root.getNodeHash() == null) {
-			return null;
-		}
+//		if (root.getNodeHash() == null) {
+//			return null;
+//		}
 		long keyHash = KeyIndexer.hash(key);
 		MerkleData dataEntry = seekDataEntry(key, -1, keyHash, root, 0, NULL_SELECTOR);
 		return dataEntry;
 	}
 
 	public MerkleData getData(byte[] key, long version) {
-		if (root.getNodeHash() == null) {
-			return null;
-		}
+//		if (root.getNodeHash() == null) {
+//			return null;
+//		}
 		long keyHash = KeyIndexer.hash(key);
 		MerkleData dataEntry = seekDataEntry(key, version, keyHash, root, 0, NULL_SELECTOR);
 		return dataEntry;
 	}
 
 	public MerkleData getData(Bytes key) {
-		if (root.getNodeHash() == null) {
-			return null;
-		}
+//		if (root.getNodeHash() == null) {
+//			return null;
+//		}
 		byte[] keyBytes = key.toBytes();
 		long keyHash = KeyIndexer.hash(keyBytes);
 
@@ -266,18 +271,15 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	 * @param keyHash
 	 * @param path
 	 * @param level
-	 * @param selector
+	 * @param acceptor
 	 * @return
 	 */
 	private MerkleData seekDataEntry(byte[] key, long version, long keyHash, MerklePath path, int level,
-			Selector selector) {
+			Acceptor acceptor) {
 		HashDigest[] childHashs = path.getChildHashs();
 		byte keyIndex = KeyIndexer.index(keyHash, level);
 
 		HashDigest childHash = childHashs == null ? null : childHashs[keyIndex];
-		if (childHash == null) {
-			return null;
-		}
 
 		final int childLevel = level + 1;
 		MerkleElement child = null;
@@ -286,15 +288,20 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			child = ((PathNode) path).getChildNode(keyIndex);
 		}
 		if (child == null) {
+			if (childHash == null) {
+				return null;
+			}
 			// 从存储中加载；
 			child = loadMerkleEntry(childHash);
 		}
 
-		selector.select(childHash, child, childLevel);
+		if(!acceptor.accept(childHash, child, childLevel)) {
+			return null;
+		}
 
 		if (child instanceof MerklePath) {
 			// Path;
-			return seekDataEntry(key, version, keyHash, (MerklePath) child, childLevel, selector);
+			return seekDataEntry(key, version, keyHash, (MerklePath) child, childLevel, acceptor);
 		}
 
 		// Leaf；
@@ -312,17 +319,14 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 					return dataEntry;
 				}
 
-				return seekPreviousData(dataEntry, version, childLevel, selector);
+				return seekPreviousData(dataEntry, version, childLevel, acceptor);
 			}
 		}
 		return null;
 	}
 
-	private MerkleData seekPreviousData(MerkleData data, long version, int level, Selector selector) {
+	private MerkleData seekPreviousData(MerkleData data, long version, int level, Acceptor acceptor) {
 		HashDigest previousHash = data.getPreviousEntryHash();
-		if (previousHash == null) {
-			return null;
-		}
 
 		MerkleData previousEntry = null;
 		if (data instanceof MerkleDataEntry) {
@@ -330,10 +334,17 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			previousEntry = ((MerkleDataEntry) data).getPreviousEntry();
 		}
 		if (previousEntry == null) {
+			if (previousHash == null) {
+				return null;
+			}
 			// 从存储中加载；
 			previousEntry = loadDataEntry(previousHash);
 		}
-		selector.select(previousHash, previousEntry, level);
+		
+		if(!acceptor.accept(previousHash, previousEntry, level)) {
+			return null;
+		}
+		
 		if (previousEntry.getVersion() == version) {
 			return previousEntry;
 		}
@@ -342,7 +353,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			throw new IllegalStateException("Version is illegal in the data entry chain!");
 		}
 
-		return seekPreviousData(previousEntry, version, level, selector);
+		return seekPreviousData(previousEntry, version, level, acceptor);
 	}
 
 	private MerkleData loadDataEntry(HashDigest dataEntryHash) {
@@ -360,7 +371,6 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	@Override
 	public void commit() {
 		commit(root);
-
 		rootHash = root.getNodeHash();
 	}
 
@@ -565,22 +575,23 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	 * @author huanghaiquan
 	 *
 	 */
-	private static interface Selector {
-		void select(HashDigest hash, MerkleElement element, int level);
+	private static interface Acceptor {
+		boolean accept(HashDigest hash, MerkleElement element, int level);
 	}
 
-	private static class NullSelector implements Selector {
+	private static class FullAcceptor implements Acceptor {
 		@Override
-		public void select(HashDigest hash, MerkleElement element, int level) {
+		public boolean accept(HashDigest hash, MerkleElement element, int level) {
+			return true;
 		}
 
 	}
 
-	private static class ProofSelector implements Selector {
+	private static class ProofAcceptor implements Acceptor {
 
 		private List<HashDigest> hashPaths = new ArrayList<HashDigest>();
 
-		ProofSelector(HashDigest rootHash) {
+		ProofAcceptor(HashDigest rootHash) {
 			hashPaths.add(rootHash);
 		}
 
@@ -589,8 +600,12 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		}
 
 		@Override
-		public void select(HashDigest hash, MerkleElement element, int level) {
+		public boolean accept(HashDigest hash, MerkleElement element, int level) {
+			if (hash == null) {
+				return false;
+			}
 			hashPaths.add(hash);
+			return true;
 		}
 
 		MerkleProof getProof() {

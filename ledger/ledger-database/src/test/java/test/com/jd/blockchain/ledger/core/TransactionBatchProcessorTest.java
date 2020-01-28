@@ -61,14 +61,14 @@ public class TransactionBatchProcessorTest {
 
 	private static final String LEDGER_KEY_PREFIX = "LDG://";
 
-	private HashDigest ledgerHash = null;
+//	private HashDigest ledgerHash = null;
 
-	private BlockchainKeypair parti0 = BlockchainKeyGenerator.getInstance().generate();
-	private BlockchainKeypair parti1 = BlockchainKeyGenerator.getInstance().generate();
-	private BlockchainKeypair parti2 = BlockchainKeyGenerator.getInstance().generate();
-	private BlockchainKeypair parti3 = BlockchainKeyGenerator.getInstance().generate();
+	private static BlockchainKeypair parti0 = BlockchainKeyGenerator.getInstance().generate();
+	private static BlockchainKeypair parti1 = BlockchainKeyGenerator.getInstance().generate();
+	private static BlockchainKeypair parti2 = BlockchainKeyGenerator.getInstance().generate();
+	private static BlockchainKeypair parti3 = BlockchainKeyGenerator.getInstance().generate();
 
-	private BlockchainKeypair[] participants = { parti0, parti1, parti2, parti3 };
+	private static BlockchainKeypair[] participants = { parti0, parti1, parti2, parti3 };
 
 	// TODO: 验证无效签名会被拒绝；
 
@@ -77,7 +77,7 @@ public class TransactionBatchProcessorTest {
 		final MemoryKVStorage STORAGE = new MemoryKVStorage();
 
 		// 初始化账本到指定的存储库；
-		ledgerHash = initLedger(STORAGE, parti0, parti1, parti2, parti3);
+		HashDigest ledgerHash = initLedger(STORAGE, parti0, parti1, parti2, parti3);
 
 		// 加载账本；
 		LedgerManager ledgerManager = new LedgerManager();
@@ -137,7 +137,7 @@ public class TransactionBatchProcessorTest {
 		final MemoryKVStorage STORAGE = new MemoryKVStorage();
 
 		// 初始化账本到指定的存储库；
-		ledgerHash = initLedger(STORAGE, parti0, parti1, parti2, parti3);
+		HashDigest ledgerHash = initLedger(STORAGE, parti0, parti1, parti2, parti3);
 
 		// 加载账本；
 		LedgerManager ledgerManager = new LedgerManager();
@@ -195,7 +195,7 @@ public class TransactionBatchProcessorTest {
 		final MemoryKVStorage STORAGE = new MemoryKVStorage();
 
 		// 初始化账本到指定的存储库；
-		ledgerHash = initLedger(STORAGE, parti0, parti1, parti2, parti3);
+		HashDigest ledgerHash = initLedger(STORAGE, parti0, parti1, parti2, parti3);
 
 		// 加载账本；
 		LedgerManager ledgerManager = new LedgerManager();
@@ -251,6 +251,7 @@ public class TransactionBatchProcessorTest {
 				.get(transactionRequest1.getTransactionContent().getHash());
 		LedgerTransaction tx2 = ledgerRepo.getTransactionSet()
 				.get(transactionRequest2.getTransactionContent().getHash());
+		System.out.printf("--- transactionRequest2.getTransactionContent().getHash()=[%s]\r\n", transactionRequest2.getTransactionContent().getHash().toBase58());
 		LedgerTransaction tx3 = ledgerRepo.getTransactionSet()
 				.get(transactionRequest3.getTransactionContent().getHash());
 
@@ -275,7 +276,7 @@ public class TransactionBatchProcessorTest {
 		final MemoryKVStorage STORAGE = new MemoryKVStorage();
 
 		// 初始化账本到指定的存储库；
-		ledgerHash = initLedger(STORAGE, parti0, parti1, parti2, parti3);
+		HashDigest ledgerHash = initLedger(STORAGE, parti0, parti1, parti2, parti3);
 
 		// 加载账本；
 		LedgerManager ledgerManager = new LedgerManager();
@@ -332,15 +333,14 @@ public class TransactionBatchProcessorTest {
 		newBlock = newBlockEditor.prepare();
 		newBlockEditor.commit();
 
-		BytesValue v1_0 = ledgerRepo.getDataAccountSet().getAccount(dataAccountKeypair.getAddress()).getDataset().getValue("K1",
-				0);
-		BytesValue v1_1 = ledgerRepo.getDataAccountSet().getAccount(dataAccountKeypair.getAddress()).getDataset().getValue("K1",
-				1);
-		BytesValue v2 = ledgerRepo.getDataAccountSet().getAccount(dataAccountKeypair.getAddress()).getDataset().getValue("K2",
-				0);
-		BytesValue v3 = ledgerRepo.getDataAccountSet().getAccount(dataAccountKeypair.getAddress()).getDataset().getValue("K3",
-				0);
-		
+		BytesValue v1_0 = ledgerRepo.getDataAccountSet().getAccount(dataAccountKeypair.getAddress()).getDataset()
+				.getValue("K1", 0);
+		BytesValue v1_1 = ledgerRepo.getDataAccountSet().getAccount(dataAccountKeypair.getAddress()).getDataset()
+				.getValue("K1", 1);
+		BytesValue v2 = ledgerRepo.getDataAccountSet().getAccount(dataAccountKeypair.getAddress()).getDataset()
+				.getValue("K2", 0);
+		BytesValue v3 = ledgerRepo.getDataAccountSet().getAccount(dataAccountKeypair.getAddress()).getDataset()
+				.getValue("K3", 0);
 
 		assertNotNull(v1_0);
 		assertNotNull(v1_1);
@@ -377,16 +377,17 @@ public class TransactionBatchProcessorTest {
 		newBlock = newBlockEditor.prepare();
 		newBlockEditor.commit();
 
-		BytesValue v1 = ledgerRepo.getDataAccountSet().getAccount(dataAccountKeypair.getAddress()).getDataset().getValue("K1");
+		BytesValue v1 = ledgerRepo.getDataAccountSet().getAccount(dataAccountKeypair.getAddress()).getDataset()
+				.getValue("K1");
 		v3 = ledgerRepo.getDataAccountSet().getAccount(dataAccountKeypair.getAddress()).getDataset().getValue("K3");
 
 		// k1 的版本仍然为1，没有更新；
-		long k1_version = ledgerRepo.getDataAccountSet().getAccount(dataAccountKeypair.getAddress())
-				.getDataset().getVersion("K1");
+		long k1_version = ledgerRepo.getDataAccountSet().getAccount(dataAccountKeypair.getAddress()).getDataset()
+				.getVersion("K1");
 		assertEquals(1, k1_version);
 
-		long k3_version = ledgerRepo.getDataAccountSet().getAccount(dataAccountKeypair.getAddress())
-				.getDataset().getVersion("K3");
+		long k3_version = ledgerRepo.getDataAccountSet().getAccount(dataAccountKeypair.getAddress()).getDataset()
+				.getVersion("K3");
 		assertEquals(1, k3_version);
 
 		assertNotNull(v1);

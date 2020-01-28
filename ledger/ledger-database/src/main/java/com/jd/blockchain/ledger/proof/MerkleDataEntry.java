@@ -2,6 +2,7 @@ package com.jd.blockchain.ledger.proof;
 
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.core.MerkleProofException;
+import com.jd.blockchain.utils.Bytes;
 
 public class MerkleDataEntry implements MerkleData {
 
@@ -20,11 +21,6 @@ public class MerkleDataEntry implements MerkleData {
 	 */
 	private HashDigest valueHash;
 
-//	/**
-//	 * 记录数据的逻辑时间戳；
-//	 */
-//	private long ts;
-
 	/**
 	 * 前一版本的数据节点哈希；
 	 */
@@ -34,6 +30,16 @@ public class MerkleDataEntry implements MerkleData {
 	 * 前一个数据节点；
 	 */
 	private MerkleData previousEntry;
+	
+	/**
+	 * @param key       键；
+	 * @param version   键的版本；
+	 * @param valueHash 值的哈希；
+	 * @param ts        记录数据的逻辑时间戳；
+	 */
+	public MerkleDataEntry(Bytes key, long version, HashDigest valueHash) {
+		this(key.toBytes(), version, valueHash);
+	}
 
 	/**
 	 * @param key       键；
@@ -45,7 +51,6 @@ public class MerkleDataEntry implements MerkleData {
 		this.key = key;
 		this.version = version;
 		this.valueHash = valueHash;
-//		this.ts = ts;
 	}
 
 	@Override
@@ -63,20 +68,15 @@ public class MerkleDataEntry implements MerkleData {
 		return valueHash;
 	}
 
-//	@Override
-//	public long getTs() {
-//		return ts;
-//	}
-
 	@Override
 	public HashDigest getPreviousEntryHash() {
 		return previousEntryHash;
 	}
-	
+
 	public MerkleData getPreviousEntry() {
 		return previousEntry;
 	}
-	
+
 	void setPreviousEntryHash(HashDigest previousEntryHash) {
 		this.previousEntryHash = previousEntryHash;
 	}
