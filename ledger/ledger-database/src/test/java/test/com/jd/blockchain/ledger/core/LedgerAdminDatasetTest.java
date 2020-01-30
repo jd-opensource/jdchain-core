@@ -8,6 +8,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 import org.junit.Test;
@@ -123,7 +125,7 @@ public class LedgerAdminDatasetTest {
 		assertNotNull(meta.getSettingsHash());
 		assertNotNull(meta.getRolePrivilegesHash());
 		assertNotNull(meta.getUserRolesHash());
-		
+
 		assertNotNull(ledgerAdminDataset.getRolePrivileges().getRolePrivilege("DEFAULT"));
 
 		// ----------------------
@@ -132,13 +134,13 @@ public class LedgerAdminDatasetTest {
 		HashDigest adminAccHash = ledgerAdminDataset.getHash();
 		LedgerAdminDataset reloadAdminAccount1 = new LedgerAdminDataset(adminAccHash, keyPrefix, testStorage,
 				testStorage, true);
-		
+
 		LedgerMetadata_V2 meta2 = reloadAdminAccount1.getMetadata();
 		assertNotNull(meta2.getParticipantsHash());
 		assertNotNull(meta2.getSettingsHash());
 		assertNotNull(meta2.getRolePrivilegesHash());
 		assertNotNull(meta2.getUserRolesHash());
-		
+
 		// verify realod settings of admin account;
 		verifyRealoadingSettings(reloadAdminAccount1, adminAccHash, ledgerAdminDataset.getMetadata(),
 				ledgerAdminDataset.getSettings());
@@ -152,7 +154,8 @@ public class LedgerAdminDatasetTest {
 
 		// --------------
 		// 重新加载，并进行修改;
-		LedgerAdminDataset reloadAdminAccount2 = new LedgerAdminDataset(adminAccHash, keyPrefix, testStorage, testStorage, false);
+		LedgerAdminDataset reloadAdminAccount2 = new LedgerAdminDataset(adminAccHash, keyPrefix, testStorage,
+				testStorage, false);
 		LedgerConfiguration newSetting = new LedgerConfiguration(reloadAdminAccount2.getPreviousSetting());
 		byte[] newCsSettingBytes = new byte[64];
 		rand.nextBytes(newCsSettingBytes);
@@ -168,7 +171,8 @@ public class LedgerAdminDatasetTest {
 
 		reloadAdminAccount2.getRolePrivileges().disablePermissions("DEFAULT", TransactionPermission.CONTRACT_OPERATION);
 
-		reloadAdminAccount2.getAuthorizations().addUserRoles(parties[1].getAddress(), RolesPolicy.UNION, "DEFAULT", "ADMIN");
+		reloadAdminAccount2.getAuthorizations().addUserRoles(parties[1].getAddress(), RolesPolicy.UNION, "DEFAULT",
+				"ADMIN");
 
 		reloadAdminAccount2.commit();
 
@@ -258,17 +262,24 @@ public class LedgerAdminDatasetTest {
 		}
 	}
 
-	private void verifyRealoadingParities(LedgerAdminInfo actualAccount, ParticipantNode[] expParties) {
-		assertEquals(expParties.length, actualAccount.getParticipantCount());
+	private void verifyRealoadingParities(LedgerAdminInfo actualAccount, ParticipantNode[] expectedParties) {
+		assertEquals(expectedParties.length, actualAccount.getParticipantCount());
 		ParticipantNode[] actualPaticipants = actualAccount.getParticipants();
-		assertEquals(expParties.length, actualPaticipants.length);
+		assertEquals(expectedParties.length, actualPaticipants.length);
+		Map<Bytes, ParticipantNode> partisMap = new HashMap<Bytes, ParticipantNode>();
+
 		for (int i = 0; i < actualPaticipants.length; i++) {
-			ParticipantNode rlParti = actualPaticipants[i];
-			assertEquals(expParties[i].getAddress(), rlParti.getAddress());
-			assertEquals(expParties[i].getName(), rlParti.getName());
-			// assertEquals(expParties[i].getConsensusAddress(),
-			// rlParti.getConsensusAddress());
-			assertEquals(expParties[i].getPubKey(), rlParti.getPubKey());
+			ParticipantNode parti = actualPaticipants[i];
+			partisMap.put(parti.getAddress(), parti);
+		}
+
+		for (int i = 0; i < expectedParties.length; i++) {
+			ParticipantNode parti = partisMap.get(expectedParties[i].getAddress());
+			assertNotNull(parti);
+			assertEquals(expectedParties[i].getAddress(), parti.getAddress());
+			assertEquals(expectedParties[i].getName(), parti.getName());
+			assertEquals(expectedParties[i].getParticipantNodeState(), parti.getParticipantNodeState());
+			assertEquals(expectedParties[i].getPubKey(), parti.getPubKey());
 		}
 	}
 
