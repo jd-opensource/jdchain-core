@@ -32,10 +32,15 @@ import com.jd.blockchain.ledger.core.LedgerManager;
 import com.jd.blockchain.ledger.core.LedgerRepository;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.LedgerTransactionalEditor;
+import com.jd.blockchain.ledger.core.MerkleDataSet;
 import com.jd.blockchain.ledger.core.TransactionQuery;
 import com.jd.blockchain.ledger.core.UserAccount;
+import com.jd.blockchain.ledger.proof.HashSortingMerkleTree;
+import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.storage.service.KVStorageService;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
+import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.codec.Base58Utils;
 
 public class LedgerEditorTest {
 
@@ -239,52 +244,89 @@ public class LedgerEditorTest {
 		System.out.printf("\r\n ===||=== transactionRequest3.getTransactionContent().getHash()=[%s]\r\n",
 				req3.getTransactionContent().getHash().toBase58());
 
-		
 		System.out.println("\r\n--------------- Start new Block 1 --------------\r\n");
 		// 创建交易；
 		LedgerEditor editor = repo.createNextBlock();
-		
+
 		System.out.println("\r\n--------------- Start new tx1 --------------\r\n");
 		LedgerTransactionContext txctx1 = editor.newTransaction(req1);
 		txctx1.getDataset().getUserAccountSet().register(user1.getAddress(), user1.getPubKey());
 		LedgerTransaction tx1 = txctx1.commit(TransactionState.SUCCESS);
 		HashDigest txHash1 = tx1.getTransactionContent().getHash();
-		
+
 		System.out.println("\r\n--------------- Start new tx2 --------------\r\n");
 
 		LedgerTransactionContext txctx2 = editor.newTransaction(req2);
 		txctx2.getDataset().getUserAccountSet().register(user2.getAddress(), user2.getPubKey());
 		LedgerTransaction tx2 = txctx2.discardAndCommit(TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
 		HashDigest txHash2 = tx2.getTransactionContent().getHash();
-		
+
 		System.out.println("\r\n--------------- Start new tx3 --------------\r\n");
 		LedgerTransactionContext txctx3 = editor.newTransaction(req3);
 		txctx3.getDataset().getUserAccountSet().register(user3.getAddress(), user3.getPubKey());
 		LedgerTransaction tx3 = txctx3.commit(TransactionState.SUCCESS);
 		HashDigest txHash3 = tx3.getTransactionContent().getHash();
-		
+
 		System.out.println("\r\n--------------- Start preparing new block 1 --------------\r\n");
 
 		LedgerBlock block1 = editor.prepare();
-		
+
 		System.out.println("\r\n--------------- Start commiting new block 1 --------------\r\n");
 		editor.commit();
-		
-		System.out.println("\r\n--------------- End commiting new block 1 --------------\r\n");
-		
+
+		System.out.printf("\r\n--------------- End commiting new block 1 [Storage.Count=%s]--------------\r\n\r\n",
+				STORAGE.getStorageCount());
+
 		assertEquals(1, block1.getHeight());
-		
-		//重新加载和验证；
+
+		// 重新加载和验证；
 		manager = new LedgerManager();
 		repo = manager.register(ledgerHash, STORAGE);
-		
+
 		LedgerTransaction act_tx1 = repo.getTransactionSet().get(txHash1);
 		LedgerTransaction act_tx2 = repo.getTransactionSet().get(txHash2);
 		LedgerTransaction act_tx3 = repo.getTransactionSet().get(txHash3);
-		
+
 		assertNotNull(act_tx3);
 		assertNotNull(act_tx2);
 		assertNotNull(act_tx1);
 	}
 
+	@Test
+	public void testMerkleDataSet1() {
+		CryptoSetting setting = LedgerTestUtils.createDefaultCryptoSetting();
+
+		Bytes keyPrefix = Bytes.fromString(LedgerTestUtils.LEDGER_KEY_PREFIX).concat(MerkleDataSet.MERKLE_TREE_PREFIX);
+
+		MemoryKVStorage storage = new MemoryKVStorage();
+
+		byte[] key = Base58Utils.decode("j5q7n8ShYqKVitaobZrERtBK7GowGGZ54RuaUeWjLsdPYY");
+		HashDigest valueHash = new HashDigest(Base58Utils.decode("j5o6mMnMQqE5fJKJ93FzXPnu4vFCfpBKp7u4r8tUUaFRK8"));
+		long version = 0;
+
+		HashSortingMerkleTree merkleTree = new HashSortingMerkleTree(setting, keyPrefix, storage);
+		
+		merkleTree.setData(key, version, valueHash);
+		
+		merkleTree.commit();
+		
+		MerkleData data = merkleTree.getData(key);
+		assertNotNull(data);
+		
+		merkleTree = new HashSortingMerkleTree(merkleTree.getRootHash(), setting, keyPrefix, storage, false);
+		data = merkleTree.getData(key);
+		assertNotNull(data);
+		
+//		MerkleDataSet1 mkds = new MerkleDataSet1(setting, keyPrefix, storage, storage);
+//		HashDigest ledgerHash = new HashDigest(Base58Utils.decode("j5mxiw6RiHP7fhrySjYji1ER5aRe6d2quYHArtwUfsyoHZ"));
+//
+//		BlockchainKeypair user1 = LedgerTestUtils.createKeyPair("7VeRKf3GFLFcBfzvtzmtyMXEoX2HYGEJ4j7CmHcnRV99W5Dp",
+//				"7VeRYQjeAaQY5Po8MMtmGNHA2SniqLXmJaZwBS5K8zTtMAU1");
+//		TransactionRequest req1 = LedgerTestUtils.createTxRequest_UserReg(user1, ledgerHash, 1580315317127L, parti0,
+//				parti0);
+//		// 引发错误的参数：ts=1580315317127;
+//		// txhash=j5wPGKT5CUzwi8j6VfCWaP2p9YZ6WVWtMANp9HbHWzvhgG
+//		System.out.printf("\r\n ===||=== transactionRequest1.getTransactionContent().getHash()=[%s]\r\n",
+//				req1.getTransactionContent().getHash().toBase58());
+	}
 }

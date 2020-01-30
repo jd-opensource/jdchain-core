@@ -3,7 +3,6 @@ package test.com.jd.blockchain.ledger.core;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
@@ -13,8 +12,6 @@ import org.mockito.Mockito;
 
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.crypto.PrivKey;
-import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BlockchainKeyGenerator;
 import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.ledger.BytesValue;
@@ -23,7 +20,6 @@ import com.jd.blockchain.ledger.DataAccountRegisterOperation;
 import com.jd.blockchain.ledger.DataVersionConflictException;
 import com.jd.blockchain.ledger.EndpointRequest;
 import com.jd.blockchain.ledger.LedgerBlock;
-import com.jd.blockchain.ledger.LedgerInitSetting;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.NodeRequest;
@@ -37,22 +33,16 @@ import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.core.DataAccount;
 import com.jd.blockchain.ledger.core.DefaultOperationHandleRegisteration;
 import com.jd.blockchain.ledger.core.LedgerDataQuery;
-import com.jd.blockchain.ledger.core.LedgerDataset;
 import com.jd.blockchain.ledger.core.LedgerEditor;
 import com.jd.blockchain.ledger.core.LedgerManager;
 import com.jd.blockchain.ledger.core.LedgerRepository;
 import com.jd.blockchain.ledger.core.LedgerSecurityManager;
-import com.jd.blockchain.ledger.core.LedgerTransactionContext;
-import com.jd.blockchain.ledger.core.LedgerTransactionalEditor;
 import com.jd.blockchain.ledger.core.OperationHandleRegisteration;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionBatchProcessor;
 import com.jd.blockchain.ledger.core.TransactionSet;
 import com.jd.blockchain.ledger.core.UserAccount;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.codec.Base58Utils;
-import com.jd.blockchain.utils.io.BytesUtils;
 
 public class TransactionBatchProcessorTest {
 	static {
@@ -296,22 +286,22 @@ public class TransactionBatchProcessorTest {
 		HashDigest blockHash = newBlock.getHash();
 		assertNotNull(blockHash);
 		assertEquals(TransactionState.SUCCESS, txResp1.getExecutionState());
-//		assertEquals(TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST, txResp2.getExecutionState());
+		assertEquals(TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST, txResp2.getExecutionState());
 		assertEquals(TransactionState.SUCCESS, txResp3.getExecutionState());
 
 		LedgerTransaction tx1 = ledgerRepo.getTransactionSet()
 				.get(transactionRequest1.getTransactionContent().getHash());
-//		LedgerTransaction tx2 = ledgerRepo.getTransactionSet()
-//				.get(transactionRequest2.getTransactionContent().getHash());
+		LedgerTransaction tx2 = ledgerRepo.getTransactionSet()
+				.get(transactionRequest2.getTransactionContent().getHash());
 		LedgerTransaction tx3 = ledgerRepo.getTransactionSet()
 				.get(transactionRequest3.getTransactionContent().getHash());
 
-		assertNotNull(tx1);
-		assertEquals(TransactionState.SUCCESS, tx1.getExecutionState());
-//		assertNotNull(tx2);
-//		assertEquals(TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST, tx2.getExecutionState());
 		assertNotNull(tx3);
 		assertEquals(TransactionState.SUCCESS, tx3.getExecutionState());
+		assertNotNull(tx2);
+		assertEquals(TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST, tx2.getExecutionState());
+		assertNotNull(tx1);
+		assertEquals(TransactionState.SUCCESS, tx1.getExecutionState());
 
 		HashDigest txsetRootHash = ledgerRepo.getTransactionSet().getRootHash();
 
@@ -337,13 +327,13 @@ public class TransactionBatchProcessorTest {
 		assertEquals(txsetRootHash, ledgerRepo.getTransactionSet().getRootHash());
 
 		tx1 = ledgerRepo.getTransactionSet().get(transactionRequest1.getTransactionContent().getHash());
-//		tx2 = ledgerRepo.getTransactionSet().get(transactionRequest2.getTransactionContent().getHash());
+		tx2 = ledgerRepo.getTransactionSet().get(transactionRequest2.getTransactionContent().getHash());
 		tx3 = ledgerRepo.getTransactionSet().get(transactionRequest3.getTransactionContent().getHash());
 
 		assertNotNull(tx1);
 		assertEquals(TransactionState.SUCCESS, tx1.getExecutionState());
-//		assertNotNull(tx2);
-//		assertEquals(TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST, tx2.getExecutionState());
+		assertNotNull(tx2);
+		assertEquals(TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST, tx2.getExecutionState());
 		assertNotNull(tx3);
 		assertEquals(TransactionState.SUCCESS, tx3.getExecutionState());
 

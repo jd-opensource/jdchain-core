@@ -42,13 +42,14 @@ class PathNode extends MerkleTreeNode implements MerklePath {
 		return new PathNode(nodeHash, path);
 	}
 
-	public void setChildNode(byte index, MerkleTreeNode childPath) {
+	public void setChildNode(byte index, HashDigest childHash, MerkleTreeNode childNode) {
 		if (childNodes == null) {
 			childNodes = new MerkleTreeNode[childHashs.length];
 		}
-		childNodes[index] = childPath;
-		childPath.parent = this;
-		if (childPath.isModified()) {
+		childHashs[index] = childHash;
+		childNodes[index] = childNode;
+		childNode.parent = this;
+		if (childNode.isModified()) {
 			setModified();
 		}
 	}

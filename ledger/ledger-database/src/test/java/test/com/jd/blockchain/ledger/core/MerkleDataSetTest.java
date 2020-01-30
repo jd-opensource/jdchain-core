@@ -129,7 +129,7 @@ public class MerkleDataSetTest {
 		// Version changed only;仅仅增加 merkle 节点，此时 Merkle 树只有 1 层路径节点，因此只更新2个数据节点和 1
 		// 个路径节点；(注：版本值是在同一个 key 下按序列保存的)；
 		expStorageCount = expStorageCount + 5; //增加了
-		mds.print();
+//		mds.print();
 		assertEquals(expStorageCount, storage.getStorageCount());
 
 		ds.setValue("D", "DValue".getBytes(), -1);

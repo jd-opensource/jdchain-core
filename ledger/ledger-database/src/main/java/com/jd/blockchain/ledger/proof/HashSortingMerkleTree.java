@@ -504,11 +504,11 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		if (hasChild) {
 			// 存在子节点；
 			MerkleTreeNode childNode = parentNode.getChildNode(index);
+			HashDigest childHash = parentNode.getChildHash(index);
 			if (childNode == null) {
-				// 子节点尚未加载； 注：由于 PathNode#containChild 为 true，故此分支下 childHash 必然不为 null；
-				HashDigest childHash = parentNode.getChildHash(index);
+				// 子节点为null，同时由于 PathNode#containChild 为 true，故此逻辑分支下 childHash 必然不为 null；
 				childNode = loadMerkleNode(childHash);
-				parentNode.setChildNode(index, childNode);
+				parentNode.setChildNode(index, childHash, childNode);
 			}
 
 			if (childNode instanceof LeafNode) {
@@ -519,11 +519,11 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 				} else {
 					// 延伸路径节点；
 					PathNode newPath = new PathNode(TREE_DEGREE);
-					parentNode.setChildNode(index, newPath);
+					parentNode.setChildNode(index, null, newPath);
 
 					// 加入已有的数据节点；
 					byte idx = KeyIndexer.index(leafNode.getKeyHash(), level + 1);
-					newPath.setChildNode(idx, leafNode);
+					newPath.setChildNode(idx, childHash, leafNode);
 
 					// 递归: 加入新的key；
 					setDataEntry(keyHash, dataEntry, newPath, level + 1);
@@ -540,7 +540,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			// 直接追加新节点；
 			LeafNode leafNode = new LeafNode(keyHash);
 			leafNode.addKeyNode(dataEntry);
-			parentNode.setChildNode(index, leafNode);
+			parentNode.setChildNode(index, null, leafNode);
 		}
 	}
 
@@ -825,14 +825,12 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			this.totalSize = Arrays.stream(childKeys).sum();
 		}
 
-		/**
-		 * 
-		 * @return
-		 */
+		@SuppressWarnings("unused")
 		public long getOffset() {
 			return offset;
 		}
 
+		@SuppressWarnings("unused")
 		public long getTotalSize() {
 			return totalSize;
 		}
@@ -851,6 +849,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		 * 
 		 * @return
 		 */
+		@SuppressWarnings("unused")
 		public long getChildSize() {
 			return childKeys[cursor];
 		}
@@ -914,14 +913,17 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			this.dataEntries = leaf.getDataEntries();
 		}
 
+		@SuppressWarnings("unused")
 		public long getOffset() {
 			return offset;
 		}
 
+		@SuppressWarnings("unused")
 		public long getCursor() {
 			return cursor;
 		}
 
+		@SuppressWarnings("unused")
 		public int getSize() {
 			return dataEntries.length;
 		}

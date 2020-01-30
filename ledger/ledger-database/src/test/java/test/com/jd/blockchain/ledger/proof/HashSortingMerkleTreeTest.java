@@ -44,6 +44,8 @@ import com.jd.blockchain.utils.hash.MurmurHash3;
 import com.jd.blockchain.utils.io.BytesUtils;
 import com.jd.blockchain.utils.io.NumberMask;
 
+import test.com.jd.blockchain.ledger.core.LedgerTestUtils;
+
 public class HashSortingMerkleTreeTest {
 
 	private static final Bytes KEY_PREFIX = Bytes.fromString("/MerkleTree");
@@ -358,6 +360,47 @@ public class HashSortingMerkleTreeTest {
 
 		skippingIterator = merkleTree.iterator();
 		testDataIteratorSkipping(dataKeys, skippingIterator, 1024);
+	}
+
+	/**
+	 * 测试在已经持久化的默克尔树上追加新节点时，扩展已有路径节点的正确性；
+	 */
+	@Test
+	public void testExtendPersistedPathNodes() {
+		int count = 10240;
+		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
+		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
+
+		CryptoSetting cryptoSetting = createCryptoSetting();
+		MemoryKVStorage storage = new MemoryKVStorage();
+
+		Bytes prefix = Bytes.fromString(LedgerTestUtils.LEDGER_KEY_PREFIX);
+
+		HashSortingMerkleTree merkleTree = new HashSortingMerkleTree(cryptoSetting, prefix, storage);
+
+		int firstBatch = 500;
+		for (int i = 0; i < firstBatch; i++) {
+			merkleTree.setData(datas[i].getKey(), datas[i].getVersion(), datas[i].getValue());
+		}
+		//先提交；
+		merkleTree.commit();
+		
+		//加载默克尔树到新实例；
+		HashDigest rootHash = merkleTree.getRootHash();
+		HashSortingMerkleTree merkleTree1 = new HashSortingMerkleTree(rootHash, cryptoSetting, prefix, storage, false);
+		for (int i = firstBatch; i < datas.length; i++) {
+			merkleTree1.setData(datas[i].getKey(), datas[i].getVersion(), datas[i].getValue());
+		}
+		merkleTree1.commit();
+		
+		//重新加载；未正确扩展路径节点时，部分已持久化的叶子节点有可能丢失，在重新加载默克尔树并进行检索时将发现此错误；
+		rootHash = merkleTree1.getRootHash();
+		HashSortingMerkleTree merkleTree2 = new HashSortingMerkleTree(rootHash, cryptoSetting, prefix, storage, false);
+		
+		for (int i = 0; i < datas.length; i++) {
+			MerkleData data = merkleTree2.getData(datas[i].getKey());
+			assertNotNull(data);
+		}
 	}
 
 	@Test
