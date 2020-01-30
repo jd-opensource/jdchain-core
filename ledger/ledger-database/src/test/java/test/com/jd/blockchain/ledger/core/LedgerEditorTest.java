@@ -239,27 +239,38 @@ public class LedgerEditorTest {
 		System.out.printf("\r\n ===||=== transactionRequest3.getTransactionContent().getHash()=[%s]\r\n",
 				req3.getTransactionContent().getHash().toBase58());
 
+		
+		System.out.println("\r\n--------------- Start new Block 1 --------------\r\n");
 		// 创建交易；
 		LedgerEditor editor = repo.createNextBlock();
 		
+		System.out.println("\r\n--------------- Start new tx1 --------------\r\n");
 		LedgerTransactionContext txctx1 = editor.newTransaction(req1);
 		txctx1.getDataset().getUserAccountSet().register(user1.getAddress(), user1.getPubKey());
 		LedgerTransaction tx1 = txctx1.commit(TransactionState.SUCCESS);
 		HashDigest txHash1 = tx1.getTransactionContent().getHash();
 		
+		System.out.println("\r\n--------------- Start new tx2 --------------\r\n");
+
 		LedgerTransactionContext txctx2 = editor.newTransaction(req2);
 		txctx2.getDataset().getUserAccountSet().register(user2.getAddress(), user2.getPubKey());
 		LedgerTransaction tx2 = txctx2.discardAndCommit(TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
 		HashDigest txHash2 = tx2.getTransactionContent().getHash();
 		
+		System.out.println("\r\n--------------- Start new tx3 --------------\r\n");
 		LedgerTransactionContext txctx3 = editor.newTransaction(req3);
 		txctx3.getDataset().getUserAccountSet().register(user3.getAddress(), user3.getPubKey());
 		LedgerTransaction tx3 = txctx3.commit(TransactionState.SUCCESS);
 		HashDigest txHash3 = tx3.getTransactionContent().getHash();
 		
+		System.out.println("\r\n--------------- Start preparing new block 1 --------------\r\n");
+
 		LedgerBlock block1 = editor.prepare();
 		
+		System.out.println("\r\n--------------- Start commiting new block 1 --------------\r\n");
 		editor.commit();
+		
+		System.out.println("\r\n--------------- End commiting new block 1 --------------\r\n");
 		
 		assertEquals(1, block1.getHeight());
 		
