@@ -39,6 +39,7 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.storage.service.utils.VersioningKVData;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.hash.MurmurHash3;
 import com.jd.blockchain.utils.io.BytesUtils;
 import com.jd.blockchain.utils.io.NumberMask;
@@ -119,7 +120,7 @@ public class HashSortingMerkleTreeTest {
 	@Test
 	public void testReadUncommitting() {
 		// 数据集合长度为 1024 时也能正常生成；
-		int count = 1024;
+		int count = 500;
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
@@ -129,6 +130,7 @@ public class HashSortingMerkleTreeTest {
 		assertNull(merkleTree.getRootHash());
 		assertEquals(0, merkleTree.getTotalKeys());
 		assertEquals(0, merkleTree.getTotalRecords());
+
 		MerkleData dt = merkleTree.getData("KEY-69");
 		assertNotNull(dt);
 		assertEquals(0, dt.getVersion());
@@ -163,10 +165,62 @@ public class HashSortingMerkleTreeTest {
 		assertNotNull(dt);
 		assertEquals(1, dt.getVersion());
 
-		merkleTree.print();
+//		merkleTree.print();
 		for (VersioningKVData<String, byte[]> data : datas) {
 			testMerkleProof(data, merkleTree, -1);
 		}
+	}
+
+	@Test
+	public void testCancel() {
+		// 数据集合长度为 1024 时也能正常生成；
+		int count = 1024;
+		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
+		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
+
+		HashSortingMerkleTree merkleTree = buildMerkleTree(datas, false);
+		assertTrue(merkleTree.isUpdated());
+
+		// 未提交之前查不到信息；
+		assertNull(merkleTree.getRootHash());
+		assertEquals(0, merkleTree.getTotalKeys());
+		assertEquals(0, merkleTree.getTotalRecords());
+
+		MerkleData dt = merkleTree.getData("KEY-69");
+		assertNotNull(dt);
+		assertEquals(0, dt.getVersion());
+		dt = merkleTree.getData("KEY-69", 0);
+		assertNotNull(dt);
+		assertEquals(0, dt.getVersion());
+
+		dt = merkleTree.getData("KEY-69", 1);
+		assertNull(dt);
+
+		VersioningKVData<String, byte[]> data69 = new VersioningKVData<String, byte[]>("KEY-69", 1,
+				BytesUtils.toBytes("NEW-VALUE-VERSION-1"));
+		merkleTree.setData(data69.getKey(), data69.getVersion(), data69.getValue());
+
+		dt = merkleTree.getData("KEY-69", 1);
+		assertNotNull(dt);
+		assertEquals(1, dt.getVersion());
+
+		assertTrue(merkleTree.isUpdated());
+
+		// 回滚全部数据；
+		merkleTree.cancel();
+
+		HashDigest rootHash = merkleTree.getRootHash();
+		assertNull(rootHash);
+		assertEquals(0, merkleTree.getTotalKeys());
+		assertEquals(0, merkleTree.getTotalRecords()); // 由于 KEY-69 写入了 2 个版本的记录；
+		dt = merkleTree.getData("KEY-69");
+		assertNull(dt);
+		dt = merkleTree.getData("KEY-69", 0);
+		assertNull(dt);
+		dt = merkleTree.getData("KEY-69", 1);
+		assertNull(dt);
+
+		assertFalse(merkleTree.isUpdated());
 	}
 
 	/**
@@ -228,7 +282,7 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(count, merkleTree.getTotalKeys());
 		assertEquals(count, merkleTree.getTotalRecords());
 
-		merkleTree.print();
+//		merkleTree.print();
 		for (VersioningKVData<String, byte[]> data : datas) {
 			testMerkleProof(data, merkleTree, -1);
 		}
@@ -244,7 +298,7 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(count, merkleTree.getTotalKeys());
 		assertEquals(count, merkleTree.getTotalRecords());
 
-		merkleTree.print();
+//		merkleTree.print();
 		for (VersioningKVData<String, byte[]> data : datas) {
 			testMerkleProof(data, merkleTree, -1);
 		}
@@ -304,6 +358,35 @@ public class HashSortingMerkleTreeTest {
 
 		skippingIterator = merkleTree.iterator();
 		testDataIteratorSkipping(dataKeys, skippingIterator, 1024);
+	}
+
+	@Test
+	public void testSpecialUseCase_1() {
+		CryptoSetting cryptoSetting = createCryptoSetting();
+		MemoryKVStorage storage = new MemoryKVStorage();
+
+		HashSortingMerkleTree merkleTree = new HashSortingMerkleTree(cryptoSetting, KEY_PREFIX, storage);
+
+		byte[] key = Base58Utils.decode("j5sXmpcomtM2QMUNWeQWsF8bNFFnyeXoCjVAekEeLSscgY");
+		byte[] value = BytesUtils.toBytes("Special Use-Case VALUE");
+		long version = 0;
+
+		merkleTree.setData(key, version, value);
+
+		MerkleData mkdata = merkleTree.getData(key);
+
+		assertNotNull(mkdata);
+
+		merkleTree.commit();
+
+		mkdata = merkleTree.getData(key);
+		assertNotNull(mkdata);
+
+		HashSortingMerkleTree merkleTreeReload = new HashSortingMerkleTree(merkleTree.getRootHash(), cryptoSetting,
+				KEY_PREFIX, storage, false);
+
+		mkdata = merkleTreeReload.getData(key);
+		assertNotNull(mkdata);
 	}
 
 	private void testDataIteratorSkipping(String[] expectedKeys, MerkleDataIterator iterator, int skip) {
@@ -452,7 +535,7 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(data28.getVersion(), data28_reload_1.getVersion());
 		assertEquals(SHA256_HASH_FUNC.hash(data28.getValue()), data28_reload_1.getValueHash());
 
-		merkleTree_reload.print();
+//		merkleTree_reload.print();
 
 		// 测试不同根哈希加载的默克尔树能够检索的最新版本；
 		HashSortingMerkleTree merkleTree_0 = new HashSortingMerkleTree(rootHash0, cryptoSetting, KEY_PREFIX, storage,
@@ -506,7 +589,7 @@ public class HashSortingMerkleTreeTest {
 		assertNotNull(proof28_4);
 		assertEquals(proof28_1, proof28_4);
 
-		merkleTree_1.print();
+//		merkleTree_1.print();
 	}
 
 	/**

@@ -109,7 +109,7 @@ class PathNode extends MerkleTreeNode implements MerklePath {
 	}
 
 	@Override
-	public void update(HashFunction hashFunc, NodeUpdatedListener updatedListener) {
+	protected void update(HashFunction hashFunc, NodeUpdatedListener updatedListener) {
 		if (!isModified()) {
 			return;
 		}
@@ -134,6 +134,27 @@ class PathNode extends MerkleTreeNode implements MerklePath {
 
 		updatedListener.onUpdated(nodeHash, this, nodeBytes);
 
+		clearModified();
+	}
+
+	@Override
+	protected void cancel() {
+		if (!isModified()) {
+			return;
+		}
+		if (childNodes != null) {
+			// update child nodes;
+			for (int i = 0; i < childNodes.length; i++) {
+				if (childNodes[i] != null) {
+					if (childNodes[i].isModified()) {
+						childNodes[i].cancel();
+						if (childHashs[i] == null) {
+							childNodes[i] = null;
+						}
+					}
+				}
+			}
+		}
 		clearModified();
 	}
 

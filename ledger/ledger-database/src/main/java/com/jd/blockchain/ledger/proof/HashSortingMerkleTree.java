@@ -295,7 +295,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			child = loadMerkleEntry(childHash);
 		}
 
-		if(!acceptor.accept(childHash, child, childLevel)) {
+		if (!acceptor.accept(childHash, child, childLevel)) {
 			return null;
 		}
 
@@ -340,11 +340,11 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			// 从存储中加载；
 			previousEntry = loadDataEntry(previousHash);
 		}
-		
-		if(!acceptor.accept(previousHash, previousEntry, level)) {
+
+		if (!acceptor.accept(previousHash, previousEntry, level)) {
 			return null;
 		}
-		
+
 		if (previousEntry.getVersion() == version) {
 			return previousEntry;
 		}
@@ -376,8 +376,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 	@Override
 	public void cancel() {
-		// TODO Auto-generated method stub
-
+		root.cancel();
 	}
 
 	public void print() {
@@ -392,6 +391,19 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			}
 			System.out.printf("\r\n");
 		}
+	}
+
+	public void printDatas() {
+		MerkleDataIterator iterator = iterator();
+		System.out.println("\r\n\rn-------- HASH-SORTING-MERKLE-TREE -------");
+		System.out.printf("total-size=%s\r\n", iterator.getTotalSize());
+		int i = 0;
+		while (iterator.hasNext()) {
+			MerkleData data = iterator.next();
+			System.out.printf("[%s] - KEY=%s; VERSION=%s;\r\n", i, Base58Utils.encode(data.getKey()),
+					data.getVersion());
+		}
+		System.out.printf("\r\n------------------\r\n", iterator.getTotalSize());
 	}
 
 	private void collectNodes(PathNode node, int level, Map<Integer, List<String>> nodes) {
@@ -470,6 +482,11 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		setData(key.toBytes(), version, dataHash);
 	}
 
+	public void setData(byte[] key, long version, byte[] data) {
+		HashDigest dataHash = hashFunc.hash(data);
+		setData(key, version, dataHash);
+	}
+
 	public void setData(byte[] key, long version, HashDigest dataHash) {
 		MerkleDataEntry data = new MerkleDataEntry(key, version, dataHash);
 		long keyHash = KeyIndexer.hash(data.getKey());
@@ -541,6 +558,9 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	private MerkleElement loadMerkleEntry(HashDigest nodeHash) {
 		Bytes key = encodeNodeKey(nodeHash);
 		byte[] bytes = storage.get(key);
+		if (bytes == null) {
+			throw new MerkleProofException("Merkle node[" + nodeHash.toBase58() + "] does not exist!");
+		}
 		MerkleElement entry = BinaryProtocol.decode(bytes);
 		return entry;
 	}

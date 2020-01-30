@@ -12,6 +12,7 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.Transactional;
+import com.jd.blockchain.utils.codec.Base58Utils;
 
 public class TransactionSet implements Transactional, TransactionQuery {
 
@@ -114,6 +115,11 @@ public class TransactionSet implements Transactional, TransactionQuery {
 		if (v < 0) {
 			throw new LedgerException("Transaction result is persisted repeatly! --[" + key + "]");
 		}
+	}
+
+	public LedgerTransaction get(String base58Hash) {
+		HashDigest hash = new HashDigest(Base58Utils.decode(base58Hash));
+		return get(hash);
 	}
 
 	/**

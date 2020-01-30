@@ -20,17 +20,23 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.crypto.service.classic.ClassicCryptoService;
 import com.jd.blockchain.crypto.service.sm.SMCryptoService;
+import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.core.CryptoConfig;
 import com.jd.blockchain.ledger.core.MerkleDataSet;
+import com.jd.blockchain.ledger.proof.HashSortingMerkleTree;
+import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.Dataset;
 import com.jd.blockchain.utils.DatasetHelper;
+import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.BytesUtils;
 
 public class MerkleDataSetTest {
+	
+	private static final Bytes KEY_PREFIX = Bytes.fromString("/MerkleTree");
 
 	private static final String[] SUPPORTED_PROVIDERS = { ClassicCryptoService.class.getName(),
 			SMCryptoService.class.getName() };
@@ -352,25 +358,17 @@ public class MerkleDataSetTest {
 			}
 		}
 	}
-
+	
 	@Test
 	public void testInsertSameData() {
 		String keyPrefix = "";
 		Random rand = new Random();
 
-		CryptoProvider[] supportedProviders = new CryptoProvider[SUPPORTED_PROVIDERS.length];
-		for (int i = 0; i < SUPPORTED_PROVIDERS.length; i++) {
-			supportedProviders[i] = Crypto.getProvider(SUPPORTED_PROVIDERS[i]);
-		}
-
-		CryptoConfig cryptoConfig = new CryptoConfig();
-		cryptoConfig.setSupportedProviders(supportedProviders);
-		cryptoConfig.setHashAlgorithm(ClassicAlgorithm.SHA256);
-		cryptoConfig.setAutoVerifyHash(true);
+		CryptoSetting cryptoSetting = createCryptoSetting();
 
 		MemoryKVStorage storage = new MemoryKVStorage();
 
-		MerkleDataSet mds = new MerkleDataSet(cryptoConfig, keyPrefix, storage, storage);
+		MerkleDataSet mds = new MerkleDataSet(cryptoSetting, keyPrefix, storage, storage);
 		Dataset<String, byte[]> ds = DatasetHelper.map(mds);
 
 		// 初始的时候没有任何数据，总是返回 null；
@@ -424,7 +422,7 @@ public class MerkleDataSetTest {
 
 		// verify;
 		{
-			MerkleDataSet mdsReload = new MerkleDataSet(rootHash, cryptoConfig, keyPrefix, storage, storage, true);
+			MerkleDataSet mdsReload = new MerkleDataSet(rootHash, cryptoSetting, keyPrefix, storage, storage, true);
 			Dataset<String, byte[]> dsReload = DatasetHelper.map(mdsReload);
 			// verify every keys;
 			Map<String, KeySnapshot> snapshot = history.get(rootHash);
@@ -441,6 +439,46 @@ public class MerkleDataSetTest {
 				assertTrue(BytesUtils.equals(data, value));
 			}
 		}
+	}
+	
+	@Test
+	public void testSpecialCase_1() {
+		CryptoSetting cryptoSetting = createCryptoSetting();
+		MemoryKVStorage storage = new MemoryKVStorage();
+
+		MerkleDataSet mds = new MerkleDataSet(cryptoSetting, KEY_PREFIX, storage, storage);
+
+		Bytes key = Bytes.fromBase58("j5sXmpcomtM2QMUNWeQWsF8bNFFnyeXoCjVAekEeLSscgY");
+		byte[] value = BytesUtils.toBytes("Special Use-Case VALUE");
+		
+		mds.setValue(key, value, -1);
+
+		byte[] data = mds.getValue(key);
+
+		assertNotNull(data);
+
+		mds.commit();
+
+		data = mds.getValue(key);
+		assertNotNull(data);
+
+		MerkleDataSet mds_reload = new MerkleDataSet(mds.getRootHash(), cryptoSetting, KEY_PREFIX, storage, storage, false);
+
+		data = mds_reload.getValue(key);
+		assertNotNull(data);
+	}
+
+	private CryptoSetting createCryptoSetting() {
+		CryptoProvider[] supportedProviders = new CryptoProvider[SUPPORTED_PROVIDERS.length];
+		for (int i = 0; i < SUPPORTED_PROVIDERS.length; i++) {
+			supportedProviders[i] = Crypto.getProvider(SUPPORTED_PROVIDERS[i]);
+		}
+
+		CryptoConfig cryptoConfig = new CryptoConfig();
+		cryptoConfig.setSupportedProviders(supportedProviders);
+		cryptoConfig.setHashAlgorithm(ClassicAlgorithm.SHA256);
+		cryptoConfig.setAutoVerifyHash(true);
+		return cryptoConfig;
 	}
 
 	private static class KeySnapshot {

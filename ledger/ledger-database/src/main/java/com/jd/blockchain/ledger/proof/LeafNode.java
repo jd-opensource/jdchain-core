@@ -17,7 +17,9 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 
 	private long keyHash;
 
-	private MerkleData[] dataEntries = EMPTY_ENTRIES;
+	private MerkleData[] dataEntries;
+	
+	private MerkleLeaf origLeaf;
 
 	/**
 	 * 创建一个新的叶子节点；
@@ -26,12 +28,15 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 	 */
 	LeafNode(long keyHash) {
 		this.keyHash = keyHash;
+		this.dataEntries = EMPTY_ENTRIES;
+		setModified();
 	}
 
 	LeafNode(HashDigest nodeHash, MerkleLeaf leaf) {
 		this.nodeHash = nodeHash;
 		this.keyHash = leaf.getKeyHash();
 		this.dataEntries = leaf.getDataEntries();
+		this.origLeaf = leaf;
 	}
 
 	public void addKeyNode(MerkleDataEntry dataEntry) {
@@ -54,20 +59,8 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 			}
 			if (c == 0) {
 				// 更新 key 的新版本；
-//				MerkleDataEntry entry;
-//				if (dataEntries[i] instanceof MerkleDataEntry) {
-////					((KeyEntry) dataEntries[i]).updateData(dataEntry);
-//					entry = (MerkleDataEntry) dataEntries[i];
-//				} else {
-////					KeyEntry keyNode = new KeyEntry(dataEntries[i]);
-////					keyNode.updateData(dataEntry);
-////					dataEntries[i] = keyNode;
-//					entry = new MerkleDataEntry(dataEntries[i], version, valueHash)
-//				}
-
 				dataEntry.setPreviousEntry(dataEntries[i]);
 				dataEntries[i] = dataEntry;
-
 			} else {
 				// 插入新的 key；
 				MerkleData[] newDataEntries = new MerkleData[count + 1];
@@ -179,4 +172,17 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 		return entryHash;
 	}
 
+	
+	@Override
+	protected void cancel() {
+		if (!isModified()) {
+			return;
+		}
+		if (origLeaf == null) {
+			dataEntries = EMPTY_ENTRIES;
+		}else {
+			dataEntries = origLeaf.getDataEntries();
+		}
+		clearModified();
+	}
 }

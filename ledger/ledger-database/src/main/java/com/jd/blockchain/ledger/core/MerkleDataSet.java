@@ -622,14 +622,14 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 
 	@Override
 	public void commit() {
-		bufferedStorage.commit();
 		merkleTree.commit();
+		bufferedStorage.commit();
 	}
 
 	@Override
 	public void cancel() {
-		bufferedStorage.cancel();
 		merkleTree.cancel();
+		bufferedStorage.cancel();
 //		snGenerator = new MerkleSequenceSNGenerator(merkleTree);
 	}
 

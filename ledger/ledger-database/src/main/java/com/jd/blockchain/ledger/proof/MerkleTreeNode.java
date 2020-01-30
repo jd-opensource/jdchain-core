@@ -50,9 +50,11 @@ abstract class MerkleTreeNode implements MerkleElement {
 	 * 
 	 * 如果节点没有修改，则直接返回；
 	 */
-	public abstract void update(HashFunction hashFunc, NodeUpdatedListener updatedListener);
+	protected abstract void update(HashFunction hashFunc, NodeUpdatedListener updatedListener);
 
 	public abstract long getTotalKeys();
 
 	public abstract long getTotalRecords();
+
+	protected abstract void cancel();
 }
