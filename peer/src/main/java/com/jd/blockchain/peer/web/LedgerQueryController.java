@@ -455,7 +455,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		DataIterator<String, TypedValue> iterator = dataAccount.getDataset().iterator();
 		iterator.skip(fromIndex);
 		DataEntry<String, TypedValue>[] dataEntries = iterator.next(count);
-		TypedKVEntry[] typedKVEntries = ArrayUtils.castTo(dataEntries, TypedKVEntry.class,
+		TypedKVEntry[] typedKVEntries = ArrayUtils.cast(dataEntries, TypedKVEntry.class,
 				e -> e == null ? null : new TypedKVData(e.getKey(), e.getVersion(), e.getValue()));
 		return typedKVEntries;
 	}

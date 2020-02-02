@@ -10,7 +10,7 @@ import com.jd.blockchain.crypto.HashFunction;
  * @author huanghaiquan
  *
  */
-class PathNode extends MerkleTreeNode implements MerklePath {
+public class PathNode extends MerkleTreeNode implements MerklePath {
 
 	private long[] childKeys;
 	private long[] childRecords;
@@ -48,9 +48,11 @@ class PathNode extends MerkleTreeNode implements MerklePath {
 		}
 		childHashs[index] = childHash;
 		childNodes[index] = childNode;
-		childNode.parent = this;
-		if (childNode.isModified()) {
-			setModified();
+		if (childNode != null) {
+			childNode.parent = this;
+			if (childNode.isModified()) {
+				setModified();
+			}
 		}
 	}
 

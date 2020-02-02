@@ -35,6 +35,8 @@ import com.jd.blockchain.ledger.proof.HashSortingMerkleTree;
 import com.jd.blockchain.ledger.proof.HashSortingMerkleTree.MerkleDataIterator;
 import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.ledger.proof.MerkleDataEntry;
+import com.jd.blockchain.ledger.proof.MerklePath;
+import com.jd.blockchain.ledger.proof.PathNode;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.storage.service.utils.VersioningKVData;
@@ -86,6 +88,27 @@ public class HashSortingMerkleTreeTest {
 		testMerkleDataSerialize(merkleData);
 		merkleData = new MerkleDataEntry(key, NumberMask.LONG.MAX_BOUNDARY_SIZE - 1, hashDigest);
 		testMerkleDataSerialize(merkleData);
+		
+		
+		//数据大小；
+		System.out.println("------ Merkle Data Serialize ------");
+		byte[] dataBytes = BinaryProtocol.encode(merkleData, MerkleData.class);
+		System.out.printf("DataBytes= %s B\r\n", dataBytes.length);
+		
+		System.out.println("------ Merkle Path Serialize ------");
+		int degree = 8;
+		PathNode pathNode = new PathNode(degree);
+		
+		dataBytes = BinaryProtocol.encode(pathNode, MerklePath.class);
+		System.out.printf("childs=%s; bytes=%s B\r\n",0,  dataBytes.length);
+		for (int i = 0; i < degree; i++) {
+			HashDigest childHash = SHA256_HASH_FUNC.hash(BytesUtils.toBytes(1024+i));
+			pathNode.setChildNode((byte)i, childHash, null);
+			
+			dataBytes = BinaryProtocol.encode(pathNode, MerklePath.class);
+			System.out.printf("childs=%s; bytes=%s B\r\n",i+1,  dataBytes.length);
+		}
+		
 	}
 
 	private void testMerkleDataSerialize(MerkleData data) {

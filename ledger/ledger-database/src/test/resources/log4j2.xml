@@ -20,7 +20,7 @@
          <Root level="DEBUG">
             <AppenderRef ref="STDOUT"/>
         </Root>
-        <Logger name="com.jd.blockchain" level="DEBUG"/>
+        <Logger name="com.jd.blockchain" level="ERROR"/>
         <Logger name="org.springframework" level="WARN"/>
        
     </Loggers>
