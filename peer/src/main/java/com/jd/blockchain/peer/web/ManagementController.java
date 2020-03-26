@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.jd.blockchain.ledger.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +31,33 @@ import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.ServerSettings;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.ledger.ContractCodeDeployOperation;
+import com.jd.blockchain.ledger.ContractEventSendOperation;
+import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.DataAccountKVSetOperation;
+import com.jd.blockchain.ledger.DataAccountRegisterOperation;
+import com.jd.blockchain.ledger.EndpointRequest;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
-import com.jd.blockchain.ledger.core.LedgerAdminDataQuery;
+import com.jd.blockchain.ledger.LedgerBlock;
+import com.jd.blockchain.ledger.LedgerInitOperation;
+import com.jd.blockchain.ledger.LedgerMetadata_V2;
+import com.jd.blockchain.ledger.LedgerSettings;
+import com.jd.blockchain.ledger.NodeRequest;
+import com.jd.blockchain.ledger.Operation;
+import com.jd.blockchain.ledger.ParticipantRegisterOperation;
+import com.jd.blockchain.ledger.ParticipantStateUpdateOperation;
+import com.jd.blockchain.ledger.PrivilegeSet;
+import com.jd.blockchain.ledger.RoleInitSettings;
+import com.jd.blockchain.ledger.RoleSet;
+import com.jd.blockchain.ledger.RolesConfigureOperation;
+import com.jd.blockchain.ledger.SecurityInitSettings;
+import com.jd.blockchain.ledger.TransactionContent;
+import com.jd.blockchain.ledger.TransactionContentBody;
+import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.TransactionResponse;
+import com.jd.blockchain.ledger.UserAuthInitSettings;
+import com.jd.blockchain.ledger.UserAuthorizeOperation;
+import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.core.LedgerManage;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.peer.ConsensusRealm;
@@ -44,6 +68,7 @@ import com.jd.blockchain.setting.LedgerIncomingSetting;
 import com.jd.blockchain.storage.service.DbConnection;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
+import com.jd.blockchain.tools.initializer.LedgerBindingConfig.BindingConfig;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.io.ByteArray;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
@@ -208,7 +233,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			}
 			HashDigest[] ledgerHashs = config.getLedgerHashs();
 			for (HashDigest ledgerHash : ledgerHashs) {
-				setConfig(config,ledgerHash);
+				setConfig(config.getLedger(ledgerHash),ledgerHash);
 			}
 
 			this.config = config;
@@ -220,8 +245,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	}
 
 	@Override
-	public NodeServer setConfig(LedgerBindingConfig config, HashDigest ledgerHash) {
-		LedgerBindingConfig.BindingConfig bindingConfig = config.getLedger(ledgerHash);
+	public NodeServer setConfig(BindingConfig bindingConfig, HashDigest ledgerHash) {
+//		LedgerBindingConfig.BindingConfig bindingConfig = config.getLedger(ledgerHash);
 		DbConnection dbConnNew = connFactory.connect(bindingConfig.getDbConnection().getUri(),
 				bindingConfig.getDbConnection().getPassword());
 		LedgerQuery ledgerRepository = ledgerManager.register(ledgerHash, dbConnNew.getStorageService());

@@ -67,9 +67,7 @@ public class PeerServerBooter {
 
 				try (InputStream in = configResource.getInputStream()) {
 					ledgerBindingConfig = LedgerBindingConfig.resolve(in);
-				} catch (Exception e) {
-					throw e;
-				}
+				} 
 			} else {
 				ConsoleUtils.info("Load configuration,ledgerBindConfigFile position="+ledgerBindConfigFile);
 				File file = new File(ledgerBindConfigFile);

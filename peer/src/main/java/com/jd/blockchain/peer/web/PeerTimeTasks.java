@@ -85,7 +85,7 @@ public class PeerTimeTasks implements ApplicationContextAware {
 
                     LOGGER.info("New Ledger [{}] Need To Be Init !!!", ledgerHash.toBase58());
                     for (LedgerBindingConfigAware aware : bindingConfigAwares.values()) {
-                        nodeServers.add(aware.setConfig(ledgerBindingConfig, ledgerHash));
+                        nodeServers.add(aware.setConfig(ledgerBindingConfig.getLedger(ledgerHash), ledgerHash));
                     }
                 }
                 // 启动指定NodeServer节点
