@@ -50,13 +50,13 @@
         <dependency>
             <groupId>com.jd.blockchain</groupId>
             <artifactId>crypto-classic</artifactId>
-            <version>${project.version}</version>
+            <version>${framework.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.jd.blockchain</groupId>
             <artifactId>crypto-sm</artifactId>
-            <version>${project.version}</version>
+            <version>${framework.version}</version>
         </dependency>
 
         <dependency>

@@ -14,19 +14,19 @@
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>ledger-model</artifactId>
-			<version>${project.version}</version>
+			<version>${framework.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>utils-common</artifactId>
-			<version>${project.version}</version>
+			<version>${framework.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>sdk-client</artifactId>
-			<version>${project.version}</version>
+			<version>${framework.version}</version>
 		</dependency>
 
 		<dependency>

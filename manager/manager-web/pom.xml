@@ -65,7 +65,7 @@
         <dependency>
             <groupId>com.jd.blockchain</groupId>
             <artifactId>utils-common</artifactId>
-            <version>${project.version}</version>
+            <version>${framework.version}</version>
         </dependency>
 
         <dependency>
