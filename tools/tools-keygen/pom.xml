@@ -13,7 +13,7 @@
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>crypto-framework</artifactId>
-			<version>${project.version}</version>
+			<version>${framework.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
