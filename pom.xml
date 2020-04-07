@@ -17,7 +17,7 @@
 	<properties>
 		<bftsmart.version>0.4.0.RELEASE</bftsmart.version>
 
-		<framework.version>1.1.7.RELEASE</framework.version>
+		<framework.version>1.1.8.RELEASE</framework.version>
 		
 		<explorer.version>1.1.2.RELEASE</explorer.version>
 	</properties>
