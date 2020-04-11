@@ -11,7 +11,7 @@
 
 	<modules>
 		<module>contract-jvm</module>
-		<module>contract-maven-plugin</module>
+		<!-- <module>contract-maven-plugin</module> -->
     </modules>
 
 </project>
