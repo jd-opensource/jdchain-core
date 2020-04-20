@@ -101,6 +101,10 @@ public class TransactionBatchProcessorTest {
 		LedgerManager ledgerManager = new LedgerManager();
 		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE);
 
+		//验证交易总数；创始区块的交易数预期为 1 ——只有一笔账本初始化的交易；
+		long totalCount = ledgerRepo.getTransactionSet().getTotalCount();
+		assertEquals(1, totalCount);
+		
 		// 验证参与方账户的存在；
 		LedgerDataQuery previousBlockDataset = ledgerRepo.getLedgerData(ledgerRepo.getLatestBlock());
 		UserAccount user0 = previousBlockDataset.getUserAccountSet().getAccount(parti0.getAddress());
@@ -132,6 +136,10 @@ public class TransactionBatchProcessorTest {
 		LedgerBlock latestBlock = ledgerRepo.getLatestBlock();
 		assertEquals(newBlock.getHash(), latestBlock.getHash());
 		assertEquals(1, newBlock.getHeight());
+		
+		// 再次验证交易数；在新增一笔交易之后，交易数预期为 2 ；
+		totalCount = ledgerRepo.getTransactionSet().getTotalCount();
+		assertEquals(2, totalCount);
 
 		assertEquals(TransactionState.SUCCESS, txResp.getExecutionState());
 	}
