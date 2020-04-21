@@ -525,12 +525,88 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(rootHash, hashPaths[0]);
 	}
 
+
 	/**
-	 * 对已有的树执行添加数据节点的操作，通过重载树验证新节点是否添加成功
+	 * 对已存在的树进行重载，增加新的数据节点，通过重载树验证新节点是否添加成功，total keys 与total records 是否符合预期，新添加的数据节点Key随机产生
 	 *
 	 */
 	@Test
-	public void testTreeDataNodeTotal() {
+	public void testReloadTreeAddRandomNewDataNode() {
+
+		Random random = new Random();
+		byte[] bytes = new byte[200];
+		random.nextBytes(bytes);
+		String newDataKey = bytes.toString();
+
+		CryptoSetting cryptoSetting = createCryptoSetting();
+		MemoryKVStorage storage = new MemoryKVStorage();
+
+		int count = 1024;
+		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
+		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
+
+		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
+		HashDigest rootHash0 = merkleTree.getRootHash();
+		assertNotNull(rootHash0);
+		assertEquals(count, merkleTree.getTotalKeys());
+		assertEquals(count, merkleTree.getTotalRecords());
+
+		// reload and add one data item;
+		HashSortingMerkleTree merkleTree_reload = new HashSortingMerkleTree(rootHash0, cryptoSetting, KEY_PREFIX,
+				storage, false);
+		assertEquals(count, merkleTree_reload.getTotalKeys());
+		assertEquals(count, merkleTree_reload.getTotalRecords());
+		assertEquals(rootHash0, merkleTree_reload.getRootHash());
+
+		VersioningKVData<String, byte[]> data1025 = new VersioningKVData<String, byte[]>(newDataKey, 0,
+				BytesUtils.toBytes("NEW-VALUE-1025-VERSION-0"));
+
+		merkleTree_reload.setData(data1025.getKey(), data1025.getVersion(), data1025.getValue());
+		merkleTree_reload.commit();
+		HashDigest rootHash1 = merkleTree_reload.getRootHash();
+		assertNotNull(rootHash1);
+		assertNotEquals(rootHash0, rootHash1);
+
+		MerkleData data1025_reload_0 = merkleTree_reload.getData(data1025.getKey(), 0);
+		assertNotNull(data1025_reload_0);
+		assertNull(data1025_reload_0.getPreviousEntryHash());
+
+		MerkleData data0_reload_0 = merkleTree_reload.getData("KEY-0", 0);
+		assertNotNull(data0_reload_0);
+		assertNull(data0_reload_0.getPreviousEntryHash());
+
+		System.out.println("mkl reload total keys = " + merkleTree_reload.getTotalKeys());
+		assertEquals(count + 1, merkleTree_reload.getTotalKeys());
+
+		HashSortingMerkleTree merkleTree_reload_1 = new HashSortingMerkleTree(rootHash1, cryptoSetting, KEY_PREFIX,
+				storage, false);
+		assertEquals(count + 1, merkleTree_reload_1.getTotalKeys());
+		assertEquals(count + 1, merkleTree_reload_1.getTotalRecords());
+		assertEquals(rootHash1, merkleTree_reload_1.getRootHash());
+
+		HashDigest rootHash2 = merkleTree_reload_1.getRootHash();
+		assertNotNull(rootHash2);
+		assertNotEquals(rootHash0, rootHash2);
+
+		MerkleData data1025_reload_1 = merkleTree_reload_1.getData(data1025.getKey(), 0);
+		assertNotNull(data1025_reload_1);
+		assertNull(data1025_reload_1.getPreviousEntryHash());
+
+		MerkleData data0_reload_1 = merkleTree_reload_1.getData("KEY-0", 0);
+		assertNotNull(data0_reload_1);
+		assertNull(data0_reload_1.getPreviousEntryHash());
+
+		System.out.println("mkl reload total keys = " + merkleTree_reload_1.getTotalKeys());
+		assertEquals(count + 1, merkleTree_reload_1.getTotalKeys());
+	}
+
+	/**
+	 * 对已存在的树进行重载，增加新的数据节点，通过重载树验证新节点是否添加成功，total keys 与total records 是否符合预期，新添加的数据节点Key具有一定的规律
+	 *
+	 */
+	@Test
+	public void testReloadTreeAddNewDataNode() {
+
 		CryptoSetting cryptoSetting = createCryptoSetting();
 		MemoryKVStorage storage = new MemoryKVStorage();
 
