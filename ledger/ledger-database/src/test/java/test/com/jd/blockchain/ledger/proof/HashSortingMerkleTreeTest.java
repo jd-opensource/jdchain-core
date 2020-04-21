@@ -88,27 +88,26 @@ public class HashSortingMerkleTreeTest {
 		testMerkleDataSerialize(merkleData);
 		merkleData = new MerkleDataEntry(key, NumberMask.LONG.MAX_BOUNDARY_SIZE - 1, hashDigest);
 		testMerkleDataSerialize(merkleData);
-		
-		
-		//数据大小；
+
+		// 数据大小；
 		System.out.println("------ Merkle Data Serialize ------");
 		byte[] dataBytes = BinaryProtocol.encode(merkleData, MerkleData.class);
 		System.out.printf("DataBytes= %s B\r\n", dataBytes.length);
-		
+
 		System.out.println("------ Merkle Path Serialize ------");
 		int degree = 8;
 		PathNode pathNode = new PathNode(degree);
-		
+
 		dataBytes = BinaryProtocol.encode(pathNode, MerklePath.class);
-		System.out.printf("childs=%s; bytes=%s B\r\n",0,  dataBytes.length);
+		System.out.printf("childs=%s; bytes=%s B\r\n", 0, dataBytes.length);
 		for (int i = 0; i < degree; i++) {
-			HashDigest childHash = SHA256_HASH_FUNC.hash(BytesUtils.toBytes(1024+i));
-			pathNode.setChildNode((byte)i, childHash, null);
-			
+			HashDigest childHash = SHA256_HASH_FUNC.hash(BytesUtils.toBytes(1024 + i));
+			pathNode.setChildNode((byte) i, childHash, null);
+
 			dataBytes = BinaryProtocol.encode(pathNode, MerklePath.class);
-			System.out.printf("childs=%s; bytes=%s B\r\n",i+1,  dataBytes.length);
+			System.out.printf("childs=%s; bytes=%s B\r\n", i + 1, dataBytes.length);
 		}
-		
+
 	}
 
 	private void testMerkleDataSerialize(MerkleData data) {
@@ -405,21 +404,21 @@ public class HashSortingMerkleTreeTest {
 		for (int i = 0; i < firstBatch; i++) {
 			merkleTree.setData(datas[i].getKey(), datas[i].getVersion(), datas[i].getValue());
 		}
-		//先提交；
+		// 先提交；
 		merkleTree.commit();
-		
-		//加载默克尔树到新实例；
+
+		// 加载默克尔树到新实例；
 		HashDigest rootHash = merkleTree.getRootHash();
 		HashSortingMerkleTree merkleTree1 = new HashSortingMerkleTree(rootHash, cryptoSetting, prefix, storage, false);
 		for (int i = firstBatch; i < datas.length; i++) {
 			merkleTree1.setData(datas[i].getKey(), datas[i].getVersion(), datas[i].getValue());
 		}
 		merkleTree1.commit();
-		
-		//重新加载；未正确扩展路径节点时，部分已持久化的叶子节点有可能丢失，在重新加载默克尔树并进行检索时将发现此错误；
+
+		// 重新加载；未正确扩展路径节点时，部分已持久化的叶子节点有可能丢失，在重新加载默克尔树并进行检索时将发现此错误；
 		rootHash = merkleTree1.getRootHash();
 		HashSortingMerkleTree merkleTree2 = new HashSortingMerkleTree(rootHash, cryptoSetting, prefix, storage, false);
-		
+
 		for (int i = 0; i < datas.length; i++) {
 			MerkleData data = merkleTree2.getData(datas[i].getKey());
 			assertNotNull(data);
@@ -542,47 +541,24 @@ public class HashSortingMerkleTreeTest {
 		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
 		HashDigest rootHash0 = merkleTree.getRootHash();
 		assertNotNull(rootHash0);
-
 		assertEquals(count, merkleTree.getTotalKeys());
 		assertEquals(count, merkleTree.getTotalRecords());
 
-		for (VersioningKVData<String, byte[]> data : datas) {
-			testMerkleProof(data, merkleTree, -1);
-		}
-		testMerkleProof1024(datas, merkleTree);
-
+		// reload and add one data item;
 		HashSortingMerkleTree merkleTree_reload = new HashSortingMerkleTree(rootHash0, cryptoSetting, KEY_PREFIX,
 				storage, false);
 		assertEquals(count, merkleTree_reload.getTotalKeys());
 		assertEquals(count, merkleTree_reload.getTotalRecords());
 		assertEquals(rootHash0, merkleTree_reload.getRootHash());
 
-		testMerkleProof1024(datas, merkleTree_reload);
-
-		Random random = new Random();
-		byte[] bytes = new byte[200];
-		random.nextBytes(bytes);
-
-		VersioningKVData<String, byte[]> data1024 = new VersioningKVData<String, byte[]>("KEY-1024", 0,
-				BytesUtils.toBytes("NEW-VALUE-1024-VERSION-0"));
-
 		VersioningKVData<String, byte[]> data1025 = new VersioningKVData<String, byte[]>("KEY-1025", 0,
 				BytesUtils.toBytes("NEW-VALUE-1025-VERSION-0"));
 
-//		merkleTree_reload.setData(data1024.getKey(), data1024.getVersion(), data1024.getValue());
 		merkleTree_reload.setData(data1025.getKey(), data1025.getVersion(), data1025.getValue());
-
 		merkleTree_reload.commit();
 		HashDigest rootHash1 = merkleTree_reload.getRootHash();
 		assertNotNull(rootHash1);
 		assertNotEquals(rootHash0, rootHash1);
-
-//		testMerkleProof(data1024, merkleTree_reload, -1);
-		testMerkleProof(data1025, merkleTree_reload, -1);
-
-//		MerkleData data1024_reload_0 = merkleTree_reload.getData(data1024.getKey(), 0);
-//		assertNotNull(data1024_reload_0);
-//		assertNull(data1024_reload_0.getPreviousEntryHash());
 
 		MerkleData data1025_reload_0 = merkleTree_reload.getData(data1025.getKey(), 0);
 		assertNotNull(data1025_reload_0);
@@ -592,17 +568,29 @@ public class HashSortingMerkleTreeTest {
 		assertNotNull(data0_reload_0);
 		assertNull(data0_reload_0.getPreviousEntryHash());
 
-		HashSortingMerkleTree merkleTree_reload_1 = new HashSortingMerkleTree(rootHash1, cryptoSetting, KEY_PREFIX, storage,
-				false);
-
-//		MerkleData data1024_reload_1 = merkleTree_reload_1.getData(data1024.getKey(), 0);
-//		assertNotNull(data1024_reload_1);
-//		assertNull(data1024_reload_1.getPreviousEntryHash());
-
 		System.out.println("mkl reload total keys = " + merkleTree_reload.getTotalKeys());
-
 		assertEquals(count + 1, merkleTree_reload.getTotalKeys());
 
+		HashSortingMerkleTree merkleTree_reload_1 = new HashSortingMerkleTree(rootHash1, cryptoSetting, KEY_PREFIX,
+				storage, false);
+		assertEquals(count + 1, merkleTree_reload_1.getTotalKeys());
+		assertEquals(count + 1, merkleTree_reload_1.getTotalRecords());
+		assertEquals(rootHash1, merkleTree_reload_1.getRootHash());
+
+		HashDigest rootHash2 = merkleTree_reload_1.getRootHash();
+		assertNotNull(rootHash2);
+		assertNotEquals(rootHash0, rootHash2);
+
+		MerkleData data1025_reload_1 = merkleTree_reload_1.getData(data1025.getKey(), 0);
+		assertNotNull(data1025_reload_1);
+		assertNull(data1025_reload_1.getPreviousEntryHash());
+
+		MerkleData data0_reload_1 = merkleTree_reload_1.getData("KEY-0", 0);
+		assertNotNull(data0_reload_1);
+		assertNull(data0_reload_1.getPreviousEntryHash());
+
+		System.out.println("mkl reload total keys = " + merkleTree_reload_1.getTotalKeys());
+		assertEquals(count + 1, merkleTree_reload_1.getTotalKeys());
 	}
 
 	/**
