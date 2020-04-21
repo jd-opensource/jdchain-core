@@ -527,6 +527,85 @@ public class HashSortingMerkleTreeTest {
 	}
 
 	/**
+	 * 对已有的树执行添加数据节点的操作，通过重载树验证新节点是否添加成功
+	 *
+	 */
+	@Test
+	public void testTreeDataNodeTotal() {
+		CryptoSetting cryptoSetting = createCryptoSetting();
+		MemoryKVStorage storage = new MemoryKVStorage();
+
+		int count = 1024;
+		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
+		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
+
+		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
+		HashDigest rootHash0 = merkleTree.getRootHash();
+		assertNotNull(rootHash0);
+
+		assertEquals(count, merkleTree.getTotalKeys());
+		assertEquals(count, merkleTree.getTotalRecords());
+
+		for (VersioningKVData<String, byte[]> data : datas) {
+			testMerkleProof(data, merkleTree, -1);
+		}
+		testMerkleProof1024(datas, merkleTree);
+
+		HashSortingMerkleTree merkleTree_reload = new HashSortingMerkleTree(rootHash0, cryptoSetting, KEY_PREFIX,
+				storage, false);
+		assertEquals(count, merkleTree_reload.getTotalKeys());
+		assertEquals(count, merkleTree_reload.getTotalRecords());
+		assertEquals(rootHash0, merkleTree_reload.getRootHash());
+
+		testMerkleProof1024(datas, merkleTree_reload);
+
+		Random random = new Random();
+		byte[] bytes = new byte[200];
+		random.nextBytes(bytes);
+
+		VersioningKVData<String, byte[]> data1024 = new VersioningKVData<String, byte[]>("KEY-1024", 0,
+				BytesUtils.toBytes("NEW-VALUE-1024-VERSION-0"));
+
+		VersioningKVData<String, byte[]> data1025 = new VersioningKVData<String, byte[]>("KEY-1025", 0,
+				BytesUtils.toBytes("NEW-VALUE-1025-VERSION-0"));
+
+//		merkleTree_reload.setData(data1024.getKey(), data1024.getVersion(), data1024.getValue());
+		merkleTree_reload.setData(data1025.getKey(), data1025.getVersion(), data1025.getValue());
+
+		merkleTree_reload.commit();
+		HashDigest rootHash1 = merkleTree_reload.getRootHash();
+		assertNotNull(rootHash1);
+		assertNotEquals(rootHash0, rootHash1);
+
+//		testMerkleProof(data1024, merkleTree_reload, -1);
+		testMerkleProof(data1025, merkleTree_reload, -1);
+
+//		MerkleData data1024_reload_0 = merkleTree_reload.getData(data1024.getKey(), 0);
+//		assertNotNull(data1024_reload_0);
+//		assertNull(data1024_reload_0.getPreviousEntryHash());
+
+		MerkleData data1025_reload_0 = merkleTree_reload.getData(data1025.getKey(), 0);
+		assertNotNull(data1025_reload_0);
+		assertNull(data1025_reload_0.getPreviousEntryHash());
+
+		MerkleData data0_reload_0 = merkleTree_reload.getData("KEY-0", 0);
+		assertNotNull(data0_reload_0);
+		assertNull(data0_reload_0.getPreviousEntryHash());
+
+		HashSortingMerkleTree merkleTree_reload_1 = new HashSortingMerkleTree(rootHash1, cryptoSetting, KEY_PREFIX, storage,
+				false);
+
+//		MerkleData data1024_reload_1 = merkleTree_reload_1.getData(data1024.getKey(), 0);
+//		assertNotNull(data1024_reload_1);
+//		assertNull(data1024_reload_1.getPreviousEntryHash());
+
+		System.out.println("mkl reload total keys = " + merkleTree_reload.getTotalKeys());
+
+		assertEquals(count + 1, merkleTree_reload.getTotalKeys());
+
+	}
+
+	/**
 	 * 测试树的加载读取；
 	 */
 	@Test
