@@ -46,6 +46,11 @@
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
+			<groupId>com.jd.blockchain</groupId>
+			<artifactId>sdk-rpc</artifactId>
+			<version>${framework.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-context</artifactId>
 		</dependency>

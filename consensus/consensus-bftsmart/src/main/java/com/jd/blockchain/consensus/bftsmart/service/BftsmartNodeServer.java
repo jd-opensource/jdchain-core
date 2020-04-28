@@ -138,7 +138,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     }
 
     @Override
-    public ConsensusManageService getManageService() {
+    public ConsensusManageService getConsensusManageService() {
         return manageService;
     }
 

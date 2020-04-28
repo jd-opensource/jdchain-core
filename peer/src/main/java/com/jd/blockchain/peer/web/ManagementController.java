@@ -5,6 +5,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.jd.blockchain.crypto.CryptoAlgorithm;
+import com.jd.blockchain.crypto.CryptoProvider;
+import com.jd.blockchain.ledger.json.CryptoConfigInfo;
+import com.jd.blockchain.ledger.proof.MerkleData;
+import com.jd.blockchain.ledger.proof.MerkleLeaf;
+import com.jd.blockchain.ledger.proof.MerklePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -150,6 +156,16 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		DataContractRegistry.register(RoleInitSettings.class);
 		DataContractRegistry.register(UserAuthInitSettings.class);
 		DataContractRegistry.register(LedgerMetadata_V2.class);
+
+		// 注册默克尔树相关接口
+		DataContractRegistry.register(MerkleData.class);
+		DataContractRegistry.register(MerkleLeaf.class);
+		DataContractRegistry.register(MerklePath.class);
+
+		// 注册加解密相关接口
+		DataContractRegistry.register(CryptoSetting.class);
+		DataContractRegistry.register(CryptoProvider.class);
+		DataContractRegistry.register(CryptoAlgorithm.class);
 	}
 
 	/**
@@ -192,7 +208,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     continue;
                 }
                 try {
-                    clientIncomingSettings = peer.getManageService().authClientIncoming(authId);
+                    clientIncomingSettings = peer.getConsensusManageService().authClientIncoming(authId);
                     break;
                 } catch (Exception e) {
                     throw new AuthenticationServiceException(e.getMessage(), e);
@@ -208,7 +224,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			LedgerIncomingSetting ledgerIncomingSetting = new LedgerIncomingSetting();
 			ledgerIncomingSetting.setLedgerHash(ledgerHash);
-			ledgerIncomingSetting.setCryptoSetting(ledgerCryptoSettings.get(ledgerHash));
+
+			// 使用非代理对象，防止JSON序列化异常
+			ledgerIncomingSetting.setCryptoSetting(new CryptoConfigInfo(ledgerCryptoSettings.get(ledgerHash)));
 			ledgerIncomingSetting.setClientSetting(base64ClientIncomingSettings);
 			ledgerIncomingSetting.setProviderName(peerProviderName);
 

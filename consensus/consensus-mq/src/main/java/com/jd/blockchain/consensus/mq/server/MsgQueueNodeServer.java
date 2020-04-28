@@ -122,7 +122,7 @@ public class MsgQueueNodeServer implements NodeServer {
     }
 
     @Override
-    public MsgQueueConsensusManageService getManageService() {
+    public MsgQueueConsensusManageService getConsensusManageService() {
         return this.manageService;
     }
 
