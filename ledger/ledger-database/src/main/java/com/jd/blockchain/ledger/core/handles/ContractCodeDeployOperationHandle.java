@@ -26,11 +26,11 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 		// 操作账本；
 		ContractCodeDeployOperation contractOP = op;
 
-		// 校验合约内容
-		byte[] chainCode = contractOP.getChainCode();
-
-		// 校验合约代码，不通过会抛出异常
-		ContractJarUtils.verify(chainCode);
+//		// 校验合约内容
+//		byte[] chainCode = contractOP.getChainCode();
+//
+//		// todo 等待合约文件校验方式确定再增加 校验合约代码，不通过会抛出异常
+//		ContractJarUtils.verify(chainCode);
 
 		newBlockDataset.getContractAccountset().deploy(contractOP.getContractID().getAddress(),
 				contractOP.getContractID().getPubKey(), contractOP.getAddressSignature(), contractOP.getChainCode());

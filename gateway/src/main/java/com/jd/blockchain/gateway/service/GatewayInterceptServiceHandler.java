@@ -41,8 +41,8 @@ public class GatewayInterceptServiceHandler implements GatewayInterceptService {
 
     private void contractCheck(final ContractCodeDeployOperation contractOP) {
 
-        // 校验chainCode
-        ContractJarUtils.verify(contractsPath, contractOP.getChainCode());
+        // todo 等合约插件标签添加完成后再增加 校验chainCode
+//        ContractJarUtils.verify(contractsPath, contractOP.getChainCode());
     }
 
     private static String jarRootDir() {
