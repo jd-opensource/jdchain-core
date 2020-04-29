@@ -1,11 +1,15 @@
 package com.jd.blockchain.ledger.core.handles;
 
 import com.jd.blockchain.contract.ContractJarUtils;
+import com.jd.blockchain.contract.ContractProcessor;
+import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.ledger.ContractCodeDeployOperation;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.core.*;
 
 public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHandle<ContractCodeDeployOperation> {
+
+	private static final ContractProcessor CONTRACT_PROCESSOR = OnLineContractProcessor.getInstance();
 
 	public ContractCodeDeployOperationHandle() {
 		super(ContractCodeDeployOperation.class);
@@ -26,11 +30,19 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 		// 操作账本；
 		ContractCodeDeployOperation contractOP = op;
 
-//		// 校验合约内容
-//		byte[] chainCode = contractOP.getChainCode();
-//
-//		// todo 等待合约文件校验方式确定再增加 校验合约代码，不通过会抛出异常
-//		ContractJarUtils.verify(chainCode);
+		// 校验合约内容
+		byte[] chainCode = contractOP.getChainCode();
+
+		// 校验合约代码，不通过会抛出异常
+		try {
+			if (!CONTRACT_PROCESSOR.verify(chainCode)) {
+				throw new IllegalStateException(String.format("Contract[%s] verify fail !!!",
+						contractOP.getContractID().getAddress().toBase58()));
+			}
+		} catch (Exception e) {
+			throw new IllegalStateException(String.format("Contract[%s] verify fail !!!",
+					contractOP.getContractID().getAddress().toBase58()));
+		}
 
 		newBlockDataset.getContractAccountset().deploy(contractOP.getContractID().getAddress(),
 				contractOP.getContractID().getPubKey(), contractOP.getAddressSignature(), contractOP.getChainCode());

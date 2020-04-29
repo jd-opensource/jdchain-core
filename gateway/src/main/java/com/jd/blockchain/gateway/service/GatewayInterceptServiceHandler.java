@@ -1,29 +1,17 @@
 package com.jd.blockchain.gateway.service;
 
-import com.jd.blockchain.contract.ContractJarUtils;
-import com.jd.blockchain.gateway.PeerService;
+import com.jd.blockchain.contract.ContractProcessor;
+import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.ledger.ContractCodeDeployOperation;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.TransactionRequest;
-import org.apache.commons.io.FileUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ResourceUtils;
 
-import java.io.File;
-import java.net.URL;
 
 @Service
 public class GatewayInterceptServiceHandler implements GatewayInterceptService {
 
-    private static String contractsPath;
-
-    @Autowired
-    private PeerService peerService;
-
-    static {
-        contractsPath = jarRootDir();
-    }
+    private static final ContractProcessor CONTRACT_PROCESSOR = OnLineContractProcessor.getInstance();
 
     @Override
     public void intercept(TransactionRequest txRequest) {
@@ -40,34 +28,15 @@ public class GatewayInterceptServiceHandler implements GatewayInterceptService {
     }
 
     private void contractCheck(final ContractCodeDeployOperation contractOP) {
-
-        // todo 等合约插件标签添加完成后再增加 校验chainCode
-//        ContractJarUtils.verify(contractsPath, contractOP.getChainCode());
-    }
-
-    private static String jarRootDir() {
-
+        // 校验合约代码，不通过会抛出异常
         try {
-            URL url = GatewayInterceptServiceHandler.class.getProtectionDomain().getCodeSource().getLocation();
-            String currPath = java.net.URLDecoder.decode(url.getPath(), "UTF-8");
-            if (currPath.contains("!/")) {
-                currPath = currPath.substring(5, currPath.indexOf("!/"));
+            if (!CONTRACT_PROCESSOR.verify(contractOP.getChainCode())) {
+                throw new IllegalStateException(String.format("Contract[%s] verify fail !!!",
+                        contractOP.getContractID().getAddress().toBase58()));
             }
-            if (currPath.endsWith(".jar")) {
-                currPath = currPath.substring(0, currPath.lastIndexOf("/") + 1);
-            }
-            File file = new File(currPath);
-
-            String homeDir = file.getParent();
-
-            String jarRootPath = homeDir + File.separator + "contracts";
-
-            FileUtils.forceMkdir(new File(jarRootPath));
-
-            return jarRootPath;
-
         } catch (Exception e) {
-            throw new IllegalStateException(e);
+            throw new IllegalStateException(String.format("Contract[%s] verify fail !!!",
+                    contractOP.getContractID().getAddress().toBase58()));
         }
     }
 }
