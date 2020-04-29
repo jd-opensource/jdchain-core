@@ -3,6 +3,7 @@ package com.jd.blockchain.peer.web;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jd.blockchain.ledger.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,22 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.BlockchainIdentity;
-import com.jd.blockchain.ledger.BytesValue;
-import com.jd.blockchain.ledger.ContractInfo;
-import com.jd.blockchain.ledger.KVDataVO;
-import com.jd.blockchain.ledger.KVInfoVO;
-import com.jd.blockchain.ledger.LedgerAdminInfo;
-import com.jd.blockchain.ledger.LedgerBlock;
-import com.jd.blockchain.ledger.LedgerInfo;
-import com.jd.blockchain.ledger.LedgerMetadata;
-import com.jd.blockchain.ledger.LedgerTransaction;
-import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.TransactionState;
-import com.jd.blockchain.ledger.TypedKVData;
-import com.jd.blockchain.ledger.TypedKVEntry;
-import com.jd.blockchain.ledger.TypedValue;
-import com.jd.blockchain.ledger.UserInfo;
 import com.jd.blockchain.ledger.core.ContractAccountQuery;
 import com.jd.blockchain.ledger.core.DataAccount;
 import com.jd.blockchain.ledger.core.DataAccountQuery;
@@ -532,6 +517,14 @@ public class LedgerQueryController implements BlockchainQueryService {
 		ContractAccountQuery contractAccountSet = ledger.getContractAccountSet(block);
 		int pages[] = QueryUtil.calFromIndexAndCountDescend(fromIndex, count, (int) contractAccountSet.getTotal());
 		return contractAccountSet.getHeaders(pages[0], pages[1]);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/userrole/{userAddress}")
+	@Override
+	public RoleSet getUserRoles(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+								@PathVariable(name = "userAddress") String userAddress) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		return ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
 	}
 
 }

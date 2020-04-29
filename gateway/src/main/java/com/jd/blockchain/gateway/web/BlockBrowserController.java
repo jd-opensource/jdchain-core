@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
+import com.jd.blockchain.ledger.*;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,18 +22,6 @@ import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.gateway.PeerService;
 import com.jd.blockchain.gateway.service.DataRetrievalService;
 import com.jd.blockchain.gateway.service.GatewayQueryService;
-import com.jd.blockchain.ledger.BlockchainIdentity;
-import com.jd.blockchain.ledger.ContractInfo;
-import com.jd.blockchain.ledger.KVInfoVO;
-import com.jd.blockchain.ledger.LedgerAdminInfo;
-import com.jd.blockchain.ledger.LedgerBlock;
-import com.jd.blockchain.ledger.LedgerInfo;
-import com.jd.blockchain.ledger.LedgerMetadata;
-import com.jd.blockchain.ledger.LedgerTransaction;
-import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.TransactionState;
-import com.jd.blockchain.ledger.TypedKVEntry;
-import com.jd.blockchain.ledger.UserInfo;
 import com.jd.blockchain.sdk.BlockchainExtendQueryService;
 import com.jd.blockchain.sdk.ContractSettings;
 import com.jd.blockchain.sdk.LedgerBaseSettings;
@@ -84,6 +73,13 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 	@Override
 	public ParticipantNode[] getConsensusParticipants(@PathVariable(name = "ledgerHash") HashDigest ledgerHash) {
 		return peerService.getQueryService().getConsensusParticipants(ledgerHash);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/userrole/{userAddress}")
+	@Override
+	public RoleSet getUserRoles(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+								@PathVariable(name = "userAddress") String userAddress) {
+		return peerService.getQueryService().getUserRoles(ledgerHash, userAddress);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/metadata")
