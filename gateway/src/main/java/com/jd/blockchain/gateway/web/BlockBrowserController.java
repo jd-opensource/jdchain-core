@@ -33,6 +33,7 @@ import com.jd.blockchain.ledger.LedgerInfo;
 import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.UserInfo;
@@ -638,5 +639,11 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 			}
 		}
 		return accounts;
+	}
+
+	@Override
+	public RoleSet getUserRoles(HashDigest ledgerHash, String userAddress) {
+		// TODO Auto-generated method stub
+		throw new IllegalStateException("Not implemented!");
 	}
 }
