@@ -33,7 +33,6 @@ import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.PropertiesUtils;
 import com.jd.blockchain.utils.concurrent.AsyncFuture;
 import com.jd.blockchain.utils.io.BytesUtils;
-import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 
 import bftsmart.consensus.app.BatchAppResultImpl;
 import bftsmart.reconfiguration.util.HostsConfig;
@@ -42,12 +41,13 @@ import bftsmart.tom.MessageContext;
 import bftsmart.tom.ReplyContextMessage;
 import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
+import org.springframework.util.NumberUtils;
 
 public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer {
 
     private static Logger LOGGER = LoggerFactory.getLogger(BftsmartNodeServer.class);
 
-    private static final String DEFAULT_BINDING_HOST = "0.0.0.0";
+//    private static final String DEFAULT_BINDING_HOST = "0.0.0.0";
 
     private List<StateHandle> stateHandles = new CopyOnWriteArrayList<>();
 
@@ -73,7 +73,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     private TOMConfiguration tomConfig;
 
-    private TOMConfiguration outerTomConfig;
+//    private TOMConfiguration outerTomConfig;
 
     private HostsConfig hostsConfig;
     private Properties systemConfig;
@@ -143,12 +143,26 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     }
 
     protected void initConfig(int id, Properties systemsConfig, HostsConfig hostConfig) {
-        byte[] serialHostConf = BinarySerializeUtils.serialize(hostConfig);
-        Properties sysConfClone = (Properties)systemsConfig.clone();
+//        byte[] serialHostConf = BinarySerializeUtils.serialize(hostConfig);
+//        Properties sysConfClone = (Properties)systemsConfig.clone();
         int port = hostConfig.getPort(id);
-        hostConfig.add(id, DEFAULT_BINDING_HOST, port);
+//        hostConfig.add(id, DEFAULT_BINDING_HOST, port);
+
+        //if peer-startup.sh set up the -DhostIp=xxx, then get it;
+        String preHostPort = System.getProperty("hostPort");
+        if(preHostPort != null && preHostPort.length()>0){
+            port = NumberUtils.parseNumber(preHostPort, Integer.class);
+            System.out.println("###peer-startup.sh###,set up the -DhostPort="+port);
+        }
+
+        String preHostIp = System.getProperty("hostIp");
+        if(preHostIp != null && preHostIp.length()>0){
+            hostConfig.add(id, preHostIp, port);
+            System.out.println("###peer-startup.sh###,set up the -DhostIp="+preHostIp);
+        }
+
         this.tomConfig = new TOMConfiguration(id, systemsConfig, hostConfig);
-        this.outerTomConfig = new TOMConfiguration(id, sysConfClone, BinarySerializeUtils.deserialize(serialHostConf));
+//        this.outerTomConfig = new TOMConfiguration(id, sysConfClone, BinarySerializeUtils.deserialize(serialHostConf));
     }
 
     @Override
@@ -167,7 +181,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     }
 
     public TOMConfiguration getTomConfig() {
-        return outerTomConfig;
+        return tomConfig;
     }
 
     public int getId() {
@@ -179,7 +193,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             throw new IllegalArgumentException("ReplicaID is negative!");
         }
         this.tomConfig.setProcessId(id);
-        this.outerTomConfig.setProcessId(id);
+//        this.outerTomConfig.setProcessId(id);
     }
 
     public BftsmartConsensusSettings getConsensusSetting() {
