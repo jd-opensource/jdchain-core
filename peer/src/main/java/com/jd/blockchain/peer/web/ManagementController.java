@@ -11,6 +11,7 @@ import com.jd.blockchain.ledger.json.CryptoConfigInfo;
 import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.ledger.proof.MerkleLeaf;
 import com.jd.blockchain.ledger.proof.MerklePath;
+import com.jd.blockchain.peer.consensus.LedgerStateManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -289,6 +290,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 							+ "]!");
 		}
 		ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(ledgerHash.toBase58(), csSettings, currentNode.getAddress());
+
+		((LedgerStateManager)consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
 
 		NodeServer server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
 				consensusStateManager);
