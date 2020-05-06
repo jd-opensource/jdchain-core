@@ -20,6 +20,8 @@
 		<framework.version>1.2.0.RELEASE</framework.version>
 		
 		<explorer.version>1.1.3.RELEASE</explorer.version>
+
+		<kvdb.version>1.0.0.RELEASE</kvdb.version>
 	</properties>
 
 	<modules>
@@ -28,6 +30,7 @@
 		<module>../framework</module>
 		<module>../explorer</module>
 
+		<module>kvdb</module>
 		<module>consensus</module>
 		<module>contract</module>
 		<module>crypto</module>
