@@ -1,32 +1,46 @@
 package com.jd.blockchain.consensus.bftsmart.service;
 
 import java.io.ByteArrayOutputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import bftsmart.consensus.app.BatchAppResultImpl;
-import bftsmart.tom.*;
-import com.jd.blockchain.binaryproto.BinaryProtocol;
-import com.jd.blockchain.consensus.service.*;
-import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.*;
-import com.jd.blockchain.transaction.TxResponseMessage;
-import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.ConsensusManageService;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
+import com.jd.blockchain.consensus.service.MessageHandle;
+import com.jd.blockchain.consensus.service.NodeServer;
+import com.jd.blockchain.consensus.service.ServerSettings;
+import com.jd.blockchain.consensus.service.StateHandle;
+import com.jd.blockchain.consensus.service.StateMachineReplicate;
+import com.jd.blockchain.consensus.service.StateSnapshot;
+import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.ledger.BlockRollbackException;
+import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.TransactionResponse;
+import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.PropertiesUtils;
 import com.jd.blockchain.utils.concurrent.AsyncFuture;
 import com.jd.blockchain.utils.io.BytesUtils;
+import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
+
+import bftsmart.consensus.app.BatchAppResultImpl;
 import bftsmart.reconfiguration.util.HostsConfig;
 import bftsmart.reconfiguration.util.TOMConfiguration;
+import bftsmart.tom.MessageContext;
+import bftsmart.tom.ReplyContextMessage;
+import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
 
 public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer {
@@ -138,7 +152,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     }
 
     @Override
-    public ConsensusManageService getManageService() {
+	public ConsensusManageService getConsensusManageService() {
         return manageService;
     }
 

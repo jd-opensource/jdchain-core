@@ -8,6 +8,9 @@
  */
 package com.jd.blockchain.consensus.mq.server;
 
+import java.util.concurrent.Executors;
+
+import com.jd.blockchain.consensus.ConsensusManageService;
 import com.jd.blockchain.consensus.mq.MsgQueueConsensusProvider;
 import com.jd.blockchain.consensus.mq.consumer.MsgQueueConsumer;
 import com.jd.blockchain.consensus.mq.factory.MsgQueueFactory;
@@ -19,8 +22,6 @@ import com.jd.blockchain.consensus.mq.settings.MsgQueueServerSettings;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
-
-import java.util.concurrent.Executors;
 
 /**
  *
@@ -122,7 +123,7 @@ public class MsgQueueNodeServer implements NodeServer {
     }
 
     @Override
-    public MsgQueueConsensusManageService getManageService() {
+	public ConsensusManageService getConsensusManageService() {
         return this.manageService;
     }
 
