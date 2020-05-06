@@ -27,12 +27,12 @@ public class JVMContractEngine implements ContractEngine {
 	@Override
 	public ContractCode setupContract(Bytes address, long version, byte[] code) {
 	    //is there the contractCode before setup? if yes ,then return;
-        ContractCode contractCode = getContract(address,version);
+        ContractCode contractCode = getContract(address, version);
         if(contractCode != null){
             return contractCode;
         }
 		String codeName = getCodeName(address, version);
-		Module module = runtimeContext.createDynamicModule(codeName,code);
+		Module module = runtimeContext.createDynamicModule(codeName, code);
 		if (module == null) {
 			return null;
 		}
