@@ -74,6 +74,12 @@
 		</dependency>
 
 		<dependency>
+			<groupId>com.jd.blockchain</groupId>
+			<artifactId>ledger-database</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
 		</dependency>
