@@ -4,7 +4,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.TransactionState;
 
-public interface TransactionQuery extends MerkleProvable {
+public interface TransactionQuery extends TxMerkleProvable {
 
 	LedgerTransaction[] getTxs(int fromIndex, int count);
 
