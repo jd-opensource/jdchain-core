@@ -134,7 +134,9 @@ public class TransactionSetTest {
 
 		HashDigest txCtnHash = txReq.getTransactionContent().getHash();
 		LedgerTransaction reloadTx = reloadTxset.get(txCtnHash);
+		TransactionState state = reloadTxset.getState(txCtnHash);
 		assertNotNull(reloadTx);
+		assertEquals(0, state.CODE);
 
 		assertEquals(tx.getHash(), reloadTx.getHash());
 		assertEquals(tx.getBlockHeight(), reloadTx.getBlockHeight());
@@ -260,13 +262,18 @@ public class TransactionSetTest {
 		bufferStorage.commit();
 
 		tx_query = txset.get(transactionRequest1.getTransactionContent().getHash());
+		TransactionState tx_state = txset.getState(transactionRequest1.getTransactionContent().getHash());
 		assertNotNull(tx_query);
+		assertEquals(0, tx_state.CODE);
 
 		HashDigest txsetRootHash = txset.getRootHash();
 
 		txset = new TransactionSet(txsetRootHash, defCryptoSetting, keyPrefix, testStorage, testStorage, false);
 		tx_query = txset.get(transactionRequest1.getTransactionContent().getHash());
+		tx_state = txset.getState(transactionRequest1.getTransactionContent().getHash());
+
 		assertNotNull(tx_query);
+		assertEquals(0, tx_state.CODE);
 	}
 
 
