@@ -28,6 +28,7 @@ import com.jd.blockchain.utils.io.BytesUtils;
 import bftsmart.reconfiguration.util.HostsConfig;
 import bftsmart.reconfiguration.util.TOMConfiguration;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
+import org.springframework.util.NumberUtils;
 
 public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer {
 
@@ -134,8 +135,22 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     protected void initConfig(int id, Properties systemsConfig, HostsConfig hostConfig) {
 //        byte[] serialHostConf = BinarySerializeUtils.serialize(hostConfig);
 //        Properties sysConfClone = (Properties)systemsConfig.clone();
-//        int port = hostConfig.getPort(id);
+        int port = hostConfig.getPort(id);
 //        hostConfig.add(id, DEFAULT_BINDING_HOST, port);
+
+        //if peer-startup.sh set up the -DhostIp=xxx, then get it;
+        String preHostPort = System.getProperty("hostPort");
+        if(preHostPort != null && preHostPort.length()>0){
+            port = NumberUtils.parseNumber(preHostPort, Integer.class);
+            System.out.println("###peer-startup.sh###,set up the -DhostPort="+port);
+        }
+
+        String preHostIp = System.getProperty("hostIp");
+        if(preHostIp != null && preHostIp.length()>0){
+            hostConfig.add(id, preHostIp, port);
+            System.out.println("###peer-startup.sh###,set up the -DhostIp="+preHostIp);
+        }
+
         this.tomConfig = new TOMConfiguration(id, systemsConfig, hostConfig);
 //        this.outerTomConfig = new TOMConfiguration(id, systemsConfig, hostConfig);
     }
