@@ -13,8 +13,9 @@ import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.sdk.ContractSettings;
 import com.jd.blockchain.sdk.LedgerBaseSettings;
-import com.jd.blockchain.utils.QueryUtil;
 import com.jd.blockchain.utils.codec.HexUtils;
+import com.jd.blockchain.utils.query.QueryArgs;
+import com.jd.blockchain.utils.query.QueryUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,16 +40,16 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
     @Override
     public HashDigest[] getLedgersHash(int fromIndex, int count) {
         HashDigest[] ledgersHashs = peerService.getQueryService().getLedgerHashs();
-        int[] indexAndCount = QueryUtil.calFromIndexAndCount(fromIndex, count, ledgersHashs.length);
-        return Arrays.copyOfRange(ledgersHashs, indexAndCount[0], indexAndCount[0] + indexAndCount[1]);
+        QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, ledgersHashs.length);
+        return Arrays.copyOfRange(ledgersHashs, queryArgs.getFrom(), queryArgs.getFrom() + queryArgs.getCount());
     }
 
     @Override
     public ParticipantNode[] getConsensusParticipants(HashDigest ledgerHash, int fromIndex, int count) {
         ParticipantNode[] participantNodes = peerService.getQueryService().getConsensusParticipants(ledgerHash);
-        int[] indexAndCount = QueryUtil.calFromIndexAndCount(fromIndex, count, participantNodes.length);
-        ParticipantNode[] participantNodesNews = Arrays.copyOfRange(participantNodes, indexAndCount[0],
-                indexAndCount[0] + indexAndCount[1]);
+        QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, participantNodes.length);
+        ParticipantNode[] participantNodesNews = Arrays.copyOfRange(participantNodes, queryArgs.getFrom(),
+                queryArgs.getFrom() + queryArgs.getCount());
         return participantNodesNews;
     }
 

@@ -131,8 +131,14 @@ public class PeerServerBooter {
 			return;
 		}
 		ConfigurableApplicationContext ctx = appContext;
+		closeServer();
 		appContext = null;
 		ctx.close();
+	}
+
+	public void closeServer() {
+		ConsensusManage consensusManage = appContext.getBean(ConsensusManage.class);
+		consensusManage.closeAllRealms();
 	}
 
 	/**
