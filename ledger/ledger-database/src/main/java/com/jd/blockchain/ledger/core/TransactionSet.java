@@ -40,7 +40,7 @@ public class TransactionSet implements Transactional, TransactionQuery {
 
 	private ExPolicyKVStorage exPolicyKVStorage;
 
-    private TransactionSetInfo transactionSetQuery;
+    private TransactionSetInfo transactionSetQuery = new TransactionSetInfo();
 
 	@Override
 	public LedgerTransaction[] getTxs(int fromIndex, int count) {
@@ -60,7 +60,7 @@ public class TransactionSet implements Transactional, TransactionQuery {
 	public byte[][] getValuesByIndex(int fromIndex, int count) {
 		byte[][] values = new byte[count][];
 		for (int i = 0; i < count; i++) {
-			values[i] = txDataSet.getValuesAtIndex(fromIndex * 2);
+			values[i] = txDataSet.getValuesAtIndex(fromIndex);
 			fromIndex++;
 		}
 		return values;
@@ -68,7 +68,7 @@ public class TransactionSet implements Transactional, TransactionQuery {
 
 	@Override
 	public HashDigest getRootHash() {
-		return txSetRootHash;
+		return getTxSetRootHash();
 	}
 
 	@Override
@@ -97,7 +97,6 @@ public class TransactionSet implements Transactional, TransactionQuery {
 		this.exPolicyKVStorage = merkleTreeStorage;
 		this.txDataSet = new MerkleDataSet(setting, keyPrefix, merkleTreeStorage, dataStorage);
 		this.txStateSet = new MerkleDataSet(setting, keyPrefix, merkleTreeStorage, dataStorage);
-		this.transactionSetQuery = new TransactionSetInfo();
 
 	}
 
@@ -146,7 +145,7 @@ public class TransactionSet implements Transactional, TransactionQuery {
 	}
 
 	private TransactionSetQuery getTxSetInfo(HashDigest txSetRootHash) {
-		return deserializeQuery(exPolicyKVStorage.get(encodeTxSetKey(txSetRootHash)));
+		 return deserializeQuery(exPolicyKVStorage.get(encodeTxSetKey(txSetRootHash)));
 	}
 
 	public LedgerTransaction get(String base58Hash) {
@@ -215,6 +214,20 @@ public class TransactionSet implements Transactional, TransactionQuery {
 	void setReadonly() {
 		txDataSet.setReadonly();
 		txStateSet.setReadonly();
+	}
+
+	private HashDigest getTxSetRootHash() {
+		if (txStateSet.getRootHash() == null || txStateSet.getRootHash() == null)  {
+			return null;
+		}
+		transactionSetQuery.setTxDataSetRootHash(txDataSet.getRootHash());
+		transactionSetQuery.setTxStateSetRootHash(txStateSet.getRootHash());
+
+		byte[] txSetRootHashBytes = serialize(transactionSetQuery);
+
+		HashDigest rootHash = hashFunc.hash(txSetRootHashBytes);
+
+		return rootHash;
 	}
 
 	private void setTxSetRootHash() {
