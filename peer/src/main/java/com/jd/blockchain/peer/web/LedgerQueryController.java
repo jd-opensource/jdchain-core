@@ -32,7 +32,8 @@ import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.DataIterator;
-import com.jd.blockchain.utils.QueryUtil;
+import com.jd.blockchain.utils.query.QueryArgs;
+import com.jd.blockchain.utils.query.QueryUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -264,18 +265,8 @@ public class LedgerQueryController implements BlockchainQueryService {
 		// 取当前高度的增量交易数，在增量交易里进行查找
 		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
 
-//		if (fromIndex < 0 || fromIndex >= currentHeightTxNums) {
-//			fromIndex = 0;
-//		}
-//		if (count == -1) {
-//			fromIndex = 0;
-//			count = currentHeightTxNums;
-//		}
-//		if (count > currentHeightTxNums) {
-//			count = currentHeightTxNums - fromIndex;
-//		}
-		int indexAndCount[] = QueryUtil.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
-		return transactionSet.getTxs(lastHeightTxTotalNums + indexAndCount[0], indexAndCount[1]);
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
+		return transactionSet.getTxs(lastHeightTxTotalNums + queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/hash/{blockHash}/txs")
@@ -298,18 +289,8 @@ public class LedgerQueryController implements BlockchainQueryService {
 		// 取当前块hash的增量交易数，在增量交易里进行查找
 		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
 
-//		if (fromIndex < 0 || fromIndex >= currentHeightTxNums) {
-//			fromIndex = 0;
-//		}
-//		if (count == -1) {
-//			fromIndex = 0;
-//			count = currentHeightTxNums;
-//		}
-//		if (count > currentHeightTxNums) {
-//			count = currentHeightTxNums - fromIndex;
-//		}
-		int indexAndCount[] = QueryUtil.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
-		return transactionSet.getTxs(lastHeightTxTotalNums + indexAndCount[0], indexAndCount[1]);
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
+		return transactionSet.getTxs(lastHeightTxTotalNums + queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/txs/{contentHash}")
@@ -449,11 +430,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
 		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
 
-		int pages[] = QueryUtil.calFromIndexAndCount(fromIndex, count, (int) dataAccount.getDataset().getDataCount());
-//		return dataAccount.getDataEntries(pages[0], pages[1]);
-
-		fromIndex = pages[0];
-		count = pages[1];
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) dataAccount.getDataset().getDataCount());
+		fromIndex = queryArgs.getFrom();
+		count = queryArgs.getCount();
 
 		DataIterator<String, TypedValue> iterator = dataAccount.getDataset().iterator();
 		iterator.skip(fromIndex);
@@ -501,8 +480,8 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		UserAccountQuery userAccountSet = ledger.getUserAccountSet(block);
-		int pages[] = QueryUtil.calFromIndexAndCountDescend(fromIndex, count, (int) userAccountSet.getTotal());
-		return userAccountSet.getHeaders(pages[0], pages[1]);
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) userAccountSet.getTotal());
+		return userAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	/**
@@ -521,8 +500,8 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
-		int pages[] = QueryUtil.calFromIndexAndCountDescend(fromIndex, count, (int) dataAccountSet.getTotal());
-		return dataAccountSet.getHeaders(pages[0], pages[1]);
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) dataAccountSet.getTotal());
+		return dataAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/contracts")
@@ -533,8 +512,8 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		ContractAccountQuery contractAccountSet = ledger.getContractAccountSet(block);
-		int pages[] = QueryUtil.calFromIndexAndCountDescend(fromIndex, count, (int) contractAccountSet.getTotal());
-		return contractAccountSet.getHeaders(pages[0], pages[1]);
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) contractAccountSet.getTotal());
+		return contractAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/userrole/{userAddress}")
