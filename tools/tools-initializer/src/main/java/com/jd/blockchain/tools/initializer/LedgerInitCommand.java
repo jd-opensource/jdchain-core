@@ -24,6 +24,7 @@ import com.jd.blockchain.utils.ArgumentSet.ArgEntry;
 import com.jd.blockchain.utils.ArgumentSet.Setting;
 import com.jd.blockchain.utils.io.FileUtils;
 import com.jd.blockchain.utils.net.NetworkAddress;
+import org.springframework.util.NumberUtils;
 
 /**
  * 账本初始化器；
@@ -204,6 +205,21 @@ public class LedgerInitCommand {
 
 		// start the web controller of Ledger Initializer;
 		NetworkAddress serverAddress = ledgerInitProperties.getConsensusParticipant(currId).getInitializerAddress();
+
+		//for dockers binding the 0.0.0.0;
+		//if ledger-init.sh set up the -DhostPort=xxx -DhostIp=xxx, then get it;
+		String preHostPort = System.getProperty("hostPort");
+		if(preHostPort != null && preHostPort.length()>0){
+			int port = NumberUtils.parseNumber(preHostPort, Integer.class);
+			serverAddress.setPort(port);
+			System.out.println("###ledger-init.sh###,set up the -DhostPort="+port);
+		}
+		String preHostIp = System.getProperty("hostIp");
+		if(preHostIp != null && preHostIp.length()>0){
+			serverAddress.setHost(preHostIp);
+			System.out.println("###ledger-init.sh###,set up the -DhostIp="+preHostIp);
+		}
+
 		String argServerAddress = String.format("--server.address=%s", serverAddress.getHost());
 		String argServerPort = String.format("--server.port=%s", serverAddress.getPort());
 		String[] innerArgs = { argServerAddress, argServerPort };

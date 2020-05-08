@@ -641,9 +641,10 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 		return accounts;
 	}
 
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/userrole/{userAddress}")
 	@Override
-	public RoleSet getUserRoles(HashDigest ledgerHash, String userAddress) {
-		// TODO Auto-generated method stub
-		throw new IllegalStateException("Not implemented!");
+	public RoleSet getUserRoles(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+								@PathVariable(name = "userAddress") String userAddress) {
+		return peerService.getQueryService().getUserRoles(ledgerHash, userAddress);
 	}
 }

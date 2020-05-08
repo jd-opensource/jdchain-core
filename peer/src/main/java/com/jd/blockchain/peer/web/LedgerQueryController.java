@@ -296,7 +296,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		return txsDecorator(txs);
 	}
 
-	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/txs/{contentHash}")
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/txs/hash/{contentHash}")
 	@Override
 	public LedgerTransaction getTransactionByContentHash(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 			@PathVariable(name = "contentHash") HashDigest contentHash) {
