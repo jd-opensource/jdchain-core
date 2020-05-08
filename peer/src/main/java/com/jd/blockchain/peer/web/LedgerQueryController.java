@@ -27,6 +27,7 @@ import com.jd.blockchain.ledger.core.LedgerService;
 import com.jd.blockchain.ledger.core.ParticipantCertData;
 import com.jd.blockchain.ledger.core.TransactionQuery;
 import com.jd.blockchain.ledger.core.UserAccountQuery;
+import com.jd.blockchain.peer.decorator.TransactionDecorator;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.Bytes;
@@ -266,7 +267,8 @@ public class LedgerQueryController implements BlockchainQueryService {
 		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
 
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
-		return transactionSet.getTxs(lastHeightTxTotalNums + queryArgs.getFrom(), queryArgs.getCount());
+		LedgerTransaction[] txs = transactionSet.getTxs(lastHeightTxTotalNums + queryArgs.getFrom(), queryArgs.getCount());
+		return txsDecorator(txs);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/hash/{blockHash}/txs")
@@ -290,7 +292,8 @@ public class LedgerQueryController implements BlockchainQueryService {
 		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
 
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
-		return transactionSet.getTxs(lastHeightTxTotalNums + queryArgs.getFrom(), queryArgs.getCount());
+		LedgerTransaction[] txs = transactionSet.getTxs(lastHeightTxTotalNums + queryArgs.getFrom(), queryArgs.getCount());
+		return txsDecorator(txs);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/txs/{contentHash}")
@@ -300,7 +303,8 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		TransactionQuery txset = ledger.getTransactionSet(block);
-		return txset.get(contentHash);
+		LedgerTransaction transaction = txset.get(contentHash);
+		return txDecorator(transaction);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/txs/state/{contentHash}")
@@ -524,4 +528,22 @@ public class LedgerQueryController implements BlockchainQueryService {
 		return ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
 	}
 
+
+	private LedgerTransaction txDecorator(LedgerTransaction ledgerTransaction) {
+		if (ledgerTransaction == null) {
+			return null;
+		}
+		return new TransactionDecorator(ledgerTransaction);
+	}
+
+	private LedgerTransaction[] txsDecorator(LedgerTransaction[] ledgerTransactions) {
+		if (ledgerTransactions == null || ledgerTransactions.length == 0) {
+			return ledgerTransactions;
+		}
+		LedgerTransaction[] transactionDecorators = new LedgerTransaction[ledgerTransactions.length];
+		for (int i = 0; i < ledgerTransactions.length; i++) {
+			transactionDecorators[i] = txDecorator(ledgerTransactions[i]);
+		}
+		return transactionDecorators;
+	}
 }
