@@ -61,10 +61,9 @@ public class OperationDecoratorFactory {
      * @return
      */
     public static Operation decorateContractEventSendOperation(ContractEventSendOperation op) {
-        BytesDataList dataList = new BytesDataList(op.getArgs().getValues());
-        ContractEventSendOpTemplate opTemplate = new ContractEventSendOpTemplate(op.getContractAddress(),
+        BytesDataList dataList = new BytesDataList(decorateBytesValues(op.getArgs().getValues()));
+        return new ContractEventSendOpTemplate(op.getContractAddress(),
                 op.getEvent(), dataList);
-        return opTemplate;
     }
 
     /**
@@ -78,7 +77,7 @@ public class OperationDecoratorFactory {
         DataAccountKVSetOperation.KVWriteEntry[] writeSet = op.getWriteSet();
         if (writeSet != null && writeSet.length > 0) {
             for (DataAccountKVSetOperation.KVWriteEntry entry : writeSet) {
-                opTemplate.set(entry.getKey(), entry.getValue(), entry.getExpectedVersion());
+                opTemplate.set(entry.getKey(), decorateBytesValue(entry.getValue()), entry.getExpectedVersion());
             }
         }
         return opTemplate;
@@ -206,6 +205,34 @@ public class OperationDecoratorFactory {
      */
     public static BlockchainIdentity decorateBlockchainIdentity(BlockchainIdentity identity) {
         return new BlockchainIdentityData(identity.getAddress(), identity.getPubKey());
+    }
+
+    /**
+     * decorate BytesValue to TypedValue
+     *
+     * @param bytesValue
+     * @return
+     */
+    public static BytesValue decorateBytesValue(BytesValue bytesValue) {
+        return TypedValue.wrap(bytesValue);
+    }
+
+    /**
+     * decorate BytesValue... to TypedValue...
+     *
+     * @param bytesValues
+     * @return
+     */
+    public static BytesValue[] decorateBytesValues(BytesValue... bytesValues) {
+        if (bytesValues != null && bytesValues.length > 0) {
+            BytesValue[] typeValues = new BytesValue[bytesValues.length];
+            for (int i = 0; i < bytesValues.length; i++) {
+                typeValues[i] = decorateBytesValue(bytesValues[i]);
+            }
+
+            return typeValues;
+        }
+        return bytesValues;
     }
 
     /**
