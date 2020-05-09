@@ -9,8 +9,6 @@ public class BftsmartConsensusConfig implements BftsmartConsensusSettings {
 
 	private BftsmartNodeSettings[] nodes;
 
-//	private BftsmartCommitBlockSettings commitBlockSettings;
-
 	static {
 		DataContractRegistry.register(BftsmartConsensusSettings.class);
 	}

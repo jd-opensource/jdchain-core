@@ -27,6 +27,7 @@ import com.jd.blockchain.ledger.core.LedgerService;
 import com.jd.blockchain.ledger.core.ParticipantCertData;
 import com.jd.blockchain.ledger.core.TransactionQuery;
 import com.jd.blockchain.ledger.core.UserAccountQuery;
+import com.jd.blockchain.peer.decorator.LedgerAdminInfoDecorator;
 import com.jd.blockchain.peer.decorator.TransactionDecorator;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.utils.ArrayUtils;
@@ -98,16 +99,17 @@ public class LedgerQueryController implements BlockchainQueryService {
 	public LedgerAdminInfo getLedgerAdminInfo(@PathVariable(name = "ledgerHash") HashDigest ledgerHash) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerAdminInfo ledgerAdministration = ledger.getAdminInfo();
-		return ledgerAdministration;
+		return ledgerAdminInfoDecorator(ledgerAdministration);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/metadata")
 	@Override
 	public LedgerMetadata getLedgerMetadata(@PathVariable(name = "ledgerHash") HashDigest ledgerHash) {
-		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
-		LedgerAdminInfo ledgerAdministration = ledger.getAdminInfo();
-		LedgerMetadata ledgerMetadata = ledgerAdministration.getMetadata();
-		return ledgerMetadata;
+		LedgerAdminInfo ledgerAdministration = getLedgerAdminInfo(ledgerHash);
+		if (ledgerAdministration != null) {
+			return ledgerAdministration.getMetadata();
+		}
+		return null;
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/height/{blockHeight}")
@@ -545,5 +547,12 @@ public class LedgerQueryController implements BlockchainQueryService {
 			transactionDecorators[i] = txDecorator(ledgerTransactions[i]);
 		}
 		return transactionDecorators;
+	}
+
+	private LedgerAdminInfo ledgerAdminInfoDecorator(LedgerAdminInfo ledgerAdministration) {
+		if (ledgerAdministration == null) {
+			return null;
+		}
+		return new LedgerAdminInfoDecorator(ledgerAdministration);
 	}
 }

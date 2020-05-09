@@ -14,6 +14,8 @@ import com.jd.blockchain.transaction.*;
  */
 public class OperationDecoratorFactory {
 
+    public static final int K = 1024;
+
     public static Operation decorate(Operation op) {
         if (op instanceof ContractCodeDeployOperation) {
             return decorateContractCodeDeployOperation((ContractCodeDeployOperation) op);
@@ -49,7 +51,7 @@ public class OperationDecoratorFactory {
     public static Operation decorateContractCodeDeployOperation(ContractCodeDeployOperation op) {
         BlockchainIdentity contractId = decorateBlockchainIdentity(op.getContractID());
         return new ContractCodeDeployOpTemplate(contractId,
-                op.getChainCode());
+                chainCodeSlash(op.getChainCode()));
     }
 
     /**
@@ -204,5 +206,20 @@ public class OperationDecoratorFactory {
      */
     public static BlockchainIdentity decorateBlockchainIdentity(BlockchainIdentity identity) {
         return new BlockchainIdentityData(identity.getAddress(), identity.getPubKey());
+    }
+
+    /**
+     * cut chain code
+     *
+     * @param chainCode
+     * @return
+     */
+    public static byte[] chainCodeSlash(byte[] chainCode) {
+        if (chainCode != null && chainCode.length > K) {
+            byte[] slashedCode = new byte[K];
+            System.arraycopy(chainCode, 0, slashedCode, 0, K);
+            return slashedCode;
+        }
+        return chainCode;
     }
 }

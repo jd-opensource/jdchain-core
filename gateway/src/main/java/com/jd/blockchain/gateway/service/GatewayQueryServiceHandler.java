@@ -3,6 +3,11 @@ package com.jd.blockchain.gateway.service;
 import com.jd.blockchain.consensus.ConsensusProvider;
 import com.jd.blockchain.consensus.ConsensusProviders;
 import com.jd.blockchain.consensus.ConsensusSettings;
+import com.jd.blockchain.consensus.NodeSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusConfig;
+import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartNodeConfig;
+import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.crypto.HashDigest;
@@ -55,9 +60,7 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 
     @Override
     public LedgerBaseSettings getLedgerBaseSettings(HashDigest ledgerHash) {
-
         LedgerAdminInfo ledgerAdminInfo = peerService.getQueryService().getLedgerAdminInfo(ledgerHash);
-
         return initLedgerBaseSettings(ledgerAdminInfo);
     }
 
@@ -97,22 +100,16 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
         LedgerMetadata ledgerMetadata = ledgerAdminInfo.getMetadata();
 
         LedgerBaseSettings ledgerBaseSettings = new LedgerBaseSettings();
-
         // 设置参与方
         ledgerBaseSettings.setParticipantNodes(ledgerAdminInfo.getParticipants());
-
         // 设置共识设置
         ledgerBaseSettings.setConsensusSettings(initConsensusSettings(ledgerAdminInfo));
-
         // 设置参与方根Hash
         ledgerBaseSettings.setParticipantsHash(ledgerMetadata.getParticipantsHash());
-
         // 设置算法配置
         ledgerBaseSettings.setCryptoSetting(ledgerAdminInfo.getSettings().getCryptoSetting());
-
         // 设置种子
         ledgerBaseSettings.setSeed(initSeed(ledgerMetadata.getSeed()));
-
         // 设置共识协议
         ledgerBaseSettings.setConsensusProtocol(ledgerAdminInfo.getSettings().getConsensusProvider());
 
@@ -130,7 +127,7 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
     private String initSeed(byte[] seedBytes) {
         String seedString = HexUtils.encode(seedBytes);
         // 每隔八个字符中加入一个一个横线
-        StringBuffer seed = new StringBuffer();
+        StringBuilder seed = new StringBuilder();
 
         for( int i = 0; i < seedString.length(); i++) {
             char c = seedString.charAt(i);
@@ -154,6 +151,30 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
         String consensusProvider = ledgerAdminInfo.getSettings().getConsensusProvider();
         ConsensusProvider provider = ConsensusProviders.getProvider(consensusProvider);
         byte[] consensusSettingsBytes = ledgerAdminInfo.getSettings().getConsensusSetting().toBytes();
-        return provider.getSettingsFactory().getConsensusSettingsEncoder().decode(consensusSettingsBytes);
+        return consensusSettingsDecorator(provider.getSettingsFactory().getConsensusSettingsEncoder().decode(consensusSettingsBytes));
+    }
+
+    private ConsensusSettings consensusSettingsDecorator(ConsensusSettings consensusSettings) {
+        if (consensusSettings instanceof BftsmartConsensusSettings) {
+            // bft-smart单独处理
+            BftsmartConsensusSettings bftsmartConsensusSettings = (BftsmartConsensusSettings) consensusSettings;
+            NodeSettings[] nodes = bftsmartConsensusSettings.getNodes();
+            BftsmartNodeSettings[] bftsmartNodes = null;
+            if (nodes != null && nodes.length > 0) {
+                bftsmartNodes = new BftsmartNodeSettings[nodes.length];
+                for (int i = 0; i < nodes.length; i++) {
+                    NodeSettings node = nodes[i];
+                    if (node instanceof BftsmartNodeSettings) {
+                        BftsmartNodeSettings bftsmartNodeSettings = (BftsmartNodeSettings) node;
+                        bftsmartNodes[i] = new BftsmartNodeConfig(bftsmartNodeSettings.getPubKey(),
+                                bftsmartNodeSettings.getId(), bftsmartNodeSettings.getNetworkAddress());
+
+                    }
+                }
+            }
+            return new BftsmartConsensusConfig(bftsmartNodes,
+                    bftsmartConsensusSettings.getSystemConfigs());
+        }
+        return consensusSettings;
     }
 }
