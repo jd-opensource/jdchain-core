@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.CryptoProvider;
+import com.jd.blockchain.ledger.core.TransactionSetQuery;
 import com.jd.blockchain.ledger.json.CryptoConfigInfo;
 import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.ledger.proof.MerkleLeaf;
@@ -167,6 +168,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		DataContractRegistry.register(CryptoSetting.class);
 		DataContractRegistry.register(CryptoProvider.class);
 		DataContractRegistry.register(CryptoAlgorithm.class);
+		//TransactionSetQuery;
+		DataContractRegistry.register(TransactionSetQuery.class);
 	}
 
 	/**
