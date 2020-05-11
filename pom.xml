@@ -26,11 +26,10 @@
 
 	<modules>
 		<module>../libs/bft-smart</module>
-
+		<module>../kvdb</module>
 		<module>../framework</module>
 		<module>../explorer</module>
 
-		<module>kvdb</module>
 		<module>consensus</module>
 		<module>contract</module>
 		<module>crypto</module>
