@@ -1139,19 +1139,16 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		
 		public PathRecordsDiffIterator(PathNode root1, PathNode root2) {
 			super(root1, root2);
-			// TODO Auto-generated constructor stub
 		}
 
 		@Override
 		protected long getCount(MerkleTreeNode node) {
-			// TODO Auto-generated method stub
-			return 0;
+			return ((PathNode)node).getTotalRecords();
 		}
 
 		@Override
 		protected long getChildCount(MerkleTreeNode node, int childIndex) {
-			// TODO Auto-generated method stub
-			return 0;
+			return ((PathNode)node).getChildRecords()[childIndex];
 		}
 
 		@Override
@@ -1167,18 +1164,15 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		
 		public LeafKeysDiffIterator(LeafNode root1, LeafNode root2) {
 			super(root1, root2);
-			// TODO Auto-generated constructor stub
 		}
 
 		@Override
 		protected long getCount(MerkleTreeNode node) {
-			// TODO Auto-generated method stub
-			return 0;
+			return ((LeafNode)node).getTotalKeys();
 		}
 
 		@Override
 		protected long getChildCount(MerkleTreeNode node, int childIndex) {
-			// TODO Auto-generated method stub
 			return 0;
 		}
 
@@ -1194,18 +1188,15 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		
 		public LeafRecordsDiffIterator(LeafNode root1, LeafNode root2) {
 			super(root1, root2);
-			// TODO Auto-generated constructor stub
 		}
 
 		@Override
 		protected long getCount(MerkleTreeNode node) {
-			// TODO Auto-generated method stub
-			return 0;
+			return ((LeafNode)node).getTotalRecords();
 		}
 
 		@Override
 		protected long getChildCount(MerkleTreeNode node, int childIndex) {
-			// TODO Auto-generated method stub
 			return 0;
 		}
 
@@ -1218,22 +1209,56 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		
 	}
 	
-	private static class NodeRecordsDiffIterator extends DiffIterator{
+	private static class NewPathKeysDiffIterator extends DiffIterator{
 		
-		public NodeRecordsDiffIterator(PathNode root1, LeafNode root2) {
+		public NewPathKeysDiffIterator(PathNode root1, LeafNode root2) {
 			super(root1, root2);
-			// TODO Auto-generated constructor stub
 		}
 		
 		@Override
 		protected long getCount(MerkleTreeNode node) {
-			// TODO Auto-generated method stub
-			return 0;
+			if (node instanceof PathNode) {
+				return ((PathNode)node).getTotalKeys();
+			}
+			return ((LeafNode)node).getTotalKeys();
 		}
 		
 		@Override
 		protected long getChildCount(MerkleTreeNode node, int childIndex) {
+			if (node instanceof PathNode) {
+				return ((PathNode)node).getChildKeys()[childIndex];
+			}
+			return 0;
+		}
+		
+		@Override
+		protected DiffIterator createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
 			// TODO Auto-generated method stub
+			return null;
+		}
+		
+		
+	}
+	
+	private static class NewPathRecordsDiffIterator extends DiffIterator{
+		
+		public NewPathRecordsDiffIterator(PathNode root1, LeafNode root2) {
+			super(root1, root2);
+		}
+		
+		@Override
+		protected long getCount(MerkleTreeNode node) {
+			if (node instanceof PathNode) {
+				return ((PathNode)node).getTotalRecords();
+			}
+			return ((LeafNode)node).getTotalRecords();
+		}
+		
+		@Override
+		protected long getChildCount(MerkleTreeNode node, int childIndex) {
+			if (node instanceof PathNode) {
+				return ((PathNode)node).getChildRecords()[childIndex];
+			}
 			return 0;
 		}
 		
