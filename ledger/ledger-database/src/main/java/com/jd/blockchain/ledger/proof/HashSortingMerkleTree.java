@@ -258,6 +258,13 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	}
 
 	/**
+	 * 迭代器包含所有基准树与原始树之间差异的数据项
+	 */
+	public PathKeysDiffIterator keysDiffIterator(HashDigest baseHash, HashDigest origHash) {
+		return new PathKeysDiffIterator((PathNode) loadMerkleNode(baseHash), (PathNode) loadMerkleNode(origHash));
+	}
+
+	/**
 	 * 查找指定版本的键对应的数据项；
 	 * 
 	 * @param key
