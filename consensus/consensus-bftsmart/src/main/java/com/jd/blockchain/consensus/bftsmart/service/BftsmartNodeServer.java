@@ -15,6 +15,7 @@ import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.ConsoleUtils;
 import com.jd.blockchain.utils.StringUtils;
+import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.jd.blockchain.consensus.ConsensusManageService;
@@ -61,7 +62,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     private TOMConfiguration tomConfig;
 
-//    private TOMConfiguration outerTomConfig;
+    private TOMConfiguration outerTomConfig;
 
     private HostsConfig hostsConfig;
     private Properties systemConfig;
@@ -134,8 +135,8 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     }
 
     protected void initConfig(int id, Properties systemsConfig, HostsConfig hostConfig) {
-//        byte[] serialHostConf = BinarySerializeUtils.serialize(hostConfig);
-//        Properties sysConfClone = (Properties)systemsConfig.clone();
+        byte[] serialHostConf = BinarySerializeUtils.serialize(hostConfig);
+        Properties sysConfClone = (Properties)systemsConfig.clone();
         int port = hostConfig.getPort(id);
 //        hostConfig.add(id, DEFAULT_BINDING_HOST, port);
 
@@ -153,7 +154,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         }
 
         this.tomConfig = new TOMConfiguration(id, systemsConfig, hostConfig);
-//        this.outerTomConfig = new TOMConfiguration(id, systemsConfig, hostConfig);
+        this.outerTomConfig = new TOMConfiguration(id, sysConfClone, BinarySerializeUtils.deserialize(serialHostConf));
     }
 
     @Override
@@ -172,7 +173,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     }
 
     public TOMConfiguration getTomConfig() {
-        return tomConfig;
+        return outerTomConfig;
     }
 
     public int getId() {
@@ -184,7 +185,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             throw new IllegalArgumentException("ReplicaID is negative!");
         }
         this.tomConfig.setProcessId(id);
-//        this.outerTomConfig.setProcessId(id);
+        this.outerTomConfig.setProcessId(id);
     }
 
     public BftsmartConsensusSettings getConsensusSetting() {
