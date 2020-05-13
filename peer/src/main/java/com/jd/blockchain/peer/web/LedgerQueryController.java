@@ -248,28 +248,25 @@ public class LedgerQueryController implements BlockchainQueryService {
 			@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
 			@RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
 
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
+		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
+		HashDigest currBlockTxRootHash = ((TransactionSet)transactionSet).getTxDataRootHash();
+		HashDigest preBlockTxRootHash = null;
+		int lastHeightTxTotalNums = 0;
 
-//		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
-//		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
-//		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
-//
-//		HashDigest currBlockTxRootHash = ((TransactionSet)transactionSet).();
-//		HashDigest preBlockTxRootHash = null;
-//		int lastHeightTxTotalNums = 0;
-//
-//		if (blockHeight > 0) {
-//			lastHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(blockHeight - 1)).getTotalCount();
-//			preBlockTxRootHash = ((TransactionSet)ledger.getTransactionSet(ledger.getBlock(blockHeight - 1))).getTxDataRootHash();
-//		}
-//
-//		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(blockHeight)).getTotalCount();
-//		// 取当前高度的增量交易数，在增量交易里进行查找
-//		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
-//
-//		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
-//		LedgerTransaction[] txs = transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), preBlockTxRootHash, currBlockTxRootHash);
-//		return txsDecorator(txs);
-		return null;
+		if (blockHeight > 0) {
+			lastHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(blockHeight - 1)).getTotalCount();
+			preBlockTxRootHash = ((TransactionSet)ledger.getTransactionSet(ledger.getBlock(blockHeight - 1))).getTxDataRootHash();
+		}
+
+		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(blockHeight)).getTotalCount();
+		// 取当前高度的增量交易数，在增量交易里进行查找
+		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
+
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
+		LedgerTransaction[] txs = transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), preBlockTxRootHash, currBlockTxRootHash);
+		return txsDecorator(txs);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/hash/{blockHash}/txs")
@@ -282,10 +279,13 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
 		long height = ledgerBlock.getHeight();
 		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
+		HashDigest currBlockTxRootHash = ((TransactionSet)transactionSet).getTxDataRootHash();
+		HashDigest preBlockTxRootHash = null;
 		int lastHeightTxTotalNums = 0;
 
 		if (height > 0) {
 			lastHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(height - 1)).getTotalCount();
+			preBlockTxRootHash = ((TransactionSet)ledger.getTransactionSet(ledger.getBlock(height - 1))).getTxDataRootHash();
 		}
 
 		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(height)).getTotalCount();
@@ -293,7 +293,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
 
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
-		LedgerTransaction[] txs = transactionSet.getTxs(lastHeightTxTotalNums + queryArgs.getFrom(), queryArgs.getCount());
+		LedgerTransaction[] txs = transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), preBlockTxRootHash, currBlockTxRootHash);
 		return txsDecorator(txs);
 	}
 

@@ -97,6 +97,10 @@ public class TransactionSet implements Transactional, TransactionQuery {
 		return getTxSetRootHash();
 	}
 
+	public HashDigest getTxDataRootHash() {
+		return getTxSetInfo(getTxSetRootHash()).getTxDataSetRootHash();
+	}
+
 	@Override
 	public MerkleProof getProof(Bytes key) {
 		return txDataSet.getProof(key);
