@@ -980,15 +980,11 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		/**
 		 * 新增
 		 */
-		private MerkleTreeNode root1;
+		protected MerkleTreeNode root1;
 
-		private MerkleTreeNode root2;
+		protected MerkleTreeNode root2;
 
-		private int childCursor = 0;
-
-		private long cursor = -1;
-
-		private DiffIterator childDiffIterator;
+		protected long cursor = -1;
 
 		/**
 		 * 创建一个差异遍历器；
@@ -1032,45 +1028,85 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			return skipped;
 		}
 
+		private long getDiffCount(MerkleTreeNode node1, MerkleTreeNode node2) {
+			return getCount(node1) - getCount(node2);
+		}
+
+
+		protected abstract long getCount(MerkleTreeNode node);
+
+	}
+	
+	/**
+	 * DiffIterator 提供对两个默克尔节点表示的默克尔树的新增节点的遍历；
+	 * 
+	 * <p>
+	 * 
+	 * 遍历的结果是得到一个数据差集：包含在新数据默克尔树中，但不包含在比较基准默克尔树中的数据集合；
+	 * 
+	 * @author huanghaiquan
+	 *
+	 */
+	public static abstract class PathDiffIterator extends DiffIterator {
+		
+		
+		private byte childCursor = 0;
+		
+		private DiffIterator childDiffIterator;
+		
+		/**
+		 * 创建一个差异遍历器；
+		 * 
+		 * 
+		 * @param root1 包含新数据的默克尔树的根节点;
+		 * @param root2 作为比较基准的默克尔树的根节点;
+		 */
+		public PathDiffIterator(PathNode root1, PathNode root2) {
+			super(root1, root2);
+		}
+		
+		public long getDiffCount() {
+			return getDiffCount(root1, root2);
+		}
+		
 		@Override
 		public MerkleData next() {
 			if (!hasNext()) {
 				return null;
 			}
-
+			
 			long diffChildCount = getDiffChildCount(0, childCursor + 1);
-
+			
 			while (cursor + 1 >= diffChildCount) {
 				childCursor++;
 				childDiffIterator = null;
 				diffChildCount = getDiffChildCount(0, childCursor + 1);
 			}
-
+			
 			cursor++;
 			long childDiffOffset = cursor - getDiffChildCount(0, childCursor);
-			MerkleTreeNode childNode1 = getChildNode(root1, childCursor);
-			MerkleTreeNode childNode2 = getChildNode(root2, childCursor);
-
+			MerkleTreeNode childNode1 = getChildNode((PathNode) root1, childCursor);
+			MerkleTreeNode childNode2 = getChildNode((PathNode) root2, childCursor);
+			
 			DiffIterator childDiffIterator = getOrCreateDiffIterator(childNode1, childNode2);
 			long childDiffCursor = childDiffIterator.getCursor();
-
-			long skipped = childDiffIterator.skip(childDiffOffset - childDiffCursor);
-
+			
+			childDiffIterator.skip(childDiffOffset - childDiffCursor);
+			
 			return childDiffIterator.next();
 		}
-
-		private MerkleTreeNode getChildNode(MerkleTreeNode pathNode, int childIndex) {
-			// TODO:
-			throw new IllegalStateException("NOT Implemented!");
+		
+		private MerkleTreeNode getChildNode(PathNode pathNode, byte childIndex) {
+			return pathNode.getChildNode(childIndex);
 		}
-
+		
 		private long getDiffChildCount(int fromIndex, int toIndex) {
 			long diffChildCount = getDiffChildCount(root1, root2, fromIndex, toIndex);
-
+			
 			assert diffChildCount >= 0 : "The diffChildCount is negative!";
 			return diffChildCount;
 		}
-
+		
 		/**
 		 * 返回
 		 * 
@@ -1083,11 +1119,11 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		private long getDiffChildCount(MerkleTreeNode node1, MerkleTreeNode node2, int fromIndex, int toIndex) {
 			return getChildCount(node1, fromIndex, toIndex) - getChildCount(node2, fromIndex, toIndex);
 		}
-
+		
 		private long getDiffCount(MerkleTreeNode node1, MerkleTreeNode node2) {
 			return getCount(node1) - getCount(node2);
 		}
-
+		
 		/**
 		 * get the total count between the specified child index range;
 		 * 
@@ -1098,31 +1134,31 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		 */
 		private long getChildCount(MerkleTreeNode node, int fromIndex, int toIndex) {
 			assert fromIndex <= toIndex : "from-index larger than to-index";
-
+			
 			if (fromIndex == toIndex) {
 				return 0;
 			}
-
+			
 			long s1 = 0;
 			for (int i = fromIndex; i < toIndex; i++) {
 				s1 += getChildCount(node, i);
 			}
 			return s1;
 		}
-
+		
 		protected DiffIterator getOrCreateDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
 			if (childDiffIterator == null) {
 				childDiffIterator = createDiffIterator(rootNode1, rootNode2);
 			}
 			return childDiffIterator;
 		}
-
+		
 		protected abstract long getCount(MerkleTreeNode node);
-
+		
 		protected abstract long getChildCount(MerkleTreeNode node, int childIndex);
-
+		
 		protected abstract DiffIterator createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2);
-
+		
 	}
 
 	/**
@@ -1131,7 +1167,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class PathKeysDiffIterator extends DiffIterator {
+	private static class PathKeysDiffIterator extends PathDiffIterator {
 
 		public PathKeysDiffIterator(PathNode root1, PathNode root2) {
 			super(root1, root2);
@@ -1169,7 +1205,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class PathRecordsDiffIterator extends DiffIterator {
+	private static class PathRecordsDiffIterator extends PathDiffIterator {
 
 		public PathRecordsDiffIterator(PathNode root1, PathNode root2) {
 			super(root1, root2);
@@ -1211,27 +1247,12 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		}
 
 		@Override
-		protected long getChildCount(MerkleTreeNode node, int childIndex) {
-			return 0;
-		}
-
-		@Override
-		protected DiffIterator createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
+		public MerkleData next() {
 			// TODO Auto-generated method stub
 			return null;
 		}
 
-		@Override
-		public long skip(long count) {
-			// TODO Auto-generated method stub
 
-		}
-
-		@Override
-		public MerkleData next() {
-			// TODO Auto-generated method stub
-
-		}
 	}
 
 	/**
@@ -1249,17 +1270,6 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		@Override
 		protected long getCount(MerkleTreeNode node) {
 			return ((LeafNode) node).getTotalRecords();
-		}
-
-		@Override
-		protected long getChildCount(MerkleTreeNode node, int childIndex) {
-			return 0;
-		}
-
-		@Override
-		protected DiffIterator createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
-			// TODO Auto-generated method stub
-			return null;
 		}
 
 	}
@@ -1304,14 +1314,6 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		}
 
 		@Override
-		protected long getChildCount(MerkleTreeNode node, int childIndex) {
-			if (node instanceof PathNode) {
-				return ((PathNode) node).getChildKeys()[childIndex];
-			}
-			return 0;
-		}
-
-		@Override
 		public long getDiffCount() {
 			return iterator1.getTotalSize() - origKeys.size();
 		}
@@ -1345,12 +1347,6 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			return nextKey;
 		}
 
-		@Override
-		protected DiffIterator createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
 	}
 
 	/**
@@ -1374,18 +1370,11 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		}
 
 		@Override
-		protected long getChildCount(MerkleTreeNode node, int childIndex) {
-			if (node instanceof PathNode) {
-				return ((PathNode) node).getChildRecords()[childIndex];
-			}
-			return 0;
-		}
-
-		@Override
-		protected DiffIterator createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
+		public MerkleData next() {
 			// TODO Auto-generated method stub
 			return null;
 		}
+
 
 	}
 
