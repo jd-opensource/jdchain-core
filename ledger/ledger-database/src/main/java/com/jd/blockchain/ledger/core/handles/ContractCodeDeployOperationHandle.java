@@ -1,6 +1,6 @@
 package com.jd.blockchain.ledger.core.handles;
 
-import com.jd.blockchain.contract.ContractJarUtils;
+import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.ledger.ContractCodeDeployOperation;
@@ -8,6 +8,11 @@ import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.core.*;
 
 public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHandle<ContractCodeDeployOperation> {
+
+	/**
+	 * 4 MB MaxSize of contract;
+	 */
+	public static final int MAX_SIZE_OF_CONTRACT = 4 * 1024 * 1024;
 
 	private static final ContractProcessor CONTRACT_PROCESSOR = OnLineContractProcessor.getInstance();
 
@@ -33,14 +38,23 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 		// 校验合约内容
 		byte[] chainCode = contractOP.getChainCode();
 
+		if (chainCode == null || chainCode.length == 0) {
+			throw new ContractException(String.format("Contract[%s] content is empty !!!",
+					contractOP.getContractID().getAddress().toBase58()));
+		}
+		if (chainCode.length > MAX_SIZE_OF_CONTRACT) {
+			throw new ContractException(String.format("Contract[%s] content is great than the max size[%s]!",
+					contractOP.getContractID().getAddress().toBase58(), MAX_SIZE_OF_CONTRACT));
+		}
+
 		// 校验合约代码，不通过会抛出异常
 		try {
 			if (!CONTRACT_PROCESSOR.verify(chainCode)) {
-				throw new IllegalStateException(String.format("Contract[%s] verify fail !!!",
+				throw new ContractException(String.format("Contract[%s] verify fail !!!",
 						contractOP.getContractID().getAddress().toBase58()));
 			}
 		} catch (Exception e) {
-			throw new IllegalStateException(String.format("Contract[%s] verify fail !!!",
+			throw new ContractException(String.format("Contract[%s] verify fail !!!",
 					contractOP.getContractID().getAddress().toBase58()));
 		}
 

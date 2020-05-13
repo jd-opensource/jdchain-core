@@ -75,7 +75,7 @@
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>utils-common</artifactId>
-			<version>1.2.0.RELEASE</version>
+			<version>${framework.version}</version>
 			<scope>compile</scope>
 		</dependency>
 
