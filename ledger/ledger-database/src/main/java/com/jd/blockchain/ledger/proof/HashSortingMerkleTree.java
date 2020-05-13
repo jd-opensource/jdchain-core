@@ -1,13 +1,6 @@
 package com.jd.blockchain.ledger.proof;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.Crypto;
@@ -1236,9 +1229,15 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	 *
 	 */
 	private static class LeafKeysDiffIterator extends DiffIterator {
+		private LinkedList<MerkleData> origDataEntries;
+		private LinkedList<MerkleData> baseDataEntries;
+		private LinkedList<MerkleData> diffDataEntries;
 
-		public LeafKeysDiffIterator(LeafNode root1, LeafNode root2) {
-			super(root1, root2);
+		public LeafKeysDiffIterator(LeafNode root1, LeafNode orignalLeafNode) {
+			super(root1, orignalLeafNode);
+			origDataEntries = createDataEntries(orignalLeafNode);
+			baseDataEntries = createDataEntries(root1);
+			diffDataEntries = createDiffDataEntries(baseDataEntries, origDataEntries);
 		}
 
 		@Override
@@ -1248,11 +1247,35 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 		@Override
 		public MerkleData next() {
-			// TODO Auto-generated method stub
-			return null;
+			return diffDataEntries.removeFirst();
 		}
 
+		private LinkedList<MerkleData> createDataEntries(LeafNode leafNode) {
+			LinkedList<MerkleData> dataEntries = new LinkedList<>();
+			for (int i = 0; i < leafNode.getTotalKeys(); i++) {
+				dataEntries.add(leafNode.getDataEntries()[i]);
+			}
+			return dataEntries;
+		}
 
+		private LinkedList<MerkleData> createDiffDataEntries(LinkedList<MerkleData> baseDataEntries, LinkedList<MerkleData> origDataEntries) {
+			LinkedList<MerkleData> diffDataEntries = new LinkedList<>();
+			boolean found = false;
+
+			for (int baseindex = 0; baseindex < baseDataEntries.size(); baseindex++) {
+				for (int origindex = 0; origindex < origDataEntries.size(); origindex++) {
+					if (Arrays.equals(origDataEntries.get(origindex).getKey(), baseDataEntries.get(baseindex).getKey())) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					diffDataEntries.add(baseDataEntries.get(baseindex));
+					found = false;
+				}
+			}
+			return baseDataEntries;
+		}
 	}
 
 	/**
@@ -1272,6 +1295,11 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			return ((LeafNode) node).getTotalRecords();
 		}
 
+		@Override
+		public MerkleData next() {
+			// TODO Auto-generated method stub
+			return null;
+		}
 	}
 
 	/**
@@ -1295,14 +1323,29 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			origKeyIndexes = seekKeyIndexes(origKeys, root1);
 		}
 
-		private Set<Long> seekKeyIndexes(Set<byte[]> origKeys2, PathNode root1) {
-			// TODO Auto-generated method stub
-			return null;
+		private Set<Long> seekKeyIndexes(Set<byte[]> origKeys, PathNode root1) {
+			Set<Long> origKeyIndexes = new HashSet<Long>();
+			HashSortingMerkleTree.MerkleDataIterator iterator = new MerkleDataIterator(root1);
+
+			for (int i = 0; origKeys.iterator().hasNext() && i < origKeys.size(); i++) {
+				byte[] key = origKeys.iterator().next();
+
+				while (iterator.hasNext()) {
+					if (Arrays.equals(iterator.next().getKey(), key)) {
+						origKeyIndexes.add(iterator.getCursor());
+					}
+				}
+			}
+			return origKeyIndexes;
 		}
 
 		private Set<byte[]> createKeySet(LeafNode orignalLeafNode) {
-			// TODO Auto-generated method stub
-			return null;
+			Set<byte[]> origKeys = new HashSet<byte[]>();
+
+			for (int i = 0; i < orignalLeafNode.getTotalKeys(); i++) {
+				origKeys.add(orignalLeafNode.getDataEntries()[i].getKey());
+			}
+			return origKeys;
 		}
 
 		@Override
