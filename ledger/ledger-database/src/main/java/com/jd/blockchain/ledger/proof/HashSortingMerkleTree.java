@@ -963,4 +963,287 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		}
 
 	}
+
+	/**
+	 * 
+	 * @author huanghaiquan
+	 *
+	 */
+	public static abstract class DiffIterator implements Iterator<MerkleData> {
+
+		private MerkleTreeNode root1;
+
+		private MerkleTreeNode root2;
+
+		private int childCursor = 0;
+
+		private long cursor = -1;
+		
+		private DiffIterator childDiffIterator;
+
+		/**
+		 * Create a DiffIterator instance;
+		 * 
+		 * @param root1 The root node of merkle tree which have the new data;
+		 * @param root2 The root node of merkle tree which have the original data;
+		 */
+		public DiffIterator(MerkleTreeNode root1, MerkleTreeNode root2) {
+			this.root1 = root1;
+			this.root2 = root2;
+		}
+
+		public long getDiffCount() {
+			return getDiffCount(root1, root2);
+		}
+		
+		public long getCursor() {
+			return cursor;
+		}
+
+
+		@Override
+		public boolean hasNext() {
+			return cursor + 1 < getDiffCount();
+		}
+
+		public long skip(long count) {
+			if (count < 0) {
+				throw new IllegalArgumentException("The specified count is out of bound!");
+			}
+			if (count == 0) {
+				return 0;
+			}
+			long diffCount = getDiffCount();
+			if (cursor + count < getDiffCount()) {
+				cursor += count;
+				return count;
+			}
+			long skipped = diffCount - cursor - 1;
+			cursor = diffCount - 1;
+			return skipped;
+		}
+
+		@Override
+		public MerkleData next() {
+			if (!hasNext()) {
+				return null;
+			}
+			long diffChildCount = getDiffChildCount(0, childCursor + 1);
+
+			while (cursor + 1 >= diffChildCount) {
+				childCursor++;
+				childDiffIterator = null;
+				diffChildCount = getDiffChildCount(0, childCursor + 1);
+			}
+
+			cursor++;
+			long childDiffOffset = cursor - getDiffChildCount(0, childCursor);
+			MerkleTreeNode childNode1 = getChildNode(root1, childCursor);
+			MerkleTreeNode childNode2 = getChildNode(root2, childCursor);
+			
+			DiffIterator childDiffIterator = getOrCreateDiffIterator(childNode1, childNode2);
+			long childDiffCursor = childDiffIterator.getCursor();
+			
+			long skipped = childDiffIterator.skip(childDiffOffset - childDiffCursor);
+			
+			return childDiffIterator.next();
+		}
+
+		private MerkleTreeNode getChildNode(MerkleTreeNode pathNode, int childIndex) {
+			//TODO:
+			throw new IllegalStateException("NOT Implemented!");
+		}
+
+		private long getDiffChildCount(int fromIndex, int toIndex) {
+			long diffChildCount = getDiffChildCount(root1, root2, fromIndex, toIndex);
+
+			assert diffChildCount >= 0 : "The diffChildCount is negative!";
+			return diffChildCount;
+		}
+
+		private long getDiffCount(MerkleTreeNode node1, MerkleTreeNode node2) {
+			return getCount(node1) - getCount(node2);
+		}
+
+		private long getDiffChildCount(MerkleTreeNode node1, MerkleTreeNode node2, int fromIndex, int toIndex) {
+			return getChildCount(node1, fromIndex, toIndex) - getChildCount(node2, fromIndex, toIndex);
+		}
+		
+		/**
+		 * get the total count between the specified child index range;
+		 * 
+		 * @param node
+		 * @param fromIndex from child index(included);
+		 * @param toIndex   to child index(excluded);
+		 * @return
+		 */
+		private long getChildCount(MerkleTreeNode node, int fromIndex, int toIndex) {
+			assert fromIndex <= toIndex : "from-index larger than to-index";
+
+			if (fromIndex == toIndex) {
+				return 0;
+			}
+
+			long s1 = 0;
+			for (int i = fromIndex; i < toIndex; i++) {
+				s1 += getChildCount(node, i);
+			}
+			return s1;
+		}
+
+		protected DiffIterator getOrCreateDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
+			if(childDiffIterator == null) {
+				childDiffIterator = createDiffIterator(rootNode1, rootNode2);
+			}
+			return childDiffIterator;
+		}
+
+
+		protected abstract long getCount(MerkleTreeNode node);
+
+		protected abstract long getChildCount(MerkleTreeNode node, int childIndex);
+
+		protected abstract DiffIterator createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2);
+
+	}
+	
+	
+	private static class PathKeysDiffIterator extends DiffIterator{
+
+		public PathKeysDiffIterator(PathNode root1, PathNode root2) {
+			super(root1, root2);
+		}
+
+		@Override
+		protected long getCount(MerkleTreeNode node) {
+			return node.getTotalKeys();
+		}
+
+		@Override
+		protected long getChildCount(MerkleTreeNode node, int childIndex) {
+			return ((PathNode)node).getChildKeys()[childIndex];
+		}
+
+		@Override
+		protected DiffIterator createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
+			if(rootNode1 instanceof PathNode && rootNode2 instanceof PathNode) {
+				return new PathKeysDiffIterator((PathNode)rootNode1, (PathNode)rootNode2);
+			}
+			return new LeafKeysDiffIterator((LeafNode)rootNode1, (LeafNode)rootNode2);
+		}
+
+		
+	}
+	
+	private static class PathRecordsDiffIterator extends DiffIterator{
+		
+		public PathRecordsDiffIterator(PathNode root1, PathNode root2) {
+			super(root1, root2);
+			// TODO Auto-generated constructor stub
+		}
+
+		@Override
+		protected long getCount(MerkleTreeNode node) {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+
+		@Override
+		protected long getChildCount(MerkleTreeNode node, int childIndex) {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+
+		@Override
+		protected DiffIterator createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		
+	}
+	
+	private static class LeafKeysDiffIterator extends DiffIterator{
+		
+		public LeafKeysDiffIterator(LeafNode root1, LeafNode root2) {
+			super(root1, root2);
+			// TODO Auto-generated constructor stub
+		}
+
+		@Override
+		protected long getCount(MerkleTreeNode node) {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+
+		@Override
+		protected long getChildCount(MerkleTreeNode node, int childIndex) {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+
+		@Override
+		protected DiffIterator createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+		
+	}
+	
+	private static class LeafRecordsDiffIterator extends DiffIterator{
+		
+		public LeafRecordsDiffIterator(LeafNode root1, LeafNode root2) {
+			super(root1, root2);
+			// TODO Auto-generated constructor stub
+		}
+
+		@Override
+		protected long getCount(MerkleTreeNode node) {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+
+		@Override
+		protected long getChildCount(MerkleTreeNode node, int childIndex) {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+
+		@Override
+		protected DiffIterator createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+		
+		
+	}
+	
+	private static class NodeRecordsDiffIterator extends DiffIterator{
+		
+		public NodeRecordsDiffIterator(PathNode root1, LeafNode root2) {
+			super(root1, root2);
+			// TODO Auto-generated constructor stub
+		}
+		
+		@Override
+		protected long getCount(MerkleTreeNode node) {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+		
+		@Override
+		protected long getChildCount(MerkleTreeNode node, int childIndex) {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+		
+		@Override
+		protected DiffIterator createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+		
+		
+	}
+	
 }
