@@ -5,6 +5,7 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.proof.HashSortingMerkleTree;
 import com.jd.blockchain.ledger.proof.HashSortingMerkleTree.MerkleDataIterator;
+import com.jd.blockchain.ledger.proof.HashSortingMerkleTree.DiffIterator;
 import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
@@ -246,6 +247,20 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 		}
 		
 		return null;
+	}
+
+	//获得两个默克尔数据集之间的数据节点差异
+	public byte[][] getDiffMerkleKeys(int fromIndex, int count, HashDigest baseRootHash, HashDigest origRootHash) {
+		byte[][] values = new byte[count][];
+		DiffIterator diffIterator = merkleTree.keysDiffIterator(baseRootHash, origRootHash);
+		diffIterator.skip(fromIndex);
+		for (int i = 0; i < count && diffIterator.hasNext(); i++) {
+			MerkleData merkleData = diffIterator.next();
+			Bytes dataKey = encodeDataKey(merkleData.getKey());
+			values[i] = valueStorage.get(dataKey, merkleData.getVersion());
+		}
+
+		return values;
 	}
 
 //	/**

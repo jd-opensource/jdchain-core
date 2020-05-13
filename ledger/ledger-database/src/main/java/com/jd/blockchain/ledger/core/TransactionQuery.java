@@ -8,7 +8,11 @@ public interface TransactionQuery extends TxMerkleProvable {
 
 	LedgerTransaction[] getTxs(int fromIndex, int count);
 
+	LedgerTransaction[] getBlockTxs(int fromIndex, int count, HashDigest baseRootHash, HashDigest origRootHash);
+
 	byte[][] getValuesByIndex(int fromIndex, int count);
+
+	byte[][] getValuesByDiff(int fromIndex, int count, HashDigest baseRootHash, HashDigest origRootHash);
 
 	long getTotalCount();
 

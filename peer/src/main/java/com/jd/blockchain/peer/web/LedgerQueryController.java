@@ -19,14 +19,7 @@ import com.jd.blockchain.ledger.TypedKVData;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
-import com.jd.blockchain.ledger.core.ContractAccountQuery;
-import com.jd.blockchain.ledger.core.DataAccount;
-import com.jd.blockchain.ledger.core.DataAccountQuery;
-import com.jd.blockchain.ledger.core.LedgerQuery;
-import com.jd.blockchain.ledger.core.LedgerService;
-import com.jd.blockchain.ledger.core.ParticipantCertData;
-import com.jd.blockchain.ledger.core.TransactionQuery;
-import com.jd.blockchain.ledger.core.UserAccountQuery;
+import com.jd.blockchain.ledger.core.*;
 import com.jd.blockchain.peer.decorator.LedgerAdminInfoDecorator;
 import com.jd.blockchain.peer.decorator.TransactionDecorator;
 import com.jd.blockchain.transaction.BlockchainQueryService;
@@ -255,22 +248,28 @@ public class LedgerQueryController implements BlockchainQueryService {
 			@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
 			@RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
 
-		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
-		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
-		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
-		int lastHeightTxTotalNums = 0;
 
-		if (blockHeight > 0) {
-			lastHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(blockHeight - 1)).getTotalCount();
-		}
-
-		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(blockHeight)).getTotalCount();
-		// 取当前高度的增量交易数，在增量交易里进行查找
-		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
-
-		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
-		LedgerTransaction[] txs = transactionSet.getTxs(lastHeightTxTotalNums + queryArgs.getFrom(), queryArgs.getCount());
-		return txsDecorator(txs);
+//		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+//		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
+//		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
+//
+//		HashDigest currBlockTxRootHash = ((TransactionSet)transactionSet).();
+//		HashDigest preBlockTxRootHash = null;
+//		int lastHeightTxTotalNums = 0;
+//
+//		if (blockHeight > 0) {
+//			lastHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(blockHeight - 1)).getTotalCount();
+//			preBlockTxRootHash = ((TransactionSet)ledger.getTransactionSet(ledger.getBlock(blockHeight - 1))).getTxDataRootHash();
+//		}
+//
+//		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(blockHeight)).getTotalCount();
+//		// 取当前高度的增量交易数，在增量交易里进行查找
+//		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
+//
+//		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
+//		LedgerTransaction[] txs = transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), preBlockTxRootHash, currBlockTxRootHash);
+//		return txsDecorator(txs);
+		return null;
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/hash/{blockHash}/txs")
