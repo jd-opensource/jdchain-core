@@ -13,7 +13,8 @@ import com.jd.blockchain.consensus.service.*;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.transaction.TxResponseMessage;
-import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
+import com.jd.blockchain.utils.ConsoleUtils;
+import com.jd.blockchain.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.jd.blockchain.consensus.ConsensusManageService;
@@ -140,15 +141,15 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
         //if peer-startup.sh set up the -DhostIp=xxx, then get it;
         String preHostPort = System.getProperty("hostPort");
-        if(preHostPort != null && preHostPort.length()>0){
+        if(!StringUtils.isEmpty(preHostPort)){
             port = NumberUtils.parseNumber(preHostPort, Integer.class);
-            System.out.println("###peer-startup.sh###,set up the -DhostPort="+port);
+            ConsoleUtils.info("###peer-startup.sh###,set up the -DhostPort="+port);
         }
 
         String preHostIp = System.getProperty("hostIp");
-        if(preHostIp != null && preHostIp.length()>0){
+        if(!StringUtils.isEmpty(preHostIp)){
             hostConfig.add(id, preHostIp, port);
-            System.out.println("###peer-startup.sh###,set up the -DhostIp="+preHostIp);
+            ConsoleUtils.info("###peer-startup.sh###,set up the -DhostIp="+preHostIp);
         }
 
         this.tomConfig = new TOMConfiguration(id, systemsConfig, hostConfig);
