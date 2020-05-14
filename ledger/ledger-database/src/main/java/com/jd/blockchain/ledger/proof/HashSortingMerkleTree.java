@@ -1103,7 +1103,8 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		}
 
 		private MerkleTreeNode getChildNode(PathNode pathNode, byte childIndex) {
-			return loadMerkleNode(pathNode.getChildHash(childIndex));
+			HashDigest childHash = pathNode.getChildHash(childIndex);
+			return childHash == null ? null : loadMerkleNode(childHash);
 		}
 
 		private long getDiffChildCount(int fromIndex, int toIndex) {
@@ -1203,8 +1204,15 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			if (rootNode1 instanceof LeafNode && rootNode2 instanceof LeafNode) {
 				return new LeafKeysDiffIterator((LeafNode) rootNode1, (LeafNode) rootNode2);
 			}
+			if (rootNode1 instanceof LeafNode && rootNode2 == null) {
+				return new NewLeafKeysDiffIterator((LeafNode) rootNode1, null);
+			}
+			if (rootNode1 instanceof PathNode && rootNode2 == null) {
+				return new NewPathKeysDiffIterator1((PathNode)root1, null);
+			}
 			throw new IllegalStateException("Both nodes type exception!");
 		}
+
 
 	}
 
@@ -1263,9 +1271,12 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 		@Override
 		public MerkleData next() {
+			System.out.println("LeafKeysDiffIterator " + diffDataEntries.getFirst());
+
 			return diffDataEntries.removeFirst();
 		}
 
+		//获取叶子节点对应的所有数据入口集
 		private LinkedList<MerkleData> createDataEntries(LeafNode leafNode) {
 			LinkedList<MerkleData> dataEntries = new LinkedList<>();
 			for (int i = 0; i < leafNode.getTotalKeys(); i++) {
@@ -1274,6 +1285,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			return dataEntries;
 		}
 
+		//获取两个叶子节点数据入口的差异集
 		private LinkedList<MerkleData> createDiffDataEntries(LinkedList<MerkleData> baseDataEntries,
 				LinkedList<MerkleData> origDataEntries) {
 			LinkedList<MerkleData> diffDataEntries = new LinkedList<>();
@@ -1321,6 +1333,122 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	}
 
 	/**
+	 * 对默克尔树新的叶子节点和默克尔树空子节点包含的键集合的差集遍历器；
+	 *
+	 * @author huanghaiquan
+	 *
+	 */
+	private class NewLeafKeysDiffIterator extends DiffIterator {
+		private long cursor = -1;
+
+		public NewLeafKeysDiffIterator(MerkleTreeNode root1, MerkleTreeNode root2) {
+			super(root1, root2);
+		}
+
+		@Override
+		protected long getCount(MerkleTreeNode node) {
+			return ((LeafNode) node).getTotalKeys();
+		}
+
+		@Override
+		public long getDiffCount() {
+			return root1.getTotalKeys();
+		}
+
+		@Override
+		public MerkleData next() {
+			if (hasNext()) {
+				cursor++;
+//				System.out.println("NewLeafKeysDiffIterator " + new String(((LeafNode)root1).getDataEntries()[(int)cursor].getKey()));
+				return ((LeafNode)root1).getDataEntries()[(int)cursor];
+			}
+			System.out.println("LeafKeysDiffIterator next == null");
+			return null;
+		}
+	}
+
+	/**
+	 * 对默克尔树新的叶子节点和默克尔树空子节点包含的记录集合的差集遍历器；
+	 *
+	 * @author huanghaiquan
+	 *
+	 */
+	private class NewLeafRecordsDiffIterator extends DiffIterator {
+
+		public NewLeafRecordsDiffIterator(MerkleTreeNode root1, MerkleTreeNode root2) {
+			super(root1, root2);
+		}
+
+		@Override
+		protected long getCount(MerkleTreeNode node) {
+			return 0;
+		}
+
+		@Override
+		public MerkleData next() {
+			return null;
+		}
+	}
+
+	/**
+	 * 对默克尔树全新的路径节点和默克尔树空子节点包含的键集合的差集遍历器；
+	 *
+	 * @author huanghaiquan
+	 *
+	 */
+	private class NewPathKeysDiffIterator1 extends DiffIterator {
+		private MerkleDataIterator iterator;
+
+		public NewPathKeysDiffIterator1(MerkleTreeNode root1, MerkleTreeNode root2) {
+			super(root1, root2);
+			iterator = new MerkleDataIterator((PathNode)root1);
+		}
+
+		@Override
+		protected long getCount(MerkleTreeNode node) {
+			return ((PathNode)node).getTotalRecords();
+		}
+
+		@Override
+		public long getDiffCount() {
+			return iterator.getTotalSize();
+		}
+
+		@Override
+		public MerkleData next() {
+			if (iterator.hasNext()) {
+//				MerkleData next = iterator.next();
+//				System.out.println("NewPathKeysDiffIterator1 " + new String(next.getKey()));
+				return iterator.next();
+			}
+			System.out.println("NewPathKeysDiffIterator1 next == null");
+			return null;
+		}
+	}
+
+	/**
+	 * 对默克尔树路径节点和默克尔树空子节点包含的记录集合的差集遍历器；
+	 *
+	 * @author huanghaiquan
+	 *
+	 */
+	private class NewPathRecordsDiffIterator1 extends DiffIterator {
+
+		public NewPathRecordsDiffIterator1(MerkleTreeNode root1, MerkleTreeNode root2) {
+			super(root1, root2);
+		}
+
+		@Override
+		protected long getCount(MerkleTreeNode node) {
+			return 0;
+		}
+
+		@Override
+		public MerkleData next() {
+			return null;
+		}
+	}
+	/**
 	 * 对默克尔树路径节点和默克尔树叶子节点包含的键集合的差集遍历器；
 	 * 
 	 * @author huanghaiquan
@@ -1347,8 +1475,6 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 			for (byte i = fromIndex; i < toIndex; i++) {
 				total += pathNode.getChildKeys()[i];
-//				HashDigest childHash = pathNode.getChildHash((byte)i);
-//				total += childHash == null? 0 : loadMerkleNode(childHash).getTotalKeys();
 			}
 			return total;
 		}
@@ -1485,13 +1611,32 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			return s;
 		}
 
+		//判断原始叶子键值集中是否包含指定的键值
+		private boolean contains(Set<byte[]> origKeys, byte[] key) {
+			for(byte[] origKey : origKeys) {
+				if (Arrays.equals(origKey, key)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 		@Override
 		public MerkleData next() {
-			MerkleData nextKey = iterator1.next();
-			while (origKeys.contains(nextKey)) {
-				nextKey = iterator1.next();
+			if (iterator1.hasNext()) {
+				MerkleData nextKey = iterator1.next();
+				while (contains(origKeys, nextKey.getKey())) {
+					if (iterator1.hasNext()) {
+						nextKey = iterator1.next();
+					} else {
+						return null;
+					}
+				}
+
+				return nextKey;
 			}
-			return nextKey;
+//			System.out.println("NewPathKeysDiffIterator " + new String(nextKey.getKey()));
+			return null;
 		}
 
 	}
