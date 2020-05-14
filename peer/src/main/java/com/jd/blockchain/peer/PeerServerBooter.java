@@ -3,6 +3,7 @@ package com.jd.blockchain.peer;
 import com.jd.blockchain.consts.Global;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
+import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
 import com.jd.blockchain.utils.ArgumentSet;
 import com.jd.blockchain.utils.ConsoleUtils;
 
@@ -74,7 +75,13 @@ public class PeerServerBooter {
 			} else {
 				ConsoleUtils.info("Load configuration,ledgerBindConfigFile position=" + ledgerBindConfigFile);
 				File file = new File(ledgerBindConfigFile);
-				ledgerBindingConfig = LedgerBindingConfig.resolve(file);
+				if (file.exists()) {
+					try {
+						ledgerBindingConfig = LedgerBindingConfig.resolve(file);
+					} catch (LedgerBindingConfigException e) {
+						ConsoleUtils.info("Load ledgerBindConfigFile content is empty !!!");
+					}
+				}
 			}
 			String host = null;
 			ArgumentSet.ArgEntry hostArg = arguments.getArg(HOST_ARG);

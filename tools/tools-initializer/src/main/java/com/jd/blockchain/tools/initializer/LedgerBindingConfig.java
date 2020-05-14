@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.FileUtils;
 import com.jd.blockchain.utils.io.RuntimeIOException;
@@ -183,6 +184,9 @@ public class LedgerBindingConfig {
 	 */
 	public static LedgerBindingConfig resolve(File file) {
 		Properties props = FileUtils.readProperties(file, CHARSET);
+		if (props == null || props.isEmpty()) {
+			throw new LedgerBindingConfigException("--- ledger-binding.config content is empty !!!");
+		}
 		return resolve(props);
 	}
 
