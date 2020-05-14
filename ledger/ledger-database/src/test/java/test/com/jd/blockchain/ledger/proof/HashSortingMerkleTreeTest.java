@@ -669,6 +669,47 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(count + 1, merkleTree_reload_1.getTotalKeys());
 	}
 
+	@Test
+	public void testReloadTreeAddNewDataNodeDiff() {
+
+		CryptoSetting cryptoSetting = createCryptoSetting();
+		MemoryKVStorage storage = new MemoryKVStorage();
+
+		int count = 1;
+		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
+		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
+
+		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
+		HashDigest rootHash0 = merkleTree.getRootHash();
+		assertNotNull(rootHash0);
+		assertEquals(count, merkleTree.getTotalKeys());
+		assertEquals(count, merkleTree.getTotalRecords());
+
+		// reload and add one data item;
+		HashSortingMerkleTree merkleTree_reload = new HashSortingMerkleTree(rootHash0, cryptoSetting, KEY_PREFIX,
+				storage, false);
+		assertEquals(count, merkleTree_reload.getTotalKeys());
+		assertEquals(count, merkleTree_reload.getTotalRecords());
+		assertEquals(rootHash0, merkleTree_reload.getRootHash());
+
+		VersioningKVData<String, byte[]> data1025 = new VersioningKVData<String, byte[]>("KEY-1025", 0,
+				BytesUtils.toBytes("NEW-VALUE-1025-VERSION-0"));
+
+		merkleTree_reload.setData(data1025.getKey(), data1025.getVersion(), data1025.getValue());
+		merkleTree_reload.commit();
+		HashDigest rootHash1 = merkleTree_reload.getRootHash();
+		assertNotNull(rootHash1);
+		assertNotEquals(rootHash0, rootHash1);
+
+		assertEquals(count + 1, merkleTree_reload.getTotalKeys());
+		assertEquals(count + 1, merkleTree_reload.getTotalRecords());
+
+		HashSortingMerkleTree.PathDiffIterator diffIterator = merkleTree.keysDiffIterator(rootHash1, rootHash0);
+
+		while (diffIterator.hasNext()) {
+			System.out.println(new String(diffIterator.next().getKey()));
+		}
+	}
 	/**
 	 * 测试树的加载读取；
 	 */

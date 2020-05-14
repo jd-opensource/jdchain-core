@@ -1,6 +1,7 @@
 package com.jd.blockchain.ledger.proof;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.Crypto;
@@ -16,6 +17,8 @@ import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.Transactional;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.BytesUtils;
+
+import static com.strobel.core.Comparer.compare;
 
 public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData> {
 
@@ -1047,7 +1050,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	 * @author huanghaiquan
 	 *
 	 */
-	public static abstract class PathDiffIterator extends DiffIterator {
+	public abstract class PathDiffIterator extends DiffIterator {
 		
 		
 		private byte childCursor = 0;
@@ -1097,7 +1100,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		}
 		
 		private MerkleTreeNode getChildNode(PathNode pathNode, byte childIndex) {
-			return pathNode.getChildNode(childIndex);
+			return loadMerkleNode(pathNode.getChildHash(childIndex));
 		}
 		
 		private long getDiffChildCount(int fromIndex, int toIndex) {
@@ -1167,7 +1170,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class PathKeysDiffIterator extends PathDiffIterator {
+	public class PathKeysDiffIterator extends PathDiffIterator {
 
 		public PathKeysDiffIterator(PathNode root1, PathNode root2) {
 			super(root1, root2);
@@ -1194,7 +1197,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			if (rootNode1 instanceof LeafNode && rootNode2 instanceof LeafNode) {
 				return new LeafKeysDiffIterator((LeafNode) rootNode1, (LeafNode) rootNode2);
 			}
-			throw new IllegalStateException("Both two nodes is leafNode!");
+			throw new IllegalStateException("Both nodes type exception!");
 		}
 
 	}
@@ -1205,7 +1208,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class PathRecordsDiffIterator extends PathDiffIterator {
+	private class PathRecordsDiffIterator extends PathDiffIterator {
 
 		public PathRecordsDiffIterator(PathNode root1, PathNode root2) {
 			super(root1, root2);
@@ -1235,7 +1238,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class LeafKeysDiffIterator extends DiffIterator {
+	private class LeafKeysDiffIterator extends DiffIterator {
 		private LinkedList<MerkleData> origDataEntries;
 		private LinkedList<MerkleData> baseDataEntries;
 		private LinkedList<MerkleData> diffDataEntries;
@@ -1291,7 +1294,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class LeafRecordsDiffIterator extends DiffIterator {
+	private class LeafRecordsDiffIterator extends DiffIterator {
 
 		public LeafRecordsDiffIterator(LeafNode root1, LeafNode root2) {
 			super(root1, root2);
@@ -1315,13 +1318,15 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class NewPathKeysDiffIterator extends DiffIterator {
+	private class NewPathKeysDiffIterator extends DiffIterator {
 
 		private Set<byte[]> origKeys;
 
 		private Set<Long> origKeyIndexes;
 
 		private MerkleDataIterator iterator1;
+
+		private AtomicLong origKeyIndex = new AtomicLong(0);
 
 		public NewPathKeysDiffIterator(PathNode root1, LeafNode orignalLeafNode) {
 			super(root1, orignalLeafNode);
@@ -1330,18 +1335,98 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			origKeyIndexes = seekKeyIndexes(origKeys, root1);
 		}
 
+		//不包括toIndex对应子孩子的key总数
+		private long getIntervalTotalKeys(byte fromIndex, byte toIndex, PathNode root1) {
+			long total = 0;
+
+			for (int i = fromIndex; i < toIndex; i++) {
+				HashDigest childHash = root1.getChildHash((byte)i);
+				total += childHash == null? 0 : loadMerkleNode(childHash).getTotalKeys();
+			}
+			return total;
+		}
+
+		/**
+		 * Compare this key and specified key;
+		 *
+		 * @param otherKey
+		 * @return Values: -1, 0, 1. <br>
+		 *         Return -1 means that the current key is less than the specified
+		 *         key;<br>
+		 *         Return 0 means that the current key is equal to the specified
+		 *         key;<br>
+		 *         Return 1 means that the current key is great than the specified key;
+		 */
+		public int compare(byte[] key1, byte[] key2) {
+			int len = Math.min(key1.length, key2.length);
+			for (int i = 0; i < len; i++) {
+				if (key1[i] == key2[i]) {
+					continue;
+				}
+				return key1[i] < key2[i] ? -1 : 1;
+			}
+			if (key1.length == key2.length) {
+				return 0;
+			}
+
+			return key1.length < key2.length ? -1 : 1;
+		}
+
+		//二分查找orig key的位置
+		private int getOffSetFromLeafNode(byte[] merkleDataKey, LeafNode leafNode) {
+			MerkleData[] dataEntries = leafNode.getDataEntries();
+			int start = 0;
+			int end = dataEntries.length - 1;
+
+			while(start <= end) {
+				int mid = (start + end) >> 1;
+				byte[] midVal = dataEntries[mid].getKey();
+				int c = compare(midVal, merkleDataKey);
+				if(c < 0)
+				{
+					start = mid + 1;
+				}
+				else if(c > 0)
+				{
+					end = mid - 1;
+				}
+				else
+				{
+					return mid;
+				}
+			}
+			//未找到
+			return -1;
+		}
+
+		private void seekKeyIndex(byte[] merkleDataKey, PathNode root1, int level) {
+			long keyHash = KeyIndexer.hash(merkleDataKey);
+			byte index = KeyIndexer.index(keyHash, level);
+			long childOffSet = origKeyIndex.get() + getIntervalTotalKeys((byte) 0, index, root1);
+			origKeyIndex.set(childOffSet);
+
+			MerkleTreeNode child = loadMerkleNode(root1.getChildHash(index));
+
+			if (child instanceof LeafNode) {
+
+				long offset = getOffSetFromLeafNode(merkleDataKey, (LeafNode)child);
+
+				origKeyIndex.set(origKeyIndex.get() + offset);
+
+			} else if (child instanceof PathNode) {
+				seekKeyIndex(merkleDataKey, (PathNode) child, level + 1);
+			} else {
+				throw new IllegalStateException("Path node child type exception!");
+			}
+		}
+
+
 		private Set<Long> seekKeyIndexes(Set<byte[]> origKeys, PathNode root1) {
 			Set<Long> origKeyIndexes = new HashSet<Long>();
-			HashSortingMerkleTree.MerkleDataIterator iterator = new MerkleDataIterator(root1);
 
-			for (int i = 0; origKeys.iterator().hasNext() && i < origKeys.size(); i++) {
-				byte[] key = origKeys.iterator().next();
-
-				while (iterator.hasNext()) {
-					if (Arrays.equals(iterator.next().getKey(), key)) {
-						origKeyIndexes.add(iterator.getCursor());
-					}
-				}
+			for(int i = 0; origKeys.iterator().hasNext() && i < origKeys.size(); i++) {
+				seekKeyIndex(origKeys.iterator().next(), root1, 1);
+				origKeyIndexes.add(origKeyIndex.get());
 			}
 			return origKeyIndexes;
 		}
@@ -1405,7 +1490,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class NewPathRecordsDiffIterator extends DiffIterator {
+	private class NewPathRecordsDiffIterator extends DiffIterator {
 
 		public NewPathRecordsDiffIterator(PathNode root1, LeafNode root2) {
 			super(root1, root2);
