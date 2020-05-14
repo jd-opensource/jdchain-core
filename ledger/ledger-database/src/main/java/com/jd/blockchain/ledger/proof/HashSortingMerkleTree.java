@@ -1,7 +1,14 @@
 package com.jd.blockchain.ledger.proof;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.Crypto;
@@ -17,8 +24,6 @@ import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.Transactional;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.BytesUtils;
-
-import static com.strobel.core.Comparer.compare;
 
 public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData> {
 
@@ -264,7 +269,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	 * 迭代器包含所有基准树与原始树之间差异的数据项
 	 */
 	public PathKeysDiffIterator keysDiffIterator(HashDigest baseHash, HashDigest origHash) {
-		return new PathKeysDiffIterator((PathNode) loadMerkleNode(baseHash), (PathNode) loadMerkleNode(origHash));
+		return new PathKeysDiffIterator((PathNode) loadMerkleNode(baseHash), (PathNode) loadMerkleNode(origHash), 0);
 	}
 
 	/**
@@ -1170,8 +1175,11 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	 */
 	public class PathKeysDiffIterator extends PathDiffIterator {
 
-		public PathKeysDiffIterator(PathNode root1, PathNode root2) {
+		private int level;
+
+		public PathKeysDiffIterator(PathNode root1, PathNode root2, int level) {
 			super(root1, root2);
+			this.level = level;
 		}
 
 		@Override
@@ -1187,10 +1195,10 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		@Override
 		protected DiffIterator createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
 			if (rootNode1 instanceof PathNode && rootNode2 instanceof PathNode) {
-				return new PathKeysDiffIterator((PathNode) rootNode1, (PathNode) rootNode2);
+				return new PathKeysDiffIterator((PathNode) rootNode1, (PathNode) rootNode2, level + 1);
 			}
 			if (rootNode1 instanceof PathNode && rootNode2 instanceof LeafNode) {
-				return new NewPathKeysDiffIterator((PathNode) rootNode1, (LeafNode) rootNode2);
+				return new NewPathKeysDiffIterator((PathNode) rootNode1, (LeafNode) rootNode2, level + 1);
 			}
 			if (rootNode1 instanceof LeafNode && rootNode2 instanceof LeafNode) {
 				return new LeafKeysDiffIterator((LeafNode) rootNode1, (LeafNode) rootNode2);
@@ -1326,11 +1334,11 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 		private MerkleDataIterator iterator1;
 
-		public NewPathKeysDiffIterator(PathNode root1, LeafNode orignalLeafNode) {
+		public NewPathKeysDiffIterator(PathNode root1, LeafNode orignalLeafNode, int level) {
 			super(root1, orignalLeafNode);
 			iterator1 = new MerkleDataIterator(root1);
 			origKeys = createKeySet(orignalLeafNode);
-			origKeyIndexes = seekKeyIndexes(origKeys, root1);
+			origKeyIndexes = seekKeyIndexes(origKeys, root1, level);
 		}
 
 		// 不包括toIndex对应子孩子的key总数
@@ -1371,53 +1379,30 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			return key1.length < key2.length ? -1 : 1;
 		}
 
-		// 二分查找orig key的位置
-		private int getOffSetFromLeafNode(byte[] merkleDataKey, LeafNode leafNode) {
-			MerkleData[] dataEntries = leafNode.getDataEntries();
-			int start = 0;
-			int end = dataEntries.length - 1;
-
-			while (start <= end) {
-				int mid = (start + end) >> 1;
-				byte[] midVal = dataEntries[mid].getKey();
-				int c = compare(midVal, merkleDataKey);
-				if (c < 0) {
-					start = mid + 1;
-				} else if (c > 0) {
-					end = mid - 1;
-				} else {
-					return mid;
-				}
-			}
-			// 未找到
-			return -1;
-		}
-
 		/**
 		 * 寻找指定key在指定的子树中的线性位置；
 		 * 
 		 * @param merkleDataKey 要查找的key；
-		 * @param pathNode key所在的子树的根节点；
-		 * @param level 子树根节点的深度；
+		 * @param pathNode      key所在的子树的根节点；
+		 * @param level         子树根节点的深度；
 		 * @return 返回 key 在子树中的线性位置，值大于等于 0；如果不存在，-1；
 		 */
 		private long seekKeyIndex(byte[] merkleDataKey, PathNode pathNode, int level) {
-			//1：计算 key 在当前路径节点中的子节点位置；
-			//2：计算 key 所在子节点之前的所有key的数量，作为 key 最终线性位置基准；
-			//3：计算 key 在子节点表示的线性位置；有两种情况：(1)子节点为路径节点；(2)子节点为叶子节点；
-			//3.1：子节点为路径节点时：递归调用当前方法计算；
-			//3.2：子节点为叶子节点时：在叶子节点中的数据项列表查找指定 key 的位置；
-			//4：基准位置和当前偏移位置相加，得到 key 的最终线性位置，该位置与左序遍历得到的位置一致；
-			
-			
-			//1
+			// 1：计算 key 在当前路径节点中的子节点位置；
+			// 2：计算 key 所在子节点之前的所有key的数量，作为 key 最终线性位置基准；
+			// 3：计算 key 在子节点表示的线性位置；有两种情况：(1)子节点为路径节点；(2)子节点为叶子节点；
+			// 3.1：子节点为路径节点时：递归调用当前方法计算；
+			// 3.2：子节点为叶子节点时：在叶子节点中的数据项列表查找指定 key 的位置；
+			// 4：基准位置和当前偏移位置相加，得到 key 的最终线性位置，该位置与左序遍历得到的位置一致；
+
+			// 1
 			long keyHash = KeyIndexer.hash(merkleDataKey);
 			byte index = KeyIndexer.index(keyHash, level);
-			
-			//2
+
+			// 2
 			long childCounts = getTotalChildKeys((byte) 0, index, pathNode);
-			
-			//3
+
+			// 3
 			MerkleTreeNode childNode = pathNode.getChildNode(index);
 			HashDigest childHash = pathNode.getChildHash(index);
 			if (childNode == null) {
@@ -1425,13 +1410,13 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 				childNode = loadMerkleNode(childHash);
 				pathNode.setChildNode(index, childHash, childNode);
 			}
-			
-			//3.1
+
+			// 3.1
 			long keyIndex = -1;
 			if (childNode instanceof PathNode) {
-				keyIndex = seekKeyIndex(merkleDataKey, (PathNode)childNode, level+1);
-			}else {
-				//3.2 childNode instanceof LeafNode
+				keyIndex = seekKeyIndex(merkleDataKey, (PathNode) childNode, level + 1);
+			} else {
+				// 3.2 childNode instanceof LeafNode
 				LeafNode leafNode = (LeafNode) childNode;
 				MerkleData[] dataEntries = leafNode.getDataEntries();
 				for (int i = 0; i < dataEntries.length; i++) {
@@ -1442,38 +1427,18 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 				}
 			}
 			if (keyIndex == -1) {
-				throw new IllegalStateException("Unexpected error! -- key doesnot contains in the specified merkle tree!");
+				throw new IllegalStateException(
+						"Unexpected error! -- key doesnot contains in the specified merkle tree!");
 			}
-			
-			return childCounts + keyIndex;
 
-//			long keyHash = KeyIndexer.hash(merkleDataKey);
-//			byte index = KeyIndexer.index(keyHash, level);
-//			long childCounts = getTotalChildKeys((byte) 0, index, root1);
-//
-//			long childOffSet = origKeyIndex.get() + getTotalChildKeys((byte) 0, index, root1);
-//			origKeyIndex.set(childOffSet);
-//
-//			MerkleTreeNode child = loadMerkleNode(root1.getChildHash(index));
-//
-//			if (child instanceof LeafNode) {
-//
-//				long offset = getOffSetFromLeafNode(merkleDataKey, (LeafNode) child);
-//
-//				origKeyIndex.set(origKeyIndex.get() + offset);
-//
-//			} else if (child instanceof PathNode) {
-//				seekKeyIndex(merkleDataKey, (PathNode) child, level + 1);
-//			} else {
-//				throw new IllegalStateException("Path node child type exception!");
-//			}
+			return childCounts + keyIndex;
 		}
 
-		private Set<Long> seekKeyIndexes(Set<byte[]> origKeys, PathNode root1) {
+		private Set<Long> seekKeyIndexes(Set<byte[]> origKeys, PathNode root1, int level) {
 			Set<Long> origKeyIndexes = new HashSet<Long>();
 
 			for (byte[] key : origKeys) {
-				origKeyIndexes.add(seekKeyIndex(key, root1, 1));
+				origKeyIndexes.add(seekKeyIndex(key, root1, level));
 			}
 			return origKeyIndexes;
 		}
