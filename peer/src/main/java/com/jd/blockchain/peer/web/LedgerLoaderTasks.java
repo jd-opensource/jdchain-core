@@ -31,6 +31,8 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.*;
 
+import static com.jd.blockchain.peer.PeerServerBooter.LEDGER_BIND_CONFIG_NAME;
+
 /**
  *
  * @author shaozhuguang
@@ -39,32 +41,32 @@ import java.util.*;
  */
 @Component
 @EnableScheduling
-public class PeerTimeTasks implements ApplicationContextAware {
+public class LedgerLoaderTasks implements ApplicationContextAware {
 
-    private static Logger LOGGER = LoggerFactory.getLogger(PeerTimeTasks.class);
+    private static Logger LOGGER = LoggerFactory.getLogger(LedgerLoaderTasks.class);
 
     private ApplicationContext applicationContext;
 
     @Autowired
     private LedgerManage ledgerManager;
 
-    private String ledgerBindConfigFile;
-
     //每1分钟执行一次
     @Scheduled(cron = "0 */5 * * * * ")
     public void updateLedger(){
 
-        LOGGER.debug("Time Task Update Ledger Tasks Start {}", new Date());
-
+        LOGGER.debug("--- Ledger loader tasks start... ");
         try {
             LedgerBindingConfig ledgerBindingConfig = loadLedgerBindingConfig();
+            if (ledgerBindingConfig == null) {
+                // print debug
+                LOGGER.error("Can not load any ledgerBindingConfigs !!!");
+                return;
+            }
 
             HashDigest[] totalLedgerHashs = ledgerBindingConfig.getLedgerHashs();
-
             HashDigest[] existingLedgerHashs = ledgerManager.getLedgerHashs();
 
             Set<HashDigest> newAddHashs = new HashSet<>();
-
             for (HashDigest ledgerHash : totalLedgerHashs) {
                 boolean isExist = false;
                 for (HashDigest exist : existingLedgerHashs) {
@@ -83,7 +85,7 @@ public class PeerTimeTasks implements ApplicationContextAware {
                 List<NodeServer> nodeServers = new ArrayList<>();
                 for (HashDigest ledgerHash : newAddHashs) {
 
-                    LOGGER.info("New Ledger [{}] Need To Be Init !!!", ledgerHash.toBase58());
+                    LOGGER.info("--- New ledger [{}] need to be init... ", ledgerHash.toBase58());
                     for (LedgerBindingConfigAware aware : bindingConfigAwares.values()) {
                         nodeServers.add(aware.setConfig(ledgerBindingConfig.getLedger(ledgerHash), ledgerHash));
                     }
@@ -94,10 +96,10 @@ public class PeerTimeTasks implements ApplicationContextAware {
                     consensusManage.runRealm(nodeServer);
                 }
             } else {
-                LOGGER.debug("All Ledgers is newest!!!");
+                LOGGER.debug("All ledgers is newest!!!");
             }
         } catch (Exception e) {
-            LOGGER.error(e.getMessage());
+            LOGGER.error("--- Ledger loader execute error !!!", e);
         }
     }
 
@@ -108,15 +110,17 @@ public class PeerTimeTasks implements ApplicationContextAware {
 
     private LedgerBindingConfig loadLedgerBindingConfig() throws Exception {
         LedgerBindingConfig ledgerBindingConfig = null;
-        ledgerBindConfigFile = PeerServerBooter.ledgerBindConfigFile;
-        LOGGER.debug("Load LedgerBindConfigFile path = {}",
+        String ledgerBindConfigFile = PeerServerBooter.ledgerBindConfigFile;
+        LOGGER.debug("--- Load " + LEDGER_BIND_CONFIG_NAME + " path = {}",
                 ledgerBindConfigFile == null ? "Default" : ledgerBindConfigFile);
         if (ledgerBindConfigFile == null) {
-            ClassPathResource configResource = new ClassPathResource("ledger-binding.conf");
-            try (InputStream in = configResource.getInputStream()) {
-                ledgerBindingConfig = LedgerBindingConfig.resolve(in);
-            } catch (Exception e) {
-                throw e;
+            ClassPathResource configResource = new ClassPathResource(LEDGER_BIND_CONFIG_NAME);
+            if (configResource.exists()) {
+                try (InputStream in = configResource.getInputStream()) {
+                    ledgerBindingConfig = LedgerBindingConfig.resolve(in);
+                } catch (Exception e) {
+                    throw e;
+                }
             }
         } else {
             File file = new File(ledgerBindConfigFile);
