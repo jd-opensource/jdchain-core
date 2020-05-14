@@ -705,10 +705,30 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(count + 1, merkleTree_reload.getTotalRecords());
 
 		HashSortingMerkleTree.PathDiffIterator diffIterator = merkleTree.keysDiffIterator(rootHash1, rootHash0);
-
-		while (diffIterator.hasNext()) {
-			System.out.println(new String(diffIterator.next().getKey()));
-		}
+		
+		assertEquals(1, diffIterator.getDiffCount());
+		assertEquals(-1, diffIterator.getCursor());
+		assertTrue(diffIterator.hasNext());
+		long skipped = diffIterator.skip(1);
+		assertEquals(1, skipped);
+		assertFalse(diffIterator.hasNext());
+		
+		//re-interator
+		diffIterator = merkleTree.keysDiffIterator(rootHash1, rootHash0);
+		assertTrue(diffIterator.hasNext());
+		MerkleData data = diffIterator.next();
+		assertEquals(0, diffIterator.getCursor());
+		assertNotNull(data);
+		
+		assertFalse(diffIterator.hasNext());
+		data = diffIterator.next();
+		assertNull(data);
+		
+//		while (diffIterator.hasNext()) {
+//			MerkleData data = diffIterator.next();
+//			assertNotNull(data);
+//			assertEquals("KEY-1025", BytesUtils.toString(data.getKey()));
+//		}
 	}
 	/**
 	 * 测试树的加载读取；

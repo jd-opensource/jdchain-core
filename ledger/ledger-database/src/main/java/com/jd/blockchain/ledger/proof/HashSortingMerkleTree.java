@@ -1035,11 +1035,10 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			return getCount(node1) - getCount(node2);
 		}
 
-
 		protected abstract long getCount(MerkleTreeNode node);
 
 	}
-	
+
 	/**
 	 * DiffIterator 提供对两个默克尔节点表示的默克尔树的新增节点的遍历；
 	 * 
@@ -1051,12 +1050,11 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	 *
 	 */
 	public abstract class PathDiffIterator extends DiffIterator {
-		
-		
+
 		private byte childCursor = 0;
-		
+
 		private DiffIterator childDiffIterator;
-		
+
 		/**
 		 * 创建一个差异遍历器；
 		 * 
@@ -1067,49 +1065,49 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		public PathDiffIterator(PathNode root1, PathNode root2) {
 			super(root1, root2);
 		}
-		
+
 		public long getDiffCount() {
 			return getDiffCount(root1, root2);
 		}
-		
+
 		@Override
 		public MerkleData next() {
 			if (!hasNext()) {
 				return null;
 			}
-			
+
 			long diffChildCount = getDiffChildCount(0, childCursor + 1);
-			
+
 			while (cursor + 1 >= diffChildCount) {
 				childCursor++;
 				childDiffIterator = null;
 				diffChildCount = getDiffChildCount(0, childCursor + 1);
 			}
-			
+
 			cursor++;
 			long childDiffOffset = cursor - getDiffChildCount(0, childCursor);
 			MerkleTreeNode childNode1 = getChildNode((PathNode) root1, childCursor);
 			MerkleTreeNode childNode2 = getChildNode((PathNode) root2, childCursor);
-			
+
 			DiffIterator childDiffIterator = getOrCreateDiffIterator(childNode1, childNode2);
-			long childDiffCursor = childDiffIterator.getCursor();
-			
-			childDiffIterator.skip(childDiffOffset - childDiffCursor);
-			
+			long nextChildDiffCursor = childDiffIterator.getCursor() + 1;
+
+			childDiffIterator.skip(childDiffOffset - nextChildDiffCursor);
+
 			return childDiffIterator.next();
 		}
-		
+
 		private MerkleTreeNode getChildNode(PathNode pathNode, byte childIndex) {
 			return loadMerkleNode(pathNode.getChildHash(childIndex));
 		}
-		
+
 		private long getDiffChildCount(int fromIndex, int toIndex) {
 			long diffChildCount = getDiffChildCount(root1, root2, fromIndex, toIndex);
-			
+
 			assert diffChildCount >= 0 : "The diffChildCount is negative!";
 			return diffChildCount;
 		}
-		
+
 		/**
 		 * 返回
 		 * 
@@ -1122,11 +1120,11 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		private long getDiffChildCount(MerkleTreeNode node1, MerkleTreeNode node2, int fromIndex, int toIndex) {
 			return getChildCount(node1, fromIndex, toIndex) - getChildCount(node2, fromIndex, toIndex);
 		}
-		
+
 		private long getDiffCount(MerkleTreeNode node1, MerkleTreeNode node2) {
 			return getCount(node1) - getCount(node2);
 		}
-		
+
 		/**
 		 * get the total count between the specified child index range;
 		 * 
@@ -1137,31 +1135,31 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		 */
 		private long getChildCount(MerkleTreeNode node, int fromIndex, int toIndex) {
 			assert fromIndex <= toIndex : "from-index larger than to-index";
-			
+
 			if (fromIndex == toIndex) {
 				return 0;
 			}
-			
+
 			long s1 = 0;
 			for (int i = fromIndex; i < toIndex; i++) {
 				s1 += getChildCount(node, i);
 			}
 			return s1;
 		}
-		
+
 		protected DiffIterator getOrCreateDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
 			if (childDiffIterator == null) {
 				childDiffIterator = createDiffIterator(rootNode1, rootNode2);
 			}
 			return childDiffIterator;
 		}
-		
+
 		protected abstract long getCount(MerkleTreeNode node);
-		
+
 		protected abstract long getChildCount(MerkleTreeNode node, int childIndex);
-		
+
 		protected abstract DiffIterator createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2);
-		
+
 	}
 
 	/**
@@ -1268,13 +1266,15 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			return dataEntries;
 		}
 
-		private LinkedList<MerkleData> createDiffDataEntries(LinkedList<MerkleData> baseDataEntries, LinkedList<MerkleData> origDataEntries) {
+		private LinkedList<MerkleData> createDiffDataEntries(LinkedList<MerkleData> baseDataEntries,
+				LinkedList<MerkleData> origDataEntries) {
 			LinkedList<MerkleData> diffDataEntries = new LinkedList<>();
 			boolean found = false;
 
 			for (int baseindex = 0; baseindex < baseDataEntries.size(); baseindex++) {
 				for (int origindex = 0; origindex < origDataEntries.size(); origindex++) {
-					if (Arrays.equals(origDataEntries.get(origindex).getKey(), baseDataEntries.get(baseindex).getKey())) {
+					if (Arrays.equals(origDataEntries.get(origindex).getKey(),
+							baseDataEntries.get(baseindex).getKey())) {
 						found = true;
 						break;
 					}
@@ -1326,8 +1326,6 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 		private MerkleDataIterator iterator1;
 
-		private AtomicLong origKeyIndex = new AtomicLong(0);
-
 		public NewPathKeysDiffIterator(PathNode root1, LeafNode orignalLeafNode) {
 			super(root1, orignalLeafNode);
 			iterator1 = new MerkleDataIterator(root1);
@@ -1335,13 +1333,14 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			origKeyIndexes = seekKeyIndexes(origKeys, root1);
 		}
 
-		//不包括toIndex对应子孩子的key总数
-		private long getIntervalTotalKeys(byte fromIndex, byte toIndex, PathNode root1) {
+		// 不包括toIndex对应子孩子的key总数
+		private long getTotalChildKeys(byte fromIndex, byte toIndex, PathNode pathNode) {
 			long total = 0;
 
-			for (int i = fromIndex; i < toIndex; i++) {
-				HashDigest childHash = root1.getChildHash((byte)i);
-				total += childHash == null? 0 : loadMerkleNode(childHash).getTotalKeys();
+			for (byte i = fromIndex; i < toIndex; i++) {
+				total += pathNode.getChildKeys()[i];
+//				HashDigest childHash = pathNode.getChildHash((byte)i);
+//				total += childHash == null? 0 : loadMerkleNode(childHash).getTotalKeys();
 			}
 			return total;
 		}
@@ -1372,61 +1371,109 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			return key1.length < key2.length ? -1 : 1;
 		}
 
-		//二分查找orig key的位置
+		// 二分查找orig key的位置
 		private int getOffSetFromLeafNode(byte[] merkleDataKey, LeafNode leafNode) {
 			MerkleData[] dataEntries = leafNode.getDataEntries();
 			int start = 0;
 			int end = dataEntries.length - 1;
 
-			while(start <= end) {
+			while (start <= end) {
 				int mid = (start + end) >> 1;
 				byte[] midVal = dataEntries[mid].getKey();
 				int c = compare(midVal, merkleDataKey);
-				if(c < 0)
-				{
+				if (c < 0) {
 					start = mid + 1;
-				}
-				else if(c > 0)
-				{
+				} else if (c > 0) {
 					end = mid - 1;
-				}
-				else
-				{
+				} else {
 					return mid;
 				}
 			}
-			//未找到
+			// 未找到
 			return -1;
 		}
 
-		private void seekKeyIndex(byte[] merkleDataKey, PathNode root1, int level) {
+		/**
+		 * 寻找指定key在指定的子树中的线性位置；
+		 * 
+		 * @param merkleDataKey 要查找的key；
+		 * @param pathNode key所在的子树的根节点；
+		 * @param level 子树根节点的深度；
+		 * @return 返回 key 在子树中的线性位置，值大于等于 0；如果不存在，-1；
+		 */
+		private long seekKeyIndex(byte[] merkleDataKey, PathNode pathNode, int level) {
+			//1：计算 key 在当前路径节点中的子节点位置；
+			//2：计算 key 所在子节点之前的所有key的数量，作为 key 最终线性位置基准；
+			//3：计算 key 在子节点表示的线性位置；有两种情况：(1)子节点为路径节点；(2)子节点为叶子节点；
+			//3.1：子节点为路径节点时：递归调用当前方法计算；
+			//3.2：子节点为叶子节点时：在叶子节点中的数据项列表查找指定 key 的位置；
+			//4：基准位置和当前偏移位置相加，得到 key 的最终线性位置，该位置与左序遍历得到的位置一致；
+			
+			
+			//1
 			long keyHash = KeyIndexer.hash(merkleDataKey);
 			byte index = KeyIndexer.index(keyHash, level);
-			long childOffSet = origKeyIndex.get() + getIntervalTotalKeys((byte) 0, index, root1);
-			origKeyIndex.set(childOffSet);
-
-			MerkleTreeNode child = loadMerkleNode(root1.getChildHash(index));
-
-			if (child instanceof LeafNode) {
-
-				long offset = getOffSetFromLeafNode(merkleDataKey, (LeafNode)child);
-
-				origKeyIndex.set(origKeyIndex.get() + offset);
-
-			} else if (child instanceof PathNode) {
-				seekKeyIndex(merkleDataKey, (PathNode) child, level + 1);
-			} else {
-				throw new IllegalStateException("Path node child type exception!");
+			
+			//2
+			long childCounts = getTotalChildKeys((byte) 0, index, pathNode);
+			
+			//3
+			MerkleTreeNode childNode = pathNode.getChildNode(index);
+			HashDigest childHash = pathNode.getChildHash(index);
+			if (childNode == null) {
+				// 子节点为null，同时由于 PathNode#containChild 为 true，故此逻辑分支下 childHash 必然不为 null；
+				childNode = loadMerkleNode(childHash);
+				pathNode.setChildNode(index, childHash, childNode);
 			}
-		}
+			
+			//3.1
+			long keyIndex = -1;
+			if (childNode instanceof PathNode) {
+				keyIndex = seekKeyIndex(merkleDataKey, (PathNode)childNode, level+1);
+			}else {
+				//3.2 childNode instanceof LeafNode
+				LeafNode leafNode = (LeafNode) childNode;
+				MerkleData[] dataEntries = leafNode.getDataEntries();
+				for (int i = 0; i < dataEntries.length; i++) {
+					if (compare(merkleDataKey, dataEntries[i].getKey()) == 0) {
+						keyIndex = i;
+						break;
+					}
+				}
+			}
+			if (keyIndex == -1) {
+				throw new IllegalStateException("Unexpected error! -- key doesnot contains in the specified merkle tree!");
+			}
+			
+			return childCounts + keyIndex;
 
+//			long keyHash = KeyIndexer.hash(merkleDataKey);
+//			byte index = KeyIndexer.index(keyHash, level);
+//			long childCounts = getTotalChildKeys((byte) 0, index, root1);
+//
+//			long childOffSet = origKeyIndex.get() + getTotalChildKeys((byte) 0, index, root1);
+//			origKeyIndex.set(childOffSet);
+//
+//			MerkleTreeNode child = loadMerkleNode(root1.getChildHash(index));
+//
+//			if (child instanceof LeafNode) {
+//
+//				long offset = getOffSetFromLeafNode(merkleDataKey, (LeafNode) child);
+//
+//				origKeyIndex.set(origKeyIndex.get() + offset);
+//
+//			} else if (child instanceof PathNode) {
+//				seekKeyIndex(merkleDataKey, (PathNode) child, level + 1);
+//			} else {
+//				throw new IllegalStateException("Path node child type exception!");
+//			}
+		}
 
 		private Set<Long> seekKeyIndexes(Set<byte[]> origKeys, PathNode root1) {
 			Set<Long> origKeyIndexes = new HashSet<Long>();
 
-			for(int i = 0; origKeys.iterator().hasNext() && i < origKeys.size(); i++) {
-				seekKeyIndex(origKeys.iterator().next(), root1, 1);
-				origKeyIndexes.add(origKeyIndex.get());
+			for (byte[] key : origKeys) {
+				origKeyIndexes.add(seekKeyIndex(key, root1, 1));
 			}
 			return origKeyIndexes;
 		}
@@ -1509,7 +1556,6 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			// TODO Auto-generated method stub
 			return null;
 		}
-
 
 	}
 
