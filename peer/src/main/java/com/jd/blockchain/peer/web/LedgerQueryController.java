@@ -251,13 +251,13 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
 		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
-		HashDigest currBlockTxRootHash = ((TransactionSet)transactionSet).getTxDataRootHash();
-		HashDigest preBlockTxRootHash = null;
+		TransactionQuery origTransactionSet = null;
+
 		int lastHeightTxTotalNums = 0;
 
 		if (blockHeight > 0) {
-			lastHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(blockHeight - 1)).getTotalCount();
-			preBlockTxRootHash = ((TransactionSet)ledger.getTransactionSet(ledger.getBlock(blockHeight - 1))).getTxDataRootHash();
+			origTransactionSet = ledger.getTransactionSet(ledger.getBlock(blockHeight - 1));
+			lastHeightTxTotalNums = (int) origTransactionSet.getTotalCount();
 		}
 
 		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(blockHeight)).getTotalCount();
@@ -265,7 +265,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
 
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
-		LedgerTransaction[] txs = transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), preBlockTxRootHash, currBlockTxRootHash);
+		LedgerTransaction[] txs = transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), origTransactionSet);
 		return txsDecorator(txs);
 	}
 
@@ -279,13 +279,12 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
 		long height = ledgerBlock.getHeight();
 		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
-		HashDigest currBlockTxRootHash = ((TransactionSet)transactionSet).getTxDataRootHash();
-		HashDigest preBlockTxRootHash = null;
+		TransactionQuery origTransactionSet = null;
 		int lastHeightTxTotalNums = 0;
 
 		if (height > 0) {
-			lastHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(height - 1)).getTotalCount();
-			preBlockTxRootHash = ((TransactionSet)ledger.getTransactionSet(ledger.getBlock(height - 1))).getTxDataRootHash();
+			origTransactionSet = ledger.getTransactionSet(ledger.getBlock(height - 1));
+			lastHeightTxTotalNums = (int) origTransactionSet.getTotalCount();
 		}
 
 		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(height)).getTotalCount();
@@ -293,7 +292,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
 
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
-		LedgerTransaction[] txs = transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), preBlockTxRootHash, currBlockTxRootHash);
+		LedgerTransaction[] txs = transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), origTransactionSet);
 		return txsDecorator(txs);
 	}
 

@@ -9,11 +9,11 @@ public interface TransactionQuery extends TxMerkleProvable {
 
 	LedgerTransaction[] getTxs(int fromIndex, int count);
 
-	LedgerTransaction[] getBlockTxs(int fromIndex, int count, HashDigest origTreeRootHash);
+	LedgerTransaction[] getBlockTxs(int fromIndex, int count, TransactionQuery origTransactionSet);
 
 	byte[][] getValuesByIndex(int fromIndex, int count);
 
-	byte[][] getValuesByDiff(int fromIndex, int count, HashDigest origTreeRootHash);
+	byte[][] getValuesByDiff(int fromIndex, int count, TransactionQuery origTransactionSet);
 
 	long getTotalCount();
 
