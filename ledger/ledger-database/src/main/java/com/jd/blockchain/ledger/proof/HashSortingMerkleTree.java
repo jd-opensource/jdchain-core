@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +26,8 @@ import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.BytesUtils;
 
 public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData> {
+
+	private static final LongSkippingIterator<MerkleData> NULL_DATA_ITERATOR = LongSkippingIterator.empty();
 
 	public static final int TREE_DEGREE = 16;
 
@@ -643,292 +644,154 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		}
 	}
 
-	public class MerkleDataIterator implements LongSkippingIterator<MerkleData> {
+	/**
+	 * DiffIterator 提供对两个默克尔节点表示的默克尔树的新增节点的遍历；
+	 * 
+	 * <p>
+	 * 
+	 * 遍历的结果是得到一个数据差集：包含在新数据默克尔树中，但不包含在比较基准默克尔树中的数据集合；
+	 * 
+	 * @author huanghaiquan
+	 *
+	 */
+	public static abstract class AbstractMerkleDataIterator implements LongSkippingIterator<MerkleData> {
 
-		private long totalSize;
+		protected long cursor = -1;
 
-		// 数据记录的当前顺序索引；
-		private long cursor = -1;
-
-		// 数据迭代器；
-		private LeafNodeIterator dataIterator;
-
-		private LinkedList<PathNodeIterator> indicators = new LinkedList<>();
-
-		private MerkleDataIterator(MerklePath root) {
-			totalSize = Arrays.stream(root.getChildKeys()).sum();
-			push(0, root);
-			if (totalSize > 0) {
-				seekNextLeaf();
-			}
-		}
-
-		/**
-		 * 读游标；
-		 * 
-		 * @return
-		 */
 		public long getCursor() {
 			return cursor;
 		}
+
+		@Override
+		public boolean hasNext() {
+			return cursor + 1 < getCount();
+		}
+
+		public long skip(long skippingCount) {
+			if (skippingCount < 0) {
+				throw new IllegalArgumentException("The specified count is out of bound!");
+			}
+			if (skippingCount == 0) {
+				return 0;
+			}
+			long count = getCount();
+			if (cursor + skippingCount < count) {
+				cursor += skippingCount;
+				return skippingCount;
+			}
+			long skipped = count - cursor - 1;
+			cursor = count - 1;
+			return skipped;
+		}
+
+	}
+
+	public class MerkleDataIterator extends AbstractMerkleDataIterator {
+
+		private int childCursor = 0;
+
+		private long totalSize;
+
+		private PathNode root;
+
+
+		private LongSkippingIterator<MerkleData> childIterator;
+
+		private MerkleDataIterator(HashDigest rootHash, MerklePath rootNode) {
+			this(PathNode.create(rootHash, rootNode));
+		}
+
+		private MerkleDataIterator(PathNode rootNode) {
+			this.root = rootNode;
+			totalSize = Arrays.stream(root.getChildKeys()).sum();
+		}
+
 
 		public long getCount() {
 			return totalSize;
 		}
 
-		/**
-		 * 略过指定数量的数据项；
-		 * 
-		 * @param count 要略过的数量；
-		 * @return 实际略过的数量；如果指定的数量超出了剩余的数量范围，则返回值为实际略过的数量；否则返回值等于参数指定的数量；
-		 */
-		public long skip(long count) {
-			if (count < 0) {
-				throw new IllegalArgumentException("The specified count is out of bound!");
-			}
-
-			if ((cursor + count + 1) >= totalSize) {
-				// 全部结束；
-				indicators.clear();
-				dataIterator = null;
-				long skipped = totalSize - 1 - cursor;
-				cursor = totalSize - 1;
-				return skipped;
-			}
-
-			long skipped = skipDataEntry(count);
-			if (skipped < count) {
-				throw new IllegalStateException("No enough data entry to skip!");
-			}
-			cursor += count;
-
-			return count;
-		}
-
-		@Override
-		public boolean hasNext() {
-			if (dataIterator != null) {
-				if (dataIterator.hasNext()) {
-					return true;
-				}
-				dataIterator = null;
-				seekNextLeaf();
-				return dataIterator != null && dataIterator.hasNext();
-			}
-			return false;
-		}
-
 		@Override
 		public MerkleData next() {
-			if (hasNext()) {
-				cursor++;
-				return dataIterator.next();
-			}
-			return null;
-		}
-
-		private void push(long offset, MerklePath node) {
-			indicators.push(new PathNodeIterator(offset, node));
-		}
-
-		/**
-		 * 略过指定数量的数据项；
-		 * 
-		 * @param count
-		 * @return 返回实际略过的数量；
-		 */
-		private long skipDataEntry(long count) {
-			long origCount = count;
-			count -= dataIterator.skip(count);
-			if (count == 0) {
-				return origCount;
-			}
-			PathNodeIterator iterator = null;
-			while ((iterator = indicators.peek()) != null) {
-				count -= iterator.skipNext(count);
-				if (count == 0) {
-					return origCount;
-				}
-				HashDigest childHash = null;
-				while (iterator.hasNext()) {
-					childHash = iterator.next();
-					if (childHash != null) {
-						break;
-					}
-				}
-
-				if (childHash != null) {
-					MerkleElement child = loadMerkleEntry(childHash);
-					if (child instanceof MerklePath) {
-						// 路径节点；入栈后继续处理;
-						push(iterator.getChildOffset(), (MerklePath) child);
-						continue;
-					} else if (child instanceof MerkleLeaf) {
-						// 叶子节点；
-						dataIterator = new LeafNodeIterator((MerkleLeaf) child);
-						count -= dataIterator.skip(count);
-						if (count == 0) {
-							return origCount;
-						} else {
-							continue;
-						}
-					} else {
-						throw new IllegalStateException(
-								"Illegal type of merkle element! --" + child.getClass().getName());
-					}
-				} else {
-					indicators.poll();
-				}
+			if (!hasNext()) {
+				return null;
 			}
 
-			return origCount - count;
-		}
+			long childCount = getChildCount(0, childCursor + 1);
 
-		private boolean seekNextLeaf() {
-			PathNodeIterator iterator = null;
-			while ((iterator = indicators.peek()) != null) {
-				HashDigest childHash = null;
-				while (iterator.hasNext()) {
-					childHash = iterator.next();
-					if (childHash != null) {
-						break;
-					}
-				}
-				if (childHash != null) {
-					MerkleElement child = loadMerkleEntry(childHash);
-					if (child instanceof MerklePath) {
-						push(iterator.getChildOffset(), (MerklePath) child);
-						continue;
-					} else if (child instanceof MerkleLeaf) {
-						dataIterator = new LeafNodeIterator((MerkleLeaf) child);
-						return true;
-					} else {
-						throw new IllegalStateException(
-								"Illegal type of merkle element! --" + child.getClass().getName());
-					}
-				} else {
-					indicators.poll();
-				}
+			while (cursor + 1 >= childCount) {
+				childCursor++;
+				childIterator = null;
+				childCount = getChildCount(0, childCursor + 1);
 			}
 
-			return false;
+			cursor++;
+			long childDiffOffset = cursor - getChildCount(0, childCursor);
+			MerkleTreeNode childNode = getChildNode(root, (byte) childCursor);
+
+			LongSkippingIterator<MerkleData> childIterator = getOrCreateDiffIterator(childNode);
+			long nextChildCursor = childIterator.getCursor() + 1;
+
+			childIterator.skip(childDiffOffset - nextChildCursor);
+
+			return childIterator.next();
 		}
 
-	}
-
-	private static class PathNodeIterator implements Iterator<HashDigest> {
-
-		private long offset;
-
-		private long totalSize;
-
-		private long[] childKeys;
-
-		private HashDigest[] childHashs;
-
-		private int cursor = -1;
-
-		public PathNodeIterator(long offset, MerklePath node) {
-			this.offset = offset;
-			this.childHashs = node.getChildHashs();
-			this.childKeys = node.getChildKeys();
-			this.totalSize = Arrays.stream(childKeys).sum();
-		}
-
-
-		@SuppressWarnings("unused")
-		public long getTotalSize() {
-			return totalSize;
-		}
-
-		/**
-		 * 当前子区间的起始位置；
-		 * 
-		 * @return
-		 */
-		public long getChildOffset() {
-			return getChildOffset(cursor);
-		}
-
-		/**
-		 * 当前子区间的数量大小；
-		 * 
-		 * @return
-		 */
-		@SuppressWarnings("unused")
-		public long getChildSize() {
-			return childKeys[cursor];
-		}
-
-		private long getChildOffset(int c) {
-			long s = 0;
-			for (int i = 0; i < c; i++) {
-				s += childKeys[i];
+		private LongSkippingIterator<MerkleData> getOrCreateDiffIterator(MerkleTreeNode childNode) {
+			if (childIterator == null) {
+				childIterator = createDiffIterator(childNode);
 			}
-			return offset + s;
+			return childIterator;
 		}
 
-		@Override
-		public boolean hasNext() {
-			return cursor + 1 < childHashs.length;
-		}
-
-		@Override
-		public HashDigest next() {
-			if (hasNext()) {
-				return childHashs[++cursor];
+		private LongSkippingIterator<MerkleData> createDiffIterator(MerkleTreeNode childNode) {
+			if (childNode == null) {
+				return NULL_DATA_ITERATOR;
 			}
-			return null;
+			if (childNode instanceof PathNode) {
+				return new MerkleDataIterator((PathNode) childNode);
+			}
+			if (childNode instanceof LeafNode) {
+				return new LeafNodeIterator((LeafNode) childNode);
+			}
+			throw new IllegalStateException("Illegal type of MerkleTreeNode[" + childNode.getClass().getName() + "]");
 		}
 
-		/**
-		 * 略过指定数量的数据项，移动到最接近指定位置的区间；
-		 * 
-		 * @param count 要略过的数据项的数量；
-		 * @return 返回实际略过的数量；
-		 */
-		public long skipNext(long count) {
-			if (count < 0) {
-				throw new IllegalArgumentException("The specified count is out of bound!");
+		private MerkleTreeNode getChildNode(PathNode pathNode, byte childIndex) {
+			HashDigest childHash = pathNode.getChildHash(childIndex);
+			MerkleTreeNode childNode = pathNode.getChildNode(childIndex);
+			if (childNode == null && childHash != null) {
+				childNode = loadMerkleNode(childHash);
+				pathNode.setChildNode(childIndex, childHash, childNode);
 			}
-
-			// 检查从下一个区间到结尾，略过的
-			long skipped = 0;
-			int i = cursor + 1;
-			for (; i < childHashs.length; i++) {
-				if ((skipped + childKeys[i]) > count) {
-					break;
-				}
-				skipped += childKeys[i];
-			}
-			cursor = i - 1;
-			return skipped;
+			return childNode;
 		}
+
+		private long getChildCount(int from, int to) {
+			long sum = 0;
+			long[] keys = root.getChildKeys();
+			for (int i = from; i < to; i++) {
+				sum += keys[i];
+			}
+			return sum;
+		}
+
 	}
 
 	private static class LeafNodeIterator implements LongSkippingIterator<MerkleData> {
-
-//		private long offset;
 
 		private MerkleData[] dataEntries;
 
 		private int cursor = -1;
 
 		public LeafNodeIterator(MerkleLeaf leaf) {
-//			this.offset = offset;
 			this.dataEntries = leaf.getDataEntries();
 		}
 
-//		public long getOffset() {
-//			return offset;
-//		}
-
-		@SuppressWarnings("unused")
 		public long getCursor() {
 			return cursor;
 		}
 
-		@SuppressWarnings("unused")
 		public long getCount() {
 			return dataEntries.length;
 		}
@@ -979,7 +842,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 	 * @author huanghaiquan
 	 *
 	 */
-	public static abstract class DiffIterator implements LongSkippingIterator<MerkleData> {
+	public static abstract class DiffIterator extends AbstractMerkleDataIterator {
 
 		/**
 		 * 新增
@@ -987,8 +850,6 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		protected MerkleTreeNode root1;
 
 		protected MerkleTreeNode root2;
-
-		protected long cursor = -1;
 
 		/**
 		 * 创建一个差异遍历器；
@@ -1005,32 +866,6 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		@Override
 		public long getCount() {
 			return getDiffCount(root1, root2);
-		}
-
-		public long getCursor() {
-			return cursor;
-		}
-
-		@Override
-		public boolean hasNext() {
-			return cursor + 1 < getCount();
-		}
-
-		public long skip(long count) {
-			if (count < 0) {
-				throw new IllegalArgumentException("The specified count is out of bound!");
-			}
-			if (count == 0) {
-				return 0;
-			}
-			long diffCount = getCount();
-			if (cursor + count < getCount()) {
-				cursor += count;
-				return count;
-			}
-			long skipped = diffCount - cursor - 1;
-			cursor = diffCount - 1;
-			return skipped;
 		}
 
 		private long getDiffCount(MerkleTreeNode node1, MerkleTreeNode node2) {
@@ -1101,7 +936,12 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 		private MerkleTreeNode getChildNode(PathNode pathNode, byte childIndex) {
 			HashDigest childHash = pathNode.getChildHash(childIndex);
-			return childHash == null ? null : loadMerkleNode(childHash);
+			MerkleTreeNode childNode = pathNode.getChildNode(childIndex);
+			if (childNode == null && childHash != null) {
+				childNode = loadMerkleNode(childHash);
+				pathNode.setChildNode(childIndex, childHash, childNode);
+			}
+			return childNode;
 		}
 
 		private long getDiffChildCount(int fromIndex, int toIndex) {
@@ -1150,7 +990,8 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			return s1;
 		}
 
-		protected LongSkippingIterator<MerkleData> getOrCreateDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
+		protected LongSkippingIterator<MerkleData> getOrCreateDiffIterator(MerkleTreeNode rootNode1,
+				MerkleTreeNode rootNode2) {
 			if (childDiffIterator == null) {
 				childDiffIterator = createDiffIterator(rootNode1, rootNode2);
 			}
@@ -1161,7 +1002,8 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 		protected abstract long getChildCount(MerkleTreeNode node, int childIndex);
 
-		protected abstract LongSkippingIterator<MerkleData> createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2);
+		protected abstract LongSkippingIterator<MerkleData> createDiffIterator(MerkleTreeNode rootNode1,
+				MerkleTreeNode rootNode2);
 
 	}
 
@@ -1192,11 +1034,11 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 		@Override
 		protected LongSkippingIterator<MerkleData> createDiffIterator(MerkleTreeNode node1, MerkleTreeNode node2) {
-			if (node1 instanceof LeafNode && node2 == null) {
+			if (node2 == null && node1 instanceof LeafNode) {
 				return new LeafNodeIterator((LeafNode) node1);
 			}
-			if (node1 instanceof PathNode && node2 == null) {
-				return new MerkleDataIterator((PathNode)node1);
+			if (node2 == null && node1 instanceof PathNode) {
+				return new MerkleDataIterator((PathNode) node1);
 			}
 			if (node1 instanceof PathNode && node2 instanceof PathNode) {
 				return new PathKeysDiffIterator((PathNode) node1, (PathNode) node2, level + 1);
@@ -1209,7 +1051,6 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			}
 			throw new IllegalStateException("Both nodes type exception!");
 		}
-
 
 	}
 
@@ -1273,7 +1114,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			return diffDataEntries.removeFirst();
 		}
 
-		//获取叶子节点对应的所有数据入口集
+		// 获取叶子节点对应的所有数据入口集
 		private LinkedList<MerkleData> createDataEntries(LeafNode leafNode) {
 			LinkedList<MerkleData> dataEntries = new LinkedList<>();
 			for (int i = 0; i < leafNode.getTotalKeys(); i++) {
@@ -1282,7 +1123,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			return dataEntries;
 		}
 
-		//获取两个叶子节点数据入口的差异集
+		// 获取两个叶子节点数据入口的差异集
 		private LinkedList<MerkleData> createDiffDataEntries(LinkedList<MerkleData> baseDataEntries,
 				LinkedList<MerkleData> origDataEntries) {
 			LinkedList<MerkleData> diffDataEntries = new LinkedList<>();
@@ -1352,7 +1193,6 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		}
 	}
 
-
 	/**
 	 * 对默克尔树路径节点和默克尔树空子节点包含的记录集合的差集遍历器；
 	 *
@@ -1375,13 +1215,14 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			return null;
 		}
 	}
+
 	/**
 	 * 对默克尔树路径节点和默克尔树叶子节点包含的键集合的差集遍历器；
 	 * 
 	 * @author huanghaiquan
 	 *
 	 */
-	private class NewPathKeysDiffIterator extends DiffIterator {
+	public class NewPathKeysDiffIterator extends DiffIterator {
 
 		private Set<byte[]> origKeys;
 
@@ -1538,9 +1379,9 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			return s;
 		}
 
-		//判断原始叶子键值集中是否包含指定的键值
+		// 判断原始叶子键值集中是否包含指定的键值
 		private boolean contains(Set<byte[]> origKeys, byte[] key) {
-			for(byte[] origKey : origKeys) {
+			for (byte[] origKey : origKeys) {
 				if (Arrays.equals(origKey, key)) {
 					return true;
 				}
