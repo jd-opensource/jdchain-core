@@ -198,6 +198,9 @@ public class LedgerBindingConfig {
 	 */
 	public static LedgerBindingConfig resolve(InputStream in) {
 		Properties props = FileUtils.readProperties(in, CHARSET);
+		if (props == null || props.isEmpty()) {
+			throw new LedgerBindingConfigException("--- ledger-binding.config content is empty !!!");
+		}
 		return resolve(props);
 	}
 
