@@ -1387,13 +1387,14 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 				if (k < 1) {
 					break;
 				}
-				s += k;
 				while (origKeyIndexes.contains(new Long(iterator1.cursor))) {
 					k = iterator1.skip(1);
 					if (k < 1) {
-						break;
+						return s;
 					}
 				}
+				s++;
+				cursor++;
 			}
 			return s;
 		}
@@ -1410,22 +1411,17 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 		@Override
 		public MerkleData next() {
-			if (iterator1.hasNext()) {
-				MerkleData nextKey = iterator1.next();
-				while (contains(origKeys, nextKey.getKey())) {
-					if (iterator1.hasNext()) {
-						nextKey = iterator1.next();
-					} else {
-						return null;
-					}
-				}
+			MerkleData nextKey = null;
 
-				return nextKey;
+			while (iterator1.hasNext()) {
+				nextKey = iterator1.next();
+				if (!contains(origKeys, nextKey.getKey())) {
+					cursor++;
+					return nextKey;
+				}
 			}
-//			System.out.println("NewPathKeysDiffIterator " + new String(nextKey.getKey()));
 			return null;
 		}
-
 	}
 
 	/**

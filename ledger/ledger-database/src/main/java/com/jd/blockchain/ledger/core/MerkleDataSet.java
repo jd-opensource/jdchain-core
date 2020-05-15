@@ -252,7 +252,7 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 	//获得两个默克尔数据集之间的数据节点差异
 	public byte[][] getDiffMerkleKeys(int fromIndex, int count, HashDigest baseRootHash, HashDigest origRootHash) {
 		byte[][] values = new byte[count][];
-		DiffIterator diffIterator = merkleTree.keysDiffIterator(baseRootHash, origRootHash);
+		DiffIterator diffIterator = null;
 		diffIterator.skip(fromIndex);
 		for (int i = 0; i < count && diffIterator.hasNext(); i++) {
 			MerkleData merkleData = diffIterator.next();
