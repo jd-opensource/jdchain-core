@@ -1406,7 +1406,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 		@Override
 		protected long getCount(MerkleTreeNode node) {
-			return ((PathNode)node).getTotalRecords();
+			return ((PathNode)node).getTotalKeys();
 		}
 
 		@Override
@@ -1601,7 +1601,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 					break;
 				}
 				s += k;
-				while (origKeyIndexes.contains(iterator1.cursor)) {
+				while (origKeyIndexes.contains(new Long(iterator1.cursor))) {
 					k = iterator1.skip(1);
 					if (k < 1) {
 						break;
