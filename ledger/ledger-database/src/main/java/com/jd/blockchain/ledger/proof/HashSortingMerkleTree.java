@@ -1242,7 +1242,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		
 		private HashSortingMerkleTree tree1;
 
-		private Set<byte[]> origKeys;
+		private MerkleData[] origKeys;
 
 		private Set<Long> origKeyIndexes;
 
@@ -1252,7 +1252,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			super(root1, orignalLeafNode);
 			this.tree1 = tree1;
 			this.iterator1 = new MerkleDataIterator(tree1, root1);
-			this.origKeys = createKeySet(orignalLeafNode);
+			this.origKeys = orignalLeafNode.getDataEntries();
 			this.origKeyIndexes = seekKeyIndexes(this.origKeys, root1, level);
 		}
 
@@ -1347,22 +1347,13 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 			return childCounts + keyIndex;
 		}
 
-		private Set<Long> seekKeyIndexes(Set<byte[]> origKeys, PathNode root1, int level) {
+		private Set<Long> seekKeyIndexes(MerkleData[] origKeys, PathNode root1, int level) {
 			Set<Long> origKeyIndexes = new HashSet<Long>();
 
-			for (byte[] key : origKeys) {
-				origKeyIndexes.add(seekKeyIndex(key, root1, level));
+			for (MerkleData data : origKeys) {
+				origKeyIndexes.add(seekKeyIndex(data.getKey(), root1, level));
 			}
 			return origKeyIndexes;
-		}
-
-		private Set<byte[]> createKeySet(LeafNode orignalLeafNode) {
-			Set<byte[]> origKeys = new HashSet<byte[]>();
-
-			for (int i = 0; i < orignalLeafNode.getTotalKeys(); i++) {
-				origKeys.add(orignalLeafNode.getDataEntries()[i].getKey());
-			}
-			return origKeys;
 		}
 
 		@Override
@@ -1375,7 +1366,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 		@Override
 		public long getCount() {
-			return iterator1.getCount() - origKeys.size();
+			return iterator1.getCount() - origKeys.length;
 		}
 
 		@Override
@@ -1400,9 +1391,9 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 		}
 
 		// 判断原始叶子键值集中是否包含指定的键值
-		private boolean contains(Set<byte[]> origKeys, byte[] key) {
-			for (byte[] origKey : origKeys) {
-				if (Arrays.equals(origKey, key)) {
+		private boolean contains(MerkleData[] origKeys, byte[] key) {
+			for (MerkleData origKey : origKeys) {
+				if (Arrays.equals(origKey.getKey(), key)) {
 					return true;
 				}
 			}
