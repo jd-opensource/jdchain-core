@@ -11,12 +11,7 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
 import com.jd.blockchain.storage.service.utils.VersioningKVData;
-import com.jd.blockchain.utils.ArrayUtils;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.DataIterator;
-import com.jd.blockchain.utils.Dataset;
-import com.jd.blockchain.utils.Transactional;
+import com.jd.blockchain.utils.*;
 
 /**
  * 对新的数据项按顺序递增进行编号的 Merkle 数据集； <br>
@@ -250,9 +245,9 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 	}
 
 	//获得两个默克尔数据集之间的数据节点差异
-	public byte[][] getDiffMerkleKeys(int fromIndex, int count, HashDigest baseRootHash, HashDigest origRootHash) {
+	public byte[][] getDiffMerkleKeys(int fromIndex, int count, HashDigest origTreeRootHash) {
 		byte[][] values = new byte[count][];
-		DiffIterator diffIterator = null;
+		LongSkippingIterator<MerkleData> diffIterator = merkleTree.getKeyDiffIterator(origTree);
 		diffIterator.skip(fromIndex);
 		for (int i = 0; i < count && diffIterator.hasNext(); i++) {
 			MerkleData merkleData = diffIterator.next();
