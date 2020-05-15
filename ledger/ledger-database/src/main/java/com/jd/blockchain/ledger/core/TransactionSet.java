@@ -57,9 +57,9 @@ public class TransactionSet implements Transactional, TransactionQuery {
 	}
 
 	@Override
-	public LedgerTransaction[] getBlockTxs(int fromIndex, int count, HashDigest baseRootHash, HashDigest origRootHash) {
+	public LedgerTransaction[] getBlockTxs(int fromIndex, int count, HashDigest origTreeRootHash) {
 		//取创世区块包含的交易
-		if (origRootHash == null)  {
+		if (origTreeRootHash == null)  {
 			return getTxs(fromIndex, count);
 		}
 
@@ -67,7 +67,7 @@ public class TransactionSet implements Transactional, TransactionQuery {
 		if (count > LedgerConsts.MAX_LIST_COUNT) {
 			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
 		}
-		byte[][] results = getValuesByDiff(fromIndex, count, baseRootHash, origRootHash);
+		byte[][] results = getValuesByDiff(fromIndex, count,  origTreeRootHash);
 		LedgerTransaction[] ledgerTransactions = new LedgerTransaction[results.length];
 
 		for (int i = 0; i < results.length; i++) {
@@ -88,8 +88,8 @@ public class TransactionSet implements Transactional, TransactionQuery {
 	}
 
 	@Override
-	public byte[][] getValuesByDiff(int fromIndex, int count, HashDigest preTreeRootHash, HashDigest currTreeRootHash) {
-		return txDataSet.getDiffMerkleKeys(fromIndex, count, preTreeRootHash, currTreeRootHash);
+	public byte[][] getValuesByDiff(int fromIndex, int count, HashDigest origTreeRootHash) {
+		return txDataSet.getDiffMerkleKeys(fromIndex, count, origTreeRootHash);
 	}
 
 	@Override
