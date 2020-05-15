@@ -711,6 +711,7 @@ public class HashSortingMerkleTree implements Transactional, Iterable<MerkleData
 
 		public MerkleDataIterator(HashSortingMerkleTree tree, PathNode rootNode) {
 			this.root = rootNode;
+			this.tree = tree;
 			totalSize = Arrays.stream(root.getChildKeys()).sum();
 		}
 
