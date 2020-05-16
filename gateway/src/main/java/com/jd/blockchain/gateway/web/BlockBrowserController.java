@@ -5,6 +5,9 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
+import com.jd.blockchain.contract.ContractProcessor;
+import com.jd.blockchain.contract.OnLineContractProcessor;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,6 +33,7 @@ import com.jd.blockchain.ledger.LedgerInfo;
 import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.UserInfo;
@@ -38,13 +42,14 @@ import com.jd.blockchain.sdk.ContractSettings;
 import com.jd.blockchain.sdk.LedgerBaseSettings;
 import com.jd.blockchain.utils.BaseConstant;
 import com.jd.blockchain.utils.ConsoleUtils;
-import com.jd.blockchain.utils.decompiler.utils.DecompilerUtils;
 
 @RestController
 @RequestMapping(path = "/")
 public class BlockBrowserController implements BlockchainExtendQueryService {
 
-	private static org.slf4j.Logger LOGGER = LoggerFactory.getLogger(BlockBrowserController.class);
+	private static final ContractProcessor CONTRACT_PROCESSOR = OnLineContractProcessor.getInstance();
+
+	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	@Autowired
 	private PeerService peerService;
@@ -302,9 +307,15 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 		ContractSettings contractSettings = new ContractSettings(contractInfo.getAddress(), contractInfo.getPubKey(),
 				contractInfo.getRootHash());
 		byte[] chainCodeBytes = contractInfo.getChainCode();
-		// 将反编译chainCode
-		String mainClassJava = DecompilerUtils.decompileMainClassFromBytes(chainCodeBytes);
-		contractSettings.setChainCode(mainClassJava);
+		try {
+			// 将反编译chainCode
+			String mainClassJava = CONTRACT_PROCESSOR.decompileEntranceClass(chainCodeBytes);
+			contractSettings.setChainCode(mainClassJava);
+		} catch (Exception e) {
+			// 打印日志
+			logger.error(String.format("Decompile contract[%s] error !!!",
+					contractInfo.getAddress().toBase58()), e);
+		}
 		return contractSettings;
 	}
 
@@ -628,5 +639,12 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 			}
 		}
 		return accounts;
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/userrole/{userAddress}")
+	@Override
+	public RoleSet getUserRoles(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+								@PathVariable(name = "userAddress") String userAddress) {
+		return peerService.getQueryService().getUserRoles(ledgerHash, userAddress);
 	}
 }

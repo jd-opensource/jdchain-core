@@ -14,12 +14,12 @@ public class BftsmartNodeConfig implements BftsmartNodeSettings {
 	private PubKey pubKey;
 
 	private NetworkAddress networkAddress;
-	
-	public BftsmartNodeConfig() {
-	}
 
 	static {
 		DataContractRegistry.register(BftsmartNodeSettings.class);
+	}
+
+	public BftsmartNodeConfig() {
 	}
 
 	public BftsmartNodeConfig(PubKey pubKey, int id, NetworkAddress networkAddress) {

@@ -95,7 +95,7 @@ public class ContractInvokingTest {
 	// 采用基于内存的 Storage；
 	private MemoryKVStorage storage = new MemoryKVStorage();
 
-	private static final String CONTRACT_JAR = "contract-JDChain-Contract.jar";
+	private static final String CONTRACT_CAR = "contract-jdchain.car";
 
 	@Test
 	public void testNormal() {
@@ -481,7 +481,7 @@ public class ContractInvokingTest {
 
 	private byte[] chainCode() {
 
-		InputStream in = this.getClass().getResourceAsStream("/" + CONTRACT_JAR);
+		InputStream in = this.getClass().getResourceAsStream("/" + CONTRACT_CAR);
 
 		return BytesUtils.copyToBytes(in);
 	}

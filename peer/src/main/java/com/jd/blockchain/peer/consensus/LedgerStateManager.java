@@ -10,10 +10,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class LedgerStateManager implements StateMachineReplicate{
 
+	long latestStateId;
+
 	@Override
 	public long getLatestStateID(String realmName) {
-		// TODO Auto-generated method stub
-		return 0;
+		return latestStateId;
+	}
+
+	public void setLatestStateId(long latestStateId) {
+		this.latestStateId = latestStateId;
 	}
 
 	@Override

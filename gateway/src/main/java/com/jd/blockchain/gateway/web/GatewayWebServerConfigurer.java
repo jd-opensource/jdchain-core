@@ -9,6 +9,11 @@ import com.jd.blockchain.consensus.action.ActionRequest;
 import com.jd.blockchain.consensus.action.ActionResponse;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.ledger.json.ExtendJsonSerializeUtil;
+import com.jd.blockchain.ledger.json.serialize.JsonSerializeFactory;
+import com.jd.blockchain.ledger.proof.MerkleData;
+import com.jd.blockchain.ledger.proof.MerkleLeaf;
+import com.jd.blockchain.ledger.proof.MerklePath;
 import com.jd.blockchain.web.serializes.ByteArrayObjectUtil;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.format.FormatterRegistry;
@@ -47,6 +52,12 @@ public class GatewayWebServerConfigurer implements WebMvcConfigurer {
 		DataContractRegistry.register(RoleInitSettings.class);
 		DataContractRegistry.register(UserAuthInitSettings.class);
 		DataContractRegistry.register(LedgerMetadata_V2.class);
+
+		// 注册默克尔树相关接口
+		DataContractRegistry.register(MerkleData.class);
+		DataContractRegistry.register(MerkleLeaf.class);
+		DataContractRegistry.register(MerklePath.class);
+		DataContractRegistry.register(CryptoSetting.class);
 	}
 
 
@@ -87,5 +98,9 @@ public class GatewayWebServerConfigurer implements WebMvcConfigurer {
 
 	private void initByteArrayJsonSerialize() {
 		ByteArrayObjectUtil.init();
+		// 附加CryptoSetting的序列化处理
+		ExtendJsonSerializeUtil.init(CryptoSetting.class,
+				JsonSerializeFactory.createSerializer(CryptoSetting.class),
+				JsonSerializeFactory.createDeserializer(CryptoSetting.class));
 	}
 }

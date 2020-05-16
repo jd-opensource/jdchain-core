@@ -9,17 +9,15 @@ public class BftsmartSettingsFactory implements SettingsFactory {
 	
 	private static ConsensusSettingsEncoder CS_ENCODER = new ConsensusSettingsEncoder();
 	
-	private static ClientIncomingSettingsEncoder CI_ENCODER =new ClientIncomingSettingsEncoder();
+	private static ClientIncomingSettingsEncoder CI_ENCODER = new ClientIncomingSettingsEncoder();
 
 	static {
 		DataContractRegistry.register(BftsmartConsensusSettings.class);
-
 		DataContractRegistry.register(BftsmartClientIncomingSettings.class);
 	}
 
 	@Override
 	public BftsmartConsensusSettingsBuilder getConsensusSettingsBuilder() {
-
 		return new BftsmartConsensusSettingsBuilder();
 	}
 
@@ -33,8 +31,6 @@ public class BftsmartSettingsFactory implements SettingsFactory {
 		return CI_ENCODER;
 	}
 	
-	
-	
 	private static class ConsensusSettingsEncoder implements BytesEncoder<ConsensusSettings>{
 
 		@Override
@@ -47,12 +43,11 @@ public class BftsmartSettingsFactory implements SettingsFactory {
 
 		@Override
 		public ConsensusSettings decode(byte[] bytes) {
-			return BinaryProtocol.decodeAs(bytes, BftsmartConsensusSettings.class);
+			return BinaryProtocol.decode(bytes, BftsmartConsensusSettings.class);
 		}
-		
 	}
 	
-	private static class ClientIncomingSettingsEncoder implements BytesEncoder<ClientIncomingSettings>{
+	private static class ClientIncomingSettingsEncoder implements BytesEncoder<ClientIncomingSettings> {
 
 		@Override
 		public byte[] encode(ClientIncomingSettings data) {
@@ -64,10 +59,7 @@ public class BftsmartSettingsFactory implements SettingsFactory {
 
 		@Override
 		public ClientIncomingSettings decode(byte[] bytes) {
-			return BinaryProtocol.decodeAs(bytes, BftsmartClientIncomingSettings.class);
+			return BinaryProtocol.decode(bytes, BftsmartClientIncomingSettings.class);
 		}
-		
 	}
-
-
 }

@@ -3,6 +3,7 @@ package com.jd.blockchain.peer;
 import com.jd.blockchain.consts.Global;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
+import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
 import com.jd.blockchain.utils.ArgumentSet;
 import com.jd.blockchain.utils.ConsoleUtils;
 
@@ -41,6 +42,8 @@ public class PeerServerBooter {
 	// 是否输出调试信息；
 	private static final String DEBUG_OPT = "-debug";
 
+	public static final String LEDGER_BIND_CONFIG_NAME = "ledger-binding.conf";
+
 	public static String ledgerBindConfigFile;
 	
 	static {
@@ -63,15 +66,22 @@ public class PeerServerBooter {
 			ledgerBindConfigFile = argLedgerBindConf == null ? null : argLedgerBindConf.getValue();
 			if (ledgerBindConfigFile == null) {
 				ConsoleUtils.info("Load build-in default configuration ...");
-				ClassPathResource configResource = new ClassPathResource("ledger-binding.conf");
-
-				try (InputStream in = configResource.getInputStream()) {
-					ledgerBindingConfig = LedgerBindingConfig.resolve(in);
-				} 
+				ClassPathResource configResource = new ClassPathResource(LEDGER_BIND_CONFIG_NAME);
+				if (configResource.exists()) {
+					try (InputStream in = configResource.getInputStream()) {
+						ledgerBindingConfig = LedgerBindingConfig.resolve(in);
+					}
+				}
 			} else {
-				ConsoleUtils.info("Load configuration,ledgerBindConfigFile position="+ledgerBindConfigFile);
+				ConsoleUtils.info("Load configuration,ledgerBindConfigFile position=" + ledgerBindConfigFile);
 				File file = new File(ledgerBindConfigFile);
-				ledgerBindingConfig = LedgerBindingConfig.resolve(file);
+				if (file.exists()) {
+					try {
+						ledgerBindingConfig = LedgerBindingConfig.resolve(file);
+					} catch (LedgerBindingConfigException e) {
+						ConsoleUtils.info("Load ledgerBindConfigFile content is empty !!!");
+					}
+				}
 			}
 			String host = null;
 			ArgumentSet.ArgEntry hostArg = arguments.getArg(HOST_ARG);
@@ -89,7 +99,6 @@ public class PeerServerBooter {
 			}
 
 			debug = arguments.hasOption(DEBUG_OPT);
-
 			PeerServerBooter booter = new PeerServerBooter(ledgerBindingConfig, host, port);
 			if(log.isDebugEnabled()){
 				log.debug("PeerServerBooter's urls="+ Arrays.toString(((URLClassLoader) booter.getClass().getClassLoader()).getURLs()));
@@ -131,8 +140,14 @@ public class PeerServerBooter {
 			return;
 		}
 		ConfigurableApplicationContext ctx = appContext;
+		closeServer();
 		appContext = null;
 		ctx.close();
+	}
+
+	public void closeServer() {
+		ConsensusManage consensusManage = appContext.getBean(ConsensusManage.class);
+		consensusManage.closeAllRealms();
 	}
 
 	/**
@@ -175,14 +190,16 @@ public class PeerServerBooter {
 		}
 		// 启动 web 服务；
 		ConfigurableApplicationContext ctx = app.run(args);
-
-		// 建立共识网络；
-		Map<String, LedgerBindingConfigAware> bindingConfigAwares = ctx.getBeansOfType(LedgerBindingConfigAware.class);
-		for (LedgerBindingConfigAware aware : bindingConfigAwares.values()) {
-			aware.setConfig(ledgerBindingConfig);
+		// 配置文件为空，则说明目前没有账本，不需要配置账本相关信息
+		if (ledgerBindingConfig != null) {
+			// 建立共识网络；
+			Map<String, LedgerBindingConfigAware> bindingConfigAwares = ctx.getBeansOfType(LedgerBindingConfigAware.class);
+			for (LedgerBindingConfigAware aware : bindingConfigAwares.values()) {
+				aware.setConfig(ledgerBindingConfig);
+			}
+			ConsensusManage consensusManage = ctx.getBean(ConsensusManage.class);
+			consensusManage.runAllRealms();
 		}
-		ConsensusManage consensusManage = ctx.getBean(ConsensusManage.class);
-		consensusManage.runAllRealms();
 
 		return ctx;
 	}

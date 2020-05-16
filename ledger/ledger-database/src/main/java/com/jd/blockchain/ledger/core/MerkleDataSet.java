@@ -5,17 +5,13 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.proof.HashSortingMerkleTree;
 import com.jd.blockchain.ledger.proof.HashSortingMerkleTree.MerkleDataIterator;
+import com.jd.blockchain.ledger.proof.HashSortingMerkleTree.DiffIterator;
 import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
 import com.jd.blockchain.storage.service.utils.VersioningKVData;
-import com.jd.blockchain.utils.ArrayUtils;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.DataIterator;
-import com.jd.blockchain.utils.Dataset;
-import com.jd.blockchain.utils.Transactional;
+import com.jd.blockchain.utils.*;
 
 /**
  * 对新的数据项按顺序递增进行编号的 Merkle 数据集； <br>
@@ -246,6 +242,20 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 		}
 		
 		return null;
+	}
+
+	//获得两个默克尔数据集之间的数据节点差异
+	public byte[][] getDiffMerkleKeys(int fromIndex, int count, MerkleDataSet origMerkleDataSet) {
+		byte[][] values = new byte[count][];
+		LongSkippingIterator<MerkleData> diffIterator = merkleTree.getKeyDiffIterator(origMerkleDataSet.merkleTree);
+		diffIterator.skip(fromIndex);
+		for (int i = 0; i < count && diffIterator.hasNext(); i++) {
+			MerkleData merkleData = diffIterator.next();
+			Bytes dataKey = encodeDataKey(merkleData.getKey());
+			values[i] = valueStorage.get(dataKey, merkleData.getVersion());
+		}
+
+		return values;
 	}
 
 //	/**
