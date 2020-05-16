@@ -14,6 +14,7 @@ import com.jd.blockchain.ledger.LedgerInfo;
 import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.PrivilegeSet;
 import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVData;
@@ -420,4 +421,9 @@ public class LedgerQueryService implements BlockchainQueryService {
 		return ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
 	}
 
+	@Override
+	public PrivilegeSet getRolePrivileges(HashDigest ledgerHash, String roleName) {
+		checkLedgerHash(ledgerHash);
+		return ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(roleName);
+	}
 }

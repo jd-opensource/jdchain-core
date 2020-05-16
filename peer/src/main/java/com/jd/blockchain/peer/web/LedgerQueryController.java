@@ -13,6 +13,7 @@ import com.jd.blockchain.ledger.LedgerInfo;
 import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.PrivilegeSet;
 import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVData;
@@ -520,7 +521,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		return contractAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
-	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/userrole/{userAddress}")
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/user-role/{userAddress}")
 	@Override
 	public RoleSet getUserRoles(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 								@PathVariable(name = "userAddress") String userAddress) {
@@ -528,6 +529,13 @@ public class LedgerQueryController implements BlockchainQueryService {
 		return ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
 	}
 
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/role-privilege/{roleName}")
+	@Override
+	public PrivilegeSet getRolePrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+										  @PathVariable(name = "roleName") String roleName) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		return ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(roleName);
+	}
 
 	private LedgerTransaction txDecorator(LedgerTransaction ledgerTransaction) {
 		if (ledgerTransaction == null) {

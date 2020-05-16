@@ -15,6 +15,7 @@ import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.PrivilegeSet;
 import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVEntry;
@@ -237,6 +238,11 @@ public class ContractLedgerContext implements LedgerContext {
 	@Override
 	public RoleSet getUserRoles(HashDigest ledgerHash, String userAddress){
 		return innerQueryService.getUserRoles(ledgerHash, userAddress);
+	}
+
+	@Override
+	public PrivilegeSet getRolePrivileges(HashDigest ledgerHash, String roleName) {
+		return innerQueryService.getRolePrivileges(ledgerHash, roleName);
 	}
 
 	// ========end=============
