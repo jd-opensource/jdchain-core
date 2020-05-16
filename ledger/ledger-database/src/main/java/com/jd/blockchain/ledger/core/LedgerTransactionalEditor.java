@@ -570,12 +570,16 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 				this.txset.add(tx);
 				this.txset.commit();
 			} catch (Exception e) {
+				//to reset currentTxCtx
+				this.rollback();
 				throw new TransactionRollbackException(e.getMessage(), e);
 			}
 
 			try {
 				this.storage.flush();
 			} catch (Exception e) {
+				//to reset currentTxCtx
+				this.rollback();
 				throw new BlockRollbackException(e.getMessage(), e);
 			}
 

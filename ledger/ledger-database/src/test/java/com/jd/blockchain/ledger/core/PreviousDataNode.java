@@ -8,15 +8,14 @@ import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.io.BytesUtils;
 import com.jd.blockchain.utils.io.NumberMask;
 
-
-
 /**
- * A copy of previous version of com.jd.blockchain.ledger.core.MerkleTree.DataNode;
+ * A copy of previous version of
+ * com.jd.blockchain.ledger.core.MerkleTree.DataNode;
  * 
  * @author huanghaiquan
  *
  */
-public class PreviousDataNode  {
+public class PreviousDataNode {
 
 	private HashDigest nodeHash;
 
@@ -146,7 +145,7 @@ public class PreviousDataNode  {
 
 		// byte[] keyBytes = BytesEncoding.read(NumberMask.SHORT, in);
 		// String key = BytesUtils.toString(keyBytes);
-		int keySize = NumberMask.SHORT.resolveMaskedNumber(bytes, offset);
+		int keySize = (int) NumberMask.SHORT.resolveMaskedNumber(bytes, offset);
 		offset += NumberMask.SHORT.getMaskLength(keySize);
 		byte[] keyBytes = new byte[keySize];
 		System.arraycopy(bytes, offset, keyBytes, 0, keySize);
@@ -159,7 +158,7 @@ public class PreviousDataNode  {
 		offset += 8;
 
 		// byte[] dataHashBytes = BytesEncoding.read(NumberMask.SHORT, in);
-		int hashSize = NumberMask.TINY.resolveMaskedNumber(bytes, offset);
+		int hashSize = (int) NumberMask.TINY.resolveMaskedNumber(bytes, offset);
 		offset += NumberMask.TINY.getMaskLength(hashSize);
 		byte[] dataHashBytes = new byte[hashSize];
 		System.arraycopy(bytes, offset, dataHashBytes, 0, hashSize);

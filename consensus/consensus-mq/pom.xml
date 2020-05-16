@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>com.jd.blockchain</groupId>
 		<artifactId>consensus-core</artifactId>
-		<version>1.2.0-SNAPSHOT</version>
+		<version>1.2.0.RELEASE</version>
 	</parent>
 	<artifactId>consensus-mq</artifactId>
 
@@ -21,7 +21,7 @@
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>consensus-framework</artifactId>
-			<version>${project.version}</version>
+			<version>${framework.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
@@ -31,7 +31,7 @@
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>ledger-model</artifactId>
-			<version>${project.version}</version>
+			<version>${framework.version}</version>
 		</dependency>
 
 		<dependency>

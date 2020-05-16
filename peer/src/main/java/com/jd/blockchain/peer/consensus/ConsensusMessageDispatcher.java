@@ -46,6 +46,11 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 
 	private final ReentrantLock beginLock = new ReentrantLock();
 
+	//Used by mocked integration test example
+	public void setTxEngine(TransactionEngine txEngine) {
+		this.txEngine = txEngine;
+	}
+
 	@Override
 	public String beginBatch(String realmName) {
 		RealmProcessor realmProcessor = realmProcessorMap.get(realmName);

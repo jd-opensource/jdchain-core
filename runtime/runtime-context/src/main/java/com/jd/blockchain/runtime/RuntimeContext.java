@@ -7,9 +7,10 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.jar.Attributes;
-import java.util.jar.JarFile;
 
+import com.jd.blockchain.contract.ContractEntrance;
+import com.jd.blockchain.contract.ContractProcessor;
+import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.utils.io.FileUtils;
 import com.jd.blockchain.utils.io.RuntimeIOException;
 
@@ -21,10 +22,11 @@ public abstract class RuntimeContext {
 		
 	}
 	
-
 	private static final Object mutex = new Object();
 
 	private static volatile RuntimeContext runtimeContext;
+
+	private static final ContractProcessor CONTRACT_PROCESSOR = OnLineContractProcessor.getInstance();
 
 	public static RuntimeContext get() {
 		if (runtimeContext == null) {
@@ -51,7 +53,19 @@ public abstract class RuntimeContext {
 
 	private File getDynamicModuleJarFile(String name) {
 		name = name + ".mdl";
-		return new File(getRuntimeDir(), name);
+		String parent = getRuntimeDir();
+		File parentDir = new File(parent);
+		synchronized (RuntimeContext.class) {
+			if (!parentDir.exists()) {
+				try {
+					org.apache.commons.io.FileUtils.forceMkdir(parentDir);
+				} catch (IOException e) {
+					throw new IllegalStateException(e);
+				}
+			}
+		}
+
+		return new File(parent, name);
 	}
 
 	public Module getDynamicModule(String name) {
@@ -77,31 +91,38 @@ public abstract class RuntimeContext {
 
 		// Save File to Disk;
 		File jarFile = getDynamicModuleJarFile(name);
-		if (jarFile.exists()) {
-			if (jarFile.isFile()) {
-				FileUtils.deleteFile(jarFile);
-			} else {
-				throw new IllegalStateException("Code storage conflict! --" + jarFile.getAbsolutePath());
+		synchronized (RuntimeContext.class) {
+			if (!jarFile.exists()) {
+				FileUtils.writeBytes(jarBytes, jarFile);
 			}
 		}
-		FileUtils.writeBytes(jarBytes, jarFile);
+//		if (jarFile.exists()) {
+//			if (jarFile.isFile()) {
+//				FileUtils.deleteFile(jarFile);
+//			} else {
+//				throw new IllegalStateException("Code storage conflict! --" + jarFile.getAbsolutePath());
+//			}
+//		}
+//		FileUtils.writeBytes(jarBytes, jarFile);
 
 		try {
 			URL jarURL = jarFile.toURI().toURL();
 			ClassLoader moduleClassLoader = createDynamicModuleClassLoader(jarURL);
-
-			Attributes m = new JarFile(jarFile).getManifest().getMainAttributes();
-			String contractMainClass = m.getValue(Attributes.Name.MAIN_CLASS);
+			ContractEntrance entrance = contractEntrance(jarFile);
+			String contractMainClass = entrance.getImpl();
 			module = new DefaultModule(name, moduleClassLoader, contractMainClass);
 			modules.put(name, module);
 
 			return module;
-		} catch (IOException e) {
+		} catch (Exception e) {
 			throw new IllegalStateException(e.getMessage(), e);
 		}
 	}
 
-	
+	private ContractEntrance contractEntrance(File jarFile) throws Exception {
+		return CONTRACT_PROCESSOR.analyse(jarFile);
+	}
+
 	public abstract Environment getEnvironment();
 	
 	protected abstract String getRuntimeDir();

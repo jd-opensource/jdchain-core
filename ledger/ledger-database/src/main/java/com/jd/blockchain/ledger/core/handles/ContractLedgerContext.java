@@ -1,8 +1,5 @@
 package com.jd.blockchain.ledger.core.handles;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.jd.blockchain.contract.LedgerContext;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
@@ -10,7 +7,6 @@ import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
 import com.jd.blockchain.ledger.DataAccountKVSetOperation;
 import com.jd.blockchain.ledger.DataAccountRegisterOperation;
-import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.KVInfoVO;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
 import com.jd.blockchain.ledger.LedgerBlock;
@@ -19,7 +15,9 @@ import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
 import com.jd.blockchain.ledger.UserRegisterOperation;
@@ -32,6 +30,9 @@ import com.jd.blockchain.transaction.KVData;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilder;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilderImpl;
 import com.jd.blockchain.utils.Bytes;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ContractLedgerContext implements LedgerContext {
 
@@ -231,6 +232,11 @@ public class ContractLedgerContext implements LedgerContext {
 	@Override
 	public DataAccountKVSetOperationBuilder dataAccount(Bytes accountAddress) {
 		return new DataAccountKVSetOperationExecBuilder(accountAddress);
+	}
+
+	@Override
+	public RoleSet getUserRoles(HashDigest ledgerHash, String userAddress){
+		return innerQueryService.getUserRoles(ledgerHash, userAddress);
 	}
 
 	// ========end=============

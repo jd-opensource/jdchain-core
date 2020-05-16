@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>com.jd.blockchain</groupId>
 		<artifactId>storage-core</artifactId>
-		<version>1.2.0-SNAPSHOT</version>
+		<version>1.2.0.RELEASE</version>
 	</parent>
 	<artifactId>storage-redis</artifactId>
 
@@ -12,12 +12,12 @@
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>storage-service</artifactId>
-			<version>${project.version}</version>
+			<version>${framework.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>utils-common</artifactId>
-			<version>${project.version}</version>
+			<version>${framework.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

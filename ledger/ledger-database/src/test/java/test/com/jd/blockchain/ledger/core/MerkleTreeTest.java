@@ -21,6 +21,7 @@ import com.jd.blockchain.ledger.MerkleDataNode;
 import com.jd.blockchain.ledger.MerkleNode;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.core.MerkleTree;
+import com.jd.blockchain.ledger.core.MerkleTree.DataNode;
 import com.jd.blockchain.storage.service.utils.ExistancePolicyKVStorageMap;
 import com.jd.blockchain.utils.Bytes;
 
@@ -44,7 +45,7 @@ public class MerkleTreeTest {
 		// 初始化，按照顺序的序列号加入10条记录；
 		int count = 18;
 		byte[] dataBuf = new byte[16];
-		MerkleDataNode[] dataNodes = new MerkleDataNode[count];
+		DataNode[] dataNodes = new DataNode[count];
 		for (int i = 0; i < count; i++) {
 			rand.nextBytes(dataBuf);
 			long sn = i;
@@ -70,7 +71,7 @@ public class MerkleTreeTest {
 
 		// 取每一个数据节点
 		for (int i = 0; i <= maxSN; i++) {
-			MerkleDataNode dataNode = mkt.getData(i);
+			DataNode dataNode = mkt.getData(i);
 			assertEquals(i, dataNode.getSN());
 			assertEquals(dataNodes[i].getNodeHash(), dataNode.getNodeHash());
 			assertEquals(dataNodes[i].getKey(), dataNode.getKey());
@@ -399,7 +400,7 @@ public class MerkleTreeTest {
 		for (Long n : dataNodes.keySet()) {
 			proof = mkt.getProof(n.longValue());
 			assertNotNull(proof);
-			assertEquals(dataNodes.get(n), proof.getHash(0));
+			assertEquals(dataNodes.get(n), proof.getDataHash());
 		}
 	}
 
@@ -481,7 +482,7 @@ public class MerkleTreeTest {
 			proof = mkt.getProof(n.longValue());
 			assertNotNull(proof);
 			HashDigest expHash = dataNodes.get(n);
-			assertEquals(expHash.toBase58(), proof.getHash(0).toBase58());
+			assertEquals(expHash.toBase58(), proof.getDataHash().toBase58());
 		}
 
 	}
@@ -628,7 +629,7 @@ public class MerkleTreeTest {
 					
 					proof = r1_mkt.getProof(n);
 					assertNotNull(proof);
-					assertEquals(expectedNodeHash, proof.getHash(0));
+					assertEquals(expectedNodeHash, proof.getDataHash());
 				}
 			}
 		}
@@ -689,7 +690,7 @@ public class MerkleTreeTest {
 			for (Long n : expectedDataNodes.keySet()) {
 				proof = mkt.getProof(n.longValue());
 				assertNotNull(proof);
-				assertEquals(expectedDataNodes.get(n), proof.getHash(0));
+				assertEquals(expectedDataNodes.get(n), proof.getDataHash());
 			}
 		}
 
@@ -759,7 +760,7 @@ public class MerkleTreeTest {
 			for (Long n : expectedDataNodes.keySet()) {
 				proof = r3_mkt.getProof(n.longValue());
 				assertNotNull(proof);
-				assertEquals(expectedDataNodes.get(n), proof.getHash(0));
+				assertEquals(expectedDataNodes.get(n), proof.getDataHash());
 			}
 		}
 	}

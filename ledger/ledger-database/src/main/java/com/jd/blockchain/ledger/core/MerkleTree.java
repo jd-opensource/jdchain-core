@@ -1,7 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -14,8 +13,8 @@ import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.RecursiveTask;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.Crypto;
+import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.CryptoSetting;
@@ -25,6 +24,7 @@ import com.jd.blockchain.ledger.MerkleNode;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage.ExPolicy;
+import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.Transactional;
 import com.jd.blockchain.utils.codec.Base58Utils;
@@ -220,7 +220,10 @@ public class MerkleTree implements Transactional {
 				nodePath[i] = p;
 			}
 		}
-		return new MerkleProofImpl(sn, nodePath);
+		HashDigest[] hashPaths = ArrayUtils.cast(nodePath, HashDigest.class, p -> p.getNodeHash());
+		HashArrayProof hashProof = new HashArrayProof(hashPaths);
+		return hashProof;
+//		return new MerkleProofImpl(sn, nodePath);
 	}
 
 	/**
@@ -240,7 +243,7 @@ public class MerkleTree implements Transactional {
 	 * @param hashedData 要参与哈希计算的数据内容；注：此参数值并不会被默克尔树保存；
 	 * @return
 	 */
-	public MerkleDataNode setData(long sn, String key, long version, byte[] hashedData) {
+	public DataNode setData(long sn, String key, long version, byte[] hashedData) {
 		return setData(sn, Bytes.fromString(key), version, hashedData);
 	}
 
@@ -261,7 +264,7 @@ public class MerkleTree implements Transactional {
 	 * @param hashedData 要参与哈希计算的数据内容；注：此参数值并不会被默克尔树保存；
 	 * @return
 	 */
-	public MerkleDataNode setData(long sn, Bytes key, long version, byte[] hashedData) {
+	public DataNode setData(long sn, Bytes key, long version, byte[] hashedData) {
 		if (readonly) {
 			throw new IllegalStateException("This merkle tree is readonly!");
 		}
@@ -277,7 +280,7 @@ public class MerkleTree implements Transactional {
 		return dataNode;
 	}
 
-	public MerkleDataNode getData(long sn) {
+	public DataNode getData(long sn) {
 		DataNode dataNode = updatedDataNodes.get(sn);
 		if (dataNode != null) {
 			return dataNode;
@@ -724,7 +727,7 @@ public class MerkleTree implements Transactional {
 	 * @return 序列号对应的数据节点；<br>
 	 *         如果不存在，则返回 null，注意，此时指定的路径参数 path 依然写入了查找过程的路径；
 	 */
-	private MerkleDataNode seekPath(long sn, MerkleNode[] path) {
+	private DataNode seekPath(long sn, MerkleNode[] path) {
 		/*
 		 * 如果指定的序号超出当前根节点的范围，需要向上扩展根节点；
 		 * 
@@ -787,7 +790,7 @@ public class MerkleTree implements Transactional {
 		if (path != null) {
 			path[path.length - leafPathNode.children[index].getLevel() - 1] = leafPathNode.children[index];
 		}
-		return (MerkleDataNode) leafPathNode.children[index];
+		return (DataNode) leafPathNode.children[index];
 	}
 
 	private Bytes encodeNodeKey(HashDigest hashBytes) {
@@ -861,117 +864,146 @@ public class MerkleTree implements Transactional {
 
 	// =================================================
 
-	/**
-	 * 数据证明；
-	 * 
-	 * <p>
-	 * 数据证明是由从 Merkle Tree 的根节点出发到目标数据节点的经过的全部节点构成的一条路径；
-	 * <p>
-	 * 
-	 * @author huanghaiquan
-	 *
-	 */
-	private static class MerkleProofImpl implements MerkleProof {
-
-		/**
-		 * 从根节点到数据节点的路径；<br>
-		 * 路径的首个元素是根节点，最后一个原始是数据节点；
-		 */
-		private MerkleNode[] path;
-
-		private long sn;
-
-		private MerkleProofImpl(long sn, MerkleNode[] path) {
-			this.sn = sn;
-			this.path = path;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see com.jd.blockchain.ledger.MerkleProof#getSN()
-		 */
-		@Override
-		public long getSN() {
-			return sn;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see com.jd.blockchain.ledger.MerkleProof#getLevel()
-		 */
-		@Override
-		public int getLevels() {
-			return path[0].getLevel();
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see com.jd.blockchain.ledger.MerkleProof#getHash(int)
-		 */
-		@Override
-		public HashDigest getHash(int level) {
-			return path[path.length - 1 - level].getNodeHash();
-		}
-
-		@Override
-		public MerkleNode getNode(int level) {
-			return path[path.length - 1 - level];
-		}
-
-		// @Override
-		// public long getStartingSN(int level) {
-		// return path[path.length - 1 - level].startingSN;
-		// }
-		//
-		// @Override
-		// public long getDataCount(int level) {
-		// return path[path.length - 1 - level].dataCount;
-		// }
-
-		@Override
-		public String toString() {
-			StringBuilder strPath = new StringBuilder(NODE_PREFIX);
-			for (int i = 0; i < path.length; i++) {
-				if (i > 0) {
-					strPath.append(PATH_SEPERATOR);
-				}
-				strPath.append(path[i].getNodeHash().toBase58());
-			}
-			return strPath.toString();
-		}
-
-		@Override
-		public int hashCode() {
-			return Arrays.hashCode(path);
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if (obj == null) {
-				return false;
-			}
-			if (obj == this) {
-				return true;
-			}
-			if (obj instanceof MerkleProofImpl) {
-				MerkleProofImpl proof1 = (MerkleProofImpl) obj;
-				if (path.length != proof1.path.length) {
-					return false;
-				}
-				for (int i = 0; i < path.length; i++) {
-					if (!path[i].equals(proof1.path[i])) {
-						return false;
-					}
-				}
-				return true;
-			}
-			return false;
-		}
-
-	}
+//	/**
+//	 * 数据证明；
+//	 * 
+//	 * <p>
+//	 * 数据证明是由从 Merkle Tree 的根节点出发到目标数据节点的经过的全部节点构成的一条路径；
+//	 * <p>
+//	 * 
+//	 * @author huanghaiquan
+//	 *
+//	 */
+//	private static class MerkleProofImpl implements MerkleProof {
+//
+//		/**
+//		 * 从根节点到数据节点的路径；<br>
+//		 * 路径的首个元素是根节点，最后一个原始是数据节点；
+//		 */
+//		private MerkleNode[] path;
+//
+//		private long sn;
+//
+//		private MerkleProofImpl(long sn, MerkleNode[] path) {
+//			this.sn = sn;
+//			this.path = path;
+//		}
+//
+//		/*
+//		 * (non-Javadoc)
+//		 * 
+//		 * @see com.jd.blockchain.ledger.MerkleProof#getSN()
+//		 */
+//		public long getSN() {
+//			return sn;
+//		}
+//
+////		/*
+////		 * (non-Javadoc)
+////		 * 
+////		 * @see com.jd.blockchain.ledger.MerkleProof#getLevel()
+////		 */
+////		@Override
+////		public int getLevels() {
+////			return path[0].getLevel();
+////		}
+//
+////		/*
+////		 * (non-Javadoc)
+////		 * 
+////		 * @see com.jd.blockchain.ledger.MerkleProof#getHash(int)
+////		 */
+////		@Override
+////		public HashDigest getHash(int level) {
+////			return path[path.length - 1 - level].getNodeHash();
+////		}
+//
+//		@Override
+//		public MerkleNode getNode(int level) {
+//			return path[path.length - 1 - level];
+//		}
+//
+//		// @Override
+//		// public long getStartingSN(int level) {
+//		// return path[path.length - 1 - level].startingSN;
+//		// }
+//		//
+//		// @Override
+//		// public long getDataCount(int level) {
+//		// return path[path.length - 1 - level].dataCount;
+//		// }
+//
+////		@Override
+////		public String toString() {
+////			StringBuilder strPath = new StringBuilder(NODE_PREFIX);
+////			for (int i = 0; i < path.length; i++) {
+////				if (i > 0) {
+////					strPath.append(PATH_SEPERATOR);
+////				}
+////				strPath.append(path[i].getNodeHash().toBase58());
+////			}
+////			return strPath.toString();
+////		}
+//
+//		@Override
+//		public int hashCode() {
+//			return Arrays.hashCode(path);
+//		}
+//
+//		@Override
+//		public boolean equals(Object obj) {
+//			if (obj == null) {
+//				return false;
+//			}
+//			if (obj == this) {
+//				return true;
+//			}
+//			if (obj instanceof MerkleProofImpl) {
+//				MerkleProofImpl proof1 = (MerkleProofImpl) obj;
+//				if (path.length != proof1.path.length) {
+//					return false;
+//				}
+//				for (int i = 0; i < path.length; i++) {
+//					if (!path[i].equals(proof1.path[i])) {
+//						return false;
+//					}
+//				}
+//				return true;
+//			}
+//			return false;
+//		}
+//
+//		@Override
+//		public HashDigest getRootHash() {
+//			// TODO Auto-generated method stub
+//			return null;
+//		}
+//
+//		@Override
+//		public HashDigest getDataHash() {
+//			// TODO Auto-generated method stub
+//			return null;
+//		}
+//
+//		@Override
+//		public HashDigest[] getHashPaths() {
+//			// TODO Auto-generated method stub
+//			return null;
+//		}
+//
+//		@Override
+//		public boolean equals(HashProof obj) {
+//			// TODO Auto-generated method stub
+//			return false;
+//		}
+//
+//		@Override
+//		public Iterator<HashDigest> iterator() {
+//			// TODO Auto-generated method stub
+//			return null;
+//		}
+//
+//	}
 
 	private static class ProofNodeEntry implements MerkleNode {
 
@@ -1336,7 +1368,7 @@ public class MerkleTree implements Transactional {
 			HashDigest[] childrenHashes = new HashDigest[TREE_DEGREE];
 			byte[] h;
 			for (int i = 0; i < TREE_DEGREE; i++) {
-				int hashSize = NumberMask.TINY.resolveMaskedNumber(bytes, offset);
+				int hashSize = (int) NumberMask.TINY.resolveMaskedNumber(bytes, offset);
 				offset += NumberMask.TINY.getMaskLength(hashSize);
 
 				if (hashSize == 0) {
@@ -1348,7 +1380,7 @@ public class MerkleTree implements Transactional {
 				childrenHashes[i] = new HashDigest(h);
 			}
 
-			int hashSize = NumberMask.TINY.resolveMaskedNumber(bytes, offset);
+			int hashSize = (int) NumberMask.TINY.resolveMaskedNumber(bytes, offset);
 			offset += NumberMask.TINY.getMaskLength(hashSize);
 
 			byte[] nodeHashBytes = new byte[hashSize];
@@ -1406,7 +1438,7 @@ public class MerkleTree implements Transactional {
 	 * @author huanghaiquan
 	 *
 	 */
-	static class DataNode extends AbstractMerkleNode implements MerkleDataNode {
+	public static class DataNode extends AbstractMerkleNode implements MerkleDataNode {
 
 		private long sn;
 
@@ -1452,7 +1484,7 @@ public class MerkleTree implements Transactional {
 		 * 
 		 * @see com.jd.blockchain.ledger.core.MerkleDataNode#getSN()
 		 */
-		@Override
+//		@Override
 		public long getSN() {
 			return sn;
 		}

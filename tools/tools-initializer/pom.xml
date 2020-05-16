@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>com.jd.blockchain</groupId>
 		<artifactId>tools-core</artifactId>
-		<version>1.2.0-SNAPSHOT</version>
+		<version>1.2.0.RELEASE</version>
 	</parent>
 	<artifactId>tools-initializer</artifactId>
 
@@ -13,33 +13,33 @@
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>binary-proto</artifactId>
-			<version>${project.version}</version>
+			<version>${framework.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>crypto-framework</artifactId>
-			<version>${project.version}</version>
+			<version>${framework.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>crypto-classic</artifactId>
-			<version>${project.version}</version>
+			<version>${framework.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>crypto-sm</artifactId>
-			<version>${project.version}</version>
+			<version>${framework.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>ledger-database</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		<dependency>
+		<!-- <dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>consensus-framework</artifactId>
 			<version>${project.version}</version>
-		</dependency>
+		</dependency> -->
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>consensus-bftsmart</artifactId>
@@ -67,7 +67,7 @@
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>utils-http</artifactId>
-			<version>${project.version}</version>
+			<version>${framework.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

@@ -55,7 +55,7 @@ class MerkleDataNodeEncoder_V0 implements MerkleDataNodeEncoder {
 
 		// byte[] keyBytes = BytesEncoding.read(NumberMask.SHORT, in);
 		// String key = BytesUtils.toString(keyBytes);
-		int keySize = NumberMask.SHORT.resolveMaskedNumber(bytes, offset);
+		int keySize = (int) NumberMask.SHORT.resolveMaskedNumber(bytes, offset);
 		offset += NumberMask.SHORT.getMaskLength(keySize);
 		byte[] keyBytes = new byte[keySize];
 		System.arraycopy(bytes, offset, keyBytes, 0, keySize);
@@ -68,7 +68,7 @@ class MerkleDataNodeEncoder_V0 implements MerkleDataNodeEncoder {
 		offset += 8;
 
 		// byte[] dataHashBytes = BytesEncoding.read(NumberMask.SHORT, in);
-		int hashSize = NumberMask.TINY.resolveMaskedNumber(bytes, offset);
+		int hashSize = (int) NumberMask.TINY.resolveMaskedNumber(bytes, offset);
 		offset += NumberMask.TINY.getMaskLength(hashSize);
 		byte[] nodeHashBytes = new byte[hashSize];
 		System.arraycopy(bytes, offset, nodeHashBytes, 0, hashSize);

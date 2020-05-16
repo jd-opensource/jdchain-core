@@ -5,7 +5,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.crypto.CryptoAlgorithm;
+import com.jd.blockchain.crypto.CryptoProvider;
+import com.jd.blockchain.ledger.core.TransactionSetQuery;
+import com.jd.blockchain.ledger.json.CryptoConfigInfo;
+import com.jd.blockchain.ledger.proof.MerkleData;
+import com.jd.blockchain.ledger.proof.MerkleLeaf;
+import com.jd.blockchain.ledger.proof.MerklePath;
+import com.jd.blockchain.peer.consensus.LedgerStateManager;
+import com.jd.blockchain.utils.ConsoleUtils;
+import com.jd.blockchain.utils.net.NetworkAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +41,33 @@ import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.ServerSettings;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.ledger.ContractCodeDeployOperation;
+import com.jd.blockchain.ledger.ContractEventSendOperation;
+import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.DataAccountKVSetOperation;
+import com.jd.blockchain.ledger.DataAccountRegisterOperation;
+import com.jd.blockchain.ledger.EndpointRequest;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
-import com.jd.blockchain.ledger.core.LedgerAdminDataQuery;
+import com.jd.blockchain.ledger.LedgerBlock;
+import com.jd.blockchain.ledger.LedgerInitOperation;
+import com.jd.blockchain.ledger.LedgerMetadata_V2;
+import com.jd.blockchain.ledger.LedgerSettings;
+import com.jd.blockchain.ledger.NodeRequest;
+import com.jd.blockchain.ledger.Operation;
+import com.jd.blockchain.ledger.ParticipantRegisterOperation;
+import com.jd.blockchain.ledger.ParticipantStateUpdateOperation;
+import com.jd.blockchain.ledger.PrivilegeSet;
+import com.jd.blockchain.ledger.RoleInitSettings;
+import com.jd.blockchain.ledger.RoleSet;
+import com.jd.blockchain.ledger.RolesConfigureOperation;
+import com.jd.blockchain.ledger.SecurityInitSettings;
+import com.jd.blockchain.ledger.TransactionContent;
+import com.jd.blockchain.ledger.TransactionContentBody;
+import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.TransactionResponse;
+import com.jd.blockchain.ledger.UserAuthInitSettings;
+import com.jd.blockchain.ledger.UserAuthorizeOperation;
+import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.core.LedgerManage;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.peer.ConsensusRealm;
@@ -44,6 +78,7 @@ import com.jd.blockchain.setting.LedgerIncomingSetting;
 import com.jd.blockchain.storage.service.DbConnection;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
+import com.jd.blockchain.tools.initializer.LedgerBindingConfig.BindingConfig;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.io.ByteArray;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
@@ -125,6 +160,18 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		DataContractRegistry.register(RoleInitSettings.class);
 		DataContractRegistry.register(UserAuthInitSettings.class);
 		DataContractRegistry.register(LedgerMetadata_V2.class);
+
+		// 注册默克尔树相关接口
+		DataContractRegistry.register(MerkleData.class);
+		DataContractRegistry.register(MerkleLeaf.class);
+		DataContractRegistry.register(MerklePath.class);
+
+		// 注册加解密相关接口
+		DataContractRegistry.register(CryptoSetting.class);
+		DataContractRegistry.register(CryptoProvider.class);
+		DataContractRegistry.register(CryptoAlgorithm.class);
+		//TransactionSetQuery;
+		DataContractRegistry.register(TransactionSetQuery.class);
 	}
 
 	/**
@@ -167,7 +214,24 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     continue;
                 }
                 try {
-                    clientIncomingSettings = peer.getManageService().authClientIncoming(authId);
+                    clientIncomingSettings = peer.getConsensusManageService().authClientIncoming(authId);
+
+					//add for test the gateway connect to peer0; 20200514;
+					ConsensusSettings consensusSettings = clientIncomingSettings.getConsensusSettings();
+					if (consensusSettings instanceof BftsmartConsensusSettings) {
+						BftsmartConsensusSettings settings = (BftsmartConsensusSettings) consensusSettings;
+						NodeSettings[] nodeSettings = settings.getNodes();
+						if (nodeSettings != null) {
+							for (NodeSettings ns : nodeSettings) {
+								if (ns instanceof BftsmartNodeSettings) {
+									BftsmartNodeSettings bftNs = (BftsmartNodeSettings) ns;
+									NetworkAddress address = bftNs.getNetworkAddress();
+									ConsoleUtils.info("PartiNode id = %s, host = %s, port = %s \r\n", bftNs.getId(), address.getHost(), address.getPort());
+								}
+							}
+						}
+					}
+
                     break;
                 } catch (Exception e) {
                     throw new AuthenticationServiceException(e.getMessage(), e);
@@ -183,7 +247,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			LedgerIncomingSetting ledgerIncomingSetting = new LedgerIncomingSetting();
 			ledgerIncomingSetting.setLedgerHash(ledgerHash);
-			ledgerIncomingSetting.setCryptoSetting(ledgerCryptoSettings.get(ledgerHash));
+
+			// 使用非代理对象，防止JSON序列化异常
+			ledgerIncomingSetting.setCryptoSetting(new CryptoConfigInfo(ledgerCryptoSettings.get(ledgerHash)));
 			ledgerIncomingSetting.setClientSetting(base64ClientIncomingSettings);
 			ledgerIncomingSetting.setProviderName(peerProviderName);
 
@@ -208,7 +274,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			}
 			HashDigest[] ledgerHashs = config.getLedgerHashs();
 			for (HashDigest ledgerHash : ledgerHashs) {
-				setConfig(config,ledgerHash);
+				setConfig(config.getLedger(ledgerHash),ledgerHash);
 			}
 
 			this.config = config;
@@ -220,8 +286,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	}
 
 	@Override
-	public NodeServer setConfig(LedgerBindingConfig config, HashDigest ledgerHash) {
-		LedgerBindingConfig.BindingConfig bindingConfig = config.getLedger(ledgerHash);
+	public NodeServer setConfig(BindingConfig bindingConfig, HashDigest ledgerHash) {
+//		LedgerBindingConfig.BindingConfig bindingConfig = config.getLedger(ledgerHash);
 		DbConnection dbConnNew = connFactory.connect(bindingConfig.getDbConnection().getUri(),
 				bindingConfig.getDbConnection().getPassword());
 		LedgerQuery ledgerRepository = ledgerManager.register(ledgerHash, dbConnNew.getStorageService());
@@ -246,6 +312,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 							+ "]!");
 		}
 		ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(ledgerHash.toBase58(), csSettings, currentNode.getAddress());
+
+		((LedgerStateManager)consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
 
 		NodeServer server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
 				consensusStateManager);

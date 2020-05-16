@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>com.jd.blockchain</groupId>
 		<artifactId>contract-core</artifactId>
-		<version>1.2.0-SNAPSHOT</version>
+		<version>1.2.0.RELEASE</version>
 	</parent>
 	<artifactId>contract-jvm</artifactId>
 
@@ -13,7 +13,7 @@
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>contract-framework</artifactId>
-			<version>${project.version}</version>
+			<version>${framework.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>

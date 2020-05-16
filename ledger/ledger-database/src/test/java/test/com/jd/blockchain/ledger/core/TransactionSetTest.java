@@ -9,29 +9,47 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Random;
 
-import com.jd.blockchain.ledger.*;
 import org.junit.Test;
 
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.ledger.BlockchainKeyGenerator;
+import com.jd.blockchain.ledger.BlockchainKeypair;
+import com.jd.blockchain.ledger.BytesDataList;
+import com.jd.blockchain.ledger.BytesValueList;
+import com.jd.blockchain.ledger.ContractCodeDeployOperation;
+import com.jd.blockchain.ledger.ContractEventSendOperation;
+import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.DataAccountKVSetOperation;
 import com.jd.blockchain.ledger.DataAccountKVSetOperation.KVWriteEntry;
+import com.jd.blockchain.ledger.DataAccountRegisterOperation;
+import com.jd.blockchain.ledger.DigitalSignature;
+import com.jd.blockchain.ledger.LedgerTransaction;
+import com.jd.blockchain.ledger.Operation;
+import com.jd.blockchain.ledger.ParticipantRegisterOperation;
+import com.jd.blockchain.ledger.ParticipantStateUpdateOperation;
+import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.TransactionRequestBuilder;
+import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.core.LedgerTransactionData;
 import com.jd.blockchain.ledger.core.TransactionQuery;
 import com.jd.blockchain.ledger.core.TransactionSet;
 import com.jd.blockchain.ledger.core.TransactionStagedSnapshot;
+import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.transaction.TxBuilder;
+import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.BytesUtils;
 
 public class TransactionSetTest {
 
-	private static final String keyPrefix = "";
+	private static final String keyPrefix = "LDG://3A3dP4";
 
 	private Random rand = new Random();
 
-	@Test
-	public void test() {
+	static {
 		DataContractRegistry.register(UserRegisterOperation.class);
 		DataContractRegistry.register(DataAccountRegisterOperation.class);
 		DataContractRegistry.register(DataAccountKVSetOperation.class);
@@ -39,13 +57,18 @@ public class TransactionSetTest {
 		DataContractRegistry.register(ContractEventSendOperation.class);
 		DataContractRegistry.register(ParticipantRegisterOperation.class);
 		DataContractRegistry.register(ParticipantStateUpdateOperation.class);
+	}
+
+	@Test
+	public void test() {
+
 		CryptoSetting defCryptoSetting = LedgerTestUtils.createDefaultCryptoSetting();
 
 		MemoryKVStorage testStorage = new MemoryKVStorage();
 
 		// Create a new TransactionSet, it's empty;
 		TransactionSet txset = new TransactionSet(defCryptoSetting, keyPrefix, testStorage, testStorage);
-		assertFalse(txset.isUpdated());
+		assertTrue(txset.isUpdated());
 		assertFalse(txset.isReadonly());
 		assertNull(txset.getRootHash());
 
@@ -111,7 +134,9 @@ public class TransactionSetTest {
 
 		HashDigest txCtnHash = txReq.getTransactionContent().getHash();
 		LedgerTransaction reloadTx = reloadTxset.get(txCtnHash);
+		TransactionState state = reloadTxset.getState(txCtnHash);
 		assertNotNull(reloadTx);
+		assertEquals(0, state.CODE);
 
 		assertEquals(tx.getHash(), reloadTx.getHash());
 		assertEquals(tx.getBlockHeight(), reloadTx.getBlockHeight());
@@ -181,10 +206,75 @@ public class TransactionSetTest {
 		byte[] expectedBytes = BinaryProtocol.encode(contractEvtSendOP.getArgs(), BytesValueList.class);
 		byte[] actualBytes = BinaryProtocol.encode(actualContractEvtSendOp.getArgs(), BytesValueList.class);
 		assertArrayEquals(expectedBytes, actualBytes);
-		
+
 		expectedBytes = BinaryProtocol.encode(BytesDataList.singleText("TestContractArgs"), BytesValueList.class);
 		actualBytes = BinaryProtocol.encode(actualContractEvtSendOp.getArgs(), BytesValueList.class);
 		assertArrayEquals(expectedBytes, actualBytes);
 	}
+
+	/**
+	 * 利用一个随机出现的错误中采用的特殊值来验证正确性；
+	 */
+	@Test
+	public void testSpecialCase_1() {
+		CryptoSetting defCryptoSetting = LedgerTestUtils.createDefaultCryptoSetting();
+
+		MemoryKVStorage testStorage = new MemoryKVStorage();
+
+		BufferedKVStorage bufferStorage = new BufferedKVStorage(testStorage, testStorage, false);
+
+		// Create a new TransactionSet, it's empty;
+		TransactionSet txset = new TransactionSet(defCryptoSetting, keyPrefix, bufferStorage, bufferStorage);
+		assertTrue(txset.isUpdated());
+		assertFalse(txset.isReadonly());
+		assertNull(txset.getRootHash());
+
+		HashDigest ledgerHash = new HashDigest(Base58Utils.decode("j5iF5xJ7KN4kjRrhD3EUKVSPmHz2bExxp3h9avqxcnnzch"));
+		assertEquals("j5iF5xJ7KN4kjRrhD3EUKVSPmHz2bExxp3h9avqxcnnzch", ledgerHash.toBase58());
+
+		BlockchainKeypair parti0 = LedgerTestUtils.createKeyPair("7VeRLBwqTAz8oRazEazeaEfqei46sk2FzvBgyHMUBJvrUEGT",
+				"7VeRUm27GbrsX9HbQSZguChLp24HZYub6s5FJ7FjBht8BmbA");
+
+		BlockchainKeypair userKeypair1 = LedgerTestUtils.createKeyPair(
+				"7VeRKf3GFLFcBfzvtzmtyMXEoX2HYGEJ4j7CmHcnRV99W5Dp", "7VeRYQjeAaQY5Po8MMtmGNHA2SniqLXmJaZwBS5K8zTtMAU1");
+		TransactionRequest transactionRequest1 = LedgerTestUtils.createTxRequest_UserReg(userKeypair1, ledgerHash, 1580315317127L,
+				parti0, parti0);
+//		TransactionRequest transactionRequest1 = LedgerTestUtils.createTxRequest_UserReg(userKeypair1, ledgerHash, 202001202020L,
+//				parti0, parti0);
+		System.out.printf("\r\n ===||=== transactionRequest1.getTransactionContent().getHash()=[%s]\r\n",
+				transactionRequest1.getTransactionContent().getHash().toBase58());
+//		assertEquals("j5sXmpcomtM2QMUNWeQWsF8bNFFnyeXoCjVAekEeLSscgY", transactionRequest1.getTransactionContent().getHash().toBase58());
+		assertEquals("j5wPGKT5CUzwi8j6VfCWaP2p9YZ6WVWtMANp9HbHWzvhgG", transactionRequest1.getTransactionContent().getHash().toBase58());
+
+		TransactionStagedSnapshot txSnapshot = new TransactionStagedSnapshot();
+		txSnapshot.setAdminAccountHash(
+				new HashDigest(Base58Utils.decode("j5taeK6cpmJGcn8QbEYCqadna6s7NDSheDTK6NJdU4mFhh")));
+		txSnapshot.setUserAccountSetHash(
+				new HashDigest(Base58Utils.decode("j5oQDSob92mCoGSHtrXa9soqgAtMyjwfRMt2kj7igXXJrP")));
+
+		LedgerTransaction tx = new LedgerTransactionData(1, transactionRequest1, TransactionState.SUCCESS, txSnapshot);
+		txset.add(tx);
+
+		LedgerTransaction tx_query = txset.get(transactionRequest1.getTransactionContent().getHash());
+		assertNotNull(tx_query);
+
+		txset.commit();
+		bufferStorage.commit();
+
+		tx_query = txset.get(transactionRequest1.getTransactionContent().getHash());
+		TransactionState tx_state = txset.getState(transactionRequest1.getTransactionContent().getHash());
+		assertNotNull(tx_query);
+		assertEquals(0, tx_state.CODE);
+
+		HashDigest txsetRootHash = txset.getRootHash();
+
+		txset = new TransactionSet(txsetRootHash, defCryptoSetting, keyPrefix, testStorage, testStorage, false);
+		tx_query = txset.get(transactionRequest1.getTransactionContent().getHash());
+		tx_state = txset.getState(transactionRequest1.getTransactionContent().getHash());
+
+		assertNotNull(tx_query);
+		assertEquals(0, tx_state.CODE);
+	}
+
 
 }

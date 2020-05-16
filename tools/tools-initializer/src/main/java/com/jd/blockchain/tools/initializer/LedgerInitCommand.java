@@ -2,6 +2,8 @@ package com.jd.blockchain.tools.initializer;
 
 import java.io.File;
 
+import com.jd.blockchain.utils.ConsoleUtils;
+import com.jd.blockchain.utils.StringUtils;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -24,6 +26,7 @@ import com.jd.blockchain.utils.ArgumentSet.ArgEntry;
 import com.jd.blockchain.utils.ArgumentSet.Setting;
 import com.jd.blockchain.utils.io.FileUtils;
 import com.jd.blockchain.utils.net.NetworkAddress;
+import org.springframework.util.NumberUtils;
 
 /**
  * 账本初始化器；
@@ -204,6 +207,21 @@ public class LedgerInitCommand {
 
 		// start the web controller of Ledger Initializer;
 		NetworkAddress serverAddress = ledgerInitProperties.getConsensusParticipant(currId).getInitializerAddress();
+
+		//for dockers binding the 0.0.0.0;
+		//if ledger-init.sh set up the -DhostPort=xxx -DhostIp=xxx, then get it;
+		String preHostPort = System.getProperty("hostPort");
+		if(!StringUtils.isEmpty(preHostPort)){
+			int port = NumberUtils.parseNumber(preHostPort, Integer.class);
+			serverAddress.setPort(port);
+			ConsoleUtils.info("###ledger-init.sh###,set up the -DhostPort="+port);
+		}
+		String preHostIp = System.getProperty("hostIp");
+		if(!StringUtils.isEmpty(preHostIp)){
+			serverAddress.setHost(preHostIp);
+			ConsoleUtils.info("###ledger-init.sh###,set up the -DhostIp="+preHostIp);
+		}
+
 		String argServerAddress = String.format("--server.address=%s", serverAddress.getHost());
 		String argServerPort = String.format("--server.port=%s", serverAddress.getPort());
 		String[] innerArgs = { argServerAddress, argServerPort };

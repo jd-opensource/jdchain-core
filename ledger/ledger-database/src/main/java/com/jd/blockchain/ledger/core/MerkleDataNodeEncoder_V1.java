@@ -65,7 +65,7 @@ class MerkleDataNodeEncoder_V1 implements MerkleDataNodeEncoder {
 		// resolve key of data;
 		// First, resolve the number mask of the key size;
 		// Second, read the key bytes;
-		int keySize = NumberMask.SHORT.resolveMaskedNumber(bytes, offset);
+		int keySize = (int) NumberMask.SHORT.resolveMaskedNumber(bytes, offset);
 		offset += NumberMask.SHORT.getMaskLength(keySize);
 		byte[] keyBytes = new byte[keySize];
 		System.arraycopy(bytes, offset, keyBytes, 0, keySize);
@@ -77,7 +77,7 @@ class MerkleDataNodeEncoder_V1 implements MerkleDataNodeEncoder {
 		offset += 8;
 
 		// resovle data hash;
-		int dataHashSize = NumberMask.TINY.resolveMaskedNumber(bytes, offset);
+		int dataHashSize = (int) NumberMask.TINY.resolveMaskedNumber(bytes, offset);
 		offset += NumberMask.TINY.getMaskLength(dataHashSize);
 		byte[] dataHashBytes = new byte[dataHashSize];
 		System.arraycopy(bytes, offset, dataHashBytes, 0, dataHashSize);
@@ -85,7 +85,7 @@ class MerkleDataNodeEncoder_V1 implements MerkleDataNodeEncoder {
 		HashDigest dataHash = new HashDigest(dataHashBytes);
 
 		// resovle node hash;
-		int nodeHashSize = NumberMask.TINY.resolveMaskedNumber(bytes, offset);
+		int nodeHashSize = (int) NumberMask.TINY.resolveMaskedNumber(bytes, offset);
 		offset += NumberMask.TINY.getMaskLength(nodeHashSize);
 		byte[] nodeHashBytes = new byte[nodeHashSize];
 		System.arraycopy(bytes, offset, nodeHashBytes, 0, nodeHashSize);

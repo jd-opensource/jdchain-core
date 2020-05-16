@@ -2,21 +2,16 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.CryptoSetting;
-import com.jd.blockchain.ledger.LedgerException;
-import com.jd.blockchain.ledger.MerkleDataNode;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.proof.HashSortingMerkleTree;
+import com.jd.blockchain.ledger.proof.HashSortingMerkleTree.MerkleDataIterator;
+import com.jd.blockchain.ledger.proof.HashSortingMerkleTree.DiffIterator;
+import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
-import com.jd.blockchain.storage.service.ExPolicyKVStorage.ExPolicy;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
 import com.jd.blockchain.storage.service.utils.VersioningKVData;
-import com.jd.blockchain.utils.ArrayUtils;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.DataIterator;
-import com.jd.blockchain.utils.Dataset;
-import com.jd.blockchain.utils.Transactional;
-import com.jd.blockchain.utils.io.BytesUtils;
+import com.jd.blockchain.utils.*;
 
 /**
  * 对新的数据项按顺序递增进行编号的 Merkle 数据集； <br>
@@ -37,7 +32,7 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 	public static final Bytes DATA_PREFIX = Bytes.fromString("KV" + LedgerConsts.KEY_SEPERATOR);
 	public static final Bytes MERKLE_TREE_PREFIX = Bytes.fromString("MKL" + LedgerConsts.KEY_SEPERATOR);
 
-	private final Bytes snKeyPrefix;
+//	private final Bytes snKeyPrefix;
 	private final Bytes dataKeyPrefix;
 	private final Bytes merkleKeyPrefix;
 
@@ -48,11 +43,11 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 
 	private VersioningKVStorage valueStorage;
 
-	private ExPolicyKVStorage snStorage;
+//	private ExPolicyKVStorage snStorage;
 
-	private MerkleTree merkleTree;
+	private HashSortingMerkleTree merkleTree;
 
-	private SNGenerator snGenerator;
+//	private SNGenerator snGenerator;
 
 	private boolean readonly;
 
@@ -90,23 +85,17 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 		// 缓冲对KV的写入；
 		this.bufferedStorage = new BufferedKVStorage(exPolicyStorage, versioningStorage, false);
 
-		// 把存储数据值、SN、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
-		// this.valueStorage = PrefixAppender.prefix(DATA_PREFIX, (VersioningKVStorage)
-		// bufferedStorage);
-		// this.snStorage = PrefixAppender.prefix(SN_PREFIX, (ExPolicyKVStorage)
-		// bufferedStorage);
-		snKeyPrefix = keyPrefix.concat(SN_PREFIX);
+		// 把存储数据值、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
+//		snKeyPrefix = keyPrefix.concat(SN_PREFIX);
 		dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
 		this.valueStorage = bufferedStorage;
-		this.snStorage = bufferedStorage;
+//		this.snStorage = bufferedStorage;
 
 		// MerkleTree 本身是可缓冲的；
-		// ExPolicyKVStorage merkleTreeStorage =
-		// PrefixAppender.prefix(MERKLE_TREE_PREFIX, exPolicyStorage);
 		merkleKeyPrefix = keyPrefix.concat(MERKLE_TREE_PREFIX);
 		ExPolicyKVStorage merkleTreeStorage = exPolicyStorage;
-		this.merkleTree = new MerkleTree(setting, merkleKeyPrefix, merkleTreeStorage);
-		this.snGenerator = new MerkleSequenceSNGenerator(merkleTree);
+		this.merkleTree = new HashSortingMerkleTree(setting, merkleKeyPrefix, merkleTreeStorage);
+//		this.snGenerator = new MerkleSequenceSNGenerator(merkleTree);
 	}
 
 	/**
@@ -137,20 +126,18 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 		// 缓冲对KV的写入；
 		this.bufferedStorage = new BufferedKVStorage(exPolicyStorage, versioningStorage, false);
 
-		// 把存储数据值、SN、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
-//		snKeyPrefix = Bytes.fromString(keyPrefix + SN_PREFIX);
-//		dataKeyPrefix = Bytes.fromString(keyPrefix + DATA_PREFIX);
-		snKeyPrefix = keyPrefix.concat(SN_PREFIX);
+		// 把存储数据值、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
+//		snKeyPrefix = keyPrefix.concat(SN_PREFIX);
 		dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
 		this.valueStorage = bufferedStorage;
-		this.snStorage = bufferedStorage;
+//		this.snStorage = bufferedStorage;
 
 		// MerkleTree 本身是可缓冲的；
 		merkleKeyPrefix = keyPrefix.concat(MERKLE_TREE_PREFIX);
 		ExPolicyKVStorage merkleTreeStorage = exPolicyStorage;
-		this.merkleTree = new MerkleTree(merkleRootHash, setting, merkleKeyPrefix, merkleTreeStorage, readonly);
+		this.merkleTree = new HashSortingMerkleTree(merkleRootHash, setting, merkleKeyPrefix, merkleTreeStorage,
+				readonly);
 
-		this.snGenerator = new MerkleSequenceSNGenerator(merkleTree);
 		this.readonly = readonly;
 	}
 
@@ -164,32 +151,35 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 
 	@Override
 	public long getDataCount() {
-		return merkleTree.getDataCount();
+		return merkleTree.getTotalKeys();
 	}
 
-	/**
-	 * 返回理论上允许的最大数据索引；
-	 * 
-	 * @return
-	 */
-	public long getMaxIndex() {
-		return merkleTree.getMaxSn();
-	}
+//	/**
+//	 * 返回理论上允许的最大数据索引；
+//	 * 
+//	 * @return
+//	 */
+//	public long getMaxIndex() {
+//		return merkleTree.getMaxSn();
+//	}
 
 	public byte[][] getLatestValues(long fromIndex, int count) {
 		if (count > LedgerConsts.MAX_LIST_COUNT) {
 			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
 		}
 		if (fromIndex < 0 || (fromIndex + count) > merkleTree.getDataCount()) {
-			throw new IllegalArgumentException("Index out of bound!");
+			throw new IllegalArgumentException("The specified from-index and count are out of bound!");
 		}
 		byte[][] values = new byte[count][];
-		for (int i = 0; i < count; i++) {
-			MerkleDataNode dataNode = merkleTree.getData(fromIndex + i);
+		MerkleDataIterator iterator = merkleTree.iterator();
+		iterator.skip(fromIndex);
+		for (int i = 0; i < count && iterator.hasNext(); i++) {
+			MerkleData dataNode = iterator.next();
 			Bytes dataKey = encodeDataKey(dataNode.getKey());
 			values[i] = valueStorage.get(dataKey, dataNode.getVersion());
 		}
 		return values;
+
 	}
 
 	public DataEntry<Bytes, byte[]>[] getLatestDataEntries(long fromIndex, int count) {
@@ -205,11 +195,15 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 		@SuppressWarnings("unchecked")
 		DataEntry<Bytes, byte[]>[] values = new DataEntry[count];
 		byte[] bytesValue;
-		for (int i = 0; i < count; i++) {
-			MerkleDataNode dataNode = merkleTree.getData(fromIndex + i);
+
+		MerkleDataIterator iterator = merkleTree.iterator();
+		iterator.skip(fromIndex);
+		for (int i = 0; i < count && iterator.hasNext(); i++) {
+			MerkleData dataNode = iterator.next();
 			Bytes dataKey = encodeDataKey(dataNode.getKey());
 			bytesValue = valueStorage.get(dataKey, dataNode.getVersion());
-			values[i] = new VersioningKVData<Bytes, byte[]>(dataNode.getKey(), dataNode.getVersion(), bytesValue);
+			values[i] = new VersioningKVData<Bytes, byte[]>(new Bytes(dataNode.getKey()), dataNode.getVersion(),
+					bytesValue);
 		}
 		return values;
 	}
@@ -219,12 +213,17 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 			throw new IllegalArgumentException("Index out of bound!");
 		}
 		byte[] bytesValue;
-		MerkleDataNode dataNode = merkleTree.getData(index);
-		Bytes dataKey = encodeDataKey(dataNode.getKey());
-		bytesValue = valueStorage.get(dataKey, dataNode.getVersion());
-		DataEntry<Bytes, byte[]> entry = new VersioningKVData<Bytes, byte[]>(dataNode.getKey(), dataNode.getVersion(),
-				bytesValue);
-		return entry;
+		MerkleDataIterator iterator = merkleTree.iterator();
+		iterator.skip(index);
+		if (iterator.hasNext()) {
+			MerkleData dataNode = iterator.next();
+			Bytes dataKey = encodeDataKey(dataNode.getKey());
+			bytesValue = valueStorage.get(dataKey, dataNode.getVersion());
+			DataEntry<Bytes, byte[]> entry = new VersioningKVData<Bytes, byte[]>(new Bytes(dataNode.getKey()),
+					dataNode.getVersion(), bytesValue);
+			return entry;
+		}
+		return null;
 	}
 
 	/**
@@ -234,22 +233,42 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 	 * @return
 	 */
 	public byte[] getValuesAtIndex(int fromIndex) {
-		MerkleDataNode dataNode = merkleTree.getData(fromIndex);
-		Bytes dataKey = encodeDataKey(dataNode.getKey());
-		return valueStorage.get(dataKey, dataNode.getVersion());
+		MerkleDataIterator iterator = merkleTree.iterator();
+		iterator.skip(fromIndex);
+		if (iterator.hasNext()) {
+			MerkleData dataNode = iterator.next();
+			Bytes dataKey = encodeDataKey(dataNode.getKey());
+			return valueStorage.get(dataKey, dataNode.getVersion());
+		}
+		
+		return null;
 	}
 
-	/**
-	 * get the key at the specific index;
-	 * 
-	 * @param fromIndex
-	 * @return
-	 */
-	public String getKeyAtIndex(int fromIndex) {
-		MerkleDataNode dataNode = merkleTree.getData(fromIndex);
-		// TODO: 未去掉前缀；
-		return dataNode.getKey().toUTF8String();
+	//获得两个默克尔数据集之间的数据节点差异
+	public byte[][] getDiffMerkleKeys(int fromIndex, int count, MerkleDataSet origMerkleDataSet) {
+		byte[][] values = new byte[count][];
+		LongSkippingIterator<MerkleData> diffIterator = merkleTree.getKeyDiffIterator(origMerkleDataSet.merkleTree);
+		diffIterator.skip(fromIndex);
+		for (int i = 0; i < count && diffIterator.hasNext(); i++) {
+			MerkleData merkleData = diffIterator.next();
+			Bytes dataKey = encodeDataKey(merkleData.getKey());
+			values[i] = valueStorage.get(dataKey, merkleData.getVersion());
+		}
+
+		return values;
 	}
+
+//	/**
+//	 * get the key at the specific index;
+//	 * 
+//	 * @param fromIndex
+//	 * @return
+//	 */
+//	public String getKeyAtIndex(int fromIndex) {
+//		MerkleDataNode dataNode = merkleTree.getData(fromIndex);
+//		// TODO: 未去掉前缀；
+//		return dataNode.getKey().toUTF8String();
+//	}
 
 //	/**
 //	 * Create or update the value associated the specified key if the version
@@ -313,21 +332,21 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 
 		// set into versioning kv storage before adding to merkle tree, in order to
 		// check version confliction first;
-		long sn;
+//		long sn;
 		long newVersion;
 		if (version < 0) {
 			// creating ;
-			sn = snGenerator.generate(key);
+//			sn = snGenerator.generate(key);
 			newVersion = valueStorage.set(dataKey, value, -1);
 			if (newVersion < 0) {
 				return -1;
 			}
-			byte[] snBytes = BytesUtils.toBytes(sn);
-			Bytes snKey = encodeSNKey(key);
-			boolean nx = snStorage.set(snKey, snBytes, ExPolicy.NOT_EXISTING);
-			if (!nx) {
-				throw new LedgerException("SN already exist! --[KEY=" + key + "]");
-			}
+//			byte[] snBytes = BytesUtils.toBytes(sn);
+//			Bytes snKey = encodeSNKey(key);
+//			boolean nx = snStorage.set(snKey, snBytes, ExPolicy.NOT_EXISTING);
+//			if (!nx) {
+//				throw new LedgerException("SN already exist! --[KEY=" + key + "]");
+//			}
 		} else {
 			// updating;
 
@@ -338,42 +357,47 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 				return -1;
 			}
 
-			sn = getSN(key);
+//			sn = getSN(key);
 		}
 
 		// update merkle tree;
-		merkleTree.setData(sn, key, newVersion, value);
+//		merkleTree.setData(sn, key, newVersion, value);
+		merkleTree.setData(key, newVersion, value);
 		// TODO: 未在当前实例的层面，实现对输入键-值的缓冲，而直接写入了存储，而 MerkleTree 在未调用 commit
 		// 之前是缓冲的，这使得在存储层面的数据会不一致，而未来需要优化；
 
 		return newVersion;
 	}
 
-	private Bytes encodeSNKey(Bytes key) {
-		return new Bytes(snKeyPrefix, key);
-	}
+//	private Bytes encodeSNKey(Bytes key) {
+//		return new Bytes(snKeyPrefix, key);
+//	}
 
 	private Bytes encodeDataKey(Bytes key) {
 		return new Bytes(dataKeyPrefix, key);
 	}
 
-	/**
-	 * 返回指定 key 对应的序号，如果不存在，则返回 -1；
-	 * 
-	 * @param key
-	 * @return
-	 */
-	private long getSN(Bytes key) {
-		// SN-KEY index entry has never changed;
-		Bytes snKey = encodeSNKey(key);
-		byte[] snBytes = snStorage.get(snKey);
-		if (snBytes == null) {
-			// throw new IllegalStateException("Cann't found SN of key[" + key + "] from
-			// data storage!");
-			return -1;
-		}
-		return BytesUtils.toLong(snBytes);
+	private Bytes encodeDataKey(byte[] key) {
+		return new Bytes(dataKeyPrefix, key);
 	}
+
+//	/**
+//	 * 返回指定 key 对应的序号，如果不存在，则返回 -1；
+//	 * 
+//	 * @param key
+//	 * @return
+//	 */
+//	private long getSN(Bytes key) {
+//		// SN-KEY index entry has never changed;
+//		Bytes snKey = encodeSNKey(key);
+//		byte[] snBytes = snStorage.get(snKey);
+//		if (snBytes == null) {
+//			// throw new IllegalStateException("Cann't found SN of key[" + key + "] from
+//			// data storage!");
+//			return -1;
+//		}
+//		return BytesUtils.toLong(snBytes);
+//	}
 
 	/**
 	 * 返回默克尔树中记录的指定键的版本，在由默克尔树表示的数据集的快照中，这是指定键的最新版本，<br>
@@ -383,11 +407,11 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 	 * @return 返回指定的键的版本；如果不存在，则返回 -1；
 	 */
 	private long getMerkleVersion(Bytes key) {
-		long sn = getSN(key);
-		if (sn < 0) {
-			return -1;
-		}
-		MerkleDataNode mdn = merkleTree.getData(sn);
+//		long sn = getSN(key);
+//		if (sn < 0) {
+//			return -1;
+//		}
+		MerkleData mdn = merkleTree.getData(key);
 		if (mdn == null) {
 			return -1;
 		}
@@ -570,11 +594,7 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 	 */
 	@Override
 	public MerkleProof getProof(Bytes key) {
-		long sn = getSN(key);
-		if (sn < 0) {
-			return null;
-		}
-		return merkleTree.getProof(sn);
+		return merkleTree.getProof(key);
 	}
 
 	/**
@@ -612,15 +632,15 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 
 	@Override
 	public void commit() {
-		bufferedStorage.commit();
 		merkleTree.commit();
+		bufferedStorage.commit();
 	}
 
 	@Override
 	public void cancel() {
-		bufferedStorage.cancel();
 		merkleTree.cancel();
-		snGenerator = new MerkleSequenceSNGenerator(merkleTree);
+		bufferedStorage.cancel();
+//		snGenerator = new MerkleSequenceSNGenerator(merkleTree);
 	}
 
 	// ----------------------------------------------------------
@@ -735,6 +755,10 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 			return cursor < total;
 		}
 
+	}
+
+	public void print() {
+		merkleTree.print();
 	}
 
 }

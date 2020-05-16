@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>com.jd.blockchain</groupId>
 		<artifactId>storage-core</artifactId>
-		<version>1.2.0-SNAPSHOT</version>
+		<version>1.2.0.RELEASE</version>
 	</parent>
 	<artifactId>storage-rocksdb</artifactId>
 
@@ -13,29 +13,25 @@
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>storage-service</artifactId>
-			<version>${project.version}</version>
+			<version>${framework.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>utils-common</artifactId>
-			<version>${project.version}</version>
+			<version>${framework.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.rocksdb</groupId>
 			<artifactId>rocksdbjni</artifactId>
-			<version>${rocksdb.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-collections4</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-		</dependency>
+		
 		<!-- <dependency>
 			<groupId>org.rocksdb</groupId>
 			<artifactId>rocksdbjni-osx</artifactId>
