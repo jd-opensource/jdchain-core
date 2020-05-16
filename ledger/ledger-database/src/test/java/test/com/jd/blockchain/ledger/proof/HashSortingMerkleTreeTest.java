@@ -964,6 +964,121 @@ public class HashSortingMerkleTreeTest {
 		}
 	}
 
+	/**
+	 * 构造KEY固定的两棵树，多次执行commit, 验证是否能得到预期的差异数据
+	 */
+	@Test
+	public void testMerkleTreeKeysDiffMultiCommit() {
+		List<VersioningKVData<String, byte[]>> newdataList = new ArrayList<VersioningKVData<String, byte[]>>();
+		List<String> newdataListString = new ArrayList<String>();
+		List<String> newdataListString1 = new ArrayList<String>();
+
+		CryptoSetting cryptoSetting = createCryptoSetting();
+		MemoryKVStorage storage = new MemoryKVStorage();
+
+		int count = 10240;
+		int newAddCount = 5700;
+
+		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
+		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
+
+		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
+		HashDigest rootHash0 = merkleTree.getRootHash();
+		assertNotNull(rootHash0);
+		assertEquals(count, merkleTree.getTotalKeys());
+		assertEquals(count, merkleTree.getTotalRecords());
+
+		// reload and add random key data item;
+		HashSortingMerkleTree merkleTree_reload = new HashSortingMerkleTree(rootHash0, cryptoSetting, KEY_PREFIX,
+				storage, false);
+		assertEquals(count, merkleTree_reload.getTotalKeys());
+		assertEquals(count, merkleTree_reload.getTotalRecords());
+		assertEquals(rootHash0, merkleTree_reload.getRootHash());
+
+		newdataListString = generateNewDatasString(count, newAddCount);
+		for (int i = 0; i < newAddCount; i++) {
+			VersioningKVData<String, byte[]> newdataKV = new VersioningKVData<String, byte[]>(newdataListString.get(i), 0,
+					BytesUtils.toBytes("NEW-VALUE"));
+			merkleTree_reload.setData(newdataKV.getKey(), newdataKV.getVersion(), newdataKV.getValue());
+		}
+
+		//first commit
+		merkleTree_reload.commit();
+		HashDigest rootHash1 = merkleTree_reload.getRootHash();
+		assertNotNull(rootHash1);
+		assertNotEquals(rootHash0, rootHash1);
+
+		assertEquals(count + newAddCount, merkleTree_reload.getTotalKeys());
+		assertEquals(count + newAddCount, merkleTree_reload.getTotalRecords());
+
+		int newAddCount1 = 200;
+		newdataListString1 = generateNewDatasString(count + newAddCount, newAddCount1);
+		for (int i = 0; i < newAddCount1; i++) {
+			VersioningKVData<String, byte[]> newdataKV = new VersioningKVData<String, byte[]>(newdataListString1.get(i), 0,
+					BytesUtils.toBytes("NEW-VALUE"));
+			merkleTree_reload.setData(newdataKV.getKey(), newdataKV.getVersion(), newdataKV.getValue());
+		}
+
+		//second commit
+		merkleTree_reload.commit();
+		HashDigest rootHash2 = merkleTree_reload.getRootHash();
+		assertNotNull(rootHash2);
+		assertNotEquals(rootHash1, rootHash2);
+
+		assertEquals(count + newAddCount + newAddCount1, merkleTree_reload.getTotalKeys());
+		assertEquals(count + newAddCount + newAddCount1, merkleTree_reload.getTotalRecords());
+
+		LongSkippingIterator<MerkleData> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
+
+		// max boundary skip test
+		assertEquals(newAddCount+ newAddCount1, diffIterator.getCount());
+		assertEquals(-1, diffIterator.getCursor());
+		assertTrue(diffIterator.hasNext());
+		long skipped = diffIterator.skip(newAddCount + newAddCount1);
+		assertEquals(newAddCount + newAddCount1, skipped);
+		assertFalse(diffIterator.hasNext());
+
+		// re-interator and random skip test
+		int skipNum = 200;
+		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
+		assertEquals(newAddCount + newAddCount1, diffIterator.getCount());
+		assertEquals(-1, diffIterator.getCursor());
+		assertTrue(diffIterator.hasNext());
+		long skipped1 = diffIterator.skip(skipNum);
+		assertEquals(skipNum, skipped1);
+		int diffNum = 0;
+		while (diffIterator.hasNext()) {
+			MerkleData data = diffIterator.next();
+			assertNotNull(data);
+			assertFalse(dataList.contains(new String(data.getKey())));
+			assertTrue(newdataListString.contains(new String(data.getKey())) || newdataListString1.contains(new String(data.getKey())));
+			diffNum++;
+		}
+		assertEquals(diffNum, diffIterator.getCount() - skipNum);
+
+		//re-interator and next test
+		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
+		int diffNum1 = 0;
+		while (diffIterator.hasNext()) {
+			MerkleData data = diffIterator.next();
+			assertNotNull(data);
+			diffNum1++;
+		}
+		assertFalse(diffIterator.hasNext());
+		assertEquals(newAddCount + newAddCount1 - 1, diffIterator.getCursor());
+		assertEquals(newAddCount + newAddCount1, diffIterator.getCount());
+		assertEquals(diffNum1, diffIterator.getCount());
+
+		//re-interator and test next key consistency
+		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
+		while (diffIterator.hasNext()) {
+			MerkleData data = diffIterator.next();
+			assertNotNull(data);
+			assertFalse(dataList.contains(new String(data.getKey())));
+			assertTrue(newdataListString.contains(new String(data.getKey())) || newdataListString1.contains(new String(data.getKey())));
+		}
+	}
+
 	@Test
 	public void findKeyWithIndexEqual3() {
 		int count = 200;
