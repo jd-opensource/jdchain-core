@@ -61,6 +61,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 	private volatile LedgerEditor nextBlockEditor;
 
+	/**
+	 * 账本结构版本号
+	 *         默认为-1，需通过MetaData获取
+	 */
+	private volatile long ledgerStructureVersion = -1L;
+
 	private volatile boolean closed = false;
 
 	public LedgerRepositoryImpl(HashDigest ledgerHash, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
@@ -87,6 +93,11 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	@Override
 	public HashDigest getHash() {
 		return ledgerHash;
+	}
+
+	@Override
+	public long getVersion() {
+		return ledgerStructureVersion;
 	}
 
 	@Override
@@ -122,6 +133,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				ledgerDataset.getAdminDataset().getSettings().getCryptoSetting(), keyPrefix, exPolicyStorage,
 				versioningStorage, true);
 		this.latestState = new LedgerState(latestBlock, ledgerDataset, txSet);
+		this.ledgerStructureVersion = ledgerDataset.getAdminDataset().getMetadata().getLedgerStructureVersion();
 		return latestState;
 	}
 
