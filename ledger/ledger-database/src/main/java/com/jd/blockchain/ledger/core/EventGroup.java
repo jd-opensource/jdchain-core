@@ -1,32 +1,24 @@
 package com.jd.blockchain.ledger.core;
 
-import com.jd.blockchain.utils.Bytes;
+import java.util.Iterator;
 
-public class EventGroup {
-	
-	
-	private MerkleDataSet events;
-	
-	
+import com.jd.blockchain.ledger.Event;
+
+/**
+ * 事件组；
+ * 
+ * @author huanghaiquan
+ *
+ */
+public interface EventGroup {
 	
 	/**
-	 * 发布事件；<br>
+	 * 获取事件序列；
 	 * 
-	 * @param eventName 事件名；
-	 * @param message 消息内容；
-	 * @param sequence 事件序号；
-	 * @return 
+	 * @param eventName    事件名；
+	 * @param fromSequence 开始序号；
+	 * @param maxCount     最大数量；
+	 * @return
 	 */
-	private long publish(String eventName, byte[] message, long sequence) {
-		Bytes key = encodeKey(eventName);
-		return events.setValue(key, message, sequence);
-	}
-
-
-
-	private Bytes encodeKey(String eventName) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
+	Iterator<Event> getEvents(String eventName, String fromSequence, int maxCount);
 }

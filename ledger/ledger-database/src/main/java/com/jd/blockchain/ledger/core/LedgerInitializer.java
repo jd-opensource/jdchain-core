@@ -214,7 +214,7 @@ public class LedgerInitializer {
 	
 	private static class EmptyLedgerQuery implements LedgerQuery{
 		
-		private EmptyLedgerDataset dataset;
+		private EmptyLedgerDataset dataset = new EmptyLedgerDataset();
 
 		@Override
 		public HashDigest getHash() {

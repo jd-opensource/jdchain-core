@@ -62,19 +62,37 @@ public interface LedgerQuery {
 	LedgerBlock getBlock(HashDigest hash);
 
 	/**
-	 * 返回指定
+	 * 查询账本数据；
+	 * 
 	 * @param block
 	 * @return
 	 */
 	LedgerDataQuery getLedgerData(LedgerBlock block);
-	
+
 	/**
-	 * 返回最新区块对应的账本数据；
+	 * 查询账本事件；
+	 * 
+	 * @param block
+	 * @return
+	 */
+	LedgerEventQuery getLedgerEvents(LedgerBlock block);
+
+	/**
+	 * 查询最新区块的账本数据；
 	 * 
 	 * @return
 	 */
 	default LedgerDataQuery getLedgerData() {
 		return getLedgerData(getLatestBlock());
+	}
+	
+	/**
+	 * 查询最新区块的账本事件；
+	 * 
+	 * @return
+	 */
+	default LedgerEventQuery getLedgerEvents() {
+		return getLedgerEvents(getLatestBlock());
 	}
 
 	TransactionQuery getTransactionSet(LedgerBlock block);
