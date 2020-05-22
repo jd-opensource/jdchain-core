@@ -277,6 +277,11 @@ public class LedgerInitializer {
 		}
 
 		@Override
+		public LedgerEventQuery getLedgerEvents(LedgerBlock block) {
+			return null;
+		}
+
+		@Override
 		public TransactionQuery getTransactionSet(LedgerBlock block) {
 			return null;
 		}
@@ -298,6 +303,7 @@ public class LedgerInitializer {
 
 		@Override
 		public LedgerBlock retrieveLatestBlock() {
+			//TODO
 			return null;
 		}
 

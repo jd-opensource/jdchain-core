@@ -189,6 +189,12 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	}
 
 	@Override
+	public LedgerEventSet getLedgerEventSet() {
+		//TODO
+		return null;
+	}
+
+	@Override
 	public TransactionSet getTransactionSet() {
 		return latestTransactionSet;
 	}

@@ -364,6 +364,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return innerGetLedgerDataset(block);
 	}
 
+	@Override
+	public LedgerEventQuery getLedgerEvents(LedgerBlock block) {
+		//TODO
+		return null;
+	}
+
 	private LedgerDataset innerGetLedgerDataset(LedgerBlock block) {
 		LedgerAdminDataset adminDataset = createAdminDataset(block);
 		CryptoSetting cryptoSetting = adminDataset.getSettings().getCryptoSetting();
@@ -533,6 +539,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		@Override
 		public LedgerDataset getLedgerDataset() {
 			return editor.getLedgerDataset();
+		}
+
+		@Override
+		public LedgerEventSet getLedgerEventSet() {
+			//TODO
+			return null;
 		}
 
 		@Override

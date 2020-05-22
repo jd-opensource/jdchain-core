@@ -3,14 +3,15 @@ package com.jd.blockchain.ledger.core;
 import java.util.Iterator;
 
 import com.jd.blockchain.ledger.BlockchainIdentity;
+import com.jd.blockchain.ledger.BytesValue;
 
 public class EventPublishingAccount implements EventAccount, EventPublisher {
 	
 	private MerkleAccount account;
-	
+
 
 	@Override
-	public long publish(String eventName, byte[] message, long sequence) {
+	public long publish(String eventName, BytesValue message, long sequence) {
 		// TODO Auto-generated method stub
 		return 0;
 	}
