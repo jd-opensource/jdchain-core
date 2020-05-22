@@ -560,7 +560,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 			}
 
 			@Override
-			public List<RolePrivileges> getRolePriviledge() {
+			public List<RolePrivileges> getRolePrivilege() {
 				return privilegesList;
 			}
 		};
