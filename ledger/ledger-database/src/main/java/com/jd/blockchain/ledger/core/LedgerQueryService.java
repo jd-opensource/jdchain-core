@@ -15,12 +15,15 @@ import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.PrivilegeSet;
+import com.jd.blockchain.ledger.RolePrivileges;
 import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVData;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
+import com.jd.blockchain.ledger.UserPrivilege;
+import com.jd.blockchain.ledger.UserRoles;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.Bytes;
@@ -425,5 +428,28 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public PrivilegeSet getRolePrivileges(HashDigest ledgerHash, String roleName) {
 		checkLedgerHash(ledgerHash);
 		return ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(roleName);
+	}
+
+	@Override
+	public UserPrivilege getUserPrivileges(HashDigest ledgerHash, String userAddress) {
+		checkLedgerHash(ledgerHash);
+		UserRoles userRoles = ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
+		List<RolePrivileges> rolePrivilegesSet = new ArrayList<>();
+
+		for(String roleName : userRoles.getRoles()){
+			RolePrivileges rolePrivileges = ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(roleName);
+		}
+		UserPrivilege userPrivilege = new UserPrivilege() {
+			@Override
+			public RoleSet getRoleSet() {
+				return userRoles;
+			}
+
+			@Override
+			public List<RolePrivileges> getRolePriviledge() {
+				return rolePrivilegesSet;
+			}
+		};
+		return userPrivilege;
 	}
 }

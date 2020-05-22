@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletRequest;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.ledger.PrivilegeSet;
+import com.jd.blockchain.ledger.UserPrivilege;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -654,5 +655,12 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 	public PrivilegeSet getRolePrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 										  @PathVariable(name = "roleName") String roleName) {
 		return peerService.getQueryService().getRolePrivileges(ledgerHash, roleName);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/user-privilege/{userAddress}")
+	@Override
+	public UserPrivilege getUserPrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+											@PathVariable(name = "userAddress") String userAddress) {
+		return peerService.getQueryService().getUserPrivileges(ledgerHash, userAddress);
 	}
 }

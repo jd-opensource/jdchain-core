@@ -14,12 +14,15 @@ import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.PrivilegeSet;
+import com.jd.blockchain.ledger.RolePrivileges;
 import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVData;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
+import com.jd.blockchain.ledger.UserPrivilege;
+import com.jd.blockchain.ledger.UserRoles;
 import com.jd.blockchain.ledger.core.*;
 import com.jd.blockchain.peer.decorator.LedgerAdminInfoDecorator;
 import com.jd.blockchain.peer.decorator.TransactionDecorator;
@@ -535,6 +538,33 @@ public class LedgerQueryController implements BlockchainQueryService {
 										  @PathVariable(name = "roleName") String roleName) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		return ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(roleName);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/user-privilege/{userAddress}")
+	@Override
+	public UserPrivilege getUserPrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+											@PathVariable(name = "userAddress") String userAddress) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		UserRoles userRoles = ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
+		List<RolePrivileges> privilegesList = new ArrayList<>();
+
+		for(String roleName : userRoles.getRoles()){
+			privilegesList.add(ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(roleName));
+		}
+		UserRolesPrivileges userPrivileges = new UserRolesPrivileges(Bytes.fromBase58(userAddress), userRoles.getPolicy(), privilegesList);
+
+		UserPrivilege userPrivilege = new UserPrivilege() {
+			@Override
+			public RoleSet getRoleSet() {
+				return userRoles;
+			}
+
+			@Override
+			public List<RolePrivileges> getRolePriviledge() {
+				return privilegesList;
+			}
+		};
+		return userPrivilege;
 	}
 
 	private LedgerTransaction txDecorator(LedgerTransaction ledgerTransaction) {
