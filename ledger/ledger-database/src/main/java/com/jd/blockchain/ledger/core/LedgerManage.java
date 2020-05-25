@@ -1,6 +1,7 @@
 package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.storage.service.KVStorageService;
 
 /**
@@ -27,5 +28,17 @@ public interface LedgerManage extends LedgerService {
 //	 * @return
 //	 */
 //	LedgerEditor newLedger(LedgerInitSetting initSetting, KVStorageService storageService);
+	
+	
+	
+	public void addListener(HashDigest ledgerHash, BlockGeneratedListener listener);
+	
+	
+	
+	public static interface BlockGeneratedListener{
+		
+		void onBlockGenerated(LedgerBlock newBlock);
+		
+	}
 
 }

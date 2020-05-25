@@ -13,6 +13,7 @@ import com.jd.blockchain.ledger.LedgerDataSnapshot;
 import com.jd.blockchain.ledger.LedgerInitSetting;
 import com.jd.blockchain.ledger.LedgerSettings;
 import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.core.LedgerManage.BlockGeneratedListener;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
@@ -557,6 +558,8 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				LedgerBlock latestBlock = editor.getCurrentBlock();
 				ledgerRepo.latestState = new LedgerState(latestBlock, editor.getLedgerDataset(),
 						editor.getTransactionSet());
+				
+				ledgerRepo.notifyNewBlockGenerated(latestBlock);
 			} finally {
 				ledgerRepo.nextBlockEditor = null;
 			}
@@ -618,5 +621,23 @@ class LedgerRepositoryImpl implements LedgerRepository {
 			return transactionSet;
 		}
 
+	}
+	
+	
+	private void notifyNewBlockGenerated(LedgerBlock newBlock) {
+		// TODO Auto-generated method stub
+		try {
+			
+			
+			
+		} catch (Exception e) {
+			// TODO: swallow all exception;
+			// 
+		}
+	}
+
+	public void addListener(BlockGeneratedListener listener) {
+		// TODO Auto-generated method stub
+		
 	}
 }

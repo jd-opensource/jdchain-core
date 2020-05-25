@@ -5,16 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.jd.blockchain.crypto.CryptoAlgorithm;
-import com.jd.blockchain.crypto.CryptoProvider;
-import com.jd.blockchain.ledger.core.TransactionSetQuery;
-import com.jd.blockchain.ledger.json.CryptoConfigInfo;
-import com.jd.blockchain.ledger.proof.MerkleData;
-import com.jd.blockchain.ledger.proof.MerkleLeaf;
-import com.jd.blockchain.ledger.proof.MerklePath;
-import com.jd.blockchain.peer.consensus.LedgerStateManager;
-import com.jd.blockchain.utils.ConsoleUtils;
-import com.jd.blockchain.utils.net.NetworkAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +12,7 @@ import org.springframework.security.authentication.AuthenticationServiceExceptio
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jd.blockchain.binaryproto.DataContractRegistry;
@@ -40,6 +31,8 @@ import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.ServerSettings;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
+import com.jd.blockchain.crypto.CryptoAlgorithm;
+import com.jd.blockchain.crypto.CryptoProvider;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.ContractCodeDeployOperation;
 import com.jd.blockchain.ledger.ContractEventSendOperation;
@@ -69,10 +62,17 @@ import com.jd.blockchain.ledger.UserAuthInitSettings;
 import com.jd.blockchain.ledger.UserAuthorizeOperation;
 import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.core.LedgerManage;
+import com.jd.blockchain.ledger.core.LedgerManage.BlockGeneratedListener;
 import com.jd.blockchain.ledger.core.LedgerQuery;
+import com.jd.blockchain.ledger.core.TransactionSetQuery;
+import com.jd.blockchain.ledger.json.CryptoConfigInfo;
+import com.jd.blockchain.ledger.proof.MerkleData;
+import com.jd.blockchain.ledger.proof.MerkleLeaf;
+import com.jd.blockchain.ledger.proof.MerklePath;
 import com.jd.blockchain.peer.ConsensusRealm;
 import com.jd.blockchain.peer.LedgerBindingConfigAware;
 import com.jd.blockchain.peer.PeerManage;
+import com.jd.blockchain.peer.consensus.LedgerStateManager;
 import com.jd.blockchain.setting.GatewayIncomingSetting;
 import com.jd.blockchain.setting.LedgerIncomingSetting;
 import com.jd.blockchain.storage.service.DbConnection;
@@ -80,7 +80,9 @@ import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig.BindingConfig;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.ConsoleUtils;
 import com.jd.blockchain.utils.io.ByteArray;
+import com.jd.blockchain.utils.net.NetworkAddress;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
 
 /**
@@ -112,7 +114,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	private Map<HashDigest, NodeServer> ledgerPeers = new ConcurrentHashMap<>();
 	private Map<HashDigest, CryptoSetting> ledgerCryptoSettings = new ConcurrentHashMap<>();
 
-
 	private LedgerBindingConfig config;
 
 	@Autowired
@@ -122,7 +123,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	private StateMachineReplicate consensusStateManager;
 
 	static {
-        DataContractRegistry.register(LedgerInitOperation.class);
+		DataContractRegistry.register(LedgerInitOperation.class);
 		DataContractRegistry.register(LedgerBlock.class);
 		DataContractRegistry.register(TransactionContent.class);
 		DataContractRegistry.register(TransactionContentBody.class);
@@ -145,7 +146,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		DataContractRegistry.register(BftsmartConsensusSettings.class);
 		DataContractRegistry.register(BftsmartNodeSettings.class);
-		
+
 		DataContractRegistry.register(LedgerAdminInfo.class);
 		DataContractRegistry.register(LedgerSettings.class);
 
@@ -170,7 +171,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		DataContractRegistry.register(CryptoSetting.class);
 		DataContractRegistry.register(CryptoProvider.class);
 		DataContractRegistry.register(CryptoAlgorithm.class);
-		//TransactionSetQuery;
+		// TransactionSetQuery;
 		DataContractRegistry.register(TransactionSetQuery.class);
 	}
 
@@ -190,10 +191,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			return null;
 		}
 
-        ClientIdentification[] identificationArray = clientIdentifications.getClientIdentifications();
+		ClientIdentification[] identificationArray = clientIdentifications.getClientIdentifications();
 		if (identificationArray == null || identificationArray.length <= 0) {
-		    return null;
-        }
+			return null;
+		}
 
 		GatewayIncomingSetting setting = new GatewayIncomingSetting();
 		List<LedgerIncomingSetting> ledgerIncomingList = new ArrayList<LedgerIncomingSetting>();
@@ -206,17 +207,16 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			ConsensusProvider provider = ConsensusProviders.getProvider(peer.getProviderName());
 
-            ClientIncomingSettings clientIncomingSettings = null;
-            for (ClientIdentification authId : identificationArray) {
-                if (authId.getProviderName() == null ||
-                        authId.getProviderName().length() <= 0 ||
-                        !authId.getProviderName().equalsIgnoreCase(peerProviderName)) {
-                    continue;
-                }
-                try {
-                    clientIncomingSettings = peer.getConsensusManageService().authClientIncoming(authId);
+			ClientIncomingSettings clientIncomingSettings = null;
+			for (ClientIdentification authId : identificationArray) {
+				if (authId.getProviderName() == null || authId.getProviderName().length() <= 0
+						|| !authId.getProviderName().equalsIgnoreCase(peerProviderName)) {
+					continue;
+				}
+				try {
+					clientIncomingSettings = peer.getConsensusManageService().authClientIncoming(authId);
 
-					//add for test the gateway connect to peer0; 20200514;
+					// add for test the gateway connect to peer0; 20200514;
 					ConsensusSettings consensusSettings = clientIncomingSettings.getConsensusSettings();
 					if (consensusSettings instanceof BftsmartConsensusSettings) {
 						BftsmartConsensusSettings settings = (BftsmartConsensusSettings) consensusSettings;
@@ -226,20 +226,21 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 								if (ns instanceof BftsmartNodeSettings) {
 									BftsmartNodeSettings bftNs = (BftsmartNodeSettings) ns;
 									NetworkAddress address = bftNs.getNetworkAddress();
-									ConsoleUtils.info("PartiNode id = %s, host = %s, port = %s \r\n", bftNs.getId(), address.getHost(), address.getPort());
+									ConsoleUtils.info("PartiNode id = %s, host = %s, port = %s \r\n", bftNs.getId(),
+											address.getHost(), address.getPort());
 								}
 							}
 						}
 					}
 
-                    break;
-                } catch (Exception e) {
-                    throw new AuthenticationServiceException(e.getMessage(), e);
-                }
-            }
-            if (clientIncomingSettings == null) {
-                continue;
-            }
+					break;
+				} catch (Exception e) {
+					throw new AuthenticationServiceException(e.getMessage(), e);
+				}
+			}
+			if (clientIncomingSettings == null) {
+				continue;
+			}
 
 			byte[] clientIncomingBytes = provider.getSettingsFactory().getIncomingSettingsEncoder()
 					.encode(clientIncomingSettings);
@@ -274,7 +275,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			}
 			HashDigest[] ledgerHashs = config.getLedgerHashs();
 			for (HashDigest ledgerHash : ledgerHashs) {
-				setConfig(config.getLedger(ledgerHash),ledgerHash);
+				setConfig(config.getLedger(ledgerHash), ledgerHash);
 			}
 
 			this.config = config;
@@ -308,13 +309,25 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		}
 		if (currentNode == null) {
 			throw new IllegalArgumentException(
-					"Current node is not found from the consensus settings of ledger[" + ledgerHash.toBase58()
-							+ "]!");
+					"Current node is not found from the consensus settings of ledger[" + ledgerHash.toBase58() + "]!");
 		}
-		ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(ledgerHash.toBase58(), csSettings, currentNode.getAddress());
+		ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(ledgerHash.toBase58(),
+				csSettings, currentNode.getAddress());
 
-		((LedgerStateManager)consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
-
+		((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
+		
+		ledgerManager.addListener(ledgerHash, new BlockGeneratedListener() {
+			@Override
+			public void onBlockGenerated(LedgerBlock newBlock) {
+				// TODO Auto-generated method stub
+				// 如果参与方的状态由 false 变为 true ，则创建对应的共识节点，更新共识视图加入共识网络；
+				
+				// 如果参与方的状态由 true 变为 false，则停止节点，更新共识视图从共识网络移除节点；
+				
+			}
+		});
+		
+		
 		NodeServer server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
 				consensusStateManager);
 		ledgerPeers.put(ledgerHash, server);
@@ -345,5 +358,44 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		for (NodeServer peer : ledgerPeers.values()) {
 			peer.stop();
 		}
+	}
+
+	/**
+	 * 代理交易； <br>
+	 * 
+	 * 此方法假设当前节点是一个新建但尚未加入共识网络的共识节点, 通过此方法接收一笔用于实现管理操作的交易；
+	 * 
+	 * <p>
+	 * 
+	 * 此方法接收到交易之后，先把交易提交到已有的共识网络执行； <br>
+	 * 
+	 * 如果交易通过验证并执行成功，则将交易在本地的账本中以本地方式执行; <br>
+	 * 
+	 * 如果执行之后的新区块一致，则提交本地区块；
+	 * 
+	 * <p>
+	 * 如果操作中涉及到共识参与方的共识参数变化，将触发将此节点的共识拓扑改变的操作；
+	 * 
+	 * @param txRequest
+	 * @return
+	 */
+	@RequestMapping(path = "/delegate/tx", method = RequestMethod.POST, consumes = BinaryMessageConverter.CONTENT_TYPE_VALUE, produces = BinaryMessageConverter.CONTENT_TYPE_VALUE)
+	@Override
+	public @ResponseBody TransactionResponse process(@RequestBody TransactionRequest txRequest) {
+		// 从本地加载的账本检索出共识网络中其它参与共识的节点的网络地址；
+		
+		// 连接已有的共识网络；
+		
+		// 把交易提交到目标账本的网络进行共识；
+		
+		// 如果交易执行失败，则返回失败结果；
+		
+		// 如果交易执行成功，记录远程共识网络的新区块哈希；
+		
+		// 在本地账本执行交易；
+		
+		// 验证本地区块与远程区块是否一致，如果不一致，返回失败结果；
+		// 如果区块一致，提交区块；
+		
 	}
 }
