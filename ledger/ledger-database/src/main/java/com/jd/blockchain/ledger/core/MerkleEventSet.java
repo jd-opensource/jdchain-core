@@ -3,6 +3,7 @@ package com.jd.blockchain.ledger.core;
 import java.util.Iterator;
 
 import com.jd.blockchain.ledger.BytesValue;
+import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.utils.Bytes;
 
 public class MerkleEventSet implements EventGroup, EventPublisher {

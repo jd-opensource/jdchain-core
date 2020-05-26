@@ -4,6 +4,7 @@ import java.util.Iterator;
 
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
+import com.jd.blockchain.ledger.Event;
 
 public class EventPublishingAccount implements EventAccount, EventPublisher {
 	
