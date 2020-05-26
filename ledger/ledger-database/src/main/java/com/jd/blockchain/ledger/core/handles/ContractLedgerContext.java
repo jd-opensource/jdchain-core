@@ -2,25 +2,7 @@ package com.jd.blockchain.ledger.core.handles;
 
 import com.jd.blockchain.contract.LedgerContext;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.BlockchainIdentity;
-import com.jd.blockchain.ledger.BytesValue;
-import com.jd.blockchain.ledger.ContractInfo;
-import com.jd.blockchain.ledger.DataAccountKVSetOperation;
-import com.jd.blockchain.ledger.DataAccountRegisterOperation;
-import com.jd.blockchain.ledger.KVInfoVO;
-import com.jd.blockchain.ledger.LedgerAdminInfo;
-import com.jd.blockchain.ledger.LedgerBlock;
-import com.jd.blockchain.ledger.LedgerInfo;
-import com.jd.blockchain.ledger.LedgerMetadata;
-import com.jd.blockchain.ledger.LedgerTransaction;
-import com.jd.blockchain.ledger.Operation;
-import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.RoleSet;
-import com.jd.blockchain.ledger.TransactionState;
-import com.jd.blockchain.ledger.TypedKVEntry;
-import com.jd.blockchain.ledger.TypedValue;
-import com.jd.blockchain.ledger.UserInfo;
-import com.jd.blockchain.ledger.UserRegisterOperation;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.transaction.DataAccountKVSetOperationBuilder;
@@ -195,6 +177,16 @@ public class ContractLedgerContext implements LedgerContext {
 	@Override
 	public ContractInfo getContract(HashDigest ledgerHash, String address) {
 		return innerQueryService.getContract(ledgerHash, address);
+	}
+
+	@Override
+	public Event[] getSystemEvents(HashDigest ledgerHash, String eventName, long fromSequence, int maxCount) {
+		return new Event[0];
+	}
+
+	@Override
+	public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int maxCount) {
+		return new Event[0];
 	}
 
 	// ---------------------------user()----------------------------
