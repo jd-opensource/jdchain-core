@@ -181,12 +181,12 @@ public class ContractLedgerContext implements LedgerContext {
 
 	@Override
 	public Event[] getSystemEvents(HashDigest ledgerHash, String eventName, long fromSequence, int maxCount) {
-		return new Event[0];
+		return innerQueryService.getSystemEvents(ledgerHash, eventName, fromSequence, maxCount);
 	}
 
 	@Override
 	public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int maxCount) {
-		return new Event[0];
+		return innerQueryService.getUserEvents(ledgerHash, address, eventName, fromSequence, maxCount);
 	}
 
 	// ---------------------------user()----------------------------

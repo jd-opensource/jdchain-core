@@ -313,14 +313,23 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 		return peerService.getQueryService().getContract(ledgerHash, address);
 	}
 
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/{eventName}")
 	@Override
-	public Event[] getSystemEvents(HashDigest ledgerHash, String eventName, long fromSequence, int maxCount) {
-		return new Event[0];
+	public Event[] getSystemEvents(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+								   @PathVariable(name = "eventName") String eventName,
+								   @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
+								   @RequestParam(name = "maxCount", required = false, defaultValue = "-1") int maxCount) {
+        return peerService.getQueryService().getSystemEvents(ledgerHash, eventName, fromSequence, maxCount);
 	}
 
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/{address}/{eventName}")
 	@Override
-	public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int maxCount) {
-		return new Event[0];
+	public Event[] getUserEvents(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+								 @PathVariable(name = "address") String address,
+								 @PathVariable(name = "eventName") String eventName,
+								 @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
+								 @RequestParam(name = "maxCount", required = false, defaultValue = "-1") int maxCount) {
+		return peerService.getQueryService().getUserEvents(ledgerHash, address, eventName, fromSequence, maxCount);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/latest")

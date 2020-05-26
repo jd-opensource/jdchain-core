@@ -24,10 +24,7 @@ import com.jd.blockchain.ledger.core.*;
 import com.jd.blockchain.peer.decorator.LedgerAdminInfoDecorator;
 import com.jd.blockchain.peer.decorator.TransactionDecorator;
 import com.jd.blockchain.transaction.BlockchainQueryService;
-import com.jd.blockchain.utils.ArrayUtils;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.DataIterator;
+import com.jd.blockchain.utils.*;
 import com.jd.blockchain.utils.query.QueryArgs;
 import com.jd.blockchain.utils.query.QueryUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 @RestController
 @RequestMapping(path = "/")
@@ -469,14 +467,27 @@ public class LedgerQueryController implements BlockchainQueryService {
 		return contractAccountSet.getAccount(Bytes.fromBase58(address));
 	}
 
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/{eventName}")
 	@Override
-	public Event[] getSystemEvents(HashDigest ledgerHash, String eventName, long fromSequence, int maxCount) {
-		return new Event[0];
+	public Event[] getSystemEvents(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+								   @PathVariable(name = "eventName") String eventName,
+								   @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
+								   @RequestParam(name = "maxCount", required = false, defaultValue = "-1") int maxCount) {
+		// todo 加入测试用例
+		return testEvents(eventName);
+//		return new Event[0];
 	}
 
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/{address}/{eventName}")
 	@Override
-	public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int maxCount) {
-		return new Event[0];
+	public Event[] getUserEvents(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+								 @PathVariable(name = "address") String address,
+								 @PathVariable(name = "eventName") String eventName,
+								 @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
+								 @RequestParam(name = "maxCount", required = false, defaultValue = "-1") int maxCount) {
+		// todo 加入测试用例
+		return testEvents(eventName);
+//		return new Event[0];
 	}
 
 	/**
@@ -563,5 +574,52 @@ public class LedgerQueryController implements BlockchainQueryService {
 			return null;
 		}
 		return new LedgerAdminInfoDecorator(ledgerAdministration);
+	}
+
+	private Event[] testEvents(String eventName) {
+		Event[] events = new Event[10];
+		for (int i = 0; i < events.length; i++) {
+			events[i] = new EventData(eventName);
+		}
+		return events;
+	}
+
+	private class EventData implements Event {
+
+		String eventName;
+
+		public EventData(String eventName) {
+			this.eventName = eventName;
+		}
+
+		@Override
+		public String getName() {
+			return eventName;
+		}
+
+		@Override
+		public long getSequence() {
+			return new Random().nextLong();
+		}
+
+		@Override
+		public BytesValue getContent() {
+			return null;
+		}
+
+		@Override
+		public HashDigest getTransactionSource() {
+			return null;
+		}
+
+		@Override
+		public String getContractSource() {
+			return null;
+		}
+
+		@Override
+		public long getBlockHeight() {
+			return new Random().nextLong();
+		}
 	}
 }
