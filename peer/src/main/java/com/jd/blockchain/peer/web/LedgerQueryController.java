@@ -473,9 +473,8 @@ public class LedgerQueryController implements BlockchainQueryService {
 								   @PathVariable(name = "eventName") String eventName,
 								   @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
 								   @RequestParam(name = "maxCount", required = false, defaultValue = "-1") int maxCount) {
-		// todo 加入测试用例
-		return testEvents(eventName);
-//		return new Event[0];
+		// todo 需要实现
+		return new Event[0];
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/{address}/{eventName}")
@@ -485,9 +484,8 @@ public class LedgerQueryController implements BlockchainQueryService {
 								 @PathVariable(name = "eventName") String eventName,
 								 @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
 								 @RequestParam(name = "maxCount", required = false, defaultValue = "-1") int maxCount) {
-		// todo 加入测试用例
-		return testEvents(eventName);
-//		return new Event[0];
+		// todo 需要实现
+		return new Event[0];
 	}
 
 	/**
@@ -574,52 +572,5 @@ public class LedgerQueryController implements BlockchainQueryService {
 			return null;
 		}
 		return new LedgerAdminInfoDecorator(ledgerAdministration);
-	}
-
-	private Event[] testEvents(String eventName) {
-		Event[] events = new Event[10];
-		for (int i = 0; i < events.length; i++) {
-			events[i] = new EventData(eventName);
-		}
-		return events;
-	}
-
-	private class EventData implements Event {
-
-		String eventName;
-
-		public EventData(String eventName) {
-			this.eventName = eventName;
-		}
-
-		@Override
-		public String getName() {
-			return eventName;
-		}
-
-		@Override
-		public long getSequence() {
-			return new Random().nextLong();
-		}
-
-		@Override
-		public BytesValue getContent() {
-			return null;
-		}
-
-		@Override
-		public HashDigest getTransactionSource() {
-			return null;
-		}
-
-		@Override
-		public String getContractSource() {
-			return null;
-		}
-
-		@Override
-		public long getBlockHeight() {
-			return new Random().nextLong();
-		}
 	}
 }
