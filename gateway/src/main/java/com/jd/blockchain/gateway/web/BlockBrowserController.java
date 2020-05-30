@@ -7,6 +7,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
+import com.jd.blockchain.gateway.service.PeerConnectionManager;
 import com.jd.blockchain.ledger.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +41,7 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	@Autowired
-	private PeerService peerService;
+	private PeerConnectionManager peerService;
 
 	@Autowired
 	private GatewayQueryService gatewayQueryService;
@@ -319,7 +320,7 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 								   @PathVariable(name = "eventName") String eventName,
 								   @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
 								   @RequestParam(name = "maxCount", required = false, defaultValue = "-1") int maxCount) {
-        return peerService.getQueryService().getSystemEvents(ledgerHash, eventName, fromSequence, maxCount);
+		return peerService.getEventListener().getSystemEvents(ledgerHash, eventName, fromSequence, maxCount);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/{address}/{eventName}")
@@ -329,7 +330,7 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 								 @PathVariable(name = "eventName") String eventName,
 								 @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
 								 @RequestParam(name = "maxCount", required = false, defaultValue = "-1") int maxCount) {
-		return peerService.getQueryService().getUserEvents(ledgerHash, address, eventName, fromSequence, maxCount);
+		return peerService.getEventListener().getUserEvents(ledgerHash, address, eventName, fromSequence, maxCount);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/latest")

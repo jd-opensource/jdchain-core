@@ -2,6 +2,9 @@ package com.jd.blockchain.gateway.service;
 
 import javax.annotation.PreDestroy;
 
+import com.jd.blockchain.gateway.event.EventListener;
+import com.jd.blockchain.gateway.event.EventListenerService;
+import com.jd.blockchain.gateway.event.PullEventListener;
 import org.springframework.stereotype.Component;
 
 import com.jd.blockchain.crypto.AsymmetricKeypair;
@@ -15,7 +18,7 @@ import com.jd.blockchain.utils.net.NetworkAddress;
 import java.util.List;
 
 @Component
-public class PeerConnectionManager implements PeerService, PeerConnector {
+public class PeerConnectionManager implements PeerService, PeerConnector, EventListenerService {
 
 	private volatile PeerBlockchainServiceFactory peerServiceFactory;
 
@@ -24,6 +27,8 @@ public class PeerConnectionManager implements PeerService, PeerConnector {
 	private volatile AsymmetricKeypair gateWayKeyPair;
 
 	private volatile List<String> peerProviders;
+
+	private volatile EventListener eventListener;
 
 	@Override
 	public NetworkAddress getPeerAddress() {
@@ -104,5 +109,14 @@ public class PeerConnectionManager implements PeerService, PeerConnector {
 
 	public void setPeerProviders(List<String> peerProviders) {
 		this.peerProviders = peerProviders;
+	}
+
+	@Override
+	public EventListener getEventListener() {
+		if (eventListener == null) {
+			eventListener = new PullEventListener(getQueryService());
+			eventListener.start();
+		}
+		return eventListener;
 	}
 }
