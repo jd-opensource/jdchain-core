@@ -19,6 +19,8 @@ import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.codec.Base58Utils;
 
+import java.util.ArrayList;
+
 /**
  * 账本的存储结构： <br>
  * 
@@ -47,6 +49,8 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	private static final Bytes TRANSACTION_SET_PREFIX = Bytes.fromString("TXS" + LedgerConsts.KEY_SEPERATOR);
 
 	private static final AccountAccessPolicy DEFAULT_ACCESS_POLICY = new OpeningAccessPolicy();
+
+	private ArrayList<BlockGeneratedListener> blockGeneratedListeners = new ArrayList<BlockGeneratedListener>();
 
 	private HashDigest ledgerHash;
 
@@ -558,7 +562,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				LedgerBlock latestBlock = editor.getCurrentBlock();
 				ledgerRepo.latestState = new LedgerState(latestBlock, editor.getLedgerDataset(),
 						editor.getTransactionSet());
-				
+
 				ledgerRepo.notifyNewBlockGenerated(latestBlock);
 			} finally {
 				ledgerRepo.nextBlockEditor = null;
@@ -625,19 +629,16 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	
 	
 	private void notifyNewBlockGenerated(LedgerBlock newBlock) {
-		// TODO Auto-generated method stub
 		try {
-			
-			
-			
+			for (BlockGeneratedListener listener : blockGeneratedListeners) {
+				listener.onBlockGenerated(newBlock);
+			}
 		} catch (Exception e) {
-			// TODO: swallow all exception;
-			// 
+			e.printStackTrace();
 		}
 	}
 
 	public void addListener(BlockGeneratedListener listener) {
-		// TODO Auto-generated method stub
-		
+		blockGeneratedListeners.add(listener);
 	}
 }

@@ -47,6 +47,10 @@ public class LedgerManager implements LedgerManage {
 
 	@Override
 	public LedgerRepository register(HashDigest ledgerHash, KVStorageService storageService) {
+		if (ledgers.containsKey(ledgerHash)) {
+			LedgerRepositoryContext ledgerCtx = ledgers.get(ledgerHash);
+			return ledgerCtx.ledgerRepo;
+		}
 		// 加载账本数据库；
 		VersioningKVStorage ledgerVersioningStorage = storageService.getVersioningKVStorage();
 		ExPolicyKVStorage ledgerExPolicyStorage = storageService.getExPolicyKVStorage();

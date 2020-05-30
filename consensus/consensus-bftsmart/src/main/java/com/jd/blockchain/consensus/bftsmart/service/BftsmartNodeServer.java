@@ -11,6 +11,7 @@ import bftsmart.consensus.app.BatchAppResultImpl;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.*;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.blockchain.binaryproto.DataContractException;
 import com.jd.blockchain.consensus.service.*;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.*;
@@ -81,6 +82,10 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     private long latestStateId;
 
+    private View latestView;
+
+    private List<InetSocketAddress> consensusAddresses = new ArrayList<>();
+
     public BftsmartNodeServer() {
 
     }
@@ -128,6 +133,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         for (NodeSettings nodeSettings : nodeSettingsArray) {
             BftsmartNodeSettings node = (BftsmartNodeSettings)nodeSettings;
             configList.add(new HostsConfig.Config(node.getId(), node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort()));
+            consensusAddresses.add(new InetSocketAddress(node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort()));
         }
 
         //create HostsConfig instance based on consensus realm nodes
@@ -158,6 +164,9 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         }
 
         this.tomConfig = new TOMConfiguration(id, systemsConfig, hostConfig);
+
+        this.latestView = new View(stateMachineReplicate.getLatestViewID(realmName), tomConfig.getInitialView(), tomConfig.getF(), consensusAddresses.toArray(new InetSocketAddress[consensusAddresses.size()]));
+
         this.outerTomConfig = new TOMConfiguration(id, sysConfClone, BinarySerializeUtils.deserialize(serialHostConf));
     }
 
@@ -176,8 +185,9 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         return BftsmartConsensusProvider.NAME;
     }
 
+    // 由于节点动态入网的原因，共识的配置环境是随时可能变化的，需要每次get时从replica动态读取
     public TOMConfiguration getTomConfig() {
-        return outerTomConfig;
+        return this.replica.getReplicaContext().getStaticConfiguration();
     }
 
     public int getId() {
@@ -196,11 +206,35 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         return setting;
     }
 
+//    public BftsmartTopology getTopology() {
+//        if (outerTopology != null) {
+//            return outerTopology;
+//        }
+//        return new BftsmartTopology(replica.getReplicaContext().getCurrentView());
+//    }
+
     public BftsmartTopology getTopology() {
-        if (outerTopology != null) {
-            return outerTopology;
+        return getOuterTopology();
+    }
+
+    private BftsmartTopology getOuterTopology() {
+        View currView = this.replica.getReplicaContext().getCurrentView();
+        int id = currView.getId();
+        int f = currView.getF();
+        int[] processes = currView.getProcesses();
+        InetSocketAddress[] addresses = new InetSocketAddress[processes.length];
+        for (int i = 0; i < processes.length; i++) {
+            int pid = processes[i];
+            if (id == pid) {
+                addresses[i] = new InetSocketAddress(getTomConfig().getHost(id), getTomConfig().getPort(id));
+            } else {
+                addresses[i] = currView.getAddress(pid);
+            }
         }
-        return topology;
+        View returnView = new View(id, processes, f, addresses);
+        this.outerTopology = new BftsmartTopology(returnView);
+
+        return outerTopology;
     }
 
     public Status getStatus() {
@@ -406,11 +440,29 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
                 throw new IllegalStateException("Pre block state snapshot is null!");
             }
 
-            for (int i = 0; i < commands.length; i++) {
-                byte[] txContent = commands[i];
-                AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(msgId++, txContent, realmName, batchId);
-                asyncFutureLinkedList.add(asyncFuture);
+            if (commands.length == 1) {
+                try {
+                    AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(msgId++, commands[0], realmName, batchId);
+                    asyncFutureLinkedList.add(asyncFuture);
+                } catch (DataContractException e) {
+                    // 此分支专门处理视图更新的操作
+                    try {
+                        responseLinkedList.add(commands[0]);
+                        result = new BatchAppResultImpl(responseLinkedList, genisStateSnapshot.getSnapshot(), batchId, genisStateSnapshot.getSnapshot());
+                        result.setErrorCode((byte) 0);
+                    } catch (Exception e1) {
+                        e.printStackTrace();
+                    }
+                    return result;
+                }
+            } else {
+                for (int i = 0; i < commands.length; i++) {
+                    byte[] txContent = commands[i];
+                    AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(msgId++, txContent, realmName, batchId);
+                    asyncFutureLinkedList.add(asyncFuture);
+                }
             }
+
             newStateSnapshot = messageHandle.completeBatch(realmName, batchId);
 
             for (int i = 0; i < asyncFutureLinkedList.size(); i++) {
@@ -521,9 +573,9 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             try {
                 LOGGER.debug("Start replica...[ID=" + getId() + "]");
 //                this.replica = new ServiceReplica(tomConfig, this, this);
-                this.replica = new ServiceReplica(tomConfig, this, this, (int)latestStateId -1);
+                this.replica = new ServiceReplica(tomConfig, this, this, (int)latestStateId -1, latestView);
                 this.topology = new BftsmartTopology(replica.getReplicaContext().getCurrentView());
-                initOutTopology();
+//                initOutTopology();
                 status = Status.RUNNING;
 //                createProxyClient();
                 LOGGER.debug(
