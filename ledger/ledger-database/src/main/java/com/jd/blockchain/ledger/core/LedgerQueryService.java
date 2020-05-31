@@ -387,6 +387,14 @@ public class LedgerQueryService implements BlockchainQueryService {
 	}
 
 	@Override
+	public ContractInfo getContract(HashDigest ledgerHash, String address, long version) {
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		ContractAccountQuery contractAccountSet = ledger.getContractAccountSet(block);
+		return contractAccountSet.getAccount(Bytes.fromBase58(address), version);
+	}
+
+	@Override
 	public BlockchainIdentity[] getUsers(HashDigest ledgerHash, int fromIndex, int count) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();

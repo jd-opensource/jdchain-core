@@ -197,6 +197,11 @@ public class ContractLedgerContext implements LedgerContext {
 		return innerQueryService.getContract(ledgerHash, address);
 	}
 
+	@Override
+	public ContractInfo getContract(HashDigest ledgerHash, String address, long version) {
+		return innerQueryService.getContract(ledgerHash, address, version);
+	}
+
 	// ---------------------------user()----------------------------
 
 	@Override
