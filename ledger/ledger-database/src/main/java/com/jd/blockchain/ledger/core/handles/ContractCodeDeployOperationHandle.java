@@ -4,9 +4,13 @@ import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.ledger.ContractCodeDeployOperation;
+import com.jd.blockchain.ledger.ContractInfo;
+import com.jd.blockchain.ledger.ContractVersionConflictException;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.core.*;
 import org.springframework.util.NumberUtils;
+
+import static com.jd.blockchain.ledger.TransactionState.CONTRACT_VERSION_CONFLICT;
 
 public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHandle<ContractCodeDeployOperation> {
 
@@ -60,15 +64,17 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 		}
 
 		// chainCodeVersion != null? then use it;
-		long contractVersoin = contractOP.getChainCodeVersion();
-		if(contractVersoin != -1L){
-			newBlockDataset.getContractAccountset().update(contractOP.getContractID().getAddress(),
-					contractOP.getChainCode(), contractVersoin);
+		long contractVersion = contractOP.getChainCodeVersion();
+		if(contractVersion != -1L){
+			long rst = newBlockDataset.getContractAccountset().update(contractOP.getContractID().getAddress(),
+					contractOP.getChainCode(), contractVersion);
+			if(rst < 0 ){
+				throw new ContractVersionConflictException();
+			}
 		} else {
 			newBlockDataset.getContractAccountset().deploy(contractOP.getContractID().getAddress(),
 					contractOP.getContractID().getPubKey(), contractOP.getAddressSignature(), contractOP.getChainCode());
 		}
-
 	}
 
 }

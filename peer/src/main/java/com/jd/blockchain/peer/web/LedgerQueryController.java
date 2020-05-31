@@ -468,6 +468,17 @@ public class LedgerQueryController implements BlockchainQueryService {
 		return contractAccountSet.getAccount(Bytes.fromBase58(address));
 	}
 
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/contracts/address/{address}/version/{version}")
+	@Override
+	public ContractInfo getContract(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+									@PathVariable(name = "address") String address, @PathVariable(name = "version") long version) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		ContractAccountQuery contractAccountSet = ledger.getContractAccountSet(block);
+		return contractAccountSet.getAccount(Bytes.fromBase58(address), version);
+	}
+
 	/**
 	 * get more users by fromIndex and count;
 	 * 

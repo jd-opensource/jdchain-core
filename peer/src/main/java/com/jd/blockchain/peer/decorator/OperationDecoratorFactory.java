@@ -51,7 +51,7 @@ public class OperationDecoratorFactory {
     public static Operation decorateContractCodeDeployOperation(ContractCodeDeployOperation op) {
         BlockchainIdentity contractId = decorateBlockchainIdentity(op.getContractID());
         return new ContractCodeDeployOpTemplate(contractId,
-                chainCodeSlash(op.getChainCode()));
+                chainCodeSlash(op.getChainCode()), op.getChainCodeVersion());
     }
 
     /**
