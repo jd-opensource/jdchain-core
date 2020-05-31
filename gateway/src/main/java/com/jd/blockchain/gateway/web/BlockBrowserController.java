@@ -303,6 +303,14 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 		return contractSettings(contractInfo);
 	}
 
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/contracts/address/{address}/version/{version}")
+	public ContractSettings getContractSettingsByVersion(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+														 @PathVariable(name = "address") String address, @PathVariable(name = "version") long version) {
+		ContractInfo contractInfo = peerService.getQueryService().getContract(ledgerHash, address, version);
+		return contractSettings(contractInfo);
+	}
+
+
 	private ContractSettings contractSettings(ContractInfo contractInfo) {
 		ContractSettings contractSettings = new ContractSettings(contractInfo.getAddress(), contractInfo.getPubKey(),
 				contractInfo.getRootHash());
@@ -311,6 +319,7 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 			// 将反编译chainCode
 			String mainClassJava = CONTRACT_PROCESSOR.decompileEntranceClass(chainCodeBytes);
 			contractSettings.setChainCode(mainClassJava);
+			contractSettings.setChainCodeVersion(contractInfo.getChaincodeVersion());
 		} catch (Exception e) {
 			// 打印日志
 			logger.error(String.format("Decompile contract[%s] error !!!",
@@ -323,6 +332,11 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 	@Override
 	public ContractInfo getContract(HashDigest ledgerHash, String address) {
 		return peerService.getQueryService().getContract(ledgerHash, address);
+	}
+
+	@Override
+	public ContractInfo getContract(HashDigest ledgerHash, String address, long version) {
+		return peerService.getQueryService().getContract(ledgerHash, address, version);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/latest")
