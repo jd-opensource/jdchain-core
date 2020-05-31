@@ -104,6 +104,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	private Map<HashDigest, AsymmetricKeypair> ledgerKeypairs = new ConcurrentHashMap<>();
 
+	private Map<HashDigest, ParticipantNode> ledgerCurrNodes = new ConcurrentHashMap<>();
+
 	private LedgerBindingConfig config;
 
 	private ServiceProxy peerProxy;
@@ -113,8 +115,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	@Autowired
 	private StateMachineReplicate consensusStateManager;
-
-	private static int clientId = 0;
 
 	static {
 		DataContractRegistry.register(LedgerInitOperation.class);
@@ -307,8 +307,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					"Current node is not found from the participant settings of ledger[" + ledgerHash.toBase58() + "]!");
 		}
 
+		ledgerCurrNodes.put(ledgerHash, currentNode);
+
 		// 添加一个账本上新区块生成时的监听者
-		addListener((LedgerRepository) ledgerRepository, currentNode);
+		addListener((LedgerRepository) ledgerRepository);
 
 		NodeServer server = null;
 
@@ -393,6 +395,12 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		LedgerRepository ledgerRepo = (LedgerRepository) ledgerManager.register(ledgerHash, dbConnNew.getStorageService());
 
+		// 验证本参与方是否已经被注册，没有被注册的参与方不能进行状态更新
+		if (!verifyState(ledgerRepo)) {
+			((TxResponseMessage) transactionResponse).setExecutionState(TransactionState.PARTICIPANT_DOES_NOT_EXIST);
+			return txResponseWrapper(transactionResponse);
+		}
+
 		// 验证交易的合法性
 		if (!verifyTx(txRequest)) {
 			((TxResponseMessage) transactionResponse).setExecutionState(TransactionState.REJECTED_BY_SECURITY_POLICY);
@@ -426,6 +434,19 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		
 	}
 
+	private boolean verifyState(LedgerRepository ledgerRepo) {
+		ParticipantNode currNode = ledgerCurrNodes.get(ledgerRepo.getHash());
+
+		for (ParticipantNode participantNode : ledgerRepo.getAdminInfo().getParticipants()) {
+			if ((participantNode.getAddress().toString().equals(currNode.getAddress().toString())) && participantNode.getParticipantNodeState() == ParticipantNodeState.REGISTERED) {
+				return true;
+			}
+		}
+		// 新参与方不存在或者存在但已经被更新
+		LOGGER.info("Participant state error, the transaction request cannot be executed!");
+		return false;
+	}
+
 	// 加载本参与方的公私钥对身份信息
 	private AsymmetricKeypair loadIdentity(ParticipantNode currentNode, BindingConfig bindingConfig) {
 
@@ -442,7 +463,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	}
 
 	// 进行区块产生事件的监听
-	private void addListener(LedgerRepository ledgerRepository, ParticipantNode currNode) {
+	private void addListener(LedgerRepository ledgerRepository) {
+
+		ParticipantNode currNode = ledgerCurrNodes.get(ledgerRepository.getHash());
 
 		ledgerManager.addListener(ledgerRepository.getHash(), new BlockGeneratedListener() {
 			@Override
@@ -473,9 +496,11 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				if (currNodeLastState != null && currNodeNewState != null ) {
 					// 如果参与方的状态由 false 变为 true ，则创建对应的共识节点，更新共识视图加入共识网络；
 					if (currNodeLastState.CODE == ParticipantNodeState.REGISTERED.CODE && currNodeNewState.CODE == ParticipantNodeState.ACTIVED.CODE) {
-						View newView = updateView(ledgerRepository, currNode);
+						View newView = updateView(ledgerRepository);
 						// 启动共识节点
-						setupServer(ledgerRepository, currNode, newView);
+						if (newView != null) {
+							setupServer(ledgerRepository, newView);
+						}
 					} else if (currNodeLastState.CODE == ParticipantNodeState.ACTIVED.CODE && currNodeNewState.CODE == ParticipantNodeState.REGISTERED.CODE) {
 						// 如果参与方的状态由 true 变为 false，则停止节点，更新共识视图从共识网络移除节点；
 					} else {
@@ -488,7 +513,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	}
 
 	// 视图更新完成，启动共识节点
-	private void setupServer(LedgerRepository ledgerRepository, ParticipantNode currNode, View newView) {
+	private void setupServer(LedgerRepository ledgerRepository, View newView) {
+		ParticipantNode currNode = ledgerCurrNodes.get(ledgerRepository.getHash());
 
 		LedgerAdminInfo ledgerAdminAccount = ledgerRepository.getAdminInfo(ledgerRepository.getBlock(ledgerRepository.retrieveLatestBlockHeight()));
 
@@ -498,19 +524,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		// load consensus setting;
 		ConsensusSettings csSettings = getConsensusSetting(provider, ledgerAdminAccount);
 
-		// find current node;
-		NodeSettings currentNode = null;
-		for (NodeSettings nodeSettings : csSettings.getNodes()) {
-			if (nodeSettings.getAddress().equals(currNode.getAddress().toString())) {
-				currentNode = nodeSettings;
-			}
-		}
-		if (currentNode == null) {
-			throw new IllegalArgumentException(
-					"Current node is not found from the consensus settings of ledger[" + ledgerRepository.getHash().toBase58() + "]!");
-		}
 		ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(ledgerRepository.getHash().toBase58(),
-				csSettings, currentNode.getAddress());
+				csSettings, currNode.getAddress().toString());
 
 		((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
 		((LedgerStateManager) consensusStateManager).setLatestViewId(newView.getId());
@@ -525,8 +540,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	}
 
 	// 通知原有的共识网络更新共识的视图ID
-	private View updateView(LedgerRepository ledgerRepository, ParticipantNode currNode) {
+	private View updateView(LedgerRepository ledgerRepository) {
 		NetworkAddress newPeer = null;
+		ParticipantNode currNode = ledgerCurrNodes.get(ledgerRepository.getHash());
 
 		LOGGER.info("ManagementController start updateView operation!");
 
