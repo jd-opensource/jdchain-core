@@ -63,7 +63,7 @@ public class LedgerLoadTimer implements ApplicationContextAware {
     private LedgerManage ledgerManager;
 
     //每5秒执行一次
-    @Scheduled(cron = "* */5 * * * * ")
+    @Scheduled(cron = "*/5 * * * * * ")
     public void ledgerLoad() {
 
         lock.lock();
