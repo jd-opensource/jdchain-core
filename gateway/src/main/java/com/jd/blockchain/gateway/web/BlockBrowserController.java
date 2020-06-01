@@ -7,6 +7,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
+import com.jd.blockchain.gateway.exception.BlockNonExistentException;
 import com.jd.blockchain.gateway.service.PeerConnectionManager;
 import com.jd.blockchain.ledger.*;
 import org.slf4j.Logger;
@@ -115,7 +116,16 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 	@Override
 	public LedgerBlock getBlock(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 			@PathVariable(name = "blockHeight") long blockHeight) {
-		return peerService.getQueryService().getBlock(ledgerHash, blockHeight);
+		// 获取最新区块高度
+		LedgerBlock latestBlock = getLatestBlock(ledgerHash);
+		if (blockHeight > latestBlock.getHeight()) {
+			throw new BlockNonExistentException(String.format("Ledger[%s] -> height[%s] is non-existent !!!",
+					ledgerHash.toBase58(), blockHeight));
+		} else if (blockHeight == latestBlock.getHeight()) {
+			return latestBlock;
+		} else {
+			return peerService.getQueryService().getBlock(ledgerHash, blockHeight);
+		}
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/hash/{blockHash}")
