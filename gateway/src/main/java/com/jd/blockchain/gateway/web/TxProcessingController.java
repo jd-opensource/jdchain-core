@@ -20,12 +20,17 @@ import com.jd.blockchain.transaction.TransactionService;
 import com.jd.blockchain.utils.BusinessException;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
 
+import javax.servlet.http.HttpServletRequest;
+
 /**
  * @author huanghaiquan
  *
  */
 @RestController
 public class TxProcessingController implements TransactionService {
+
+	@Autowired
+	private HttpServletRequest request;
 
 	@Autowired
 	private PeerService peerService;
@@ -37,8 +42,7 @@ public class TxProcessingController implements TransactionService {
 	@Override
 	public @ResponseBody TransactionResponse process(@RequestBody TransactionRequest txRequest) {
 		// 拦截请求进行校验
-		interceptService.intercept(txRequest);
-
+		interceptService.intercept(request, txRequest);
 		// 检查交易请求的信息是否完整；
 		HashDigest ledgerHash = txRequest.getTransactionContent().getLedgerHash();
 		if (ledgerHash == null) {
