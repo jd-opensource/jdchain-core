@@ -13,6 +13,7 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.MerkleSnapshot;
+import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
@@ -252,11 +253,11 @@ public class MerkleAccountSet implements Transactional, MerkleProvable, AccountQ
 				return cachedAcc;
 			}
 			// 相同的账户已经存在；
-			throw new LedgerException("The registering account already exist!");
+			throw new LedgerException("The registering account already exist!", TransactionState.ACCOUNT_REGISTER_CONFLICT);
 		}
 		long version = merkleDataset.getVersion(address);
 		if (version >= 0) {
-			throw new LedgerException("The registering account already exist!");
+			throw new LedgerException("The registering account already exist!", TransactionState.ACCOUNT_REGISTER_CONFLICT);
 		}
 
 		if (!accessPolicy.checkRegistering(address, pubKey)) {
