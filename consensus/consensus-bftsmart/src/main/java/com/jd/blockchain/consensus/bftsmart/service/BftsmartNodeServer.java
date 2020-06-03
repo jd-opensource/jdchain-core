@@ -581,12 +581,10 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         for (int i = 0; i < processes.length; i++) {
             int pid = processes[i];
             if (curProcessId == pid) {
-                System.out.printf("outerTomConfig in current node, my viewId = %s , my process id = %s, host = %s, port = %s \r\n", id, pid, this.outerTomConfig.getHost(pid), this.outerTomConfig.getPort(pid));
                 addresses[i] = new InetSocketAddress(this.outerTomConfig.getHost(pid), this.outerTomConfig.getPort(pid));
             } else {
                 addresses[i] = currView.getAddress(pid);
             }
-            System.out.printf("list tomConfig, viewId = %s,  process id = %s, address = %s \r\n", id, pid, addresses[i]);
         }
         View returnView = new View(id, processes, f, addresses);
         this.outerTopology = new BftsmartTopology(returnView);
