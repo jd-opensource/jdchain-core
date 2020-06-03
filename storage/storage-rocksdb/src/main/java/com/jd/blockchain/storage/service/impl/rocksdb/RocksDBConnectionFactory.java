@@ -73,7 +73,7 @@ public class RocksDBConnectionFactory implements DbConnectionFactory {
 	public boolean support(String scheme) {
 		return URI_SCHEME.equalsIgnoreCase(scheme);
 	}
-	
+
 	@PreDestroy
 	@Override
 	public void close() {
@@ -85,39 +85,24 @@ public class RocksDBConnectionFactory implements DbConnectionFactory {
 	}
 
 	private Options initOptions() {
-		final Filter bloomFilter = new BloomFilter(32);
+		Cache cache = new LRUCache(512 * SizeUnit.MB);
+
 		final BlockBasedTableConfig tableOptions = new BlockBasedTableConfig()
-				.setFilter(bloomFilter)
-				.setBlockSize(4 * SizeUnit.KB)
-				.setBlockSizeDeviation(10)
-				.setBlockCacheSize(64 * SizeUnit.GB)
-				.setNoBlockCache(false)
+				.setBlockCache(cache)
 				.setCacheIndexAndFilterBlocks(true)
-				.setBlockRestartInterval(16)
 				;
-		final List<CompressionType> compressionLevels = new ArrayList<>();
-		compressionLevels.add(CompressionType.NO_COMPRESSION); // 0-1
-		compressionLevels.add(CompressionType.SNAPPY_COMPRESSION); // 1-2
-		compressionLevels.add(CompressionType.SNAPPY_COMPRESSION); // 2-3
-		compressionLevels.add(CompressionType.SNAPPY_COMPRESSION); // 3-4
-		compressionLevels.add(CompressionType.SNAPPY_COMPRESSION); // 4-5
-		compressionLevels.add(CompressionType.SNAPPY_COMPRESSION); // 5-6
-		compressionLevels.add(CompressionType.SNAPPY_COMPRESSION); // 6-7
 
 		Options options = new Options()
+				// 最多占用256 * 7 + 512 = 2.25G内存
+				.setWriteBufferSize(256 * SizeUnit.MB)
+				.setMaxWriteBufferNumber(7)
+				.setMinWriteBufferNumberToMerge(2)
+				.setMaxOpenFiles(-1)
 				.setAllowConcurrentMemtableWrite(true)
-				.setEnableWriteThreadAdaptiveYield(true)
 				.setCreateIfMissing(true)
-				.setMaxWriteBufferNumber(3)
 				.setTableFormatConfig(tableOptions)
-				.setMaxBackgroundCompactions(10)
+				.setMaxBackgroundCompactions(5)
 				.setMaxBackgroundFlushes(4)
-				.setBloomLocality(10)
-				.setMinWriteBufferNumberToMerge(4)
-				.setCompressionPerLevel(compressionLevels)
-				.setNumLevels(7)
-				.setCompressionType(CompressionType.SNAPPY_COMPRESSION)
-				.setCompactionStyle(CompactionStyle.UNIVERSAL)
 				.setMemTableConfig(new SkipListMemTableConfig())
 				;
 		return options;
