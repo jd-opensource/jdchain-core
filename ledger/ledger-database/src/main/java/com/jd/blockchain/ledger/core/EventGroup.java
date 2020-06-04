@@ -20,5 +20,5 @@ public interface EventGroup {
 	 * @param maxCount     最大数量；
 	 * @return
 	 */
-	Iterator<Event> getEvents(String eventName, String fromSequence, int maxCount);
+	Iterator<Event> getEvents(String eventName, long fromSequence, int maxCount);
 }

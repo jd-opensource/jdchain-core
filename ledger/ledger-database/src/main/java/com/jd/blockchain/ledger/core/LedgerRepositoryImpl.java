@@ -348,6 +348,16 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return createContractAccountSet(block, adminAccount.getSettings().getCryptoSetting());
 	}
 
+	@Override
+	public EventGroup getSystemEvents(LedgerBlock block) {
+		return null;
+	}
+
+	@Override
+	public EventAccountQuery getUserEvents(LedgerBlock block) {
+		return null;
+	}
+
 	private ContractAccountSet createContractAccountSet(LedgerBlock block, CryptoSetting cryptoSetting) {
 		return loadContractAccountSet(block.getContractAccountSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
 				versioningStorage, true);

@@ -10,6 +10,9 @@ public class EventPublishingAccount implements EventAccount, EventPublisher {
 	
 	private MerkleAccount account;
 
+	public EventPublishingAccount() {
+
+	}
 
 	@Override
 	public long publish(String eventName, BytesValue message, long sequence) {
@@ -18,7 +21,7 @@ public class EventPublishingAccount implements EventAccount, EventPublisher {
 	}
 
 	@Override
-	public Iterator<Event> getEvents(String eventName, String fromSequence, int maxCount) {
+	public Iterator<Event> getEvents(String eventName, long fromSequence, int maxCount) {
 		// TODO Auto-generated method stub
 		return null;
 	}
