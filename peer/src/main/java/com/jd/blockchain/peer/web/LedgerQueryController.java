@@ -2,6 +2,7 @@ package com.jd.blockchain.peer.web;
 
 import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
@@ -9,6 +10,7 @@ import com.jd.blockchain.ledger.KVDataVO;
 import com.jd.blockchain.ledger.KVInfoVO;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
 import com.jd.blockchain.ledger.LedgerBlock;
+import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.LedgerInfo;
 import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
@@ -334,7 +336,11 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
-		return dataAccountSet.getAccount(Bytes.fromBase58(address)).getID();
+		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
+		if(dataAccount == null){
+			throw new LedgerException("数据账户不存在", TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
+		}
+		return dataAccount.getID();
 	}
 
 	@RequestMapping(method = { RequestMethod.GET,
