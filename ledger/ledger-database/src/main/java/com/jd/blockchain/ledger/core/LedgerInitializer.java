@@ -302,6 +302,16 @@ public class LedgerInitializer {
 		}
 
 		@Override
+		public EventGroup getSystemEvents(LedgerBlock block) {
+			return null;
+		}
+
+		@Override
+		public EventAccountQuery getUserEvents(LedgerBlock block) {
+			return null;
+		}
+
+		@Override
 		public LedgerBlock retrieveLatestBlock() {
 			//TODO
 			return null;

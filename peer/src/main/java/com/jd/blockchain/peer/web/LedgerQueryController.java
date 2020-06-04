@@ -473,8 +473,13 @@ public class LedgerQueryController implements BlockchainQueryService {
 								   @PathVariable(name = "eventName") String eventName,
 								   @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
 								   @RequestParam(name = "maxCount", required = false, defaultValue = "-1") int maxCount) {
-		// todo 需要实现
-		return new Event[0];
+
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventGroup systemEvents = ledger.getSystemEvents(block);
+//		return systemEvents.getEvents(eventName, fromSequence, maxCount);
+
+		return null;
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/{address}/{eventName}")

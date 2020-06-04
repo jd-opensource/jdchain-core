@@ -103,6 +103,10 @@ public interface LedgerQuery {
 
 	ContractAccountQuery getContractAccountSet(LedgerBlock block);
 
+	EventGroup getSystemEvents(LedgerBlock block);
+
+	EventAccountQuery getUserEvents(LedgerBlock block);
+
 	default TransactionQuery getTransactionSet() {
 		return getTransactionSet(getLatestBlock());
 	}
