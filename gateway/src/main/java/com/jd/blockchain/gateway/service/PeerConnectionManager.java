@@ -2,6 +2,7 @@ package com.jd.blockchain.gateway.service;
 
 import javax.annotation.PreDestroy;
 
+import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.gateway.event.EventListener;
 import com.jd.blockchain.gateway.event.EventListenerService;
 import com.jd.blockchain.gateway.event.PullEventListener;
@@ -15,10 +16,19 @@ import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.transaction.TransactionService;
 import com.jd.blockchain.utils.net.NetworkAddress;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Component
 public class PeerConnectionManager implements PeerService, PeerConnector, EventListenerService {
+
+	private final Set<HashDigest> localLedgerCache = new HashSet<>();
+
+	private final Lock ledgerHashLock = new ReentrantLock();
 
 	private volatile PeerBlockchainServiceFactory peerServiceFactory;
 
@@ -52,17 +62,52 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 		setPeerAddress(peerAddress);
 		setGateWayKeyPair(defaultKeyPair);
 		setPeerProviders(peerProviders);
-		// TODO: 未实现运行时出错时动态重连；
+		// 运行时出错时由定时任务动态重连；
 		peerServiceFactory = PeerBlockchainServiceFactory.connect(defaultKeyPair, peerAddress, peerProviders);
+		// 连接成功的话，更新账本
+		ledgerHashLock.lock();
+		try {
+			updateLedgerCache();
+		} finally {
+			ledgerHashLock.unlock();
+		}
 	}
 
 	@Override
-	public synchronized void reconnect() {
-		if (!isConnected()) {
-			throw new IllegalArgumentException(
-					"This gateway has not connected to a peer, please connect it first!!!");
+	public void monitorAndReconnect() {
+		if (getPeerAddress() == null) {
+			throw new IllegalArgumentException("Peer address must be init first !!!");
 		}
-		peerServiceFactory = PeerBlockchainServiceFactory.connect(gateWayKeyPair, peerAddress, peerProviders);
+		/**
+		 * 1、首先判断是否之前连接成功过，若未成功则重连，走auth逻辑
+		 * 2、若成功，则判断对端节点的账本与当前账本是否一致，有新增的情况下重连
+		 */
+		ledgerHashLock.lock();
+		try {
+			if (isConnected()) {
+				// 已连接成功，判断账本信息
+				HashDigest[] peerLedgerHashs = getQueryService().getLedgerHashs();
+				if (peerLedgerHashs != null && peerLedgerHashs.length > 0) {
+					boolean haveNewLedger = false;
+					for (HashDigest hash : peerLedgerHashs) {
+						if (!localLedgerCache.contains(hash)) {
+							haveNewLedger = true;
+							break;
+						}
+					}
+					if (haveNewLedger) {
+						// 有新账本的情况下重连，并更新本地账本
+						peerServiceFactory = PeerBlockchainServiceFactory.connect(gateWayKeyPair, peerAddress, peerProviders);
+						localLedgerCache.addAll(Arrays.asList(peerLedgerHashs));
+					}
+				}
+			} else {
+				peerServiceFactory = PeerBlockchainServiceFactory.connect(gateWayKeyPair, peerAddress, peerProviders);
+				updateLedgerCache();
+			}
+		} finally {
+			ledgerHashLock.unlock();
+		}
 	}
 
 	@Override
@@ -118,5 +163,17 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 			eventListener.start();
 		}
 		return eventListener;
+	}
+
+	/**
+	 * 更新本地账本缓存
+	 */
+	private void updateLedgerCache() {
+		if (isConnected()) {
+			HashDigest[] peerLedgerHashs = getQueryService().getLedgerHashs();
+			if (peerLedgerHashs != null && peerLedgerHashs.length > 0) {
+				localLedgerCache.addAll(Arrays.asList(peerLedgerHashs));
+			}
+		}
 	}
 }
