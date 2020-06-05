@@ -1,8 +1,11 @@
 package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.ledger.Account;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.DigitalSignature;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
@@ -19,13 +22,13 @@ public class EventAccountSet implements EventAccountQuery, Transactional {
     private MerkleAccountSet accountSet;
 
     public EventAccountSet(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage,
-                          VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
+                           VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
         accountSet = new MerkleAccountSet(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
     }
 
     public EventAccountSet(HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
-                          ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
-                          AccountAccessPolicy accessPolicy) {
+                           ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
+                           AccountAccessPolicy accessPolicy) {
         accountSet = new MerkleAccountSet(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
                 readonly, accessPolicy);
     }
@@ -33,60 +36,70 @@ public class EventAccountSet implements EventAccountQuery, Transactional {
 
     @Override
     public long getTotal() {
-        return 0;
+        return accountSet.getTotal();
     }
 
     @Override
     public BlockchainIdentity[] getHeaders(int fromIndex, int count) {
-        return new BlockchainIdentity[0];
+        return accountSet.getHeaders(fromIndex, count);
     }
 
     @Override
     public boolean contains(Bytes address) {
-        return false;
+        return accountSet.contains(address);
     }
 
     @Override
     public MerkleProof getProof(Bytes address) {
-        return null;
+        return accountSet.getProof(address);
     }
 
     @Override
     public EventPublishingAccount getAccount(String address) {
-        return null;
+        return getAccount(Bytes.fromBase58(address));
     }
 
     @Override
     public EventPublishingAccount getAccount(Bytes address) {
-        return null;
+        return getAccount(address, -1);
     }
 
     @Override
     public EventPublishingAccount getAccount(Bytes address, long version) {
-        return null;
+        Account account = accountSet.getAccount(address);
+        if (null == account) {
+            return null;
+        }
+        return new EventPublishingAccount(account);
     }
 
     @Override
     public HashDigest getRootHash() {
-        return null;
+        return accountSet.getRootHash();
     }
 
     @Override
     public boolean isUpdated() {
-        return false;
+        return accountSet.isUpdated();
     }
 
     @Override
     public void commit() {
-
+        accountSet.commit();
     }
 
     @Override
     public void cancel() {
-
+        accountSet.cancel();
     }
 
     void setReadonly() {
         accountSet.setReadonly();
+    }
+
+    public DataAccount register(Bytes address, PubKey pubKey, DigitalSignature addressSignature) {
+        // TODO: 未实现对地址签名的校验和记录；
+        CompositeAccount accBase = accountSet.register(address, pubKey);
+        return new DataAccount(accBase);
     }
 }

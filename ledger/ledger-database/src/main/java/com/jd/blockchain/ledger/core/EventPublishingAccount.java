@@ -2,22 +2,23 @@ package com.jd.blockchain.ledger.core;
 
 import java.util.Iterator;
 
+import com.jd.blockchain.ledger.Account;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.Event;
+import com.jd.blockchain.ledger.TypedValue;
 
 public class EventPublishingAccount implements EventAccount, EventPublisher {
 	
-	private MerkleAccount account;
+	private Account account;
 
-	public EventPublishingAccount() {
-
+	public EventPublishingAccount(Account account) {
+		this.account = account;
 	}
 
 	@Override
 	public long publish(String eventName, BytesValue message, long sequence) {
-		// TODO Auto-generated method stub
-		return 0;
+		return account.getDataset().setValue(eventName, TypedValue.fromType(message.getType(), message.getBytes().toBytes()), sequence);
 	}
 
 	@Override

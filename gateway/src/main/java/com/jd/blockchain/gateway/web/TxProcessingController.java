@@ -59,7 +59,7 @@ public class TxProcessingController implements TransactionService {
 		DigitalSignature[] partiSigns = txRequest.getEndpointSignatures();
 		if (partiSigns == null || partiSigns.length == 0) {
 			// 缺少参与者签名，则采用检查托管账户并进行托管签名；如果请求未包含托管账户，或者托管账户认证失败，则返回401错误；
-			// TODO: 未实现！
+			// TODO: 未实现！LedgerRepositoryImpl
 			throw new IllegalStateException("Not implemented!");
 		} else {
 			// 验证签名；

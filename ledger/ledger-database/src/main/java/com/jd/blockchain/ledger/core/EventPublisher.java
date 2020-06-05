@@ -2,7 +2,7 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.ledger.BytesValue;
 
-public interface EventPublisher extends EventGroup {
+public interface EventPublisher {
 
 	/**
 	 * 发布事件；<br>

@@ -5,13 +5,13 @@ import com.jd.blockchain.utils.Transactional;
 public class LedgerEventSet implements LedgerEventQuery, Transactional {
 
 	private MerkleEventSet systemEventSet;
-	private EventAccountSet eventAccountSet;
+	private EventAccountSet userEventSet;
 	private boolean readonly;
 
 
-	public LedgerEventSet(MerkleEventSet systemEventSet, EventAccountSet eventAccountSet, boolean readonly) {
+	public LedgerEventSet(MerkleEventSet systemEventSet, EventAccountSet userEventSet, boolean readonly) {
 		this.systemEventSet = systemEventSet;
-		this.eventAccountSet = eventAccountSet;
+		this.userEventSet = userEventSet;
 		this.readonly = readonly;
 	}
 
@@ -22,13 +22,13 @@ public class LedgerEventSet implements LedgerEventQuery, Transactional {
 
 	@Override
 	public EventAccountSet getUserEvents() {
-		return eventAccountSet;
+		return userEventSet;
 	}
 
 
 	@Override
 	public boolean isUpdated() {
-		return systemEventSet.isUpdated() || eventAccountSet.isUpdated();
+		return systemEventSet.isUpdated() || userEventSet.isUpdated();
 	}
 
 	@Override
@@ -41,14 +41,14 @@ public class LedgerEventSet implements LedgerEventQuery, Transactional {
 		}
 
 		systemEventSet.commit();
-		eventAccountSet.commit();
+		userEventSet.commit();
 
 	}
 
 	@Override
 	public void cancel() {
 		systemEventSet.cancel();
-		eventAccountSet.cancel();
+		userEventSet.cancel();
 	}
 
 	public boolean isReadonly() {
@@ -58,6 +58,6 @@ public class LedgerEventSet implements LedgerEventQuery, Transactional {
 	void setReadonly() {
 		this.readonly = true;
 		this.systemEventSet.setReadonly();
-		this.eventAccountSet.setReadonly();
+		this.userEventSet.setReadonly();
 	}
 }

@@ -76,4 +76,11 @@ public interface LedgerTransactionContext {
 	 * 回滚事务，抛弃本次事务的所有数据更新；
 	 */
 	void rollback();
+
+	/**
+	 * 事件数据集合；
+	 *
+	 * @return
+	 */
+	LedgerEventSet getEventSet();
 }

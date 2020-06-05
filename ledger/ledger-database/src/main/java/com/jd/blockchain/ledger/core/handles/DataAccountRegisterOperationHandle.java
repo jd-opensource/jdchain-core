@@ -10,6 +10,7 @@ import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
+import com.jd.blockchain.ledger.core.EventManager;
 
 public class DataAccountRegisterOperationHandle extends AbstractLedgerOperationHandle<DataAccountRegisterOperation> {
 
@@ -19,7 +20,7 @@ public class DataAccountRegisterOperationHandle extends AbstractLedgerOperationH
 
 	@Override
 	protected void doProcess(DataAccountRegisterOperation op, LedgerDataset newBlockDataset,
-			TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext) {
+			TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager) {
 		// TODO: 请求者应该提供数据账户的公钥签名，以更好地确保注册人对该地址和公钥具有合法使用权；
 
 		// 权限校验；

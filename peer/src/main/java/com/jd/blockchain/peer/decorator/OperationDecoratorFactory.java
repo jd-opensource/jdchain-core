@@ -37,6 +37,10 @@ public class OperationDecoratorFactory {
             return decorateUserAuthorizeOperation((UserAuthorizeOperation) op);
         } else if (op instanceof UserRegisterOperation) {
             return decorateUserRegisterOperation((UserRegisterOperation) op);
+        } else if (op instanceof EventAccountRegisterOperation) {
+            return decorateEventAccountRegisterOperation((EventAccountRegisterOperation) op);
+        } else if (op instanceof EventPublishOperation) {
+            return decorateEventPublishOperation((EventPublishOperation) op);
         }
 
         return null;
@@ -205,6 +209,27 @@ public class OperationDecoratorFactory {
      */
     public static BlockchainIdentity decorateBlockchainIdentity(BlockchainIdentity identity) {
         return new BlockchainIdentityData(identity.getAddress(), identity.getPubKey());
+    }
+
+    /**
+     * decorate EventAccountRegisterOperation object
+     *
+     * @param op
+     * @return
+     */
+    public static Operation decorateEventAccountRegisterOperation(EventAccountRegisterOperation op) {
+        BlockchainIdentity identity = decorateBlockchainIdentity(op.getEventAccountID());
+        return new EventAccountRegisterOpTemplate(identity);
+    }
+
+    /**
+     * decorate EventPublishOperation object
+     *
+     * @param op
+     * @return
+     */
+    public static Operation decorateEventPublishOperation(EventPublishOperation op) {
+        return new EventPublishOpTemplate(op.getEventAddress());
     }
 
     /**

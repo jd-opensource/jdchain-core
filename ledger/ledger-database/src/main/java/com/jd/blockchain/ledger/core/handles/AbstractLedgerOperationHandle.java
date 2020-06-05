@@ -4,6 +4,7 @@ import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.TransactionPermission;
+import com.jd.blockchain.ledger.core.EventManager;
 import com.jd.blockchain.ledger.core.LedgerDataset;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
@@ -44,7 +45,7 @@ public abstract class AbstractLedgerOperationHandle<T extends Operation> impleme
 
 	@Override
 	public final BytesValue process(Operation op, LedgerDataset newBlockDataset,
-			TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext) {
+			TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager) {
 		// 权限校验；
 		SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
 		securityPolicy.checkEndpointPermission(TransactionPermission.DIRECT_OPERATION, MultiIDsPolicy.AT_LEAST_ONE);
@@ -52,12 +53,12 @@ public abstract class AbstractLedgerOperationHandle<T extends Operation> impleme
 		// 操作账本；
 		@SuppressWarnings("unchecked")
 		T concretedOp = (T) op;
-		doProcess(concretedOp, newBlockDataset, requestContext, ledger, handleContext);
+		doProcess(concretedOp, newBlockDataset, requestContext, ledger, handleContext, manager);
 
 		// 账本操作没有返回值；
 		return null;
 	}
 
 	protected abstract void doProcess(T op, LedgerDataset newBlockDataset, TransactionRequestExtension requestContext,
-			LedgerQuery ledger, OperationHandleContext handleContext);
+			LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager);
 }

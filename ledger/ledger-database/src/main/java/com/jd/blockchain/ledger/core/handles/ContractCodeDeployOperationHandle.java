@@ -23,7 +23,7 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 	@Override
 	protected void doProcess(ContractCodeDeployOperation op, LedgerDataset newBlockDataset,
 			TransactionRequestExtension requestContext, LedgerQuery ledger,
-			OperationHandleContext handleContext) {
+			OperationHandleContext handleContext, EventManager manager) {
 
 
 		// TODO: 请求者应该提供合约账户的公钥签名，以确保注册人对注册的地址和公钥具有合法的使用权；
