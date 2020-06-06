@@ -202,6 +202,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         this.outerTomConfig.setProcessId(id);
     }
 
+    // 注意：该方法获得的共识环境为节点启动时从账本里读取的共识环境，如果运行过程中发生了节点动态入网，该环境没有得到更新
     public BftsmartConsensusSettings getConsensusSetting() {
         return setting;
     }
@@ -232,6 +233,11 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             }
         }
         View returnView = new View(id, processes, f, addresses);
+
+        for (int i = 0; i < returnView.getProcesses().length; i++) {
+            LOGGER.info("[BftsmartNodeServer.getOuterTopology] PartiNode id = {}, host = {}, port = {}", returnView.getProcesses()[i],
+                    returnView.getAddress(i).getHostName(), returnView.getAddress(i).getPort());
+        }
         this.outerTopology = new BftsmartTopology(returnView);
 
         return outerTopology;

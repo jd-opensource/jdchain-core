@@ -12,6 +12,7 @@ import bftsmart.reconfiguration.views.MemoryBasedViewStorage;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.ServiceProxy;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingConfig;
 import com.jd.blockchain.crypto.*;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.*;
@@ -209,6 +210,15 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				}
 				try {
 					clientIncomingSettings = peer.getConsensusManageService().authClientIncoming(authId);
+
+					DbConnection dbConnNew = connFactory.connect(ledgerDBConnects.get(ledgerHash).getUri(),
+							ledgerDBConnects.get(ledgerHash).getPassword());
+					LedgerQuery ledgerRepository = ledgerManager.register(ledgerHash, dbConnNew.getStorageService());
+
+					// consensus setting maybe have changed due to view update, so we can get latest consensus setting by read ledger repository
+					ConsensusSettings csSettings = getConsensusSetting(provider, ledgerRepository.getAdminInfo(ledgerRepository.retrieveLatestBlock()));
+
+					((BftsmartClientIncomingConfig)clientIncomingSettings).setConsensusSettings((BftsmartConsensusSettings) csSettings);
 
 					// add for test the gateway connect to peer0; 20200514;
 					ConsensusSettings consensusSettings = clientIncomingSettings.getConsensusSettings();
