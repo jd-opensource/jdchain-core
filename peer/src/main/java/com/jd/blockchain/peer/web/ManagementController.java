@@ -109,7 +109,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	private LedgerBindingConfig config;
 
-	private ServiceProxy peerProxy;
+	private static ServiceProxy peerProxy;
 
 	@Autowired
 	private MessageHandle consensusMessageHandler;
@@ -421,7 +421,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		txRequest = addNodeSigner(txRequest);
 
 		// 从本地加载的账本中检索出共识网络中其它参与共识的节点的网络地址；
-		origConsensusSetting = SearchOrigNodes(ledgerRepo.getAdminInfo());
+		origConsensusSetting = SearchOrigNodes(ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()));
 
 		// 连接已有的共识网络,把交易提交到目标账本的原有共识网络进行共识；
 		TransactionResponse txResponse = commitTxToOrigConsensus(txRequest, origConsensusSetting);
@@ -431,7 +431,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			LOGGER.error("[ManagementController] : Commit tx to orig consensus, tx execute failed!");
 			return txResponse;
 		}
-		
 		// 如果交易执行成功，记录远程共识网络的新区块哈希；
 		remoteNewBlockHash = txResponse.getBlockHash();
 
@@ -447,7 +446,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	private boolean verifyState(LedgerRepository ledgerRepo) {
 		ParticipantNode currNode = ledgerCurrNodes.get(ledgerRepo.getHash());
 
-		for (ParticipantNode participantNode : ledgerRepo.getAdminInfo().getParticipants()) {
+		for (ParticipantNode participantNode : ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()).getParticipants()) {
 			if ((participantNode.getAddress().toString().equals(currNode.getAddress().toString())) && participantNode.getParticipantNodeState() == ParticipantNodeState.REGISTERED) {
 				return true;
 			}
