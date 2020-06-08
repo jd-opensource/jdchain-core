@@ -36,8 +36,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 
 @RestController
 @RequestMapping(path = "/")
@@ -477,9 +477,23 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventGroup systemEvents = ledger.getSystemEvents(block);
-//		return systemEvents.getEvents(eventName, fromSequence, maxCount);
+		Iterator<Event> iterator = systemEvents.getEvents(eventName, fromSequence, maxCount);
+		List<Event> events = new ArrayList<>();
+		while (iterator.hasNext()) {
+			events.add(iterator.next());
+		}
+		return events.toArray(new Event[events.size()]);
+	}
 
-		return null;
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts")
+	@Override
+	public BlockchainIdentity[] getUserEventAccounts(@PathVariable(name = "ledgerHash")  HashDigest ledgerHash,
+													 @RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+													 @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		EventAccountQuery eventAccountSet = ledger.getUserEvents(ledger.getLatestBlock());
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) eventAccountSet.getTotal());
+		return eventAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/{address}/{eventName}")
@@ -489,8 +503,15 @@ public class LedgerQueryController implements BlockchainQueryService {
 								 @PathVariable(name = "eventName") String eventName,
 								 @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
 								 @RequestParam(name = "maxCount", required = false, defaultValue = "-1") int maxCount) {
-		// todo 需要实现
-		return new Event[0];
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventAccountQuery userEvents = ledger.getUserEvents(block);
+		Iterator<Event> iterator = userEvents.getAccount(address).getEvents(eventName, fromSequence, maxCount);
+		List<Event> events = new ArrayList<>();
+		while (iterator.hasNext()) {
+			events.add(iterator.next());
+		}
+		return events.toArray(new Event[events.size()]);
 	}
 
 	/**

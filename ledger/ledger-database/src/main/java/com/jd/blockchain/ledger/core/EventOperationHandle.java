@@ -1,6 +1,7 @@
 package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.ledger.BlockchainIdentity;
+import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.EventPublishOperation;
 import com.jd.blockchain.utils.Bytes;
 
@@ -25,5 +26,15 @@ public interface EventOperationHandle {
      * @return
      */
     void publish(Bytes address, EventPublishOperation.EventEntry[] events);
+
+    /**
+     * 发布系统事件；<br>
+     *
+     * @param eventName      事件名；
+     * @param content        消息内容；
+     * @param latestSequence 该事件序列的最新序号；
+     * @return
+     */
+    long publish(String eventName, BytesValue content, long latestSequence);
 
 }

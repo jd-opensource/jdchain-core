@@ -229,7 +229,15 @@ public class OperationDecoratorFactory {
      * @return
      */
     public static Operation decorateEventPublishOperation(EventPublishOperation op) {
-        return new EventPublishOpTemplate(op.getEventAddress());
+        EventPublishOpTemplate opTemplate = new EventPublishOpTemplate(op.getEventAddress());
+        EventPublishOperation.EventEntry[] events = op.getEvents();
+        if (events != null && events.length > 0) {
+            System.out.println(events.length);
+            for (EventPublishOperation.EventEntry entry : events) {
+                opTemplate.set(entry.getName(), decorateBytesValue(entry.getContent()), entry.getSequence());
+            }
+        }
+        return opTemplate;
     }
 
     /**

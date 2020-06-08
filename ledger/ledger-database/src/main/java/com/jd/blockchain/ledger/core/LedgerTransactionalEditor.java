@@ -540,6 +540,11 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		}
 
 		@Override
+		public long getBlockHeight() {
+			return blockEditor.getBlockHeight();
+		}
+
+		@Override
 		public LedgerDataset getDataset() {
 			return dataset;
 		}
@@ -604,6 +609,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 			// 未处理
 			dataset.cancel();
+			eventSet.cancel();
 
 			TransactionStagedSnapshot txDataSnapshot = takeDataSnapshot();
 			EventStagedSnapshot eventSnapshot = takeEventSnapshot();

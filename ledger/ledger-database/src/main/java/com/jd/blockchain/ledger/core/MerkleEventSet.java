@@ -1,11 +1,14 @@
 package com.jd.blockchain.ledger.core;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
+import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.Event;
+import com.jd.blockchain.ledger.EventInfo;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
@@ -26,18 +29,14 @@ public class MerkleEventSet implements EventGroup, EventPublisher, Transactional
 	}
 
 	/**
-	 * 发布事件；<br>
-	 *
-	 * @param eventName 事件名；
-	 * @param message 消息内容；
-	 * @param sequence 事件序号；
+	 * 发布事件
+	 * @param event
 	 * @return
 	 */
-
 	@Override
-	public long publish(String eventName, BytesValue message, long sequence) {
-		Bytes key = encodeKey(eventName);
-		long newSequence = events.setValue(key, message.getBytes().toBytes(), sequence);
+	public long publish(Event event) {
+		Bytes key = encodeKey(event.getName());
+		long newSequence = events.setValue(key, BinaryProtocol.encode(event, Event.class), event.getSequence());
 
 		if (newSequence < 0) {
 			throw new LedgerException("Transaction is persisted repeatly! --[" + key + "]");
@@ -48,8 +47,18 @@ public class MerkleEventSet implements EventGroup, EventPublisher, Transactional
 
 	@Override
 	public Iterator<Event> getEvents(String eventName, long fromSequence, int maxCount) {
-		// TODO Auto-generated method stub
-		return null;
+		List<Event> eventsArray = new ArrayList<>();
+		Bytes key = encodeKey(eventName);
+		long maxVersion = events.getVersion(key);
+		for (int i = 0; i < maxCount && i <= maxVersion; i++) {
+			byte[] bs = events.getValue(key, fromSequence + i);
+			if (null == bs) {
+			    break;
+            }
+			Event event = BinaryProtocol.decode(bs);
+			eventsArray.add(new EventInfo(event));
+		}
+		return eventsArray.iterator();
 	}
 
 	public HashDigest getRootHash() {

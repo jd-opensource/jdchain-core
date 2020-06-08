@@ -185,6 +185,11 @@ public class ContractLedgerContext implements LedgerContext {
 	}
 
 	@Override
+	public BlockchainIdentity[] getUserEventAccounts(HashDigest ledgerHash, int fromIndex, int count) {
+		return innerQueryService.getUserEventAccounts(ledgerHash, fromIndex, count);
+	}
+
+	@Override
 	public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int maxCount) {
 		return innerQueryService.getUserEvents(ledgerHash, address, eventName, fromSequence, maxCount);
 	}

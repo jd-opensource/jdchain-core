@@ -13,6 +13,13 @@ import java.util.List;
 public interface LedgerTransactionContext {
 
 	/**
+	 * 区块高度；
+	 *
+	 * @return
+	 */
+	long getBlockHeight();
+
+	/**
 	 * 账本数据集合；
 	 * 
 	 * @return

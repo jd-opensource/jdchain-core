@@ -30,6 +30,7 @@ import com.jd.blockchain.utils.query.QueryArgs;
 import com.jd.blockchain.utils.query.QueryUtils;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class LedgerQueryService implements BlockchainQueryService {
@@ -389,12 +390,37 @@ public class LedgerQueryService implements BlockchainQueryService {
 
 	@Override
 	public Event[] getSystemEvents(HashDigest ledgerHash, String eventName, long fromSequence, int maxCount) {
-		return new Event[0];
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventGroup systemEvents = ledger.getSystemEvents(block);
+		Iterator<Event> iterator = systemEvents.getEvents(eventName, fromSequence, maxCount);
+		List<Event> events = new ArrayList<>();
+		while (iterator.hasNext()) {
+			events.add(iterator.next());
+		}
+		return events.toArray(new Event[events.size()]);
+	}
+
+	@Override
+	public BlockchainIdentity[] getUserEventAccounts(HashDigest ledgerHash, int fromIndex, int count) {
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventAccountQuery eventAccountSet = ledger.getUserEvents(block);
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) eventAccountSet.getTotal());
+		return eventAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	@Override
 	public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int maxCount) {
-		return new Event[0];
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventAccountQuery userEvents = ledger.getUserEvents(block);
+		Iterator<Event> iterator = userEvents.getAccount(address).getEvents(eventName, fromSequence, maxCount);
+		List<Event> events = new ArrayList<>();
+		while (iterator.hasNext()) {
+			events.add(iterator.next());
+		}
+		return events.toArray(new Event[events.size()]);
 	}
 
 	@Override

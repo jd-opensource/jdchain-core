@@ -1,17 +1,14 @@
 package com.jd.blockchain.ledger.core;
 
-import com.jd.blockchain.ledger.BytesValue;
+import com.jd.blockchain.ledger.Event;
 
 public interface EventPublisher {
 
 	/**
-	 * 发布事件；<br>
-	 * 
-	 * @param eventName      事件名；
-	 * @param content        消息内容；
-	 * @param latestSequence 该事件序列的最新序号；
+	 * 发布事件
+	 * @param event
 	 * @return
 	 */
-	long publish(String eventName, BytesValue content, long latestSequence);
+	long publish(Event event);
 
 }

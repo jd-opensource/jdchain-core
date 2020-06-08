@@ -1,11 +1,13 @@
 package com.jd.blockchain.ledger.core;
 
+import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.Account;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.DigitalSignature;
+import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
@@ -18,6 +20,9 @@ import com.jd.blockchain.utils.Transactional;
  * Version 1.0
  */
 public class EventAccountSet implements EventAccountQuery, Transactional {
+    static {
+        DataContractRegistry.register(Event.class);
+    }
 
     private MerkleAccountSet accountSet;
 

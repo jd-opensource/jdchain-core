@@ -333,6 +333,14 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 		return peerService.getEventListener().getSystemEvents(ledgerHash, eventName, fromSequence, maxCount);
 	}
 
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts")
+	@Override
+	public BlockchainIdentity[] getUserEventAccounts(@PathVariable(name = "ledgerHash")  HashDigest ledgerHash,
+													 @RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+													 @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+		return peerService.getQueryService().getUserEventAccounts(ledgerHash, fromIndex, count);
+	}
+
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/{address}/{eventName}")
 	@Override
 	public Event[] getUserEvents(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
