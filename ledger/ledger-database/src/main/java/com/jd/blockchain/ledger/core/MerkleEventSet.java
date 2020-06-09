@@ -36,7 +36,7 @@ public class MerkleEventSet implements EventGroup, EventPublisher, Transactional
 	@Override
 	public long publish(Event event) {
 		Bytes key = encodeKey(event.getName());
-		long newSequence = events.setValue(key, BinaryProtocol.encode(event, Event.class), event.getSequence());
+		long newSequence = events.setValue(key, BinaryProtocol.encode(event, Event.class), event.getSequence()-1);
 
 		if (newSequence < 0) {
 			throw new LedgerException("Transaction is persisted repeatly! --[" + key + "]");

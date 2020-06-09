@@ -22,7 +22,7 @@ public class EventPublishingAccount implements EventAccount, EventPublisher {
 
     @Override
     public long publish(Event event) {
-        return account.getDataset().setValue(event.getName(), TypedValue.fromBytes(BinaryProtocol.encode(event, Event.class)), event.getSequence());
+        return account.getDataset().setValue(event.getName(), TypedValue.fromBytes(BinaryProtocol.encode(event, Event.class)), event.getSequence()-1);
     }
 
     @Override
