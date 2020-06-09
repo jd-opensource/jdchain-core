@@ -5,6 +5,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
+import com.jd.blockchain.ledger.DataAccountInfo;
 import com.jd.blockchain.ledger.KVDataVO;
 import com.jd.blockchain.ledger.KVInfoVO;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
@@ -260,11 +261,11 @@ public class LedgerQueryService implements BlockchainQueryService {
 	}
 
 	@Override
-	public BlockchainIdentity getDataAccount(HashDigest ledgerHash, String address) {
+	public DataAccountInfo getDataAccount(HashDigest ledgerHash, String address) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
-		return dataAccountSet.getAccount(Bytes.fromBase58(address)).getID();
+		return dataAccountSet.getAccount(Bytes.fromBase58(address));
 	}
 
 	@Override

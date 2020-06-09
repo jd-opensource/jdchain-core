@@ -5,6 +5,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
+import com.jd.blockchain.ledger.DataAccountInfo;
 import com.jd.blockchain.ledger.DataAccountKVSetOperation;
 import com.jd.blockchain.ledger.DataAccountRegisterOperation;
 import com.jd.blockchain.ledger.KVInfoVO;
@@ -168,7 +169,7 @@ public class ContractLedgerContext implements LedgerContext {
 	}
 
 	@Override
-	public BlockchainIdentity getDataAccount(HashDigest ledgerHash, String address) {
+	public DataAccountInfo getDataAccount(HashDigest ledgerHash, String address) {
 		return innerQueryService.getDataAccount(ledgerHash, address);
 	}
 
