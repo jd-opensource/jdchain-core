@@ -544,6 +544,11 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		ledgerPeers.put(ledgerRepository.getHash(), server);
 
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 		runRealm(server);
 
 	}
