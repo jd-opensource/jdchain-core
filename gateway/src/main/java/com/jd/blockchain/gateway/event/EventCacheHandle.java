@@ -31,7 +31,7 @@ public class EventCacheHandle implements EventCache {
 
     private final HashDigest ledgerHash;
 
-    private final Map<String, Events> eventsLruMap = new LRUMap<>(MAX_EVENTS);
+    private final LRUMap<String, Events> eventsLruMap = new LRUMap<>(MAX_EVENTS);
 
     public EventCacheHandle(HashDigest ledgerHash) {
         this.ledgerHash = ledgerHash;
@@ -80,7 +80,11 @@ public class EventCacheHandle implements EventCache {
         if (events.length > 0) {
             mapLock.lock();
             try {
-                Events eventList = eventsLruMap.putIfAbsent(key, new Events());
+                Events eventList = eventsLruMap.get(key);
+                if (eventList == null) {
+                    eventList = new Events();
+                    eventsLruMap.put(key, eventList);
+                }
                 for (Event event : events) {
                     eventList.put(event.getSequence(), event);
                     updateMaxHeight(event.getBlockHeight());
