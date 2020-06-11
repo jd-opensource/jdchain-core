@@ -76,6 +76,9 @@ public class MerkleEventSet implements EventGroup, EventPublisher, Transactional
 
 	@Override
 	public void commit() {
+		if(events.getDataCount()  == 0) {
+			return;
+		}
 		events.commit();
 	}
 
