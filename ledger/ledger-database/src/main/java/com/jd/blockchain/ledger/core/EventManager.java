@@ -29,7 +29,7 @@ public class EventManager implements EventOperationHandle, Transactional {
     public void publish(Bytes address, EventPublishOperation.EventEntry[] events) {
         EventPublishingAccount account = txCtx.getEventSet().getUserEvents().getAccount(address);
         for (EventPublishOperation.EventEntry event : events) {
-            long v = account.publish(new EventInfo(event.getName(), event.getSequence()+1, event.getContent(), txCtx.getTransactionSet().getRootHash(), txCtx.getBlockHeight()));
+            long v = account.publish(new EventInfo(address, event.getName(), event.getSequence()+1, event.getContent(), txCtx.getTransactionSet().getRootHash(), txCtx.getBlockHeight()));
             if (v < 0) {
                 throw new DataVersionConflictException();
             }
