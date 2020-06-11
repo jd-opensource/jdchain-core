@@ -1,22 +1,11 @@
 package com.jd.blockchain.ledger.core.handles;
 
+import com.jd.blockchain.consensus.ConsensusProvider;
+import com.jd.blockchain.consensus.ConsensusProviders;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.ledger.LedgerPermission;
-import com.jd.blockchain.ledger.ParticipantInfo;
-import com.jd.blockchain.ledger.ParticipantInfoData;
-import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.ParticipantNodeState;
-import com.jd.blockchain.ledger.ParticipantRegisterOperation;
-import com.jd.blockchain.ledger.UserRegisterOperation;
-import com.jd.blockchain.ledger.core.LedgerAdminDataset;
-import com.jd.blockchain.ledger.core.LedgerDataset;
-import com.jd.blockchain.ledger.core.LedgerQuery;
-import com.jd.blockchain.ledger.core.MultiIDsPolicy;
-import com.jd.blockchain.ledger.core.OperationHandleContext;
-import com.jd.blockchain.ledger.core.SecurityContext;
-import com.jd.blockchain.ledger.core.SecurityPolicy;
-import com.jd.blockchain.ledger.core.TransactionRequestExtension;
+import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.ledger.core.*;
 import com.jd.blockchain.transaction.UserRegisterOpTemplate;
 import com.jd.blockchain.utils.Bytes;
 
@@ -39,12 +28,22 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
 
         LedgerAdminDataset adminAccountDataSet = newBlockDataset.getAdminDataset();
 
+        ConsensusProvider provider = ConsensusProviders.getProvider(adminAccountDataSet.getSettings().getConsensusProvider());
+
         ParticipantInfo participantInfo = new ParticipantInfoData(participantRegOp.getParticipantName(), participantRegOp.getParticipantRegisterIdentity().getPubKey(), participantRegOp.getNetworkAddress());
 
         ParticipantNode participantNode = new PartNode((int)(adminAccountDataSet.getParticipantCount()), participantInfo.getName(), participantInfo.getPubKey(), ParticipantNodeState.REGISTERED);
 
         //add new participant as consensus node
         adminAccountDataSet.addParticipant(participantNode);
+
+        //update consensus setting
+        Bytes newConsensusSettings =  provider.getSettingsFactory().getConsensusSettingsBuilder().updateSettings(adminAccountDataSet.getSettings().getConsensusSetting(), participantInfo);
+
+        LedgerSettings ledgerSetting = new LedgerConfiguration(adminAccountDataSet.getSettings().getConsensusProvider(),
+                newConsensusSettings, adminAccountDataSet.getPreviousSetting().getCryptoSetting());
+
+        adminAccountDataSet.setLedgerSetting(ledgerSetting);
 
         // Build UserRegisterOperation, reg participant as user
         UserRegisterOperation userRegOp = new UserRegisterOpTemplate(participantRegOp.getParticipantRegisterIdentity());

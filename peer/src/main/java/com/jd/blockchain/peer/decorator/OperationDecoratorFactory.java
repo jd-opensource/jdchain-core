@@ -148,8 +148,7 @@ public class OperationDecoratorFactory {
      */
     public static Operation decorateParticipantStateUpdateOperation(ParticipantStateUpdateOperation op) {
         BlockchainIdentity stateUpdateIdentity = decorateBlockchainIdentity(op.getStateUpdateIdentity());
-        return new ParticipantStateUpdateOpTemplate(stateUpdateIdentity,
-                op.getNetworkAddress(), op.getState());
+        return new ParticipantStateUpdateOpTemplate(stateUpdateIdentity, op.getState());
     }
 
     /**
