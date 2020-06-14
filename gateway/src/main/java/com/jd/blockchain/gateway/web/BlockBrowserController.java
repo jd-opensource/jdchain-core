@@ -324,13 +324,34 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 		return peerService.getQueryService().getContract(ledgerHash, address);
 	}
 
-	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/{eventName}")
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names/{eventName}")
 	@Override
 	public Event[] getSystemEvents(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 								   @PathVariable(name = "eventName") String eventName,
 								   @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
-								   @RequestParam(name = "maxCount", required = false, defaultValue = "-1") int maxCount) {
-		return peerService.getEventListener().getSystemEvents(ledgerHash, eventName, fromSequence, maxCount);
+								   @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+		return peerService.getEventListener().getSystemEvents(ledgerHash, eventName, fromSequence, count);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names/count")
+	@Override
+	public long getSystemEventNameTotalCount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash) {
+		return peerService.getQueryService().getSystemEventNameTotalCount(ledgerHash);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names")
+	@Override
+	public Event[] getSystemEventNames(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+										@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+										@RequestParam(name = "maxCount", required = false, defaultValue = "-1") int count) {
+		return peerService.getQueryService().getSystemEventNames(ledgerHash, fromIndex, count);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names/{eventName}/count")
+	@Override
+	public long getSystemEventsTotalCount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+										  @PathVariable(name = "eventName") String eventName) {
+		return peerService.getQueryService().getSystemEventsTotalCount(ledgerHash, eventName);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts")
@@ -341,14 +362,51 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 		return peerService.getQueryService().getUserEventAccounts(ledgerHash, fromIndex, count);
 	}
 
-	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/{address}/{eventName}")
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}")
+	@Override
+	public BlockchainIdentity getUserEventAccount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+												  @PathVariable(name = "address") String address) {
+		return peerService.getQueryService().getUserEventAccount(ledgerHash, address);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/count")
+	@Override
+	public long getUserEventAccountTotalCount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash) {
+		return peerService.getQueryService().getUserEventAccountTotalCount(ledgerHash);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/count")
+	@Override
+	public long getUserEventNameTotalCount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+										   @PathVariable(name = "address") String address) {
+		return peerService.getQueryService().getUserEventNameTotalCount(ledgerHash, address);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names")
+	@Override
+	public Event[] getUserEventNames(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+									  @PathVariable(name = "address") String address,
+									 @RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+									 @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+		return peerService.getQueryService().getUserEventNames(ledgerHash, address, fromIndex, count);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/{eventName}/count")
+	@Override
+	public long getUserEventsTotalCount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+										@PathVariable(name = "address") String address,
+										@PathVariable(name = "eventName") String eventName) {
+		return peerService.getQueryService().getUserEventsTotalCount(ledgerHash, address, eventName);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/{eventName}")
 	@Override
 	public Event[] getUserEvents(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 								 @PathVariable(name = "address") String address,
 								 @PathVariable(name = "eventName") String eventName,
 								 @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
-								 @RequestParam(name = "maxCount", required = false, defaultValue = "-1") int maxCount) {
-		return peerService.getEventListener().getUserEvents(ledgerHash, address, eventName, fromSequence, maxCount);
+								 @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+		return peerService.getEventListener().getUserEvents(ledgerHash, address, eventName, fromSequence, count);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/latest")

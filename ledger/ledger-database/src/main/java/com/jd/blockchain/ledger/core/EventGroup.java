@@ -20,5 +20,29 @@ public interface EventGroup {
 	 * @param maxCount     最大数量；
 	 * @return
 	 */
-	Iterator<Event> getEvents(String eventName, long fromSequence, int maxCount);
+	Event[] getEvents(String eventName, long fromSequence, int maxCount);
+
+	/**
+	 * 查询所有事件名称，返回最新事件
+	 *
+	 * @param fromIndex
+	 * @param count
+	 * @return
+	 */
+	Event[] getEventNames(long fromIndex, int count);
+
+	/**
+	 * 事件名称总数
+	 *
+	 * @return
+	 */
+	long totalEventNames();
+
+	/**
+	 * 事件总数
+	 *
+	 * @param eventName
+	 * @return
+	 */
+	long totalEvents(String eventName);
 }

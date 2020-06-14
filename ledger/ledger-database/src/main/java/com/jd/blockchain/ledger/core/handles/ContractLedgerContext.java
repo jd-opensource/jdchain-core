@@ -185,13 +185,53 @@ public class ContractLedgerContext implements LedgerContext {
 	}
 
 	@Override
+	public long getSystemEventNameTotalCount(HashDigest ledgerHash) {
+		return innerQueryService.getSystemEventNameTotalCount(ledgerHash);
+	}
+
+	@Override
+	public Event[] getSystemEventNames(HashDigest ledgerHash, int fromIndex, int count) {
+		return innerQueryService.getSystemEventNames(ledgerHash, fromIndex, count);
+	}
+
+	@Override
+	public long getSystemEventsTotalCount(HashDigest ledgerHash, String eventName) {
+		return innerQueryService.getSystemEventsTotalCount(ledgerHash, eventName);
+	}
+
+	@Override
 	public BlockchainIdentity[] getUserEventAccounts(HashDigest ledgerHash, int fromIndex, int count) {
 		return innerQueryService.getUserEventAccounts(ledgerHash, fromIndex, count);
 	}
 
 	@Override
-	public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int maxCount) {
-		return innerQueryService.getUserEvents(ledgerHash, address, eventName, fromSequence, maxCount);
+	public BlockchainIdentity getUserEventAccount(HashDigest ledgerHash, String address) {
+		return innerQueryService.getUserEventAccount(ledgerHash, address);
+	}
+
+	@Override
+	public long getUserEventAccountTotalCount(HashDigest ledgerHash) {
+		return innerQueryService.getUserEventAccountTotalCount(ledgerHash);
+	}
+
+	@Override
+	public long getUserEventNameTotalCount(HashDigest ledgerHash, String address) {
+		return innerQueryService.getUserEventNameTotalCount(ledgerHash, address);
+	}
+
+	@Override
+	public Event[] getUserEventNames(HashDigest ledgerHash, String address, int fromSequence, int count) {
+		return innerQueryService.getUserEventNames(ledgerHash, address, fromSequence, count);
+	}
+
+	@Override
+	public long getUserEventsTotalCount(HashDigest ledgerHash, String address, String eventName) {
+		return innerQueryService.getUserEventsTotalCount(ledgerHash, address, eventName);
+	}
+
+	@Override
+	public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int count) {
+		return innerQueryService.getUserEvents(ledgerHash, address, eventName, fromSequence, count);
 	}
 
 	// ---------------------------user()----------------------------

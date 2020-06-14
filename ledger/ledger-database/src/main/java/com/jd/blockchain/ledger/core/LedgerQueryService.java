@@ -389,16 +389,35 @@ public class LedgerQueryService implements BlockchainQueryService {
 	}
 
 	@Override
-	public Event[] getSystemEvents(HashDigest ledgerHash, String eventName, long fromSequence, int maxCount) {
+	public Event[] getSystemEvents(HashDigest ledgerHash, String eventName, long fromSequence, int count) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventGroup systemEvents = ledger.getSystemEvents(block);
-		Iterator<Event> iterator = systemEvents.getEvents(eventName, fromSequence, maxCount);
-		List<Event> events = new ArrayList<>();
-		while (iterator.hasNext()) {
-			events.add(iterator.next());
-		}
-		return events.toArray(new Event[events.size()]);
+		return systemEvents.getEvents(eventName, fromSequence, count);
+	}
+
+	@Override
+	public long getSystemEventNameTotalCount(HashDigest ledgerHash) {
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventGroup systemEvents = ledger.getSystemEvents(block);
+		return systemEvents.totalEventNames();
+	}
+
+	@Override
+	public Event[] getSystemEventNames(HashDigest ledgerHash, int fromIndex, int maxCount) {
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventGroup systemEvents = ledger.getSystemEvents(block);
+		return systemEvents.getEventNames(fromIndex, maxCount);
+	}
+
+	@Override
+	public long getSystemEventsTotalCount(HashDigest ledgerHash, String eventName) {
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventGroup systemEvents = ledger.getSystemEvents(block);
+		return systemEvents.totalEvents(eventName);
 	}
 
 	@Override
@@ -411,16 +430,51 @@ public class LedgerQueryService implements BlockchainQueryService {
 	}
 
 	@Override
-	public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int maxCount) {
+	public BlockchainIdentity getUserEventAccount(HashDigest ledgerHash, String address) {
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventAccountQuery eventAccountSet = ledger.getUserEvents(block);
+		return eventAccountSet.getAccount(address).getID();
+	}
+
+	@Override
+	public long getUserEventAccountTotalCount(HashDigest ledgerHash) {
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventAccountQuery eventAccountSet = ledger.getUserEvents(block);
+		return eventAccountSet.getTotal();
+	}
+
+	@Override
+	public long getUserEventNameTotalCount(HashDigest ledgerHash, String address) {
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventAccountQuery eventAccountSet = ledger.getUserEvents(block);
+		return eventAccountSet.getAccount(address).totalEventNames();
+	}
+
+	@Override
+	public Event[] getUserEventNames(HashDigest ledgerHash, String address, int fromIndex, int count) {
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventAccountQuery eventAccountSet = ledger.getUserEvents(block);
+		return eventAccountSet.getAccount(address).getEventNames(fromIndex, count);
+	}
+
+	@Override
+	public long getUserEventsTotalCount(HashDigest ledgerHash, String address, String eventName) {
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventAccountQuery eventAccountSet = ledger.getUserEvents(block);
+		return eventAccountSet.getAccount(address).totalEvents(eventName);
+	}
+
+	@Override
+	public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int count) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventAccountQuery userEvents = ledger.getUserEvents(block);
-		Iterator<Event> iterator = userEvents.getAccount(address).getEvents(eventName, fromSequence, maxCount);
-		List<Event> events = new ArrayList<>();
-		while (iterator.hasNext()) {
-			events.add(iterator.next());
-		}
-		return events.toArray(new Event[events.size()]);
+		return userEvents.getAccount(address).getEvents(eventName, fromSequence, count);
 	}
 
 	@Override

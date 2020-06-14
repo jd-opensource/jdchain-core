@@ -81,9 +81,9 @@ public class PullEventListener implements EventListener {
     }
 
     @Override
-    public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int maxCount) {
+    public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int count) {
         EventPoint eventPoint = new UserEventPointData(address, eventName);
-        return getEvents(ledgerHash, eventPoint, fromSequence, maxCount);
+        return getEvents(ledgerHash, eventPoint, fromSequence, count);
     }
 
     private void initCache() {
