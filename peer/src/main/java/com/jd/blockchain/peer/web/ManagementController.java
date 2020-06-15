@@ -236,10 +236,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 							for (int process : processes) {
 								InetSocketAddress address = view.getAddress(process);
 								if(LOGGER.isDebugEnabled()){
-									LOGGER.debug("topology id = %s, address = %s \r\n",
-											process, address);
-									LOGGER.debug("tomConfig id = %s, host = %s, port = %s \r\n",
-											process, tomConfig.getHost(process), tomConfig.getPort(process));
+									LOGGER.debug(String.format("topology id = %s, address = %s \r\n",
+											process, address));
+									LOGGER.debug(String.format("tomConfig id = %s, host = %s, port = %s \r\n",
+											process, tomConfig.getHost(process), tomConfig.getPort(process)));
 								}
 							}
 						}
