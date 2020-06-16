@@ -491,14 +491,24 @@ public class LedgerQueryController implements BlockchainQueryService {
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names")
 	@Override
-	public Event[] getSystemEventNames(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+	public String[] getSystemEventNames(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 										@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
 										@RequestParam(name = "maxCount", required = false, defaultValue = "-1") int count) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventGroup systemEvents = ledger.getSystemEvents(block);
-		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) systemEvents.totalEventNames());
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) systemEvents.totalEventNames());
 		return systemEvents.getEventNames(queryArgs.getFrom(), queryArgs.getCount());
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names/{eventName}/latest")
+	@Override
+	public Event getLatestEvent(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+								@PathVariable(name = "eventName") String eventName) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventGroup systemEvents = ledger.getSystemEvents(block);
+		return systemEvents.getLatest(eventName);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names/{eventName}/count")
@@ -518,7 +528,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 													 @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		EventAccountQuery eventAccountSet = ledger.getUserEvents(ledger.getLatestBlock());
-		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) eventAccountSet.getTotal());
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) eventAccountSet.getTotal());
 		return eventAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
@@ -550,15 +560,25 @@ public class LedgerQueryController implements BlockchainQueryService {
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names")
 	@Override
-	public Event[] getUserEventNames(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+	public String[] getUserEventNames(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 									  @PathVariable(name = "address") String address,
 									  @RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
 									  @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventPublishingAccount account = ledger.getUserEvents(block).getAccount(address);
-		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) account.totalEventNames());
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) account.totalEventNames());
 		return account.getEventNames(queryArgs.getFrom(), queryArgs.getCount());
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/{eventName}/latest")
+	@Override
+	public Event getLatestEvent(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+								@PathVariable(name = "address") String address,
+								@PathVariable(name = "eventName") String eventName) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		EventAccountQuery eventAccountSet = ledger.getUserEvents(ledger.getLatestBlock());
+		return eventAccountSet.getAccount(address).getLatest(eventName);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/{eventName}/count")

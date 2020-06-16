@@ -1,9 +1,5 @@
 package com.jd.blockchain.ledger.core;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.CryptoSetting;
@@ -16,6 +12,9 @@ import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.DataIterator;
 import com.jd.blockchain.utils.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MerkleEventSet implements EventGroup, EventPublisher, Transactional {
 
@@ -103,13 +102,13 @@ public class MerkleEventSet implements EventGroup, EventPublisher, Transactional
     }
 
     @Override
-    public Event[] getEventNames(long fromIndex, int count) {
+    public String[] getEventNames(long fromIndex, int count) {
         DataIterator<Bytes, byte[]> iterator = events.iterator();
         iterator.skip(fromIndex);
         DataEntry<Bytes, byte[]>[] entries = iterator.next(count);
-        Event[] events = new Event[entries.length];
+        String[] events = new String[entries.length];
         for (int i = 0; i < entries.length; i++) {
-            events[i] = BinaryProtocol.decode(entries[i].getValue());
+            events[i] = decodeKey(entries[i].getKey());
         }
 
         return events;
@@ -123,5 +122,14 @@ public class MerkleEventSet implements EventGroup, EventPublisher, Transactional
     @Override
     public long totalEvents(String eventName) {
         return events.getVersion(encodeKey(eventName)) + 1;
+    }
+
+    @Override
+    public Event getLatest(String eventName) {
+        byte[] bs = events.getValue(encodeKey(eventName));
+        if (null == bs) {
+            return null;
+        }
+        return BinaryProtocol.decode(bs);
     }
 }

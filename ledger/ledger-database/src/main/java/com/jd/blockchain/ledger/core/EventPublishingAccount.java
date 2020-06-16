@@ -6,13 +6,11 @@ import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.EventInfo;
 import com.jd.blockchain.ledger.TypedValue;
-import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.DataIterator;
 import com.jd.blockchain.utils.Dataset;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public class EventPublishingAccount implements EventAccount, EventPublisher {
@@ -25,7 +23,7 @@ public class EventPublishingAccount implements EventAccount, EventPublisher {
 
     @Override
     public long publish(Event event) {
-        return account.getDataset().setValue(event.getName(), TypedValue.fromBytes(BinaryProtocol.encode(event, Event.class)), event.getSequence()-1);
+        return account.getDataset().setValue(event.getName(), TypedValue.fromBytes(BinaryProtocol.encode(event, Event.class)), event.getSequence() - 1);
     }
 
     @Override
@@ -46,13 +44,13 @@ public class EventPublishingAccount implements EventAccount, EventPublisher {
     }
 
     @Override
-    public Event[] getEventNames(long fromIndex, int count) {
+    public String[] getEventNames(long fromIndex, int count) {
         DataIterator<String, TypedValue> iterator = account.getDataset().iterator();
         iterator.skip(fromIndex);
         DataEntry<String, TypedValue>[] entries = iterator.next(count);
-        Event[] events = new Event[entries.length];
+        String[] events = new String[entries.length];
         for (int i = 0; i < entries.length; i++) {
-            events[i] = BinaryProtocol.decode(entries[i].getValue().bytesValue());
+            events[i] = entries[i].getKey();
         }
 
         return events;
@@ -66,6 +64,16 @@ public class EventPublishingAccount implements EventAccount, EventPublisher {
     @Override
     public long totalEvents(String eventName) {
         return account.getDataset().getVersion(eventName) + 1;
+    }
+
+    @Override
+    public Event getLatest(String eventName) {
+        TypedValue tv = account.getDataset().getValue(eventName);
+        if (null == tv || tv.isNil()) {
+            return null;
+        }
+
+        return BinaryProtocol.decode(tv.bytesValue());
     }
 
     @Override

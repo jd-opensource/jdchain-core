@@ -279,7 +279,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
 		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
 
-		
+
 		TypedKVEntry[] entries = new TypedKVEntry[keys.length];
 		long ver;
 		for (int i = 0; i < entries.length; i++) {
@@ -364,7 +364,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 		DataIterator<String, TypedValue> iterator = dataAccount.getDataset().iterator();
 		iterator.skip(queryArgs.getFrom());
 		DataEntry<String, TypedValue>[] dataEntries = iterator.next(queryArgs.getCount());
-		
+
 		TypedKVEntry[] typedKVEntries = ArrayUtils.cast(dataEntries, TypedKVEntry.class,
 				e -> e == null ? null : new TypedKVData(e.getKey(), e.getVersion(), e.getValue()));
 		return typedKVEntries;
@@ -405,11 +405,19 @@ public class LedgerQueryService implements BlockchainQueryService {
 	}
 
 	@Override
-	public Event[] getSystemEventNames(HashDigest ledgerHash, int fromIndex, int maxCount) {
+	public String[] getSystemEventNames(HashDigest ledgerHash, int fromIndex, int maxCount) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventGroup systemEvents = ledger.getSystemEvents(block);
 		return systemEvents.getEventNames(fromIndex, maxCount);
+	}
+
+	@Override
+	public Event getLatestEvent(HashDigest ledgerHash, String eventName) {
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventGroup systemEvents = ledger.getSystemEvents(block);
+		return systemEvents.getLatest(eventName);
 	}
 
 	@Override
@@ -454,11 +462,19 @@ public class LedgerQueryService implements BlockchainQueryService {
 	}
 
 	@Override
-	public Event[] getUserEventNames(HashDigest ledgerHash, String address, int fromIndex, int count) {
+	public String[] getUserEventNames(HashDigest ledgerHash, String address, int fromIndex, int count) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventAccountQuery eventAccountSet = ledger.getUserEvents(block);
 		return eventAccountSet.getAccount(address).getEventNames(fromIndex, count);
+	}
+
+	@Override
+	public Event getLatestEvent(HashDigest ledgerHash, String address, String eventName) {
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventAccountQuery eventAccountSet = ledger.getUserEvents(block);
+		return eventAccountSet.getAccount(address).getLatest(eventName);
 	}
 
 	@Override

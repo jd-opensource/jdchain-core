@@ -23,13 +23,13 @@ public interface EventGroup {
 	Event[] getEvents(String eventName, long fromSequence, int maxCount);
 
 	/**
-	 * 查询所有事件名称，返回最新事件
+	 * 查询所有事件名称
 	 *
 	 * @param fromIndex
 	 * @param count
 	 * @return
 	 */
-	Event[] getEventNames(long fromIndex, int count);
+	String[] getEventNames(long fromIndex, int count);
 
 	/**
 	 * 事件名称总数
@@ -45,4 +45,11 @@ public interface EventGroup {
 	 * @return
 	 */
 	long totalEvents(String eventName);
+
+	/**
+	 * 获取最新事件
+	 * @param eventName
+	 * @return
+	 */
+	Event getLatest(String eventName);
 }

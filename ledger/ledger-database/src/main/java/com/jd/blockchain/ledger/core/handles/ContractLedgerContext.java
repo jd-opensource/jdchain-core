@@ -190,8 +190,13 @@ public class ContractLedgerContext implements LedgerContext {
 	}
 
 	@Override
-	public Event[] getSystemEventNames(HashDigest ledgerHash, int fromIndex, int count) {
+	public String[] getSystemEventNames(HashDigest ledgerHash, int fromIndex, int count) {
 		return innerQueryService.getSystemEventNames(ledgerHash, fromIndex, count);
+	}
+
+	@Override
+	public Event getLatestEvent(HashDigest ledgerHash, String eventName) {
+		return innerQueryService.getLatestEvent(ledgerHash, eventName);
 	}
 
 	@Override
@@ -220,8 +225,13 @@ public class ContractLedgerContext implements LedgerContext {
 	}
 
 	@Override
-	public Event[] getUserEventNames(HashDigest ledgerHash, String address, int fromSequence, int count) {
+	public String[] getUserEventNames(HashDigest ledgerHash, String address, int fromSequence, int count) {
 		return innerQueryService.getUserEventNames(ledgerHash, address, fromSequence, count);
+	}
+
+	@Override
+	public Event getLatestEvent(HashDigest ledgerHash, String address, String eventName) {
+		return innerQueryService.getLatestEvent(ledgerHash, address, eventName);
 	}
 
 	@Override
