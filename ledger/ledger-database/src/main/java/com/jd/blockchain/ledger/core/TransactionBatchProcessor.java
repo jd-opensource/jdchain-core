@@ -126,12 +126,17 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 
 			// 验证交易请求；
 			checkRequest(reqExt);
+			LOGGER.debug("after checkRequest... --[BlockHeight={}][RequestHash={}][TxHash={}]",
+					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash());
 
 			// 创建交易上下文；
 			// 此调用将会验证交易签名，验签失败将会抛出异常，同时，不记录签名错误的交易到链上；
 			LedgerTransactionContext txCtx = newBlockEditor.newTransaction(request);
 
 			// 处理交易；
+			LOGGER.debug("before handleTx... --[BlockHeight={}][RequestHash={}][TxHash={}]",
+					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash());
+
 			resp = handleTx(reqExt, txCtx);
 
 			LOGGER.debug("Complete handling transaction.  --[BlockHeight={}][RequestHash={}][TxHash={}]",
@@ -280,7 +285,13 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 
 			// 提交交易（事务）；
 			result = TransactionState.SUCCESS;
+			LOGGER.debug("before commit().  --[BlockHeight={}][RequestHash={}][TxHash={}]",
+					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash());
+
 			txCtx.commit(result, operationResults);
+
+			LOGGER.debug("after commit().  --[BlockHeight={}][RequestHash={}][TxHash={}]",
+					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash());
 		} catch (TransactionRollbackException e) {
 			result = TransactionState.IGNORED_BY_TX_FULL_ROLLBACK;
 			txCtx.rollback();
