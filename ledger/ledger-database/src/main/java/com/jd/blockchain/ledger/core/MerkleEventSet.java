@@ -130,6 +130,6 @@ public class MerkleEventSet implements EventGroup, EventPublisher, Transactional
         if (null == bs) {
             return null;
         }
-        return BinaryProtocol.decode(bs);
+        return new EventInfo(BinaryProtocol.decode(bs));
     }
 }

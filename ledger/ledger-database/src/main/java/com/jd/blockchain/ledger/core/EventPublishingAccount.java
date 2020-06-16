@@ -73,7 +73,7 @@ public class EventPublishingAccount implements EventAccount, EventPublisher {
             return null;
         }
 
-        return BinaryProtocol.decode(tv.bytesValue());
+        return new EventInfo(BinaryProtocol.decode(tv.bytesValue()));
     }
 
     @Override
