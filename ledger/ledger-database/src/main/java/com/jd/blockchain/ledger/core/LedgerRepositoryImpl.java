@@ -13,7 +13,6 @@ import com.jd.blockchain.ledger.LedgerDataSnapshot;
 import com.jd.blockchain.ledger.LedgerInitSetting;
 import com.jd.blockchain.ledger.LedgerSettings;
 import com.jd.blockchain.ledger.TransactionRequest;
-import com.jd.blockchain.ledger.core.LedgerManage.BlockGeneratedListener;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
@@ -49,8 +48,6 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	private static final Bytes TRANSACTION_SET_PREFIX = Bytes.fromString("TXS" + LedgerConsts.KEY_SEPERATOR);
 
 	private static final AccountAccessPolicy DEFAULT_ACCESS_POLICY = new OpeningAccessPolicy();
-
-	private ArrayList<BlockGeneratedListener> blockGeneratedListeners = new ArrayList<BlockGeneratedListener>();
 
 	private HashDigest ledgerHash;
 
@@ -562,8 +559,6 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				LedgerBlock latestBlock = editor.getCurrentBlock();
 				ledgerRepo.latestState = new LedgerState(latestBlock, editor.getLedgerDataset(),
 						editor.getTransactionSet());
-
-				ledgerRepo.notifyNewBlockGenerated(latestBlock);
 			} finally {
 				ledgerRepo.nextBlockEditor = null;
 			}
@@ -626,19 +621,5 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 
 	}
-	
-	
-	private void notifyNewBlockGenerated(LedgerBlock newBlock) {
-		try {
-			for (BlockGeneratedListener listener : blockGeneratedListeners) {
-				listener.onBlockGenerated(newBlock);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
 
-	public void addListener(BlockGeneratedListener listener) {
-		blockGeneratedListeners.add(listener);
-	}
 }

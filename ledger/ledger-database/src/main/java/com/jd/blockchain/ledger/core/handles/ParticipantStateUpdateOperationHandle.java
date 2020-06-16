@@ -6,8 +6,6 @@ import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerSettings;
-import com.jd.blockchain.ledger.ParticipantInfo;
-import com.jd.blockchain.ledger.ParticipantInfoData;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.ParticipantNodeState;
 import com.jd.blockchain.ledger.ParticipantStateUpdateOperation;
@@ -40,8 +38,8 @@ public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperati
         ParticipantStateUpdateOperation stateUpdateOperation = (ParticipantStateUpdateOperation) op;
 
         LedgerAdminDataset adminAccountDataSet = newBlockDataset.getAdminDataset();
-//
-//        ConsensusProvider provider = ConsensusProviders.getProvider(adminAccountDataSet.getSettings().getConsensusProvider());
+
+        ConsensusProvider provider = ConsensusProviders.getProvider(adminAccountDataSet.getSettings().getConsensusProvider());
 
         ParticipantNode[] participants = adminAccountDataSet.getParticipants();
 
@@ -54,15 +52,12 @@ public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperati
             }
         }
 
-//        //update consensus setting
-//        ParticipantInfo participantInfo = new ParticipantInfoData(participantNode.getName(), participantNode.getPubKey(), stateUpdateOperation.getNetworkAddress());
-//
-//        Bytes newConsensusSettings =  provider.getSettingsFactory().getConsensusSettingsBuilder().updateSettings(adminAccountDataSet.getSettings().getConsensusSetting(), participantInfo);
-//
-//        LedgerSettings ledgerSetting = new LedgerConfiguration(adminAccountDataSet.getSettings().getConsensusProvider(),
-//                newConsensusSettings, adminAccountDataSet.getPreviousSetting().getCryptoSetting());
-//
-//        adminAccountDataSet.setLedgerSetting(ledgerSetting);
+        Bytes newConsensusSettings =  provider.getSettingsFactory().getConsensusSettingsBuilder().updateSystemConfig(adminAccountDataSet.getSettings().getConsensusSetting());
+
+        LedgerSettings ledgerSetting = new LedgerConfiguration(adminAccountDataSet.getSettings().getConsensusProvider(),
+                newConsensusSettings, adminAccountDataSet.getPreviousSetting().getCryptoSetting());
+
+        adminAccountDataSet.setLedgerSetting(ledgerSetting);
 
         adminAccountDataSet.updateParticipant(participantNode);
 

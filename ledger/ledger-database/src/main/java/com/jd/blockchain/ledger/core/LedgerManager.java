@@ -131,13 +131,6 @@ public class LedgerManager implements LedgerManage {
 		}
 	}
 
-	@Override
-	public void addListener(HashDigest ledgerHash, BlockGeneratedListener listener) {
-		LedgerRepositoryImpl ledgerRepo = innerGetLedger(ledgerHash);
-
-		ledgerRepo.addListener(listener);
-	}
-
 	private LedgerRepositoryImpl innerGetLedger(HashDigest ledgerHash) {
 		// TODO Auto-generated method stub
 		LedgerRepositoryContext ledgerCtx = ledgers.get(ledgerHash);

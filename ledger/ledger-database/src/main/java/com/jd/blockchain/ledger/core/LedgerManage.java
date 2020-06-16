@@ -28,17 +28,5 @@ public interface LedgerManage extends LedgerService {
 //	 * @return
 //	 */
 //	LedgerEditor newLedger(LedgerInitSetting initSetting, KVStorageService storageService);
-	
-	
-	
-	public void addListener(HashDigest ledgerHash, BlockGeneratedListener listener);
-	
-	
-	
-	public static interface BlockGeneratedListener{
-		
-		void onBlockGenerated(LedgerBlock newBlock);
-		
-	}
 
 }

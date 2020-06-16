@@ -23,8 +23,8 @@ import com.jd.blockchain.consensus.mq.settings.MsgQueueNodeSettings;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.ledger.ParticipantInfo;
 import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.ParticipantRegisterOperation;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.PropertiesUtils;
 import com.jd.blockchain.utils.codec.Base58Utils;
@@ -150,11 +150,11 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
         return consensusConfig;
     }
 
-    private MsgQueueNodeSettings[] nodeSettings(NodeSettings[] nodeSettings, ParticipantInfo participantInfo) {
+    private MsgQueueNodeSettings[] nodeSettings(NodeSettings[] nodeSettings, ParticipantRegisterOperation registerOperation) {
 
         MsgQueueNodeSettings msgQueueNodeSettings = new MsgQueueNodeConfig();
-        ((MsgQueueNodeConfig) msgQueueNodeSettings).setAddress(AddressEncoding.generateAddress(participantInfo.getPubKey()).toBase58());
-        ((MsgQueueNodeConfig) msgQueueNodeSettings).setPubKey(participantInfo.getPubKey());
+        ((MsgQueueNodeConfig) msgQueueNodeSettings).setAddress(AddressEncoding.generateAddress(registerOperation.getParticipantRegisterIdentity().getPubKey()).toBase58());
+        ((MsgQueueNodeConfig) msgQueueNodeSettings).setPubKey(registerOperation.getParticipantRegisterIdentity().getPubKey());
 
         MsgQueueNodeSettings[] msgQueuetNodeSettings = new MsgQueueNodeSettings[nodeSettings.length + 1];
         for (int i = 0; i < nodeSettings.length; i++) {
@@ -166,13 +166,13 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
     }
 
     @Override
-    public Bytes updateSettings(Bytes oldConsensusSettings, ParticipantInfo participantInfo) {
+    public Bytes updateConsensusNodes(Bytes oldConsensusSettings, ParticipantRegisterOperation registerOperation) {
 
         BytesEncoder<ConsensusSettings> consensusEncoder =  ConsensusProviders.getProvider(MSG_QUEUE_PROVIDER).getSettingsFactory().getConsensusSettingsEncoder();
 
         MsgQueueConsensusSettings consensusSettings = (MsgQueueConsensusSettings) consensusEncoder.decode(oldConsensusSettings.toBytes());
 
-        MsgQueueNodeSettings[] nodeSettings = nodeSettings(consensusSettings.getNodes(), participantInfo);
+        MsgQueueNodeSettings[] nodeSettings = nodeSettings(consensusSettings.getNodes(), registerOperation);
 
         MsgQueueConsensusConfig msgQueueConsensusConfig = new MsgQueueConsensusConfig();
         for (int i = 0; i < nodeSettings.length; i++) {
@@ -190,6 +190,11 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 
         return new Bytes(consensusEncoder.encode(msgQueueConsensusConfig));
 
+    }
+
+    @Override
+    public Bytes updateSystemConfig(Bytes oldConsensusSettings) {
+        return null;
     }
 
     @Override
