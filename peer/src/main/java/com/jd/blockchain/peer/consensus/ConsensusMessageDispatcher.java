@@ -14,6 +14,8 @@ import com.jd.blockchain.service.TransactionEngine;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.concurrent.AsyncFuture;
 import com.jd.blockchain.utils.concurrent.CompletableAsyncFuture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -37,6 +39,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 @Component
 public class ConsensusMessageDispatcher implements MessageHandle {
+	private Logger logger = LoggerFactory.getLogger(ConsensusMessageDispatcher.class);
 
 	@Autowired
 	private TransactionEngine txEngine;
@@ -124,7 +127,10 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 		if (!realmProcessor.getCurrBatchId().equalsIgnoreCase(batchId)) {
 			throw new IllegalArgumentException("BatchId is not begin!");
 		}
+
+		logger.debug("before realmProcessor.commit(),[batchId={}]",batchId);
 		realmProcessor.commit();
+		logger.debug("after realmProcessor.commit(),[batchId={}]",batchId);
 //		realmProcessorMap.remove(realmName);
 	}
 
