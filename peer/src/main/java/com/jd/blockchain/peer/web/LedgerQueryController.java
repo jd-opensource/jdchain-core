@@ -538,7 +538,11 @@ public class LedgerQueryController implements BlockchainQueryService {
 												  @PathVariable(name = "address") String address) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		EventAccountQuery eventAccountSet = ledger.getUserEvents(ledger.getLatestBlock());
-		return eventAccountSet.getAccount(address).getID();
+		EventPublishingAccount account = eventAccountSet.getAccount(address);
+		if(null == account) {
+			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		}
+		return account.getID();
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/count")
@@ -555,7 +559,11 @@ public class LedgerQueryController implements BlockchainQueryService {
 										   @PathVariable(name = "address") String address) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		EventAccountQuery eventAccountSet = ledger.getUserEvents(ledger.getLatestBlock());
-		return eventAccountSet.getAccount(address).totalEventNames();
+		EventPublishingAccount account = eventAccountSet.getAccount(address);
+		if(null == account) {
+			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		}
+		return account.totalEventNames();
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names")
@@ -567,6 +575,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventPublishingAccount account = ledger.getUserEvents(block).getAccount(address);
+		if(null == account) {
+			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		}
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) account.totalEventNames());
 		return account.getEventNames(queryArgs.getFrom(), queryArgs.getCount());
 	}
@@ -577,8 +588,11 @@ public class LedgerQueryController implements BlockchainQueryService {
 								@PathVariable(name = "address") String address,
 								@PathVariable(name = "eventName") String eventName) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
-		EventAccountQuery eventAccountSet = ledger.getUserEvents(ledger.getLatestBlock());
-		return eventAccountSet.getAccount(address).getLatest(eventName);
+		EventPublishingAccount account = ledger.getUserEvents(ledger.getLatestBlock()).getAccount(address);
+		if(null == account) {
+			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		}
+		return account.getLatest(eventName);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/{eventName}/count")
@@ -587,8 +601,11 @@ public class LedgerQueryController implements BlockchainQueryService {
 										@PathVariable(name = "address") String address,
 										@PathVariable(name = "eventName") String eventName) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
-		EventAccountQuery eventAccountSet = ledger.getUserEvents(ledger.getLatestBlock());
-		return eventAccountSet.getAccount(address).totalEvents(eventName);
+		EventPublishingAccount account = ledger.getUserEvents(ledger.getLatestBlock()).getAccount(address);
+		if(null == account) {
+			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		}
+		return account.totalEvents(eventName);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/{eventName}")
@@ -601,6 +618,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventPublishingAccount account = ledger.getUserEvents(block).getAccount(address);
+		if(null == account) {
+			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		}
 		return account.getEvents(eventName, fromSequence, count);
 	}
 
