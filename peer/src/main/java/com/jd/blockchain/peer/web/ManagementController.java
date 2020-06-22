@@ -453,7 +453,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					View newView = updateView(ledgerRepository);
 					// 启动共识节点
 					if (newView != null) {
-						LOGGER.warn("[ManagementController] updateView SUCC!");
+						LOGGER.info("[ManagementController] updateView SUCC!");
 						setupServer(ledgerRepository, newView);
 					}
 				} else if (currNodeLastState.CODE == ParticipantNodeState.ACTIVED.CODE && currNodeNewState.CODE == ParticipantNodeState.REGISTERED.CODE) {
@@ -531,7 +531,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			}
 			runRealm(server);
 
-			LOGGER.warn("[ManagementController] setupServer SUCC!");
+			LOGGER.info("[ManagementController] setupServer SUCC!");
 		} catch (Exception e) {
 			throw new StartServerException("[ManagementController] start server fail exception");
 		}
