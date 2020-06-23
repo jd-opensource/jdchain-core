@@ -446,27 +446,10 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
                 throw new IllegalStateException("Pre block state snapshot is null!");
             }
 
-            if (commands.length == 1) {
-                try {
-                    AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(msgId++, commands[0], realmName, batchId);
-                    asyncFutureLinkedList.add(asyncFuture);
-                } catch (DataContractException e) {
-                    // 此分支专门处理视图更新的操作
-                    try {
-                        responseLinkedList.add(commands[0]);
-                        result = new BatchAppResultImpl(responseLinkedList, genisStateSnapshot.getSnapshot(), batchId, genisStateSnapshot.getSnapshot());
-                        result.setErrorCode((byte) 0);
-                    } catch (Exception e1) {
-                        e.printStackTrace();
-                    }
-                    return result;
-                }
-            } else {
-                for (int i = 0; i < commands.length; i++) {
-                    byte[] txContent = commands[i];
-                    AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(msgId++, txContent, realmName, batchId);
-                    asyncFutureLinkedList.add(asyncFuture);
-                }
+            for (int i = 0; i < commands.length; i++) {
+                byte[] txContent = commands[i];
+                AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(msgId++, txContent, realmName, batchId);
+                asyncFutureLinkedList.add(asyncFuture);
             }
 
             newStateSnapshot = messageHandle.completeBatch(realmName, batchId);
