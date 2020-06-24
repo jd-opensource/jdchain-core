@@ -126,12 +126,17 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 
 			// 验证交易请求；
 			checkRequest(reqExt);
+			LOGGER.debug("after checkRequest... --[BlockHeight={}][RequestHash={}][TxHash={}]",
+					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash());
 
 			// 创建交易上下文；
 			// 此调用将会验证交易签名，验签失败将会抛出异常，同时，不记录签名错误的交易到链上；
 			LedgerTransactionContext txCtx = newBlockEditor.newTransaction(request);
 
 			// 处理交易；
+			LOGGER.debug("before handleTx... --[BlockHeight={}][RequestHash={}][TxHash={}]",
+					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash());
+
 			resp = handleTx(reqExt, txCtx);
 
 			LOGGER.debug("Complete handling transaction.  --[BlockHeight={}][RequestHash={}][TxHash={}]",
@@ -153,7 +158,14 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash(),
 					e.getMessage()), e);
 			throw e;
-		} catch (Exception e) {
+		}catch (LedgerException e) {
+			// 发生账本级别的非回滚处理异常，只记录错误，不回滚；
+			resp = discard(request, e.getState());
+			LOGGER.error(String.format(
+					"Ignore transaction caused by LedgerException! --[BlockHeight=%s][RequestHash=%s][TxHash=%s] --%s",
+					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash(),
+					e.getMessage()), e);
+		} catch (Throwable e) {
 			// 抛弃发生处理异常的交易请求；
 			resp = discard(request, TransactionState.SYSTEM_ERROR);
 			LOGGER.error(String.format(
@@ -273,7 +285,13 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 
 			// 提交交易（事务）；
 			result = TransactionState.SUCCESS;
+			LOGGER.debug("before commit().  --[BlockHeight={}][RequestHash={}][TxHash={}]",
+					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash());
+
 			txCtx.commit(result, operationResults);
+
+			LOGGER.debug("after commit().  --[BlockHeight={}][RequestHash={}][TxHash={}]",
+					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash());
 		} catch (TransactionRollbackException e) {
 			result = TransactionState.IGNORED_BY_TX_FULL_ROLLBACK;
 			txCtx.rollback();
@@ -284,7 +302,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 		} catch (BlockRollbackException e) {
 			// rollback all the block；
 			// TODO: handle the BlockRollbackException in detail；
-			result = TransactionState.IGNORED_BY_BLOCK_FULL_ROLLBACK;
+//			result = TransactionState.IGNORED_BY_BLOCK_FULL_ROLLBACK;
 			txCtx.rollback();
 			LOGGER.error(
 					String.format("Transaction was rolled back! --[BlockHeight=%s][RequestHash=%s][TxHash=%s] --%s",
@@ -295,18 +313,19 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 			throw e;
 		} catch (LedgerException e) {
 			// TODO: 识别更详细的异常类型以及执行对应的处理；
-			result = TransactionState.LEDGER_ERROR;
-			if (e instanceof DataAccountDoesNotExistException) {
-				result = TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST;
-			} else if (e instanceof UserDoesNotExistException) {
-				result = TransactionState.USER_DOES_NOT_EXIST;
-			} else if (e instanceof ContractDoesNotExistException) {
-				result = TransactionState.CONTRACT_DOES_NOT_EXIST;
-			} else if (e instanceof ParticipantDoesNotExistException) {
-				result = TransactionState.PARTICIPANT_DOES_NOT_EXIST;
-			} else if (e instanceof DataVersionConflictException) {
-				result = TransactionState.DATA_VERSION_CONFLICT;
-			}
+//			result = TransactionState.LEDGER_ERROR;
+			result = e.getState();
+//			if (e instanceof DataAccountDoesNotExistException) {
+//				result = TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST;
+//			} else if (e instanceof UserDoesNotExistException) {
+//				result = TransactionState.USER_DOES_NOT_EXIST;
+//			} else if (e instanceof ContractDoesNotExistException) {
+//				result = TransactionState.CONTRACT_DOES_NOT_EXIST;
+//			} else if (e instanceof ParticipantDoesNotExistException) {
+//				result = TransactionState.PARTICIPANT_DOES_NOT_EXIST;
+//			} else if (e instanceof DataVersionConflictException) {
+//				result = TransactionState.DATA_VERSION_CONFLICT;
+//			}
 			txCtx.discardAndCommit(result, operationResults);
 			LOGGER.error(String.format(
 					"Due to ledger exception, the data changes resulting from transaction execution will be rolled back and the results of the transaction will be committed! --[BlockHeight=%s][RequestHash=%s][TxHash=%s] --%s",
@@ -320,7 +339,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 					"Due to ledger security exception, the data changes resulting from transaction execution will be rolled back and the results of the transaction will be committed! --[BlockHeight=%s][RequestHash=%s][TxHash=%s] --%s",
 					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash(),
 					e.getMessage()), e);
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			result = TransactionState.SYSTEM_ERROR;
 			txCtx.discardAndCommit(TransactionState.SYSTEM_ERROR, operationResults);
 			LOGGER.error(String.format(

@@ -2,6 +2,7 @@ package com.jd.blockchain.contract.jvm;
 
 import java.lang.reflect.Method;
 
+import com.jd.blockchain.ledger.ContractExecuteException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.ReflectionUtils;
@@ -79,6 +80,9 @@ public abstract class AbstractContractCode implements ContractCode {
 			
 		} catch (Exception e) {
 			error = e;
+		} catch (Error e) {
+			throw new ContractExecuteException(String.format("Contract[%s:%s] has no handle method to handle event[%s]!", address.toString(),
+					contractDefinition.getType().getName(), eventContext.getEvent()));
 		}
 
 		if (evtProcAwire != null) {

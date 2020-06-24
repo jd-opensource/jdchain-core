@@ -10,8 +10,11 @@ import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DataAccountRegisterOperationHandle extends AbstractLedgerOperationHandle<DataAccountRegisterOperation> {
+	private Logger logger = LoggerFactory.getLogger(DataAccountRegisterOperationHandle.class);
 
 	public DataAccountRegisterOperationHandle() {
 		super(DataAccountRegisterOperation.class);
@@ -29,7 +32,9 @@ public class DataAccountRegisterOperationHandle extends AbstractLedgerOperationH
 		// 操作账本；
 		DataAccountRegisterOperation dataAccountRegOp = (DataAccountRegisterOperation) op;
 		BlockchainIdentity bid = dataAccountRegOp.getAccountID();
+		logger.debug("before register.[dataAddress={}]",bid.getAddress());
 		newBlockDataset.getDataAccountSet().register(bid.getAddress(), bid.getPubKey(), null);
+		logger.debug("after register.[dataAddress={}]",bid.getAddress());
 	}
 
 }

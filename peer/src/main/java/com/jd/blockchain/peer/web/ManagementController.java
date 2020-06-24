@@ -1,10 +1,15 @@
 package com.jd.blockchain.peer.web;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import bftsmart.reconfiguration.util.TOMConfiguration;
+import bftsmart.reconfiguration.views.View;
+import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
 import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.CryptoProvider;
 import com.jd.blockchain.ledger.core.TransactionSetQuery;
@@ -15,6 +20,7 @@ import com.jd.blockchain.ledger.proof.MerklePath;
 import com.jd.blockchain.peer.consensus.LedgerStateManager;
 import com.jd.blockchain.utils.ConsoleUtils;
 import com.jd.blockchain.utils.net.NetworkAddress;
+import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -217,16 +223,23 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     clientIncomingSettings = peer.getConsensusManageService().authClientIncoming(authId);
 
 					//add for test the gateway connect to peer0; 20200514;
-					ConsensusSettings consensusSettings = clientIncomingSettings.getConsensusSettings();
-					if (consensusSettings instanceof BftsmartConsensusSettings) {
-						BftsmartConsensusSettings settings = (BftsmartConsensusSettings) consensusSettings;
-						NodeSettings[] nodeSettings = settings.getNodes();
-						if (nodeSettings != null) {
-							for (NodeSettings ns : nodeSettings) {
-								if (ns instanceof BftsmartNodeSettings) {
-									BftsmartNodeSettings bftNs = (BftsmartNodeSettings) ns;
-									NetworkAddress address = bftNs.getNetworkAddress();
-									ConsoleUtils.info("PartiNode id = %s, host = %s, port = %s \r\n", bftNs.getId(), address.getHost(), address.getPort());
+					if (clientIncomingSettings instanceof BftsmartClientIncomingSettings) {
+						BftsmartClientIncomingSettings bftsmartClientIncomingSettings = (BftsmartClientIncomingSettings) clientIncomingSettings;
+						byte[] topologyBytes = bftsmartClientIncomingSettings.getTopology();
+						byte[] tomConfigBytes = bftsmartClientIncomingSettings.getTomConfig();
+						BftsmartTopology topology = BinarySerializeUtils.deserialize(topologyBytes);
+						TOMConfiguration tomConfig = BinarySerializeUtils.deserialize(tomConfigBytes);
+						View view = topology.getView();
+						if (view != null) {
+							// 打印view
+							int[] processes = view.getProcesses();
+							for (int process : processes) {
+								InetSocketAddress address = view.getAddress(process);
+								if(LOGGER.isDebugEnabled()){
+									LOGGER.debug(String.format("topology id = %s, address = %s \r\n",
+											process, address));
+									LOGGER.debug(String.format("tomConfig id = %s, host = %s, port = %s \r\n",
+											process, tomConfig.getHost(process), tomConfig.getPort(process)));
 								}
 							}
 						}

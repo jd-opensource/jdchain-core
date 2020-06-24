@@ -15,8 +15,12 @@ import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.Transactional;
 import com.jd.blockchain.utils.codec.Base58Utils;
+import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransactionSet implements Transactional, TransactionQuery {
+	private Logger logger = LoggerFactory.getLogger(TransactionSet.class);
 
 	static {
 		DataContractRegistry.register(LedgerTransaction.class);
@@ -114,7 +118,7 @@ public class TransactionSet implements Transactional, TransactionQuery {
 
 	/**
 	 * Create a new TransactionSet which can be added transaction;
-	 * 
+	 *
 	 * @param setting
 	 * @param merkleTreeStorage
 	 * @param dataStorage
@@ -132,7 +136,7 @@ public class TransactionSet implements Transactional, TransactionQuery {
 
 	/**
 	 * Create TransactionSet which is readonly to the history transactions;
-	 * 
+	 *
 	 * @param setting
 	 * @param merkleTreeStorage
 	 * @param dataStorage
@@ -157,12 +161,24 @@ public class TransactionSet implements Transactional, TransactionQuery {
 	public void add(LedgerTransaction tx) {
 		// TODO: 优化对交易内存存储的优化，应对大数据量单交易，共享操作的“写集”与实际写入账户的KV版本；
 		// 序列化交易内容；
+		if(logger.isDebugEnabled()){
+			logger.debug("before serialize(tx),[contentHash={}]",tx.getTransactionContent().getHash());
+		}
 		byte[] txBytes = serialize(tx);
+		if(logger.isDebugEnabled()){
+			logger.debug("after serialize(tx),[contentHash={}]",tx.getTransactionContent().getHash());
+		}
 		// 以交易内容的 hash 为 key；
 		// String key = tx.getTransactionContent().getHash().toBase58();
 		Bytes key = new Bytes(tx.getTransactionContent().getHash().toBytes());
 		// 交易只有唯一的版本；
+		if(logger.isDebugEnabled()){
+			logger.debug("before txDataSet.setValue(),[contentHash={}]",tx.getTransactionContent().getHash());
+		}
 		long v = txDataSet.setValue(key, txBytes, -1);
+		if(logger.isDebugEnabled()){
+			logger.debug("after txDataSet.setValue(),[contentHash={}]",tx.getTransactionContent().getHash());
+		}
 		if (v < 0) {
 			throw new LedgerException("Transaction is persisted repeatly! --[" + key + "]");
 		}

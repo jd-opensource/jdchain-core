@@ -3,6 +3,8 @@ package com.jd.blockchain.gateway.web;
 import com.jd.blockchain.crypto.*;
 import com.jd.blockchain.gateway.service.GatewayInterceptService;
 import com.jd.blockchain.transaction.SignatureUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +28,8 @@ import com.jd.blockchain.web.converters.BinaryMessageConverter;
  */
 @RestController
 public class TxProcessingController implements TransactionService {
+
+	private Logger LOGGER = LoggerFactory.getLogger(TxProcessingController.class);
 
 	@Autowired
 	private PeerService peerService;
@@ -67,6 +71,9 @@ public class TxProcessingController implements TransactionService {
 		}
 
 		// 注：转发前自动附加网关的签名并转发请求至共识节点；异步的处理方式
-		return peerService.getTransactionService().process(txRequest);
+		LOGGER.info("[contentHash={}],before peerService.getTransactionService().process(txRequest)",txRequest.getTransactionContent().getHash());
+		TransactionResponse transactionResponse =  peerService.getTransactionService().process(txRequest);
+		LOGGER.info("[contentHash={}],after peerService.getTransactionService().process(txRequest)",txRequest.getTransactionContent().getHash());
+		return transactionResponse;
 	}
 }

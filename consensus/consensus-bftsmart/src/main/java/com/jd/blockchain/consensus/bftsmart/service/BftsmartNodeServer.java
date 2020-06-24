@@ -148,13 +148,13 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         String preHostPort = System.getProperty("hostPort");
         if(!StringUtils.isEmpty(preHostPort)){
             port = NumberUtils.parseNumber(preHostPort, Integer.class);
-            ConsoleUtils.info("###peer-startup.sh###,set up the -DhostPort="+port);
+            LOGGER.info("###peer-startup.sh###,set up the -DhostPort="+port);
         }
 
         String preHostIp = System.getProperty("hostIp");
         if(!StringUtils.isEmpty(preHostIp)){
             hostConfig.add(id, preHostIp, port);
-            ConsoleUtils.info("###peer-startup.sh###,set up the -DhostIp="+preHostIp);
+            LOGGER.info("###peer-startup.sh###,set up the -DhostIp="+preHostIp);
         }
 
         this.tomConfig = new TOMConfiguration(id, systemsConfig, hostConfig);
@@ -420,7 +420,15 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             result = new BatchAppResultImpl(responseLinkedList, newStateSnapshot.getSnapshot(), batchId, genisStateSnapshot.getSnapshot());
             result.setErrorCode((byte) 0);
 
-        } catch (Exception e) {
+        } catch (BlockRollbackException e) {
+            LOGGER.error("Error occurred while pre compute app! --" + e.getMessage(), e);
+            for (int i = 0; i < commands.length; i++) {
+                responseLinkedList.add(createAppResponse(commands[i],e.getState()));
+            }
+
+            result = new BatchAppResultImpl(responseLinkedList,preStateSnapshot.getSnapshot(), batchId, genisStateSnapshot.getSnapshot());
+            result.setErrorCode((byte) 1);
+        }catch (Exception e) {
             LOGGER.error("Error occurred while pre compute app! --" + e.getMessage(), e);
             for (int i = 0; i < commands.length; i++) {
                 responseLinkedList.add(createAppResponse(commands[i],TransactionState.IGNORED_BY_BLOCK_FULL_ROLLBACK));
@@ -566,13 +574,14 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     private void initOutTopology() {
         View currView = this.topology.getView();
         int id = currView.getId();
+        int curProcessId = tomConfig.getProcessId();
         int f = currView.getF();
         int[] processes = currView.getProcesses();
         InetSocketAddress[] addresses = new InetSocketAddress[processes.length];
         for (int i = 0; i < processes.length; i++) {
             int pid = processes[i];
-            if (id == pid) {
-                addresses[i] = new InetSocketAddress(this.outerTomConfig.getHost(id), this.outerTomConfig.getPort(id));
+            if (curProcessId == pid) {
+                addresses[i] = new InetSocketAddress(this.outerTomConfig.getHost(pid), this.outerTomConfig.getPort(pid));
             } else {
                 addresses[i] = currView.getAddress(pid);
             }
