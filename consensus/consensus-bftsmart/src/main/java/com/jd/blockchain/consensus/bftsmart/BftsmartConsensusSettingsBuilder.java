@@ -167,7 +167,7 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 
 		BftsmartConsensusConfig config = new BftsmartConsensusConfig(nodesSettings,
 //				blockConfig,
-				PropertiesUtils.getOrderedValues(resolvingProps));
+				PropertiesUtils.getOrderedValues(resolvingProps), 0);
 		return config;
 	}
 
@@ -179,7 +179,7 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 
 		BftsmartNodeSettings[] nodeSettings = nodeSettings(consensusSettings.getNodes(), registerOperation);
 
-		BftsmartConsensusConfig bftsmartConsensusConfig = new BftsmartConsensusConfig(nodeSettings, consensusSettings.getSystemConfigs());
+		BftsmartConsensusConfig bftsmartConsensusConfig = new BftsmartConsensusConfig(nodeSettings, consensusSettings.getSystemConfigs(), consensusSettings.getViewId());
 
 		return new Bytes(ConsensusProviders.getProvider(BFTSMART_PROVIDER).getSettingsFactory().getConsensusSettingsEncoder().encode(bftsmartConsensusConfig));
 
@@ -201,7 +201,8 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 			bftsmartNodeSettings[i] = (BftsmartNodeSettings) nodeSettings[i];
 		}
 
-		BftsmartConsensusConfig bftsmartConsensusConfig = new BftsmartConsensusConfig(bftsmartNodeSettings, systemConfigs);
+		// 进行激活参与方的操作时，更新账本的系统配置，同时更新共识的视图ID
+		BftsmartConsensusConfig bftsmartConsensusConfig = new BftsmartConsensusConfig(bftsmartNodeSettings, systemConfigs, consensusSettings.getViewId() + 1);
 
 		return new Bytes(ConsensusProviders.getProvider(BFTSMART_PROVIDER).getSettingsFactory().getConsensusSettingsEncoder().encode(bftsmartConsensusConfig));
 

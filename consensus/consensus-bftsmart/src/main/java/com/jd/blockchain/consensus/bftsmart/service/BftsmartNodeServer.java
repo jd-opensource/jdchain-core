@@ -165,7 +165,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
         this.tomConfig = new TOMConfiguration(id, systemsConfig, hostConfig);
 
-        this.latestView = new View(stateMachineReplicate.getLatestViewID(realmName), tomConfig.getInitialView(), tomConfig.getF(), consensusAddresses.toArray(new InetSocketAddress[consensusAddresses.size()]));
+        this.latestView = new View(setting.getViewId(), tomConfig.getInitialView(), tomConfig.getF(), consensusAddresses.toArray(new InetSocketAddress[consensusAddresses.size()]));
 
         this.outerTomConfig = new TOMConfiguration(id, sysConfClone, BinarySerializeUtils.deserialize(serialHostConf));
     }

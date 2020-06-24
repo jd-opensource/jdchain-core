@@ -299,7 +299,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					csSettings, currentNode.getAddress().toString());
 
 			((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
-			((LedgerStateManager) consensusStateManager).setLatestViewId(0);
 
 			server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
 					consensusStateManager);
@@ -517,7 +516,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					csSettings, currNode.getAddress().toString());
 
 			((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
-			((LedgerStateManager) consensusStateManager).setLatestViewId(newView.getId());
 
 			NodeServer server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
 					consensusStateManager);

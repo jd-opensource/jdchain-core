@@ -173,7 +173,7 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
                 }
             }
             return new BftsmartConsensusConfig(bftsmartNodes,
-                    bftsmartConsensusSettings.getSystemConfigs());
+                    bftsmartConsensusSettings.getSystemConfigs(), 0);
         }
         return consensusSettings;
     }

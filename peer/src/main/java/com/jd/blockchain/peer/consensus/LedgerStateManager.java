@@ -12,25 +12,15 @@ import org.springframework.stereotype.Component;
 public class LedgerStateManager implements StateMachineReplicate{
 
 	private long latestStateId;
-	private int latestViewId;
 
 	@Override
 	public long getLatestStateID(String realmName) {
 		return latestStateId;
 	}
 
-	@Override
-	public int getLatestViewID(String realmName) {
-		return latestViewId;
-	}
-
 
 	public void setLatestStateId(long latestStateId) {
 		this.latestStateId = latestStateId;
-	}
-
-	public void setLatestViewId(int latestViewId) {
-		this.latestViewId = latestViewId;
 	}
 
 	@Override
