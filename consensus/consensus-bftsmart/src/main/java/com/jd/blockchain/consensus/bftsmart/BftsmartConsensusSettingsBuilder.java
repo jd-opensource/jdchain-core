@@ -269,15 +269,43 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 
 	/**
 	 *
-	 * update system.servers.num property
+	 * update consensus system property
+	 * system.servers.num
+	 * system.servers.f
+	 * system.initial.view
 	 *
 	 */
 	private Property[] systemConfigs(Property[] systemConfigs) {
 		Map<String, Property> propertyMap = convert2Map(systemConfigs);
-		int serverNum = Integer.parseInt(propertyMap.get("system.servers.num").getValue());
-		propertyMap.put("system.servers.num", new Property("system.servers.num", String.valueOf(serverNum + 1)));
+		int oldServerNum = Integer.parseInt(propertyMap.get("system.servers.num").getValue());
+		int oldF = Integer.parseInt(propertyMap.get("system.servers.f").getValue());
+
+		// 更新账本中的system.servers.num共识参数
+		propertyMap.put("system.servers.num", new Property("system.servers.num", String.valueOf(oldServerNum + 1)));
+
+		// 更新system.initial.view
+		propertyMap.put("system.initial.view", new Property("system.initial.view", initView(oldServerNum + 1)));
+
+		if ((oldServerNum + 1) >= (3*(oldF + 1) + 1)) {
+			// 更新system.servers.f
+			propertyMap.put("system.servers.f", new Property("system.servers.f", String.valueOf(oldF + 1)));
+		}
+
 		return convert2Array(propertyMap);
 
+	}
+
+	private String initView(int nodeNum) {
+
+		StringBuilder views = new StringBuilder();
+
+		for (int i = 0; i < nodeNum; i++) {
+			if (views.length() > 0) {
+				views.append(",");
+			}
+			views.append(i);
+		}
+		return views.toString();
 	}
 
 	private Map<String, Property> convert2Map(Property[] properties) {
