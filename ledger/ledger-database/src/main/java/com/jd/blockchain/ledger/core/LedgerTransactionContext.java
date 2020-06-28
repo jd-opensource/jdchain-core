@@ -13,6 +13,13 @@ import java.util.List;
 public interface LedgerTransactionContext {
 
 	/**
+	 * 区块高度；
+	 *
+	 * @return
+	 */
+	long getBlockHeight();
+
+	/**
 	 * 账本数据集合；
 	 * 
 	 * @return
@@ -76,4 +83,11 @@ public interface LedgerTransactionContext {
 	 * 回滚事务，抛弃本次事务的所有数据更新；
 	 */
 	void rollback();
+
+	/**
+	 * 事件数据集合；
+	 *
+	 * @return
+	 */
+	LedgerEventSet getEventSet();
 }
