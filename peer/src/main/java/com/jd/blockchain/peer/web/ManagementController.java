@@ -355,6 +355,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	 * @return
 	 */
 	private static Properties systemConfig;
+	private int viewId;
 //	@RequestMapping(path = "/delegate/activeparticipant", method = RequestMethod.POST, consumes = BinaryMessageConverter.CONTENT_TYPE_VALUE)
 	@RequestMapping(path = "/delegate/activeparticipant", method = RequestMethod.POST)
 	public TransactionResponse activateParticipant(@RequestParam("ledgerHash") HashDigest ledgerHash) {
@@ -367,6 +368,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		LedgerRepository ledgerRepo = (LedgerRepository) ledgerQuerys.get(ledgerHash);
 
 		systemConfig = PropertiesUtils.createProperties(((BftsmartConsensusSettings)getConsensusSetting(ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()))).getSystemConfigs());
+
+		viewId = ((BftsmartConsensusSettings) getConsensusSetting(ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()))).getViewId();
 
 		// 验证本参与方是否已经被注册，没有被注册的参与方不能进行状态更新
 		if (!verifyState(ledgerRepo)) {
@@ -663,7 +666,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			TOMConfiguration tomConfig = new TOMConfiguration((int) -System.nanoTime(), tempSystemConfig, hostsConfig);
 
 			// 根据配置信息构建客户端视图，VIEW ID没有持久化，所以不能确定原有共识网络中的视图信息，在这里先使用默认的0
-			View view = new View(0, origConsensusProcesses, tomConfig.getF(), nodeAddresses.toArray(new InetSocketAddress[nodeAddresses.size()]));
+			View view = new View(viewId, origConsensusProcesses, tomConfig.getF(), nodeAddresses.toArray(new InetSocketAddress[nodeAddresses.size()]));
 
 			// 构建共识的代理客户端，连接目标共识节点，并递交交易进行共识过程
 			return new ServiceProxy(tomConfig, new MemoryBasedViewStorage(view), null, null);
