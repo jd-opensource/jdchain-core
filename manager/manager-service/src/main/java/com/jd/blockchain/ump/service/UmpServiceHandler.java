@@ -608,7 +608,7 @@ public class UmpServiceHandler implements UmpService {
                 // 不存在，则需要再启动
                 String peerStartCmd = ledgerService.peerStartCommand(peerPath);
 
-                LOGGER.info("Execute Peer-Startup's Shell {}", peerStartCmd);
+                LOGGER.info("Execute Peer-Startup's Shell {}，peerVerify={}", peerStartCmd,peerVerify);
 
                 if (!CommandUtils.executeAndVerify(CommandUtils.toCommandList(peerStartCmd), peerVerify)) {
                     // Peer节点启动失败
