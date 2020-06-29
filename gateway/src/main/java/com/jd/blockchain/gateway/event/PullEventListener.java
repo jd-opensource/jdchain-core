@@ -142,15 +142,24 @@ public class PullEventListener implements EventListener {
 
     private void getAndUpdateByCacheAndQuery(HashDigest ledgerHash, EventCache eventCache, EventPoint eventPoint,
                                     List<Event> events, String key, long start, long end) {
+        List<Event> cachedEvents = new ArrayList<>();
+        boolean needQuery = false;
         for (long l = start; l < end; l++) {
             Event event = eventCache.getEvent(key, l);
             if (event == null) {
-                event = getEventByQuery(ledgerHash, eventPoint, l);
+                needQuery = true;
+                break;
             }
-            if (event != null) {
-                events.add(event);
-                eventCache.addEvents(key, event);
+            cachedEvents.add(event);
+        }
+        if(needQuery) {
+            Event[] eventsByQuery = getEventsByQuery(ledgerHash, eventPoint, start, (int) (end-start));
+            if (!empty(eventsByQuery)) {
+                eventCache.addEvents(key, eventsByQuery);
+                events.addAll(Arrays.asList(eventsByQuery));
             }
+        } else {
+            events.addAll(cachedEvents);
         }
     }
 
