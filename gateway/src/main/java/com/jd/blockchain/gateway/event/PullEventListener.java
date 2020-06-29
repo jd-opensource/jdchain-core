@@ -28,7 +28,7 @@ public class PullEventListener implements EventListener {
 
     private static final int PERIOD_SECONDS = 5;
 
-    private static final int MAX_EVENT_COUNT = 10;
+    private static final int MAX_EVENT_COUNT = 1000;
     /**
      * 用户事件缓存
      */
