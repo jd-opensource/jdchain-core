@@ -219,7 +219,7 @@ public class LedgerServiceHandler implements LedgerService {
         }
         //check the peerVerifykey;
         if(peerVerifyKey == null || peerVerifyKey.equals("")){
-            logger.error("no find the jar start with {}",FILE_PEER_FLAG);
+            logger.error("not find the jar start with {}",FILE_PEER_FLAG);
         }
 
         return peerVerifyKey;
