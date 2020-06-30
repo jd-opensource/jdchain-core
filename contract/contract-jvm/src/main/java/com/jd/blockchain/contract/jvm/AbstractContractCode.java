@@ -51,7 +51,7 @@ public abstract class AbstractContractCode implements ContractCode {
 		EventProcessingAware evtProcAwire = null;
 		Object retn = null;
 		Method handleMethod = null;
-		Exception error = null;
+		ContractException error = null;
 		try {
 			// 执行预处理;
 			Object contractInstance = getContractInstance();
@@ -77,14 +77,16 @@ public abstract class AbstractContractCode implements ContractCode {
 			
 			retn = ReflectionUtils.invokeMethod(handleMethod, contractInstance, args);
 			
-		} catch (Exception e) {
-			error = e;
+		} catch (Throwable e) {
+			String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]! --%s",
+					eventContext.getEvent(), address.toString(), error.getMessage());
+			error = new ContractException(errorMessage, e);
 		}
 
 		if (evtProcAwire != null) {
 			try {
 				evtProcAwire.postEvent(eventContext, error);
-			} catch (Exception e) {
+			} catch (Throwable e) {
 				String errorMessage = "Error occurred while posting contract event! --" + e.getMessage();
 				LOGGER.error(errorMessage, e);
 				throw new ContractException(errorMessage, e);
@@ -92,8 +94,7 @@ public abstract class AbstractContractCode implements ContractCode {
 		}
 		if (error != null) {
 			// Rethrow error;
-			throw new ContractException(String.format("Error occurred while processing event[%s] of contract[%s]! --%s",
-					eventContext.getEvent(), address.toString(), error.getMessage()), error);
+			throw error;
 		}
 
 		BytesValue retnBytes = BytesValueEncoding.encodeSingle(retn, handleMethod.getReturnType());

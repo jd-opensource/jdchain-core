@@ -19,6 +19,7 @@ import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.ledger.core.EventManager;
 
 
 public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperationHandle<ParticipantStateUpdateOperation> {
@@ -29,7 +30,7 @@ public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperati
     @Override
     protected void doProcess(ParticipantStateUpdateOperation op, LedgerDataset newBlockDataset,
                              TransactionRequestExtension requestContext, LedgerQuery previousBlockDataset,
-                             OperationHandleContext handleContext) {
+                             OperationHandleContext handleContext, EventManager manager) {
 
         // 权限校验；
         SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();

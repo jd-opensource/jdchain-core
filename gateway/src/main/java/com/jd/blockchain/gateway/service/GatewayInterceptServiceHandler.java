@@ -2,19 +2,28 @@ package com.jd.blockchain.gateway.service;
 
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
+import com.jd.blockchain.gateway.web.GatewayLedgerLoadTimer;
 import com.jd.blockchain.ledger.ContractCodeDeployOperation;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.TransactionRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import javax.servlet.http.HttpServletRequest;
 
 
 @Service
 public class GatewayInterceptServiceHandler implements GatewayInterceptService {
 
+    private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(GatewayInterceptServiceHandler.class);
+
     private static final ContractProcessor CONTRACT_PROCESSOR = OnLineContractProcessor.getInstance();
 
     @Override
-    public void intercept(TransactionRequest txRequest) {
+    public void intercept(HttpServletRequest request, TransactionRequest txRequest) {
+        LOGGER.info("TxRequest[{}:{}] -> [{} -> {}]", request.getRemoteAddr(), request.getRemotePort(),
+                txRequest.getHash().toBase58(), txRequest.getTransactionContent().getHash().toBase58());
         // 当前仅处理合约发布的请求
         Operation[] operations = txRequest.getTransactionContent().getOperations();
         if (operations != null && operations.length > 0) {

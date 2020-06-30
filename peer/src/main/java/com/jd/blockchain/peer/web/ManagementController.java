@@ -1,7 +1,6 @@
 package com.jd.blockchain.peer.web;
 
 import java.net.InetSocketAddress;
-import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import bftsmart.reconfiguration.Reconfiguration;
@@ -23,13 +22,32 @@ import com.jd.blockchain.transaction.TxBuilder;
 import com.jd.blockchain.transaction.TxRequestMessage;
 import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.PropertiesUtils;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import bftsmart.reconfiguration.util.TOMConfiguration;
+import bftsmart.reconfiguration.views.View;
+import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
+import com.jd.blockchain.crypto.CryptoAlgorithm;
+import com.jd.blockchain.crypto.CryptoProvider;
+import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.ledger.core.TransactionSetQuery;
+import com.jd.blockchain.ledger.json.CryptoConfigInfo;
+import com.jd.blockchain.ledger.proof.MerkleData;
+import com.jd.blockchain.ledger.proof.MerkleLeaf;
+import com.jd.blockchain.ledger.proof.MerklePath;
+import com.jd.blockchain.peer.consensus.LedgerStateManager;
+import com.jd.blockchain.utils.ConsoleUtils;
+import com.jd.blockchain.utils.net.NetworkAddress;
 import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.web.bind.annotation.*;
-
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.consensus.action.ActionResponse;
 import com.jd.blockchain.consensus.mq.server.MsgQueueMessageDispatcher;
@@ -41,6 +59,9 @@ import com.jd.blockchain.ledger.json.CryptoConfigInfo;
 import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.ledger.proof.MerkleLeaf;
 import com.jd.blockchain.ledger.proof.MerklePath;
+import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.ledger.core.LedgerManage;
+import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.peer.ConsensusRealm;
 import com.jd.blockchain.peer.LedgerBindingConfigAware;
 import com.jd.blockchain.peer.PeerManage;
@@ -114,11 +135,14 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		DataContractRegistry.register(TransactionResponse.class);
 		DataContractRegistry.register(DataAccountKVSetOperation.class);
 		DataContractRegistry.register(DataAccountKVSetOperation.KVWriteEntry.class);
+		DataContractRegistry.register(EventPublishOperation.class);
+		DataContractRegistry.register(EventPublishOperation.EventEntry.class);
 
 		DataContractRegistry.register(Operation.class);
 		DataContractRegistry.register(ContractCodeDeployOperation.class);
 		DataContractRegistry.register(ContractEventSendOperation.class);
 		DataContractRegistry.register(DataAccountRegisterOperation.class);
+		DataContractRegistry.register(EventAccountRegisterOperation.class);
 		DataContractRegistry.register(UserRegisterOperation.class);
 		DataContractRegistry.register(ParticipantRegisterOperation.class);
 		DataContractRegistry.register(ParticipantStateUpdateOperation.class);
@@ -188,33 +212,23 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			ConsensusProvider provider = ConsensusProviders.getProvider(peer.getProviderName());
 
-			ClientIncomingSettings clientIncomingSettings = null;
-			for (ClientIdentification authId : identificationArray) {
-				if (authId.getProviderName() == null || authId.getProviderName().length() <= 0
-						|| !authId.getProviderName().equalsIgnoreCase(peerProviderName)) {
-					continue;
-				}
-
-				try {
-					clientIncomingSettings = peer.getConsensusManageService().authClientIncoming(authId);
-
-					//add for test the gateway connect to peer0; 20200514;
-					if (clientIncomingSettings instanceof BftsmartClientIncomingSettings) {
-						BftsmartTopology bftsmartTopology = BinarySerializeUtils.deserialize(((BftsmartClientIncomingSettings) clientIncomingSettings).getTopology());
-						for (int procId : bftsmartTopology.getView().getProcesses()) {
-							ConsoleUtils.info("PartiNode id = %s, host = %s, port = %s \r\n", procId, bftsmartTopology.getView().getAddress(procId).getHostName(), bftsmartTopology.getView().getAddress(procId).getPort());
-						}
-					}
-
-					break;
-				} catch (Exception e) {
-					throw new AuthenticationServiceException(e.getMessage(), e);
-				}
-
-			}
-			if (clientIncomingSettings == null) {
-				continue;
-			}
+            ClientIncomingSettings clientIncomingSettings = null;
+            for (ClientIdentification authId : identificationArray) {
+                if (authId.getProviderName() == null ||
+                        authId.getProviderName().length() <= 0 ||
+                        !authId.getProviderName().equalsIgnoreCase(peerProviderName)) {
+                    continue;
+                }
+                try {
+                    clientIncomingSettings = peer.getConsensusManageService().authClientIncoming(authId);
+                    break;
+                } catch (Exception e) {
+                    throw new AuthenticationServiceException(e.getMessage(), e);
+                }
+            }
+            if (clientIncomingSettings == null) {
+                continue;
+            }
 
 			byte[] clientIncomingBytes = provider.getSettingsFactory().getIncomingSettingsEncoder()
 					.encode(clientIncomingSettings);

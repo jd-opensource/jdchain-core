@@ -3,6 +3,8 @@ package com.jd.blockchain.gateway.web;
 import com.jd.blockchain.crypto.*;
 import com.jd.blockchain.gateway.service.GatewayInterceptService;
 import com.jd.blockchain.transaction.SignatureUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,12 +22,19 @@ import com.jd.blockchain.transaction.TransactionService;
 import com.jd.blockchain.utils.BusinessException;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
 
+import javax.servlet.http.HttpServletRequest;
+
 /**
  * @author huanghaiquan
  *
  */
 @RestController
 public class TxProcessingController implements TransactionService {
+
+	private Logger LOGGER = LoggerFactory.getLogger(TxProcessingController.class);
+
+	@Autowired
+	private HttpServletRequest request;
 
 	@Autowired
 	private PeerService peerService;
@@ -37,8 +46,7 @@ public class TxProcessingController implements TransactionService {
 	@Override
 	public @ResponseBody TransactionResponse process(@RequestBody TransactionRequest txRequest) {
 		// 拦截请求进行校验
-		interceptService.intercept(txRequest);
-
+		interceptService.intercept(request, txRequest);
 		// 检查交易请求的信息是否完整；
 		HashDigest ledgerHash = txRequest.getTransactionContent().getLedgerHash();
 		if (ledgerHash == null) {
@@ -55,7 +63,7 @@ public class TxProcessingController implements TransactionService {
 		DigitalSignature[] partiSigns = txRequest.getEndpointSignatures();
 		if (partiSigns == null || partiSigns.length == 0) {
 			// 缺少参与者签名，则采用检查托管账户并进行托管签名；如果请求未包含托管账户，或者托管账户认证失败，则返回401错误；
-			// TODO: 未实现！
+			// TODO: 未实现！LedgerRepositoryImpl
 			throw new IllegalStateException("Not implemented!");
 		} else {
 			// 验证签名；
@@ -67,6 +75,9 @@ public class TxProcessingController implements TransactionService {
 		}
 
 		// 注：转发前自动附加网关的签名并转发请求至共识节点；异步的处理方式
-		return peerService.getTransactionService().process(txRequest);
+		LOGGER.info("[contentHash={}],before peerService.getTransactionService().process(txRequest)",txRequest.getTransactionContent().getHash());
+		TransactionResponse transactionResponse =  peerService.getTransactionService().process(txRequest);
+		LOGGER.info("[contentHash={}],after peerService.getTransactionService().process(txRequest)",txRequest.getTransactionContent().getHash());
+		return transactionResponse;
 	}
 }

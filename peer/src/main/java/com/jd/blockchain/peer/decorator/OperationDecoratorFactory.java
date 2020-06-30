@@ -37,6 +37,10 @@ public class OperationDecoratorFactory {
             return decorateUserAuthorizeOperation((UserAuthorizeOperation) op);
         } else if (op instanceof UserRegisterOperation) {
             return decorateUserRegisterOperation((UserRegisterOperation) op);
+        } else if (op instanceof EventAccountRegisterOperation) {
+            return decorateEventAccountRegisterOperation((EventAccountRegisterOperation) op);
+        } else if (op instanceof EventPublishOperation) {
+            return decorateEventPublishOperation((EventPublishOperation) op);
         }
 
         return null;
@@ -204,6 +208,35 @@ public class OperationDecoratorFactory {
      */
     public static BlockchainIdentity decorateBlockchainIdentity(BlockchainIdentity identity) {
         return new BlockchainIdentityData(identity.getAddress(), identity.getPubKey());
+    }
+
+    /**
+     * decorate EventAccountRegisterOperation object
+     *
+     * @param op
+     * @return
+     */
+    public static Operation decorateEventAccountRegisterOperation(EventAccountRegisterOperation op) {
+        BlockchainIdentity identity = decorateBlockchainIdentity(op.getEventAccountID());
+        return new EventAccountRegisterOpTemplate(identity);
+    }
+
+    /**
+     * decorate EventPublishOperation object
+     *
+     * @param op
+     * @return
+     */
+    public static Operation decorateEventPublishOperation(EventPublishOperation op) {
+        EventPublishOpTemplate opTemplate = new EventPublishOpTemplate(op.getEventAddress());
+        EventPublishOperation.EventEntry[] events = op.getEvents();
+        if (events != null && events.length > 0) {
+            System.out.println(events.length);
+            for (EventPublishOperation.EventEntry entry : events) {
+                opTemplate.set(entry.getName(), decorateBytesValue(entry.getContent()), entry.getSequence());
+            }
+        }
+        return opTemplate;
     }
 
     /**
