@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.jd.blockchain.ledger.core.handles.EventAccountRegisterOperationHandle;
+import com.jd.blockchain.ledger.core.handles.EventPublishOperationHandle;
 import org.springframework.stereotype.Component;
 
 import com.jd.blockchain.ledger.LedgerException;
@@ -48,6 +50,10 @@ public class DefaultOperationHandleRegisteration implements OperationHandleRegis
 		registerDefaultHandle(new ParticipantRegisterOperationHandle());
 
 		registerDefaultHandle(new ParticipantStateUpdateOperationHandle());
+
+		registerDefaultHandle(new EventAccountRegisterOperationHandle());
+
+		registerDefaultHandle(new EventPublishOperationHandle());
 	}
 
 	private static void registerDefaultHandle(OperationHandle handle) {

@@ -100,7 +100,7 @@ public class JavaContractCode extends AbstractContractCode {
 		}
 
 		@Override
-		public BytesValue call() throws Exception {
+		public BytesValue call() {
 			return JavaContractCode.super.processEvent(eventContext);
 		}
 	}

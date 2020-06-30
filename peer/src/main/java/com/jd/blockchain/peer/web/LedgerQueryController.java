@@ -6,6 +6,7 @@ import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
+import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.KVDataVO;
 import com.jd.blockchain.ledger.KVInfoVO;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
@@ -25,10 +26,7 @@ import com.jd.blockchain.ledger.core.*;
 import com.jd.blockchain.peer.decorator.LedgerAdminInfoDecorator;
 import com.jd.blockchain.peer.decorator.TransactionDecorator;
 import com.jd.blockchain.transaction.BlockchainQueryService;
-import com.jd.blockchain.utils.ArrayUtils;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.DataIterator;
+import com.jd.blockchain.utils.*;
 import com.jd.blockchain.utils.query.QueryArgs;
 import com.jd.blockchain.utils.query.QueryUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +38,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 @RestController
@@ -472,6 +471,163 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		ContractAccountQuery contractAccountSet = ledger.getContractAccountSet(block);
 		return contractAccountSet.getAccount(Bytes.fromBase58(address));
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names/{eventName}")
+	@Override
+	public Event[] getSystemEvents(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+								   @PathVariable(name = "eventName") String eventName,
+								   @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
+								   @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventGroup systemEvents = ledger.getSystemEvents(block);
+		return systemEvents.getEvents(eventName, fromSequence, count);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names/count")
+	@Override
+	public long getSystemEventNameTotalCount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventGroup systemEvents = ledger.getSystemEvents(block);
+		return systemEvents.totalEventNames();
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names")
+	@Override
+	public String[] getSystemEventNames(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+										@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+										@RequestParam(name = "maxCount", required = false, defaultValue = "-1") int count) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventGroup systemEvents = ledger.getSystemEvents(block);
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) systemEvents.totalEventNames());
+		return systemEvents.getEventNames(queryArgs.getFrom(), queryArgs.getCount());
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names/{eventName}/latest")
+	@Override
+	public Event getLatestEvent(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+								@PathVariable(name = "eventName") String eventName) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventGroup systemEvents = ledger.getSystemEvents(block);
+		return systemEvents.getLatest(eventName);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names/{eventName}/count")
+	@Override
+	public long getSystemEventsTotalCount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+										  @PathVariable(name = "eventName") String eventName) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventGroup systemEvents = ledger.getSystemEvents(block);
+		return systemEvents.totalEvents(eventName);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts")
+	@Override
+	public BlockchainIdentity[] getUserEventAccounts(@PathVariable(name = "ledgerHash")  HashDigest ledgerHash,
+													 @RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+													 @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		EventAccountQuery eventAccountSet = ledger.getUserEvents(ledger.getLatestBlock());
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) eventAccountSet.getTotal());
+		return eventAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}")
+	@Override
+	public BlockchainIdentity getUserEventAccount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+												  @PathVariable(name = "address") String address) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		EventAccountQuery eventAccountSet = ledger.getUserEvents(ledger.getLatestBlock());
+		EventPublishingAccount account = eventAccountSet.getAccount(address);
+		if(null == account) {
+			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		}
+		return account.getID();
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/count")
+	@Override
+	public long getUserEventAccountTotalCount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		EventAccountQuery eventAccountSet = ledger.getUserEvents(ledger.getLatestBlock());
+		return eventAccountSet.getTotal();
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/count")
+	@Override
+	public long getUserEventNameTotalCount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+										   @PathVariable(name = "address") String address) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		EventAccountQuery eventAccountSet = ledger.getUserEvents(ledger.getLatestBlock());
+		EventPublishingAccount account = eventAccountSet.getAccount(address);
+		if(null == account) {
+			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		}
+		return account.totalEventNames();
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names")
+	@Override
+	public String[] getUserEventNames(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+									  @PathVariable(name = "address") String address,
+									  @RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+									  @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventPublishingAccount account = ledger.getUserEvents(block).getAccount(address);
+		if(null == account) {
+			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		}
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) account.totalEventNames());
+		return account.getEventNames(queryArgs.getFrom(), queryArgs.getCount());
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/{eventName}/latest")
+	@Override
+	public Event getLatestEvent(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+								@PathVariable(name = "address") String address,
+								@PathVariable(name = "eventName") String eventName) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		EventPublishingAccount account = ledger.getUserEvents(ledger.getLatestBlock()).getAccount(address);
+		if(null == account) {
+			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		}
+		return account.getLatest(eventName);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/{eventName}/count")
+	@Override
+	public long getUserEventsTotalCount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+										@PathVariable(name = "address") String address,
+										@PathVariable(name = "eventName") String eventName) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		EventPublishingAccount account = ledger.getUserEvents(ledger.getLatestBlock()).getAccount(address);
+		if(null == account) {
+			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		}
+		return account.totalEvents(eventName);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/{eventName}")
+	@Override
+	public Event[] getUserEvents(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+								 @PathVariable(name = "address") String address,
+								 @PathVariable(name = "eventName") String eventName,
+								 @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
+								 @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		EventPublishingAccount account = ledger.getUserEvents(block).getAccount(address);
+		if(null == account) {
+			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		}
+		return account.getEvents(eventName, fromSequence, count);
 	}
 
 	/**

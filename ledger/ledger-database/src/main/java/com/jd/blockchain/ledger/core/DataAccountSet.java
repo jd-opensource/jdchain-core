@@ -10,8 +10,11 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DataAccountSet implements Transactional, DataAccountQuery {
+	private Logger logger = LoggerFactory.getLogger(DataAccountSet.class);
 
 	private MerkleAccountSet accountSet;
 
@@ -65,7 +68,13 @@ public class DataAccountSet implements Transactional, DataAccountQuery {
 
 	public DataAccount register(Bytes address, PubKey pubKey, DigitalSignature addressSignature) {
 		// TODO: 未实现对地址签名的校验和记录；
+		if(logger.isDebugEnabled()){
+			logger.debug("before accountSet.register(),[address={}]",address.toBase58());
+		}
 		CompositeAccount accBase = accountSet.register(address, pubKey);
+		if(logger.isDebugEnabled()){
+			logger.debug("after accountSet.register(),[address={}]",address.toBase58());
+		}
 		return new DataAccount(accBase);
 	}
 
@@ -77,7 +86,7 @@ public class DataAccountSet implements Transactional, DataAccountQuery {
 	/**
 	 * 返回数据账户； <br>
 	 * 如果不存在，则返回 null；
-	 * 
+	 *
 	 * @param address
 	 * @return
 	 */

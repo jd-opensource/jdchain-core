@@ -35,7 +35,11 @@ public class LedgerBlockData implements LedgerBlock {
 	private HashDigest transactionSetHash;
 	
 	private long timestamp;
-	
+
+	private HashDigest systemEventSetHash;
+
+	private HashDigest userEventSetHash;
+
 	public LedgerBlockData() {
 	}
 
@@ -49,6 +53,8 @@ public class LedgerBlockData implements LedgerBlock {
 		this.dataAccountSetHash = block.getDataAccountSetHash();
 		this.contractAccountSetHash = block.getContractAccountSetHash();
 		this.transactionSetHash = block.getTransactionSetHash();
+		this.systemEventSetHash = block.getSystemEventSetHash();
+		this.userEventSetHash = block.getUserEventSetHash();
 	}
 
 	public void setAdminAccountHash(HashDigest adminAccountHash) {
@@ -164,7 +170,23 @@ public class LedgerBlockData implements LedgerBlock {
 	public void setTimestamp(long timestamp) {
 		this.timestamp = timestamp;
 	}
-	
-	
 
+
+	@Override
+	public HashDigest getSystemEventSetHash() {
+		return systemEventSetHash;
+	}
+
+	@Override
+	public HashDigest getUserEventSetHash() {
+		return userEventSetHash;
+	}
+
+	public void setSystemEventSetHash(HashDigest systemEventSetHash) {
+		this.systemEventSetHash = systemEventSetHash;
+	}
+
+	public void setUserEventSetHash(HashDigest userEventSetHash) {
+		this.userEventSetHash = userEventSetHash;
+	}
 }
