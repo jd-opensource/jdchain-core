@@ -5,10 +5,12 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
+import com.jd.blockchain.ledger.DataAccountDoesNotExistException;
 import com.jd.blockchain.ledger.KVDataVO;
 import com.jd.blockchain.ledger.KVInfoVO;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
 import com.jd.blockchain.ledger.LedgerBlock;
+import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.LedgerInfo;
 import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
@@ -334,7 +336,11 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
-		return dataAccountSet.getAccount(Bytes.fromBase58(address)).getID();
+		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
+		if(dataAccount == null){
+			throw new DataAccountDoesNotExistException("数据账户不存在");
+		}
+		return dataAccount.getID();
 	}
 
 	@RequestMapping(method = { RequestMethod.GET,
@@ -470,7 +476,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 
 	/**
 	 * get more users by fromIndex and count;
-	 * 
+	 *
 	 * @param ledgerHash
 	 * @param fromIndex
 	 * @param count
@@ -490,7 +496,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 
 	/**
 	 * get more dataAccounts by fromIndex and count;
-	 * 
+	 *
 	 * @param ledgerHash
 	 * @param fromIndex
 	 * @param count
