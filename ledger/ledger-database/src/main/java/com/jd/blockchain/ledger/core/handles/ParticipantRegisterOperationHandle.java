@@ -30,7 +30,7 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
 
         ConsensusProvider provider = ConsensusProviders.getProvider(adminAccountDataSet.getSettings().getConsensusProvider());
 
-        ParticipantNode participantNode = new PartNode((int)(adminAccountDataSet.getParticipantCount()), op.getParticipantName(), op.getParticipantRegisterIdentity().getPubKey(), ParticipantNodeState.REGISTERED);
+        ParticipantNode participantNode = new PartNode((int)(adminAccountDataSet.getParticipantCount()), op.getParticipantName(), op.getParticipantRegisterIdentity().getPubKey(), ParticipantNodeState.READY);
 
         //add new participant as consensus node
         adminAccountDataSet.addParticipant(participantNode);

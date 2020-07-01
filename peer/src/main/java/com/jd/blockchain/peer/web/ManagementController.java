@@ -292,7 +292,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		NodeServer server = null;
 
 		// 处于ACTIVED状态的参与方才会创建共识节点
-		if (currentNode.getParticipantNodeState() == ParticipantNodeState.ACTIVED) {
+		if (currentNode.getParticipantNodeState() == ParticipantNodeState.CONSENSUS) {
 
 			ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(ledgerHash.toBase58(),
 					csSettings, currentNode.getAddress().toString());
@@ -410,7 +410,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			TxBuilder txbuilder = new TxBuilder(ledgerHash);
 
-			txbuilder.states().update(new BlockchainIdentityData(ledgerKeypairs.get(ledgerHash).getPubKey()), ParticipantNodeState.ACTIVED);
+			txbuilder.states().update(new BlockchainIdentityData(ledgerKeypairs.get(ledgerHash).getPubKey()), ParticipantNodeState.CONSENSUS);
 
 			TransactionRequestBuilder reqBuilder = txbuilder.prepareRequest();
 
@@ -450,14 +450,14 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			if (currNodeLastState != null && currNodeNewState != null ) {
 				// 如果参与方的状态由 false 变为 true ，则创建对应的共识节点，更新共识视图加入共识网络；
-				if (currNodeLastState.CODE == ParticipantNodeState.REGISTERED.CODE && currNodeNewState.CODE == ParticipantNodeState.ACTIVED.CODE) {
+				if (currNodeLastState.CODE == ParticipantNodeState.READY.CODE && currNodeNewState.CODE == ParticipantNodeState.CONSENSUS.CODE) {
 					View newView = updateView(ledgerRepository);
 					// 启动共识节点
 					if (newView != null) {
 						LOGGER.info("[ManagementController] updateView SUCC!");
 						setupServer(ledgerRepository, newView);
 					}
-				} else if (currNodeLastState.CODE == ParticipantNodeState.ACTIVED.CODE && currNodeNewState.CODE == ParticipantNodeState.REGISTERED.CODE) {
+				} else if (currNodeLastState.CODE == ParticipantNodeState.CONSENSUS.CODE && currNodeNewState.CODE == ParticipantNodeState.READY.CODE) {
 					// 如果参与方的状态由 true 变为 false，则停止节点，更新共识视图从共识网络移除节点；
 				} else {
 					// 不做任何操作；
@@ -476,7 +476,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		ParticipantNode currNode = ledgerCurrNodes.get(ledgerRepo.getHash());
 
 		for (ParticipantNode participantNode : ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()).getParticipants()) {
-			if ((participantNode.getAddress().toString().equals(currNode.getAddress().toString())) && participantNode.getParticipantNodeState() == ParticipantNodeState.REGISTERED) {
+			if ((participantNode.getAddress().toString().equals(currNode.getAddress().toString())) && participantNode.getParticipantNodeState() == ParticipantNodeState.READY) {
 				return true;
 			}
 		}
@@ -744,7 +744,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				continue;
 			}
 			// 排除不处于激活状态的其他共识节点
-			if (getParticipantState(nodeSettings.getAddress(), ledgerAdminInfo) != ParticipantNodeState.ACTIVED) {
+			if (getParticipantState(nodeSettings.getAddress(), ledgerAdminInfo) != ParticipantNodeState.CONSENSUS) {
 				continue;
 			}
 
