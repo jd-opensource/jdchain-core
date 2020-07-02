@@ -34,6 +34,7 @@ import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.ledger.proof.MerkleLeaf;
 import com.jd.blockchain.ledger.proof.MerklePath;
 import com.jd.blockchain.peer.consensus.LedgerStateManager;
+import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.net.NetworkAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +83,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	public static final String GATEWAY_PUB_EXT_NAME = ".gw.pub";
 
 	public static final int MIN_GATEWAY_ID = 10000;
+
+	private static Properties systemConfig;
+
+	private int viewId;
 
 	@Autowired
 	private LedgerManage ledgerManager;
@@ -353,56 +358,62 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	 * @param txRequest
 	 * @return
 	 */
-	private static Properties systemConfig;
-	private int viewId;
-//	@RequestMapping(path = "/delegate/activeparticipant", method = RequestMethod.POST, consumes = BinaryMessageConverter.CONTENT_TYPE_VALUE)
 	@RequestMapping(path = "/delegate/activeparticipant", method = RequestMethod.POST)
-	public TransactionResponse activateParticipant(@RequestParam("ledgerHash") HashDigest ledgerHash) {
+	public TransactionResponse activateParticipant(@RequestParam("ledgerHash") String base58LedgerHash) {
 		HashDigest remoteNewBlockHash;
 		TransactionResponse transactionResponse = new TxResponseMessage();
+		HashDigest ledgerHash = new HashDigest(Base58Utils.decode(base58LedgerHash));
+		try {
 
-		// 由本节点准备交易
-		TransactionRequest txRequest = prepareTx(ledgerHash);
+			// 由本节点准备交易
+			TransactionRequest txRequest = prepareTx(ledgerHash);
 
-		LedgerRepository ledgerRepo = (LedgerRepository) ledgerQuerys.get(ledgerHash);
+			LedgerRepository ledgerRepo = (LedgerRepository) ledgerQuerys.get(ledgerHash);
 
-		systemConfig = PropertiesUtils.createProperties(((BftsmartConsensusSettings)getConsensusSetting(ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()))).getSystemConfigs());
+			systemConfig = PropertiesUtils.createProperties(((BftsmartConsensusSettings)getConsensusSetting(ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()))).getSystemConfigs());
 
-		viewId = ((BftsmartConsensusSettings) getConsensusSetting(ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()))).getViewId();
+			viewId = ((BftsmartConsensusSettings) getConsensusSetting(ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()))).getViewId();
 
-		// 验证本参与方是否已经被注册，没有被注册的参与方不能进行状态更新
-		if (!verifyState(ledgerRepo)) {
-			((TxResponseMessage) transactionResponse).setExecutionState(TransactionState.PARTICIPANT_REPEATLY_ACTIVATE_ERROR);
-			return txResponseWrapper(transactionResponse);
-		}
+			// 验证本参与方是否已经被注册，没有被注册的参与方不能进行状态更新
+			if (!verifyState(ledgerRepo)) {
+				((TxResponseMessage) transactionResponse).setExecutionState(TransactionState.SUCCESS);
+				return txResponseWrapper(transactionResponse);
+			}
 
-		// 为交易添加本节点的签名信息，防止无法通过安全策略检查
-		txRequest = addNodeSigner(txRequest);
+			// 为交易添加本节点的签名信息，防止无法通过安全策略检查
+			txRequest = addNodeSigner(txRequest);
 
-		// 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行新参与方的状态激活操作
-		TransactionResponse txResponse = commitTxToOrigConsensus(ledgerRepo, txRequest);
-		
-		// 如果交易执行失败，则返回失败结果；
-		if (!txResponse.isSuccess()) {
-			LOGGER.error("[ManagementController] : Commit tx to orig consensus, tx execute failed!");
+			// 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行新参与方的状态激活操作
+			TransactionResponse txResponse = commitTxToOrigConsensus(ledgerRepo, txRequest);
+
+			// 如果交易执行失败，则返回失败结果；
+			if (!txResponse.isSuccess()) {
+				LOGGER.error("[ManagementController] : Commit tx to orig consensus, tx execute failed!");
+				return txResponse;
+			}
+			// 如果交易执行成功，记录远程共识网络的新区块哈希；
+			remoteNewBlockHash = txResponse.getBlockHash();
+
+			// 在本地账本执行交易；
+			// 验证本地区块与远程区块是否一致，如果不一致，返回失败结果；
+			// 如果区块一致，提交区块；
+			txResponse = commitTxToLocalLedger(ledgerRepo, remoteNewBlockHash, txRequest);
+
+			if (txResponse.isSuccess()) {
+				// 更新原有共识网络节点以及本地新启动节点的视图ID，并启动本地新节点的共识服务
+				TransactionState transactionState = updateViewAndStartServer(ledgerRepo);
+				((TxResponseMessage)txResponse).setExecutionState(transactionState);
+			}
 			return txResponse;
+
+		} catch (ViewUpdateException e) {
+			LOGGER.error("[ManagementController] view update exception!");
+			return null;
+
+		} catch (StartServerException e) {
+			LOGGER.error("[ManagementController] start server exception!");
+			return null;
 		}
-		// 如果交易执行成功，记录远程共识网络的新区块哈希；
-		remoteNewBlockHash = txResponse.getBlockHash();
-
-		// 在本地账本执行交易；
-		// 验证本地区块与远程区块是否一致，如果不一致，返回失败结果；
-		// 如果区块一致，提交区块；
-		txResponse = commitTxToLocalLedger(ledgerRepo, remoteNewBlockHash, txRequest);
-
-		if (txResponse.isSuccess()) {
-			// 更新原有共识网络节点以及本地新启动节点的视图ID，并启动本地新节点的共识服务
-			TransactionState transactionState = updateViewAndStartServer(ledgerRepo);
-			((TxResponseMessage)txResponse).setExecutionState(transactionState);
-		}
-
-		return txResponse;
-		
 	}
 
 	// 在指定的账本上准备一笔激活参与方状态的操作
@@ -464,9 +475,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				}
 			}
 		} catch (ViewUpdateException e) {
-			return TransactionState.VIEW_UPDATE_ERROR;
+			throw new ViewUpdateException("[ManagementController] view update exception!");
 		} catch (StartServerException e) {
-			return TransactionState.START_SERVER_ERROR;
+			throw new StartServerException("[ManagementController] start server exception!");
 		}
 
 		return TransactionState.SUCCESS;
@@ -480,8 +491,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				return true;
 			}
 		}
-		// 参与方的状态已经处于激活状态，不能被重复激活
-		LOGGER.error("Participant state has been activated, cannot be activated repeatedly!");
+		// 参与方的状态已经处于激活状态，不需要再激活
+		LOGGER.info("Participant state has been activated, no need be activated repeatedly!");
 		return false;
 	}
 
@@ -573,7 +584,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			return reconfigureReply.getView();
 
 		} catch (Exception e) {
-			e.printStackTrace();
 			throw new ViewUpdateException("[ManagementController] view update fail exception!");
 		}
 	}
