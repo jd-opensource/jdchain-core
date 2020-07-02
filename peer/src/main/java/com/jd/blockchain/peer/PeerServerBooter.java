@@ -1,6 +1,7 @@
 package com.jd.blockchain.peer;
 
 import com.jd.blockchain.consts.Global;
+import com.jd.blockchain.peer.web.LedgerLoadTimer;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
 import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
@@ -200,6 +201,9 @@ public class PeerServerBooter {
 			ConsensusManage consensusManage = ctx.getBean(ConsensusManage.class);
 			consensusManage.runAllRealms();
 		}
+		// 释放定时任务许可
+		LedgerLoadTimer loadTimerBean = ctx.getBean(LedgerLoadTimer.class);
+		loadTimerBean.release();
 
 		return ctx;
 	}
