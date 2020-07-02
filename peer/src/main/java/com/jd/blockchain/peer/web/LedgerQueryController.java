@@ -624,9 +624,20 @@ public class LedgerQueryController implements BlockchainQueryService {
 		return account.getEvents(eventName, fromSequence, count);
 	}
 
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/contracts/address/{address}/version/{version}")
+	@Override
+	public ContractInfo getContract(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+									@PathVariable(name = "address") String address, @PathVariable(name = "version") long version) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		ContractAccountQuery contractAccountSet = ledger.getContractAccountSet(block);
+		return contractAccountSet.getAccount(Bytes.fromBase58(address), version);
+	}
+
 	/**
 	 * get more users by fromIndex and count;
-	 * 
+	 *
 	 * @param ledgerHash
 	 * @param fromIndex
 	 * @param count
@@ -646,7 +657,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 
 	/**
 	 * get more dataAccounts by fromIndex and count;
-	 * 
+	 *
 	 * @param ledgerHash
 	 * @param fromIndex
 	 * @param count
