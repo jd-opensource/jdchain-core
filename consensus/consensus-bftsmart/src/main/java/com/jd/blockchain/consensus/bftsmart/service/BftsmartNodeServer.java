@@ -6,10 +6,13 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import bftsmart.consensus.app.BatchAppResultImpl;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.*;
+import bftsmart.tom.core.messages.TOMMessage;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractException;
 import com.jd.blockchain.consensus.service.*;
@@ -86,6 +89,10 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     private List<InetSocketAddress> consensusAddresses = new ArrayList<>();
 
+    private final Lock batchHandleLock = new ReentrantLock();
+
+    private volatile InnerStateHolder stateHolder;
+
     public BftsmartNodeServer() {
 
     }
@@ -96,6 +103,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         //used later
         this.stateMachineReplicate = stateMachineReplicate;
         this.latestStateId = stateMachineReplicate.getLatestStateID(realmName);
+        this.stateHolder = new InnerStateHolder(latestStateId - 1);
         this.messageHandle = messageHandler;
         createConfig();
         serverId = findServerId();
@@ -424,8 +432,12 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     /**
      * Used by consensus write phase, pre compute new block hash
+     * @param cid
+     * 	      当前正在进行的共识ID；
+     * @param commands
+     *        请求列表
      */
-    public BatchAppResultImpl preComputeAppHash(byte[][] commands) {
+    public BatchAppResultImpl preComputeAppHash(int cid, byte[][] commands) {
 
         List<AsyncFuture<byte[]>> asyncFutureLinkedList = new ArrayList<>(commands.length);
         List<byte[]> responseLinkedList = new ArrayList<>();
@@ -435,32 +447,53 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         BatchAppResultImpl result = null;
         String batchId = null;
         int msgId = 0;
-
         try {
+            batchHandleLock.lock();
 
-            batchId = messageHandle.beginBatch(realmName);
-            genisStateSnapshot = messageHandle.getGenisStateSnapshot(realmName);
-            preStateSnapshot = messageHandle.getStateSnapshot(realmName);
+//            long lastCid = stateHolder.lastCid, currentCid = stateHolder.currentCid;
+//            if (cid < lastCid) {
+//                // 表示该CID已经执行过，不再处理
+//                return null;
+//            } else if (cid == lastCid + 1) {
+//                // 需要判断之前二阶段是否执行过
+//                if (cid == currentCid) {
+//                    // 表示二阶段已执行,回滚，重新执行
+//                    String batchingID = stateHolder.batchingID;
+//                    messageHandle.rollbackBatch(realmName, batchingID, TransactionState.IGNORED_BY_BLOCK_FULL_ROLLBACK.CODE);
+//                }
+//            }
+//            stateHolder.currentCid = cid;
 
-            if (preStateSnapshot == null) {
-                throw new IllegalStateException("Pre block state snapshot is null!");
+            if(commands.length == 0) {
+                // 没有要做预计算的消息，直接组装结果返回
+                result = new BatchAppResultImpl(responseLinkedList, int2Bytes(cid) , "", int2Bytes(cid));
+                result.setErrorCode((byte) 0);
+            } else {
+                batchId = messageHandle.beginBatch(realmName);
+                stateHolder.batchingID = batchId;
+
+                // 创世区块的状态快照
+                genisStateSnapshot = messageHandle.getGenisStateSnapshot(realmName);
+                // 前置区块的状态快照
+                preStateSnapshot = messageHandle.getStateSnapshot(realmName);
+                if (preStateSnapshot == null) {
+                    throw new IllegalStateException("Prev block state snapshot is null!");
+                }
+                for (int i = 0; i < commands.length; i++) {
+                    byte[] txContent = commands[i];
+                    AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(msgId++, txContent, realmName, batchId);
+                    asyncFutureLinkedList.add(asyncFuture);
+                }
+
+                newStateSnapshot = messageHandle.completeBatch(realmName, batchId);
+
+                for (int i = 0; i < asyncFutureLinkedList.size(); i++) {
+                    responseLinkedList.add(asyncFutureLinkedList.get(i).get());
+                }
+
+                result = new BatchAppResultImpl(responseLinkedList, newStateSnapshot.getSnapshot(), batchId, genisStateSnapshot.getSnapshot());
+                result.setErrorCode((byte) 0);
             }
-
-            for (int i = 0; i < commands.length; i++) {
-                byte[] txContent = commands[i];
-                AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(msgId++, txContent, realmName, batchId);
-                asyncFutureLinkedList.add(asyncFuture);
-            }
-
-            newStateSnapshot = messageHandle.completeBatch(realmName, batchId);
-
-            for (int i = 0; i < asyncFutureLinkedList.size(); i++) {
-                responseLinkedList.add(asyncFutureLinkedList.get(i).get());
-            }
-
-            result = new BatchAppResultImpl(responseLinkedList, newStateSnapshot.getSnapshot(), batchId, genisStateSnapshot.getSnapshot());
-            result.setErrorCode((byte) 0);
-
         } catch (BlockRollbackException e) {
             LOGGER.error("Error occurred while pre compute app! --" + e.getMessage(), e);
             for (int i = 0; i < commands.length; i++) {
@@ -477,6 +510,8 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
             result = new BatchAppResultImpl(responseLinkedList,preStateSnapshot.getSnapshot(), batchId, genisStateSnapshot.getSnapshot());
             result.setErrorCode((byte) 1);
+        }finally {
+            batchHandleLock.unlock();
         }
 
         return result;
@@ -515,12 +550,25 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
      *  Decision has been made at the consensus stage， commit block
      *
      */
-    public void preComputeAppCommit(String batchId) {
+    public void preComputeAppCommit(int cid, String batchId) {
         try {
-            messageHandle.commitBatch(realmName, batchId);
+            batchHandleLock.lock();
+//            long lastCid = stateHolder.lastCid;
+//            if (cid <= lastCid) {
+//                // 表示该CID已经执行过，不再处理
+//                return;
+//            }
+//            stateHolder.setLastCid(cid);
+            String batchingID = stateHolder.batchingID;
+            stateHolder.reset();
+            if (batchId.equals(batchingID) && !(batchingID.equals("".toString()))) {
+                messageHandle.commitBatch(realmName, batchId);
+            }
         } catch (BlockRollbackException e) {
             LOGGER.error("Error occurred while pre compute commit --" + e.getMessage(), e);
             throw e;
+        } finally {
+            batchHandleLock.unlock();
         }
     }
 
@@ -529,9 +577,27 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
      *  Consensus write phase will terminate, new block hash values are inconsistent, rollback block
      *
      */
-    public void preComputeAppRollback(String batchId) {
-        messageHandle.rollbackBatch(realmName, batchId, TransactionState.IGNORED_BY_BLOCK_FULL_ROLLBACK.CODE);
-        LOGGER.debug("Rollback of operations that cause inconsistencies in the ledger");
+    public void preComputeAppRollback(int cid, String batchId) {
+        try {
+            batchHandleLock.lock();
+//            long lastCid = stateHolder.lastCid;
+//            if (cid <= lastCid) {
+//                // 表示该CID已经执行过，不再处理
+//                return;
+//            }
+//            stateHolder.setLastCid(cid);
+            String batchingID = stateHolder.batchingID;
+            stateHolder.reset();
+            LOGGER.debug("Rollback of operations that cause inconsistencies in the ledger");
+            if (batchId.equals(batchingID) && !(batchingID.equals("".toString()))) {
+                messageHandle.rollbackBatch(realmName, batchId, TransactionState.IGNORED_BY_BLOCK_FULL_ROLLBACK.CODE);
+            }
+        } catch (Exception e) {
+            LOGGER.error("Error occurred while pre compute rollback --" + e.getMessage(), e);
+            throw e;
+        } finally {
+            batchHandleLock.unlock();
+        }
     }
 
     //notice
@@ -641,6 +707,63 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
         STOPPED
 
+    }
+
+    private byte[] int2Bytes(int cid){
+        byte[] arr = new byte[4] ;
+        arr[0] = (byte)cid ;
+        arr[1] = (byte)(cid >> 8) ;
+        arr[2] = (byte)(cid >> 16) ;
+        arr[3] = (byte)(cid >> 24) ;
+
+        return arr;
+    }
+
+    private static class InnerStateHolder {
+
+        private long lastCid;
+
+        private long currentCid = -1L;
+
+        private String batchingID = "";
+
+        public InnerStateHolder(long lastCid) {
+            this.lastCid = lastCid;
+        }
+
+        public InnerStateHolder(long lastCid, long currentCid) {
+            this.lastCid = lastCid;
+            this.currentCid = currentCid;
+        }
+
+        public long getLastCid() {
+            return lastCid;
+        }
+
+        public void setLastCid(long lastCid) {
+            this.lastCid = lastCid;
+        }
+
+        public long getCurrentCid() {
+            return currentCid;
+        }
+
+        public void setCurrentCid(long currentCid) {
+            this.currentCid = currentCid;
+        }
+
+        public String getBatchingID() {
+            return batchingID;
+        }
+
+        public void setBatchingID(String batchingID) {
+            this.batchingID = batchingID;
+        }
+
+        public void reset() {
+            currentCid = -1;
+            batchingID = "";
+        }
     }
 
 }
