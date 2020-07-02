@@ -28,9 +28,7 @@ import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.DataIterator;
 import com.jd.blockchain.utils.query.QueryArgs;
 import com.jd.blockchain.utils.query.QueryUtils;
-
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public class LedgerQueryService implements BlockchainQueryService {
