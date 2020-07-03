@@ -1,9 +1,9 @@
 package com.jd.blockchain.gateway.service;
 
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.gateway.service.settings.LedgerBaseSettings;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.sdk.ContractSettings;
-import com.jd.blockchain.sdk.LedgerBaseSettings;
 
 /**
  * queryService only for gateway;

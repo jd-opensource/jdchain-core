@@ -15,6 +15,15 @@ public interface LedgerQuery {
 	HashDigest getHash();
 
 	/**
+	 * 账本结构版本；<br>
+	 * 
+	 * 如果未定义版本，则返回 -1；
+	 * 
+	 * @return
+	 */
+	long getVersion();
+
+	/**
 	 * 最新区块高度；
 	 * 
 	 * @return
@@ -64,12 +73,13 @@ public interface LedgerQuery {
 	/**
 	 * 查询账本数据；
 	 * 
+	 * 
 	 * @param block
 	 * @return
 	 */
 	LedgerDataQuery getLedgerData(LedgerBlock block);
 
-	/**
+	
 	 * 查询账本事件；
 	 * 
 	 * @param block

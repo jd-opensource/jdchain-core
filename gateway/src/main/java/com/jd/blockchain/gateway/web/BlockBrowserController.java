@@ -8,7 +8,6 @@ import javax.servlet.http.HttpServletRequest;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.gateway.exception.BlockNonExistentException;
-import com.jd.blockchain.gateway.service.PeerConnectionManager;
 import com.jd.blockchain.ledger.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +27,6 @@ import com.jd.blockchain.gateway.service.DataRetrievalService;
 import com.jd.blockchain.gateway.service.GatewayQueryService;
 import com.jd.blockchain.sdk.BlockchainExtendQueryService;
 import com.jd.blockchain.sdk.ContractSettings;
-import com.jd.blockchain.sdk.LedgerBaseSettings;
 import com.jd.blockchain.utils.BaseConstant;
 import com.jd.blockchain.utils.ConsoleUtils;
 
@@ -578,7 +576,7 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 			return currentContractCount;
 		}
 		long lastBlockHeight = blockHeight - 1;
-		long lastContractCount = peerService.getQueryService().getUserCount(ledgerHash, lastBlockHeight);
+		long lastContractCount = peerService.getQueryService().getContractCount(ledgerHash, lastBlockHeight);
 		return currentContractCount - lastContractCount;
 	}
 
@@ -592,7 +590,7 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 			return currentBlockContractCount;
 		}
 		HashDigest previousHash = currentBlock.getPreviousHash();
-		long lastBlockContractCount = peerService.getQueryService().getUserCount(ledgerHash, previousHash);
+		long lastBlockContractCount = peerService.getQueryService().getContractCount(ledgerHash, previousHash);
 		// 当前区块合约数量减上个区块合约数量
 		return currentBlockContractCount - lastBlockContractCount;
 	}
