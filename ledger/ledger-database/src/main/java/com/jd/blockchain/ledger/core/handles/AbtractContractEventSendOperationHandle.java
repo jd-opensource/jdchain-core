@@ -70,7 +70,7 @@ public abstract class AbtractContractEventSendOperationHandle implements Operati
 		LocalContractEventContext localContractEventContext = new LocalContractEventContext(
 				request.getTransactionContent().getLedgerHash(), contractOP.getEvent());
 		localContractEventContext.setArgs(contractOP.getArgs()).setTransactionRequest(request)
-				.setLedgerContext(ledgerContext);
+				.setLedgerContext(ledgerContext).setVersion(contract.getChainCodeVersion());
 
 		localContractEventContext.setTxSigners(
 				request.getEndpoints().stream().map( s -> s.getIdentity()).collect(Collectors.toSet()));

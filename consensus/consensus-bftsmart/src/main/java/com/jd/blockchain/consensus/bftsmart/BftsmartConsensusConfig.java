@@ -9,6 +9,8 @@ public class BftsmartConsensusConfig implements BftsmartConsensusSettings {
 
 	private BftsmartNodeSettings[] nodes;
 
+	private int viewId;
+
 	static {
 		DataContractRegistry.register(BftsmartConsensusSettings.class);
 	}
@@ -24,10 +26,11 @@ public class BftsmartConsensusConfig implements BftsmartConsensusSettings {
 	 */
 	public BftsmartConsensusConfig(BftsmartNodeSettings[] nodes,
 //								   BftsmartCommitBlockSettings commitBlockSettings,
-								   Property[] bftsmartSystemConfigs) {
+								   Property[] bftsmartSystemConfigs, int viewId) {
 		this.nodes = nodes;
 //		this.commitBlockSettings = commitBlockSettings;
 		this.bftsmartSystemConfig = bftsmartSystemConfigs;
+		this.viewId = viewId;
 	}
 
 	@Override
@@ -38,6 +41,11 @@ public class BftsmartConsensusConfig implements BftsmartConsensusSettings {
 	@Override
 	public Property[] getSystemConfigs() {
 		return bftsmartSystemConfig;
+	}
+
+	@Override
+	public int getViewId() {
+		return viewId;
 	}
 
 //	@Override

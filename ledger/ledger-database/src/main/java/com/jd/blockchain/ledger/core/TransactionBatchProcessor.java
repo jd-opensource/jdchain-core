@@ -208,7 +208,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 			// 由于哈希校验失败，引发IllegalTransactionException，使外部调用抛弃此交易请求；
 			throw new IllegalTransactionException(
 					"Wrong  transaction content hash! --[TxHash=" + requestExt.getTransactionContent().getHash() + "]!",
-					TransactionState.IGNORED_BY_WRONG_CONTENT_SIGNATURE);
+					TransactionState.IGNORED_BY_INCONSISTENT_CONTENT_HASH);
 		}
 	}
 
@@ -223,7 +223,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 					throw new IllegalTransactionException(
 							String.format("Wrong transaction node signature! --[Tx Hash=%s][Node Signer=%s]!",
 									request.getTransactionContent().getHash(), node.getAddress()),
-							TransactionState.IGNORED_BY_WRONG_CONTENT_SIGNATURE);
+							TransactionState.IGNORED_BY_ILLEGAL_CONTENT_SIGNATURE);
 				}
 			}
 		}
@@ -240,7 +240,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 					throw new IllegalTransactionException(
 							String.format("Wrong transaction endpoint signature! --[Tx Hash=%s][Endpoint Signer=%s]!",
 									request.getTransactionContent().getHash(), endpoint.getAddress()),
-							TransactionState.IGNORED_BY_WRONG_CONTENT_SIGNATURE);
+							TransactionState.IGNORED_BY_ILLEGAL_CONTENT_SIGNATURE);
 				}
 			}
 		}
@@ -295,6 +295,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 			LOGGER.debug("after commit().  --[BlockHeight={}][RequestHash={}][TxHash={}]",
 					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash());
 		} catch (TransactionRollbackException e) {
+			//
 			result = TransactionState.IGNORED_BY_TX_FULL_ROLLBACK;
 			txCtx.rollback();
 			LOGGER.error(String.format(
