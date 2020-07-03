@@ -5,6 +5,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
+import com.jd.blockchain.ledger.DataAccountDoesNotExistException;
 import com.jd.blockchain.ledger.KVDataVO;
 import com.jd.blockchain.ledger.KVInfoVO;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
@@ -19,7 +20,14 @@ import com.jd.blockchain.ledger.TypedKVData;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
-import com.jd.blockchain.ledger.core.*;
+import com.jd.blockchain.ledger.core.ContractAccountQuery;
+import com.jd.blockchain.ledger.core.DataAccount;
+import com.jd.blockchain.ledger.core.DataAccountQuery;
+import com.jd.blockchain.ledger.core.LedgerQuery;
+import com.jd.blockchain.ledger.core.LedgerService;
+import com.jd.blockchain.ledger.core.ParticipantCertData;
+import com.jd.blockchain.ledger.core.TransactionQuery;
+import com.jd.blockchain.ledger.core.UserAccountQuery;
 import com.jd.blockchain.peer.decorator.LedgerAdminInfoDecorator;
 import com.jd.blockchain.peer.decorator.TransactionDecorator;
 import com.jd.blockchain.transaction.BlockchainQueryService;
@@ -334,7 +342,11 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
-		return dataAccountSet.getAccount(Bytes.fromBase58(address)).getID();
+		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
+		if(dataAccount == null){
+			throw new DataAccountDoesNotExistException("数据账户不存在");
+		}
+		return dataAccount.getID();
 	}
 
 	@RequestMapping(method = { RequestMethod.GET,
@@ -470,7 +482,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 
 	/**
 	 * get more users by fromIndex and count;
-	 * 
+	 *
 	 * @param ledgerHash
 	 * @param fromIndex
 	 * @param count
@@ -490,7 +502,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 
 	/**
 	 * get more dataAccounts by fromIndex and count;
-	 * 
+	 *
 	 * @param ledgerHash
 	 * @param fromIndex
 	 * @param count
