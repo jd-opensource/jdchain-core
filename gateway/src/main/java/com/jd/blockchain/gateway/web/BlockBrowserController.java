@@ -466,7 +466,7 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 			return currentContractCount;
 		}
 		long lastBlockHeight = blockHeight - 1;
-		long lastContractCount = peerService.getQueryService().getUserCount(ledgerHash, lastBlockHeight);
+		long lastContractCount = peerService.getQueryService().getContractCount(ledgerHash, lastBlockHeight);
 		return currentContractCount - lastContractCount;
 	}
 
@@ -480,7 +480,7 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 			return currentBlockContractCount;
 		}
 		HashDigest previousHash = currentBlock.getPreviousHash();
-		long lastBlockContractCount = peerService.getQueryService().getUserCount(ledgerHash, previousHash);
+		long lastBlockContractCount = peerService.getQueryService().getContractCount(ledgerHash, previousHash);
 		// 当前区块合约数量减上个区块合约数量
 		return currentBlockContractCount - lastBlockContractCount;
 	}
