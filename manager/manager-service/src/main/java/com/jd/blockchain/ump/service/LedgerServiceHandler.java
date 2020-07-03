@@ -6,7 +6,10 @@ import com.jd.blockchain.ump.model.UmpConstant;
 import com.jd.blockchain.ump.model.state.LedgerBindingConf;
 import com.jd.blockchain.ump.model.state.LedgerInited;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.binary.StringUtils;
 import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +21,7 @@ import java.util.*;
 
 @Service
 public class LedgerServiceHandler implements LedgerService {
+    private Logger logger = LoggerFactory.getLogger(LedgerServiceHandler.class);
 
     private static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ");
 
@@ -31,7 +35,7 @@ public class LedgerServiceHandler implements LedgerService {
 
     private static final String LEDGER_DB_FORMAT = "binding.%s.db.uri";
 
-    private static final String FILE_PEER_FLAG = "deployment-peer";
+    private static final String FILE_PEER_FLAG = "deploy-peer";
 
     private static final String JAR_SUFFIX = "jar";
 
@@ -212,6 +216,10 @@ public class LedgerServiceHandler implements LedgerService {
                     break;
                 }
             }
+        }
+        //check the peerVerifykey;
+        if(peerVerifyKey == null || peerVerifyKey.equals("")){
+            logger.error("not find the jar start with {}",FILE_PEER_FLAG);
         }
 
         return peerVerifyKey;
