@@ -93,9 +93,18 @@ public class ContractAccountSet implements Transactional, ContractAccountQuery {
 	 */
 	public ContractAccount deploy(Bytes address, PubKey pubKey, DigitalSignature addressSignature, byte[] chaincode) {
 		// TODO: 校验和记录合约地址签名；
-		CompositeAccount accBase = accountSet.register(address, pubKey);
-		ContractAccount contractAcc = new ContractAccount(accBase);
-		contractAcc.setChaincode(chaincode, -1);
+		//is exist address?
+		ContractAccount contractAcc;
+		if(!accountSet.contains(address)){
+			CompositeAccount accBase = accountSet.register(address, pubKey);
+			contractAcc = new ContractAccount(accBase);
+			contractAcc.setChaincode(chaincode, -1);
+		}else {
+			//exist the address;
+			long curVersion = accountSet.getVersion(address);
+			contractAcc = this.getAccount(address,curVersion);
+			contractAcc.setChaincode(chaincode,curVersion);
+		}
 		return contractAcc;
 	}
 

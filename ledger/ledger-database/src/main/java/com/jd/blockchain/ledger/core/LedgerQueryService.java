@@ -28,9 +28,7 @@ import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.DataIterator;
 import com.jd.blockchain.utils.query.QueryArgs;
 import com.jd.blockchain.utils.query.QueryUtils;
-
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public class LedgerQueryService implements BlockchainQueryService {
@@ -491,6 +489,14 @@ public class LedgerQueryService implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		EventAccountQuery userEvents = ledger.getUserEvents(block);
 		return userEvents.getAccount(address).getEvents(eventName, fromSequence, count);
+	}
+
+	@Override
+	public ContractInfo getContract(HashDigest ledgerHash, String address, long version) {
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getLatestBlock();
+		ContractAccountQuery contractAccountSet = ledger.getContractAccountSet(block);
+		return contractAccountSet.getAccount(Bytes.fromBase58(address), version);
 	}
 
 	@Override

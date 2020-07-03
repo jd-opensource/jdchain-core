@@ -22,15 +22,15 @@ public class JVMContractEventSendOperationHandle extends AbtractContractEventSen
 
 	@Override
 	protected ContractCode loadContractCode(ContractAccount contract) {
-		ContractCode contractCode = JVM_ENGINE.getContract(contract.getAddress(), contract.getChaincodeVersion());
+		ContractCode contractCode = JVM_ENGINE.getContract(contract.getAddress(), contract.getChainCodeVersion());
 		if (contractCode == null) {
 			JVM_LOAD_LOCK.lock();
 			try {
 				// Double Check
-				contractCode = JVM_ENGINE.getContract(contract.getAddress(), contract.getChaincodeVersion());
+				contractCode = JVM_ENGINE.getContract(contract.getAddress(), contract.getChainCodeVersion());
 				if (contractCode == null) {
 					// 装载合约；
-					contractCode = JVM_ENGINE.setupContract(contract.getAddress(), contract.getChaincodeVersion(),
+					contractCode = JVM_ENGINE.setupContract(contract.getAddress(), contract.getChainCodeVersion(),
 							contract.getChainCode());
 				}
 			} finally {
