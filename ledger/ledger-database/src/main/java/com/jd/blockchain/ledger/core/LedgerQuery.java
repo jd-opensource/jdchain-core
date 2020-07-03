@@ -79,7 +79,7 @@ public interface LedgerQuery {
 	 */
 	LedgerDataQuery getLedgerData(LedgerBlock block);
 
-	
+	/**
 	 * 查询账本事件；
 	 * 
 	 * @param block

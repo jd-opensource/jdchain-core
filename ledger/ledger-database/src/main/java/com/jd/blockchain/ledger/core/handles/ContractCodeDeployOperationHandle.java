@@ -4,13 +4,10 @@ import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.ledger.ContractCodeDeployOperation;
-import com.jd.blockchain.ledger.ContractInfo;
 import com.jd.blockchain.ledger.ContractVersionConflictException;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.core.*;
-import org.springframework.util.NumberUtils;
 
-import static com.jd.blockchain.ledger.TransactionState.CONTRACT_VERSION_CONFLICT;
 
 public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHandle<ContractCodeDeployOperation> {
 

@@ -8,6 +8,8 @@ import javax.servlet.http.HttpServletRequest;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.gateway.exception.BlockNonExistentException;
+import com.jd.blockchain.gateway.service.PeerConnectionManager;
+import com.jd.blockchain.gateway.service.settings.LedgerBaseSettings;
 import com.jd.blockchain.ledger.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
