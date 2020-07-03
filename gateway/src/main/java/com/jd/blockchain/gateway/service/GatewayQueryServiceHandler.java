@@ -12,12 +12,9 @@ import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.gateway.PeerService;
-import com.jd.blockchain.ledger.ContractInfo;
-import com.jd.blockchain.ledger.LedgerAdminInfo;
-import com.jd.blockchain.ledger.LedgerMetadata;
-import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.gateway.service.settings.LedgerBaseSettings;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.sdk.ContractSettings;
-import com.jd.blockchain.sdk.LedgerBaseSettings;
 import com.jd.blockchain.utils.codec.HexUtils;
 import com.jd.blockchain.utils.query.QueryArgs;
 import com.jd.blockchain.utils.query.QueryUtils;
@@ -97,7 +94,7 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
      */
     private LedgerBaseSettings initLedgerBaseSettings(LedgerAdminInfo ledgerAdminInfo) {
 
-        LedgerMetadata ledgerMetadata = ledgerAdminInfo.getMetadata();
+        LedgerMetadata_V2 ledgerMetadata = ledgerAdminInfo.getMetadata();
 
         LedgerBaseSettings ledgerBaseSettings = new LedgerBaseSettings();
         // 设置参与方
@@ -112,7 +109,8 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
         ledgerBaseSettings.setSeed(initSeed(ledgerMetadata.getSeed()));
         // 设置共识协议
         ledgerBaseSettings.setConsensusProtocol(ledgerAdminInfo.getSettings().getConsensusProvider());
-
+        // 设置账本结构版本号
+        ledgerBaseSettings.setLedgerStructureVersion(ledgerMetadata.getLedgerStructureVersion());
         return ledgerBaseSettings;
     }
 

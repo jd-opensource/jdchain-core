@@ -48,9 +48,9 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 	private static final Bytes TRANSACTION_SET_PREFIX = Bytes.fromString("TXS" + LedgerConsts.KEY_SEPERATOR);
 
-	private static final Bytes SYSTEM_EVENT_SET_PREFIX = Bytes.fromString("SES" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes SYSTEM_EVENT_SET_PREFIX = Bytes.fromString("SEVT" + LedgerConsts.KEY_SEPERATOR);
 
-	private static final Bytes USER_EVENT_SET_PREFIX = Bytes.fromString("UES" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes USER_EVENT_SET_PREFIX = Bytes.fromString("UEVT" + LedgerConsts.KEY_SEPERATOR);
 
 	private static final AccountAccessPolicy DEFAULT_ACCESS_POLICY = new OpeningAccessPolicy();
 
@@ -67,6 +67,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	private volatile LedgerState latestState;
 
 	private volatile LedgerEditor nextBlockEditor;
+
+	/**
+	 * 账本结构版本号
+	 *         默认为-1，需通过MetaData获取
+	 */
+	private volatile long ledgerStructureVersion = -1L;
 
 	private volatile boolean closed = false;
 
@@ -94,6 +100,11 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	@Override
 	public HashDigest getHash() {
 		return ledgerHash;
+	}
+
+	@Override
+	public long getVersion() {
+		return ledgerStructureVersion;
 	}
 
 	@Override
@@ -130,6 +141,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				versioningStorage, true);
 		LedgerEventSet ledgerEventset = innerGetLedgerEventSet(latestBlock);
 		this.latestState = new LedgerState(latestBlock, ledgerDataset, txSet, ledgerEventset);
+		this.ledgerStructureVersion = ledgerDataset.getAdminDataset().getMetadata().getLedgerStructureVersion();
 		return latestState;
 	}
 

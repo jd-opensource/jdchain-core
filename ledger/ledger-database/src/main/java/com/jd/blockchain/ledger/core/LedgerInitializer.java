@@ -33,7 +33,7 @@ public class LedgerInitializer {
 
 	private static final FullPermissionedSecurityManager FULL_PERMISSION_SECURITY_MANAGER = new FullPermissionedSecurityManager();
 	
-	private static final LedgerQuery EMPTY_LEDGER =new EmptyLedgerQuery();
+	private static final LedgerQuery EMPTY_LEDGER = new EmptyLedgerQuery();
 
 	private static final LedgerDataQuery EMPTY_LEDGER_DATA_QUERY = new EmptyLedgerDataset();
 
@@ -219,6 +219,11 @@ public class LedgerInitializer {
 		@Override
 		public HashDigest getHash() {
 			return null;
+		}
+
+		@Override
+		public long getVersion() {
+			return LedgerStructureConfig.VERSION;
 		}
 
 		@Override
