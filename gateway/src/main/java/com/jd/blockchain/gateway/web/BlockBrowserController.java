@@ -23,7 +23,6 @@ import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.gateway.PeerService;
 import com.jd.blockchain.gateway.service.DataRetrievalService;
 import com.jd.blockchain.gateway.service.GatewayQueryService;
 import com.jd.blockchain.sdk.BlockchainExtendQueryService;
@@ -66,7 +65,7 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 	public LedgerInfo getLedger(@PathVariable(name = "ledgerHash") HashDigest ledgerHash) {
 		return peerService.getQueryService().getLedger(ledgerHash);
 	}
-	
+
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/admininfo")
 	@Override
 	public LedgerAdminInfo getLedgerAdminInfo(@PathVariable(name = "ledgerHash") HashDigest ledgerHash) {
@@ -300,6 +299,14 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 		return contractSettings(contractInfo);
 	}
 
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/contracts/address/{address}/version/{version}")
+	public ContractSettings getContractSettingsByVersion(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+														 @PathVariable(name = "address") String address, @PathVariable(name = "version") long version) {
+		ContractInfo contractInfo = peerService.getQueryService().getContract(ledgerHash, address, version);
+		return contractSettings(contractInfo);
+	}
+
+
 	private ContractSettings contractSettings(ContractInfo contractInfo) {
 		ContractSettings contractSettings = new ContractSettings(contractInfo.getAddress(), contractInfo.getPubKey(),
 				contractInfo.getRootHash());
@@ -308,6 +315,7 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 			// 将反编译chainCode
 			String mainClassJava = CONTRACT_PROCESSOR.decompileEntranceClass(chainCodeBytes);
 			contractSettings.setChainCode(mainClassJava);
+			contractSettings.setChainCodeVersion(contractInfo.getChainCodeVersion());
 		} catch (Exception e) {
 			// 打印日志
 			logger.error(String.format("Decompile contract[%s] error !!!",
@@ -420,6 +428,11 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 								 @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
 								 @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
 		return peerService.getEventListener().getUserEvents(ledgerHash, address, eventName, fromSequence, count);
+	}
+
+	@Override
+	public ContractInfo getContract(HashDigest ledgerHash, String address, long version) {
+		return peerService.getQueryService().getContract(ledgerHash, address, version);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/latest")
@@ -684,7 +697,7 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 //	public ParticipantNode[] getConsensusParticipants(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 //			@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
 //			@RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
-//		
+//
 //		ParticipantNode participantNode[] = peerService.getQueryService().getConsensusParticipants(ledgerHash);
 //		int indexAndCount[] = QueryUtil.calFromIndexAndCount(fromIndex, count, participantNode.length);
 //		ParticipantNode participantNodesNew[] = Arrays.copyOfRange(participantNode, indexAndCount[0],
@@ -694,7 +707,7 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 
 	/**
 	 * get more users by fromIndex and count;
-	 * 
+	 *
 	 * @param ledgerHash
 	 * @param fromIndex
 	 * @param count

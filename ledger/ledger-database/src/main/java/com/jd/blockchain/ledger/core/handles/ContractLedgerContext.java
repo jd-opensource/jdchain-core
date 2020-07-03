@@ -2,7 +2,26 @@ package com.jd.blockchain.ledger.core.handles;
 
 import com.jd.blockchain.contract.LedgerContext;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.ledger.BlockchainIdentity;
+import com.jd.blockchain.ledger.BytesValue;
+import com.jd.blockchain.ledger.ContractInfo;
+import com.jd.blockchain.ledger.DataAccountKVSetOperation;
+import com.jd.blockchain.ledger.DataAccountRegisterOperation;
+import com.jd.blockchain.ledger.Event;
+import com.jd.blockchain.ledger.KVInfoVO;
+import com.jd.blockchain.ledger.LedgerAdminInfo;
+import com.jd.blockchain.ledger.LedgerBlock;
+import com.jd.blockchain.ledger.LedgerInfo;
+import com.jd.blockchain.ledger.LedgerMetadata;
+import com.jd.blockchain.ledger.LedgerTransaction;
+import com.jd.blockchain.ledger.Operation;
+import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.RoleSet;
+import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.ledger.TypedKVEntry;
+import com.jd.blockchain.ledger.TypedValue;
+import com.jd.blockchain.ledger.UserInfo;
+import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.transaction.DataAccountKVSetOperationBuilder;
@@ -12,7 +31,6 @@ import com.jd.blockchain.transaction.KVData;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilder;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilderImpl;
 import com.jd.blockchain.utils.Bytes;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,7 +56,7 @@ public class ContractLedgerContext implements LedgerContext {
 	public LedgerInfo getLedger(HashDigest ledgerHash) {
 		return innerQueryService.getLedger(ledgerHash);
 	}
-	
+
 	@Override
 	public LedgerAdminInfo getLedgerAdminInfo(HashDigest ledgerHash) {
 		return innerQueryService.getLedgerAdminInfo(ledgerHash);
@@ -244,6 +262,11 @@ public class ContractLedgerContext implements LedgerContext {
 		return innerQueryService.getUserEvents(ledgerHash, address, eventName, fromSequence, count);
 	}
 
+	@Override
+	public ContractInfo getContract(HashDigest ledgerHash, String address, long version) {
+		return innerQueryService.getContract(ledgerHash, address, version);
+	}
+
 	// ---------------------------user()----------------------------
 
 	@Override
@@ -359,7 +382,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 //		@Deprecated
 //		@Override
 //		public DataAccountKVSetOperationBuilder set(String key, String value, long expVersion) {
@@ -368,7 +391,7 @@ public class ContractLedgerContext implements LedgerContext {
 //			handle(op);
 //			return this;
 //		}
-		
+
 		@Override
 		public DataAccountKVSetOperationBuilder setJSON(String key, String value, long expVersion) {
 			BytesValue bytesValue = TypedValue.fromJSON(value);
@@ -376,7 +399,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 		@Override
 		public DataAccountKVSetOperationBuilder setXML(String key, String value, long expVersion) {
 			BytesValue bytesValue = TypedValue.fromXML(value);
@@ -384,7 +407,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 		@Override
 		public DataAccountKVSetOperationBuilder setBytes(String key, byte[] value, long expVersion) {
 			BytesValue bytesValue = TypedValue.fromBytes(value);
@@ -392,7 +415,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 		@Override
 		public DataAccountKVSetOperationBuilder setImage(String key, byte[] value, long expVersion) {
 			BytesValue bytesValue = TypedValue.fromImage(value);
@@ -400,7 +423,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 		@Override
 		public DataAccountKVSetOperationBuilder setTimestamp(String key, long value, long expVersion) {
 			BytesValue bytesValue = TypedValue.fromTimestamp(value);
@@ -408,7 +431,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 		private void handle(Operation op) {
 			generatedOpList.add(op);
 			opHandleContext.handle(op);
@@ -416,7 +439,7 @@ public class ContractLedgerContext implements LedgerContext {
 
 		/**
 		 * 单个KV写入操作；
-		 * 
+		 *
 		 * @author huanghaiquan
 		 *
 		 */
