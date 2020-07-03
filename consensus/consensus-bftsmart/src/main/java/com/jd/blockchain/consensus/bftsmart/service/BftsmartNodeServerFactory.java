@@ -56,33 +56,34 @@ public class BftsmartNodeServerFactory implements NodeServerFactory {
 
 		NodeSettings[] currNodeSettings = (((BftsmartServerSettings)serverSettings).getConsensusSettings()).getNodes();
 
+		String currRealName = serverSettings.getRealmName();
+
 		//check conflict realm
-		if (!hasIntersection(currNodeSettings)) {
+		if (!hasIntersection(currRealName, currNodeSettings)) {
 			BftsmartNodeServer nodeServer = new BftsmartNodeServer(serverSettings, messageHandler, stateMachineReplicator);
 			nodeServerMap.put(serverSettings.getRealmName(), currNodeSettings);
 			return nodeServer;
 		}
 		else {
 			throw new IllegalArgumentException("setupServer serverSettings parameters error!");
+
 		}
 	}
 
 
 	//check if consensus realm conflict, by this support multi ledgers
-	private boolean hasIntersection(NodeSettings[] currNodeSettings) {
-
-		int currHashCode = getHashcode(currNodeSettings);
+	private boolean hasIntersection(String currRealName, NodeSettings[] currNodeSettings) {
 
 		//first check if is same consensus realm
-		for (NodeSettings[] exisitNodeSettings : nodeServerMap.values()) {
-			if (currHashCode == getHashcode(exisitNodeSettings)) {
+		for (String existRealmName : nodeServerMap.keySet()) {
+			if (currRealName.equals(existRealmName)) {
 				return false;
 			}
 		}
 		//check conflict
-		for (NodeSettings[] exisitNodeSettings : nodeServerMap.values()) {
+		for (NodeSettings[] existNodeSettings : nodeServerMap.values()) {
 			for (NodeSettings curr : currNodeSettings) {
-				for (NodeSettings exist : exisitNodeSettings) {
+				for (NodeSettings exist : existNodeSettings) {
 					if (((BftsmartNodeSettings)curr).getNetworkAddress().equals(((BftsmartNodeSettings)exist).getNetworkAddress())) {
 						return true;
 					}

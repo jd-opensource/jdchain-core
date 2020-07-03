@@ -200,7 +200,10 @@ public class LedgerLoadTimer implements ApplicationContextAware {
                 // 启动指定NodeServer节点
                 ConsensusManage consensusManage = applicationContext.getBean(ConsensusManage.class);
                 for (NodeServer nodeServer : nodeServers) {
-                    consensusManage.runRealm(nodeServer);
+                    // 动态添加的参与方，如果处于已经注册未激活的状态，则nodeServer为空，其处于共识未启动状态
+                    if (nodeServer != null) {
+                        consensusManage.runRealm(nodeServer);
+                    }
                 }
             }
         }

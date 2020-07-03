@@ -19,6 +19,8 @@ import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.codec.Base58Utils;
 
+import java.util.ArrayList;
+
 /**
  * 账本的存储结构： <br>
  * 
@@ -742,4 +744,5 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 
 	}
+
 }
