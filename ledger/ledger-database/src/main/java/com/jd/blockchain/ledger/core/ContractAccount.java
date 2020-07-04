@@ -47,7 +47,7 @@ public class ContractAccount extends AccountDecorator implements ContractInfo {
 		return getHeaders().getValue(CHAIN_CODE_KEY, version).getBytes().toBytes();
 	}
 
-	public long getChaincodeVersion() {
+	public long getChainCodeVersion() {
 		return getHeaders().getVersion(CHAIN_CODE_KEY);
 	}
 

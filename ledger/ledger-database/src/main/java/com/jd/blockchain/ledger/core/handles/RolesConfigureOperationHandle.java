@@ -12,6 +12,7 @@ import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
+import com.jd.blockchain.ledger.core.EventManager;
 
 public class RolesConfigureOperationHandle extends AbstractLedgerOperationHandle<RolesConfigureOperation> {
 
@@ -21,7 +22,7 @@ public class RolesConfigureOperationHandle extends AbstractLedgerOperationHandle
 
 	@Override
 	protected void doProcess(RolesConfigureOperation operation, LedgerDataset newBlockDataset,
-			TransactionRequestExtension request, LedgerQuery ledger, OperationHandleContext handleContext) {
+							 TransactionRequestExtension request, LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager) {
 		// 权限校验；
 		SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
 		securityPolicy.checkEndpointPermission(LedgerPermission.CONFIGURE_ROLES, MultiIDsPolicy.AT_LEAST_ONE);
@@ -41,6 +42,7 @@ public class RolesConfigureOperationHandle extends AbstractLedgerOperationHandle
 
 					rp.disable(rpcfg.getDisableLedgerPermissions());
 					rp.disable(rpcfg.getDisableTransactionPermissions());
+					rpSettings.updateRolePrivilege(rp);
 				}
 			}
 		}

@@ -9,6 +9,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import com.jd.blockchain.ledger.core.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,10 +31,6 @@ import com.jd.blockchain.ledger.LedgerInitProperties.ParticipantProperties;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.TransactionContent;
 import com.jd.blockchain.ledger.TransactionRequest;
-import com.jd.blockchain.ledger.core.LedgerInitDecision;
-import com.jd.blockchain.ledger.core.LedgerInitProposal;
-import com.jd.blockchain.ledger.core.LedgerInitProposalData;
-import com.jd.blockchain.ledger.core.LedgerInitializer;
 import com.jd.blockchain.storage.service.DbConnection;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.DBConnectionConfig;
@@ -131,6 +128,7 @@ public class LedgerInitializeWebController implements LedgerInitProcess, LedgerI
 	public HashDigest initialize(int currentId, PrivKey privKey, LedgerInitProperties ledgerInitProps,
 			DBConnectionConfig dbConnConfig, Prompter prompter) {
 		LedgerInitConfiguration initConfig = LedgerInitConfiguration.create(ledgerInitProps);
+		initLedgerStructureVersion(initConfig);
 		return initialize(currentId, privKey, initConfig, dbConnConfig, prompter);
 	}
 
@@ -231,6 +229,10 @@ public class LedgerInitializeWebController implements LedgerInitProcess, LedgerI
 		return signatures;
 	}
 
+	private void initLedgerStructureVersion(LedgerInitConfiguration initConfig) {
+		initConfig.getLedgerSettings().setLedgerStructureVersion(LedgerStructureConfig.VERSION);
+	}
+
 	public HashDigest consensusDecisions(PrivKey privKey) {
 		// 获取其它参与方的账本生成结果；
 		boolean allDecided = startRequestDecisions(privKey, prompter);
@@ -272,9 +274,9 @@ public class LedgerInitializeWebController implements LedgerInitProcess, LedgerI
 		do {
 			allPermitted = startRequestPermissions(currentId, privKey);
 			if (!allPermitted) {
-				if (retry < 181) {
+				if (retry < 601) {
 					try {
-						Thread.sleep(10000);
+						Thread.sleep(3000);
 					} catch (InterruptedException e) {
 						// ignore interrupted exception;
 					}

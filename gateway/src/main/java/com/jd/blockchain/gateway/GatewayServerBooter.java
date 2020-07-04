@@ -6,6 +6,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jd.blockchain.gateway.web.GatewayLedgerLoadTimer;
 import org.apache.commons.io.FileUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -132,6 +133,9 @@ public class GatewayServerBooter {
 		blockBrowserController.setSchemaRetrievalUrl(config.getSchemaRetrievalUrl());
 		PeerConnector peerConnector = appCtx.getBean(PeerConnector.class);
 		peerConnector.connect(config.masterPeerAddress(), defaultKeyPair, config.providerConfig().getProviders());
+		// 不管连接是否成功，都需要释放许可
+		GatewayLedgerLoadTimer loadTimer = appCtx.getBean(GatewayLedgerLoadTimer.class);
+		loadTimer.release();
 		ConsoleUtils.info("Peer[%s] is connected success!", config.masterPeerAddress().toString());
 	}
 

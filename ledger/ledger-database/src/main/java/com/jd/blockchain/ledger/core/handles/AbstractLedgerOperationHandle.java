@@ -4,6 +4,7 @@ import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.TransactionPermission;
+import com.jd.blockchain.ledger.core.EventManager;
 import com.jd.blockchain.ledger.core.LedgerDataset;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
@@ -12,6 +13,8 @@ import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 执行直接账本操作的处理类；
@@ -21,6 +24,7 @@ import com.jd.blockchain.ledger.core.TransactionRequestExtension;
  * @param <T>
  */
 public abstract class AbstractLedgerOperationHandle<T extends Operation> implements OperationHandle {
+	private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLedgerOperationHandle.class);
 
 	static {
 		DataContractRegistry.register(BytesValue.class);
@@ -44,7 +48,7 @@ public abstract class AbstractLedgerOperationHandle<T extends Operation> impleme
 
 	@Override
 	public final BytesValue process(Operation op, LedgerDataset newBlockDataset,
-			TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext) {
+			TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager) {
 		// 权限校验；
 		SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
 		securityPolicy.checkEndpointPermission(TransactionPermission.DIRECT_OPERATION, MultiIDsPolicy.AT_LEAST_ONE);
@@ -52,12 +56,16 @@ public abstract class AbstractLedgerOperationHandle<T extends Operation> impleme
 		// 操作账本；
 		@SuppressWarnings("unchecked")
 		T concretedOp = (T) op;
-		doProcess(concretedOp, newBlockDataset, requestContext, ledger, handleContext);
-
+		LOGGER.debug("before doProcess()... --[RequestHash={}][TxHash={}]",
+				requestContext.getHash(), requestContext.getTransactionContent().getHash());
+		doProcess(concretedOp, newBlockDataset, requestContext, ledger, handleContext, manager);
+		LOGGER.debug("after doProcess()... --[RequestHash={}][TxHash={}]",
+				requestContext.getHash(), requestContext.getTransactionContent().getHash());
+		
 		// 账本操作没有返回值；
 		return null;
 	}
 
 	protected abstract void doProcess(T op, LedgerDataset newBlockDataset, TransactionRequestExtension requestContext,
-			LedgerQuery ledger, OperationHandleContext handleContext);
+			LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager);
 }

@@ -33,7 +33,7 @@ public class LedgerInitializer {
 
 	private static final FullPermissionedSecurityManager FULL_PERMISSION_SECURITY_MANAGER = new FullPermissionedSecurityManager();
 	
-	private static final LedgerQuery EMPTY_LEDGER =new EmptyLedgerQuery();
+	private static final LedgerQuery EMPTY_LEDGER = new EmptyLedgerQuery();
 
 	private static final LedgerDataQuery EMPTY_LEDGER_DATA_QUERY = new EmptyLedgerDataset();
 
@@ -214,11 +214,16 @@ public class LedgerInitializer {
 	
 	private static class EmptyLedgerQuery implements LedgerQuery{
 		
-		private EmptyLedgerDataset dataset;
+		private EmptyLedgerDataset dataset = new EmptyLedgerDataset();
 
 		@Override
 		public HashDigest getHash() {
 			return null;
+		}
+
+		@Override
+		public long getVersion() {
+			return LedgerStructureConfig.VERSION;
 		}
 
 		@Override
@@ -277,6 +282,11 @@ public class LedgerInitializer {
 		}
 
 		@Override
+		public LedgerEventQuery getLedgerEvents(LedgerBlock block) {
+			return null;
+		}
+
+		@Override
 		public TransactionQuery getTransactionSet(LedgerBlock block) {
 			return null;
 		}
@@ -297,7 +307,18 @@ public class LedgerInitializer {
 		}
 
 		@Override
+		public EventGroup getSystemEvents(LedgerBlock block) {
+			return null;
+		}
+
+		@Override
+		public EventAccountQuery getUserEvents(LedgerBlock block) {
+			return null;
+		}
+
+		@Override
 		public LedgerBlock retrieveLatestBlock() {
+			//TODO
 			return null;
 		}
 

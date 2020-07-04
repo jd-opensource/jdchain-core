@@ -62,6 +62,13 @@ public class LedgerLoadTimer implements ApplicationContextAware {
     @Autowired
     private LedgerManage ledgerManager;
 
+    /**
+     * 账本加载许可，主要作用两个
+     *     1、防止启动时加载账本与当前定时器加载冲突
+     *     2、每次加载完成后释放许可，以便于下次定时任务加载，若不存在许可，则下次定时任务放弃执行
+     */
+    private Semaphore loadSemaphore = new Semaphore(0);
+
     //每5秒执行一次
     @Scheduled(cron = "*/5 * * * * * ")
     public void ledgerLoad() {
@@ -69,31 +76,45 @@ public class LedgerLoadTimer implements ApplicationContextAware {
         lock.lock();
         try {
             LOGGER.debug("--- Ledger loader tasks start... ");
+            boolean acquire = false;
             try {
-                LedgerBindingConfig ledgerBindingConfig = loadLedgerBindingConfig();
-                if (ledgerBindingConfig == null) {
-                    // print debug
-                    LOGGER.error("Can not load any ledgerBindingConfigs !!!");
-                    return;
-                }
-
-                HashDigest[] totalLedgerHashs = ledgerBindingConfig.getLedgerHashs();
-                Set<HashDigest> existedHashSet = existedHashSet();
-
-                Set<HashDigest> newAddHashs = new HashSet<>();
-                for (HashDigest ledgerHash : totalLedgerHashs) {
-                    if (!existedHashSet.contains(ledgerHash)) {
-                        newAddHashs.add(ledgerHash);
+                /**
+                 * 2秒内获取许可
+                 */
+                acquire = loadSemaphore.tryAcquire(2, TimeUnit.SECONDS);
+                if (acquire) {
+                    LedgerBindingConfig ledgerBindingConfig = loadLedgerBindingConfig();
+                    if (ledgerBindingConfig == null) {
+                        // print debug
+                        LOGGER.error("Can not load any ledgerBindingConfigs !!!");
+                        return;
                     }
-                }
-                if (!newAddHashs.isEmpty()) {
-                    // 由线程单独执行
-                    ledgerLoadExecutor.execute(new LedgerLoadRunnable(newAddHashs, ledgerBindingConfig));
+
+                    HashDigest[] totalLedgerHashs = ledgerBindingConfig.getLedgerHashs();
+                    Set<HashDigest> existedHashSet = existedHashSet();
+
+                    Set<HashDigest> newAddHashs = new HashSet<>();
+                    for (HashDigest ledgerHash : totalLedgerHashs) {
+                        if (!existedHashSet.contains(ledgerHash)) {
+                            newAddHashs.add(ledgerHash);
+                        }
+                    }
+                    if (!newAddHashs.isEmpty()) {
+                        // 由线程单独执行
+                        ledgerLoadExecutor.execute(new LedgerLoadRunnable(newAddHashs, ledgerBindingConfig));
+                    } else {
+                        LOGGER.debug("All ledgers is newest!!!");
+                    }
                 } else {
-                    LOGGER.debug("All ledgers is newest!!!");
+                    LOGGER.error("--- Can not get semaphore of load ledger !!!");
                 }
             } catch (Exception e) {
                 LOGGER.error("--- Ledger loader execute error !!!", e);
+            } finally {
+                if (acquire) {
+                    // 获取到许可的情况下释放，以便于后续线程处理
+                    release();
+                }
             }
         } finally {
             lock.unlock();
@@ -103,6 +124,13 @@ public class LedgerLoadTimer implements ApplicationContextAware {
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
+    }
+
+    /**
+     * 释放许可
+     */
+    public void release() {
+        loadSemaphore.release();
     }
 
     private LedgerBindingConfig loadLedgerBindingConfig() throws Exception {
@@ -172,7 +200,10 @@ public class LedgerLoadTimer implements ApplicationContextAware {
                 // 启动指定NodeServer节点
                 ConsensusManage consensusManage = applicationContext.getBean(ConsensusManage.class);
                 for (NodeServer nodeServer : nodeServers) {
-                    consensusManage.runRealm(nodeServer);
+                    // 动态添加的参与方，如果处于已经注册未激活的状态，则nodeServer为空，其处于共识未启动状态
+                    if (nodeServer != null) {
+                        consensusManage.runRealm(nodeServer);
+                    }
                 }
             }
         }

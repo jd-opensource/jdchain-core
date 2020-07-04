@@ -10,8 +10,12 @@ import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.jd.blockchain.ledger.core.EventManager;
 
 public class DataAccountRegisterOperationHandle extends AbstractLedgerOperationHandle<DataAccountRegisterOperation> {
+	private Logger logger = LoggerFactory.getLogger(DataAccountRegisterOperationHandle.class);
 
 	public DataAccountRegisterOperationHandle() {
 		super(DataAccountRegisterOperation.class);
@@ -19,7 +23,7 @@ public class DataAccountRegisterOperationHandle extends AbstractLedgerOperationH
 
 	@Override
 	protected void doProcess(DataAccountRegisterOperation op, LedgerDataset newBlockDataset,
-			TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext) {
+			TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager) {
 		// TODO: 请求者应该提供数据账户的公钥签名，以更好地确保注册人对该地址和公钥具有合法使用权；
 
 		// 权限校验；
@@ -29,7 +33,9 @@ public class DataAccountRegisterOperationHandle extends AbstractLedgerOperationH
 		// 操作账本；
 		DataAccountRegisterOperation dataAccountRegOp = (DataAccountRegisterOperation) op;
 		BlockchainIdentity bid = dataAccountRegOp.getAccountID();
+		logger.debug("before register.[dataAddress={}]",bid.getAddress());
 		newBlockDataset.getDataAccountSet().register(bid.getAddress(), bid.getPubKey(), null);
+		logger.debug("after register.[dataAddress={}]",bid.getAddress());
 	}
 
 }

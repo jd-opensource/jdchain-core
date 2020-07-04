@@ -42,7 +42,7 @@ public class PeerWebServerConfigurer implements WebMvcConfigurer {
 
 		initByteArrayJsonSerialize();
 	}
-
+	
 	@Override
 	public void addFormatters(FormatterRegistry registry) {
 		registry.addConverter(new HashDigestInputConverter());

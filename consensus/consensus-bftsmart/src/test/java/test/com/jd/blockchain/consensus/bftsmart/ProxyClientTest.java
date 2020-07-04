@@ -70,8 +70,7 @@ public class ProxyClientTest {
         }
 
         BftsmartConsensusConfig consensusConfig = new BftsmartConsensusConfig(nodesSettings,
-//                null,
-                PropertiesUtils.getOrderedValues(bftsmartConf));
+                PropertiesUtils.getOrderedValues(bftsmartConf), 0);
 
         for (int j = 0; j < nodeNum; j++) {
             BftsmartServerSettingConfig serverSettings = new BftsmartServerSettingConfig();

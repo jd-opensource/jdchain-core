@@ -47,10 +47,14 @@ public class LedgerManager implements LedgerManage {
 
 	@Override
 	public LedgerRepository register(HashDigest ledgerHash, KVStorageService storageService) {
+		if (ledgers.containsKey(ledgerHash)) {
+			LedgerRepositoryContext ledgerCtx = ledgers.get(ledgerHash);
+			return ledgerCtx.ledgerRepo;
+		}
 		// 加载账本数据库；
 		VersioningKVStorage ledgerVersioningStorage = storageService.getVersioningKVStorage();
 		ExPolicyKVStorage ledgerExPolicyStorage = storageService.getExPolicyKVStorage();
-		LedgerRepository ledgerRepo = new LedgerRepositoryImpl(ledgerHash, LEDGER_PREFIX, ledgerExPolicyStorage,
+		LedgerRepositoryImpl ledgerRepo = new LedgerRepositoryImpl(ledgerHash, LEDGER_PREFIX, ledgerExPolicyStorage,
 				ledgerVersioningStorage);
 
 		// 校验 crypto service provider ；
@@ -127,6 +131,16 @@ public class LedgerManager implements LedgerManage {
 		}
 	}
 
+	private LedgerRepositoryImpl innerGetLedger(HashDigest ledgerHash) {
+		// TODO Auto-generated method stub
+		LedgerRepositoryContext ledgerCtx = ledgers.get(ledgerHash);
+		if (ledgerCtx == null) {
+			return null;
+		}
+
+		return ledgerCtx.ledgerRepo;
+	}
+
 //	/*
 //	 * (non-Javadoc)
 //	 * 
@@ -145,15 +159,14 @@ public class LedgerManager implements LedgerManage {
 		return LEDGER_PREFIX + base58LedgerHash + LedgerConsts.KEY_SEPERATOR;
 	}
 
-	
 	private static class LedgerRepositoryContext {
 
-		public final LedgerRepository ledgerRepo;
+		public final LedgerRepositoryImpl ledgerRepo;
 
 		@SuppressWarnings("unused")
 		public final KVStorageService storageService;
 
-		public LedgerRepositoryContext(LedgerRepository ledgerRepo, KVStorageService storageService) {
+		public LedgerRepositoryContext(LedgerRepositoryImpl ledgerRepo, KVStorageService storageService) {
 			this.ledgerRepo = ledgerRepo;
 			this.storageService = storageService;
 		}

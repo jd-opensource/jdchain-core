@@ -21,8 +21,8 @@ public class KVDBConnection implements DbConnection {
 
     @Override
     public void close() {
-//        eDB.stop();
-//        vDB.stop();
+        eDB.close();
+        vDB.close();
     }
 
     @Override

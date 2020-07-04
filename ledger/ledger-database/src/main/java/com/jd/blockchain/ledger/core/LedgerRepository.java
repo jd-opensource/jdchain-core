@@ -21,6 +21,7 @@ public interface LedgerRepository extends Closeable, LedgerQuery {
 	 * @return
 	 */
 	LedgerEditor getNextBlockEditor();
+	
 
 	@Override
 	void close();
