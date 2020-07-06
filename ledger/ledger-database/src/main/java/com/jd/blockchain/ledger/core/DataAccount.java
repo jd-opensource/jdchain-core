@@ -1,12 +1,26 @@
 package com.jd.blockchain.ledger.core;
 
-public class DataAccount extends AccountDecorator {
+import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.ledger.DataAccountInfo;
+import com.jd.blockchain.utils.Bytes;
+
+public class DataAccount extends AccountDecorator implements DataAccountInfo {
 
 	public DataAccount(CompositeAccount mklAccount) {
 		super(mklAccount);
 	}
 
-//	/**
+	@Override
+	public Bytes getAddress() {
+		return getID().getAddress();
+	}
+
+	@Override
+	public PubKey getPubKey() {
+		return getID().getPubKey();
+	}
+
+	//	/**
 //	 * Create or update the value associated the specified key if the version
 //	 * checking is passed.<br>
 //	 * 

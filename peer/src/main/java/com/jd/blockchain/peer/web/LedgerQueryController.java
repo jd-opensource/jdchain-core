@@ -2,11 +2,11 @@ package com.jd.blockchain.peer.web;
 
 import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
 import com.jd.blockchain.ledger.Event;
+import com.jd.blockchain.ledger.DataAccountInfo;
 import com.jd.blockchain.ledger.KVDataVO;
 import com.jd.blockchain.ledger.KVInfoVO;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
@@ -342,8 +342,8 @@ public class LedgerQueryController implements BlockchainQueryService {
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/accounts/address/{address}")
 	@Override
-	public BlockchainIdentity getDataAccount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-			@PathVariable(name = "address") String address) {
+	public DataAccountInfo getDataAccount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+										  @PathVariable(name = "address") String address) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
@@ -351,7 +351,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		if(dataAccount == null){
 			throw new LedgerException("数据账户不存在", TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
 		}
-		return dataAccount.getID();
+		return dataAccount;
 	}
 
 	@RequestMapping(method = { RequestMethod.GET,
