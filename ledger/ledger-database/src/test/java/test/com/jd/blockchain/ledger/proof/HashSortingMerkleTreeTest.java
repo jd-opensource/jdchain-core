@@ -17,8 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import com.jd.blockchain.ledger.proof.*;
-import com.jd.blockchain.utils.LongSkippingIterator;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -33,11 +31,18 @@ import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.proof.HashSortingMerkleTree;
 import com.jd.blockchain.ledger.proof.HashSortingMerkleTree.MerkleDataIterator;
+import com.jd.blockchain.ledger.proof.KeyIndexer;
+import com.jd.blockchain.ledger.proof.MerkleData;
+import com.jd.blockchain.ledger.proof.MerkleDataEntry;
+import com.jd.blockchain.ledger.proof.MerklePath;
+import com.jd.blockchain.ledger.proof.PathNode;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.storage.service.utils.VersioningKVData;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.LongSkippingIterator;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.hash.MurmurHash3;
 import com.jd.blockchain.utils.io.BytesUtils;
@@ -107,6 +112,11 @@ public class HashSortingMerkleTreeTest {
 
 	}
 
+	/**
+	 * 验证 MerkleData 序列化和反序列化的一致性；
+	 * 
+	 * @param data
+	 */
 	private void testMerkleDataSerialize(MerkleData data) {
 		byte[] dataBytes = BinaryProtocol.encode(data, MerkleData.class);
 		int offset = 0;
@@ -138,6 +148,9 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(data.getPreviousEntryHash(), dataDes.getPreviousEntryHash());
 	}
 
+	/**
+	 * 验证 HashSortingMerkleTree 在未提交之前的总数和根哈希维持不变的特性，新增的数据记录可读，但是具有临时性，一旦回滚则被清除；
+	 */
 	@Test
 	public void testReadUncommitting() {
 		// 数据集合长度为 1024 时也能正常生成；
@@ -145,7 +158,7 @@ public class HashSortingMerkleTreeTest {
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
-		HashSortingMerkleTree merkleTree = buildMerkleTree(datas, false);
+		HashSortingMerkleTree merkleTree = newMerkleTree(datas);
 
 		// 未提交之前查不到信息；
 		assertNull(merkleTree.getRootHash());
@@ -188,10 +201,13 @@ public class HashSortingMerkleTreeTest {
 
 //		merkleTree.print();
 		for (VersioningKVData<String, byte[]> data : datas) {
-			testMerkleProof(data, merkleTree, -1);
+			assertMerkleProof(data, merkleTree);
 		}
 	}
 
+	/**
+	 * 验证 HashSortingMerkleTree 在未提交之前，新增的数据记录可读和可回滚特性；
+	 */
 	@Test
 	public void testCancel() {
 		// 数据集合长度为 1024 时也能正常生成；
@@ -199,7 +215,7 @@ public class HashSortingMerkleTreeTest {
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
-		HashSortingMerkleTree merkleTree = buildMerkleTree(datas, false);
+		HashSortingMerkleTree merkleTree = newMerkleTree(datas);
 		assertTrue(merkleTree.isUpdated());
 
 		// 未提交之前查不到信息；
@@ -252,7 +268,7 @@ public class HashSortingMerkleTreeTest {
 		// 数据集合长度为 0 时也能正常生成；
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(0);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
-		HashSortingMerkleTree merkleTree = buildMerkleTree(datas);
+		HashSortingMerkleTree merkleTree = newMerkleTree_with_committed(datas);
 		HashDigest rootHash = merkleTree.getRootHash();
 		assertNotNull(rootHash);
 		assertEquals(0, merkleTree.getTotalKeys());
@@ -264,30 +280,30 @@ public class HashSortingMerkleTreeTest {
 		// 数据集合长度为 1 时也能正常生成；
 		dataList = generateDatas(1);
 		datas = toArray(dataList);
-		merkleTree = buildMerkleTree(datas);
+		merkleTree = newMerkleTree_with_committed(datas);
 		rootHash = merkleTree.getRootHash();
 		assertNotNull(rootHash);
 		assertEquals(1, merkleTree.getTotalKeys());
 		assertEquals(1, merkleTree.getTotalRecords());
 
-		testMerkleProof(datas[0], merkleTree, 3);
+		assertMerkleProofAndProofLength(datas[0], merkleTree, 3);
 
 		// 数据集合长度为 2 时也能正常生成；
 		dataList = generateDatas(2);
 		datas = toArray(dataList);
-		merkleTree = buildMerkleTree(datas);
+		merkleTree = newMerkleTree_with_committed(datas);
 		rootHash = merkleTree.getRootHash();
 		assertNotNull(rootHash);
 		assertEquals(2, merkleTree.getTotalKeys());
 		assertEquals(2, merkleTree.getTotalRecords());
 
-		testMerkleProof(datas[0], merkleTree, 3);
-		testMerkleProof(datas[1], merkleTree, 3);
+		assertMerkleProofAndProofLength(datas[0], merkleTree, 3);
+		assertMerkleProofAndProofLength(datas[1], merkleTree, 3);
 
 		// 数据集合长度为 100 时也能正常生成；
 		dataList = generateDatas(100);
 		datas = toArray(dataList);
-		merkleTree = buildMerkleTree(datas);
+		merkleTree = newMerkleTree_with_committed(datas);
 		rootHash = merkleTree.getRootHash();
 		assertNotNull(rootHash);
 		assertEquals(100, merkleTree.getTotalKeys());
@@ -297,7 +313,7 @@ public class HashSortingMerkleTreeTest {
 		int count = 1024;
 		dataList = generateDatas(count);
 		datas = toArray(dataList);
-		merkleTree = buildMerkleTree(datas);
+		merkleTree = newMerkleTree_with_committed(datas);
 		rootHash = merkleTree.getRootHash();
 		assertNotNull(rootHash);
 		assertEquals(count, merkleTree.getTotalKeys());
@@ -305,7 +321,7 @@ public class HashSortingMerkleTreeTest {
 
 //		merkleTree.print();
 		for (VersioningKVData<String, byte[]> data : datas) {
-			testMerkleProof(data, merkleTree, -1);
+			assertMerkleProof(data, merkleTree);
 		}
 		testMerkleProof1024(datas, merkleTree);
 
@@ -313,7 +329,7 @@ public class HashSortingMerkleTreeTest {
 		count = 20000;
 		dataList = generateDatas(count);
 		datas = toArray(dataList);
-		merkleTree = buildMerkleTree(datas);
+		merkleTree = newMerkleTree_with_committed(datas);
 		rootHash = merkleTree.getRootHash();
 		assertNotNull(rootHash);
 		assertEquals(count, merkleTree.getTotalKeys());
@@ -321,7 +337,7 @@ public class HashSortingMerkleTreeTest {
 
 //		merkleTree.print();
 		for (VersioningKVData<String, byte[]> data : datas) {
-			testMerkleProof(data, merkleTree, -1);
+			assertMerkleProof(data, merkleTree);
 		}
 	}
 
@@ -333,7 +349,7 @@ public class HashSortingMerkleTreeTest {
 		int count = 1024;
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
-		HashSortingMerkleTree merkleTree = buildMerkleTree(datas);
+		HashSortingMerkleTree merkleTree = newMerkleTree_with_committed(datas);
 		HashDigest rootHash = merkleTree.getRootHash();
 		assertNotNull(rootHash);
 		assertEquals(count, merkleTree.getTotalKeys());
@@ -471,48 +487,46 @@ public class HashSortingMerkleTreeTest {
 	}
 
 	private void testMerkleProof1024(VersioningKVData<String, byte[]>[] datas, HashSortingMerkleTree merkleTree) {
-		testMerkleProof(datas[28], merkleTree, 4);
-		testMerkleProof(datas[103], merkleTree, 4);
-		testMerkleProof(datas[637], merkleTree, 4);
-		testMerkleProof(datas[505], merkleTree, 4);
-		testMerkleProof(datas[93], merkleTree, 4);
-		testMerkleProof(datas[773], merkleTree, 4);
-		testMerkleProof(datas[163], merkleTree, 4);
-		testMerkleProof(datas[5], merkleTree, 4);
-		testMerkleProof(datas[815], merkleTree, 4);
-		testMerkleProof(datas[89], merkleTree, 4);
-		testMerkleProof(datas[854], merkleTree, 5);
-		testMerkleProof(datas[146], merkleTree, 5);
-		testMerkleProof(datas[606], merkleTree, 5);
-		testMerkleProof(datas[1003], merkleTree, 5);
-		testMerkleProof(datas[156], merkleTree, 5);
-		testMerkleProof(datas[861], merkleTree, 5);
-		testMerkleProof(datas[1018], merkleTree, 6);
-		testMerkleProof(datas[260], merkleTree, 6);
-		testMerkleProof(datas[770], merkleTree, 6);
-		testMerkleProof(datas[626], merkleTree, 6);
-		testMerkleProof(datas[182], merkleTree, 6);
-		testMerkleProof(datas[200], merkleTree, 6);
-		testMerkleProof(datas[995], merkleTree, 7);
-		testMerkleProof(datas[583], merkleTree, 7);
-		testMerkleProof(datas[898], merkleTree, 7);
-		testMerkleProof(datas[244], merkleTree, 7);
-		testMerkleProof(datas[275], merkleTree, 7);
-		testMerkleProof(datas[69], merkleTree, 8);
-		testMerkleProof(datas[560], merkleTree, 8);
+		assertMerkleProofAndProofLength(datas[28], merkleTree, 4);
+		assertMerkleProofAndProofLength(datas[103], merkleTree, 4);
+		assertMerkleProofAndProofLength(datas[637], merkleTree, 4);
+		assertMerkleProofAndProofLength(datas[505], merkleTree, 4);
+		assertMerkleProofAndProofLength(datas[93], merkleTree, 4);
+		assertMerkleProofAndProofLength(datas[773], merkleTree, 4);
+		assertMerkleProofAndProofLength(datas[163], merkleTree, 4);
+		assertMerkleProofAndProofLength(datas[5], merkleTree, 4);
+		assertMerkleProofAndProofLength(datas[815], merkleTree, 4);
+		assertMerkleProofAndProofLength(datas[89], merkleTree, 4);
+		assertMerkleProofAndProofLength(datas[854], merkleTree, 5);
+		assertMerkleProofAndProofLength(datas[146], merkleTree, 5);
+		assertMerkleProofAndProofLength(datas[606], merkleTree, 5);
+		assertMerkleProofAndProofLength(datas[1003], merkleTree, 5);
+		assertMerkleProofAndProofLength(datas[156], merkleTree, 5);
+		assertMerkleProofAndProofLength(datas[861], merkleTree, 5);
+		assertMerkleProofAndProofLength(datas[1018], merkleTree, 6);
+		assertMerkleProofAndProofLength(datas[260], merkleTree, 6);
+		assertMerkleProofAndProofLength(datas[770], merkleTree, 6);
+		assertMerkleProofAndProofLength(datas[626], merkleTree, 6);
+		assertMerkleProofAndProofLength(datas[182], merkleTree, 6);
+		assertMerkleProofAndProofLength(datas[200], merkleTree, 6);
+		assertMerkleProofAndProofLength(datas[995], merkleTree, 7);
+		assertMerkleProofAndProofLength(datas[583], merkleTree, 7);
+		assertMerkleProofAndProofLength(datas[898], merkleTree, 7);
+		assertMerkleProofAndProofLength(datas[244], merkleTree, 7);
+		assertMerkleProofAndProofLength(datas[275], merkleTree, 7);
+		assertMerkleProofAndProofLength(datas[69], merkleTree, 8);
+		assertMerkleProofAndProofLength(datas[560], merkleTree, 8);
 	}
+	
 
-	private void testMerkleProof(VersioningKVData<String, byte[]> data, HashSortingMerkleTree merkleTree,
-			int expectProofPathCount) {
-		MerkleProof proof = merkleTree.getProof("KEY_NOT_EXIST");
-		assertNull(proof);
+	private MerkleProof assertMerkleProof(VersioningKVData<String, byte[]> data, HashSortingMerkleTree merkleTree) {
+		MerkleProof proof_nx = merkleTree.getProof("KEY_NOT_EXIST");
+		assertNull(proof_nx);
 
-		proof = merkleTree.getProof(data.getKey(), data.getVersion());
+		MerkleProof proof = merkleTree.getProof(data.getKey(), data.getVersion());
 		assertNotNull(proof);
-		HashDigest[] hashPaths = proof.getHashPaths();
-		if (expectProofPathCount > 0) {
-			assertEquals(expectProofPathCount, hashPaths.length);
-		}
+		HashDigest[] hashPaths = proof.getHashPath();
+		
 		HashDigest dataHash = SHA256_HASH_FUNC.hash(data.getValue());
 		assertEquals(dataHash, proof.getDataHash());
 		assertEquals(dataHash, hashPaths[hashPaths.length - 1]);
@@ -520,11 +534,20 @@ public class HashSortingMerkleTreeTest {
 		HashDigest rootHash = merkleTree.getRootHash();
 		assertEquals(rootHash, proof.getRootHash());
 		assertEquals(rootHash, hashPaths[0]);
+		
+		return proof;
 	}
 
+	private void assertMerkleProofAndProofLength(VersioningKVData<String, byte[]> data, HashSortingMerkleTree merkleTree,
+			int expectProofPathCount) {
+		MerkleProof proof = assertMerkleProof(data, merkleTree);
+		
+		assertEquals(expectProofPathCount, proof.getHashPath().length);
+	}
 
 	/**
-	 * 对已存在的树进行重载，增加新的数据节点，通过重载树验证新节点是否添加成功，total keys 与total records 是否符合预期，新添加的数据节点Key随机产生
+	 * 对已存在的树进行重载，增加新的数据节点，通过重载树验证新节点是否添加成功，total keys 与total records
+	 * 是否符合预期，新添加的数据节点Key随机产生
 	 *
 	 */
 	@Test
@@ -542,7 +565,7 @@ public class HashSortingMerkleTreeTest {
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
-		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
+		HashSortingMerkleTree merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
 		HashDigest rootHash0 = merkleTree.getRootHash();
 		assertNotNull(rootHash0);
 		assertEquals(count, merkleTree.getTotalKeys());
@@ -598,7 +621,8 @@ public class HashSortingMerkleTreeTest {
 	}
 
 	/**
-	 * 对已存在的树进行重载，增加新的数据节点，通过重载树验证新节点是否添加成功，total keys 与total records 是否符合预期，新添加的数据节点Key具有一定的规律
+	 * 对已存在的树进行重载，增加新的数据节点，通过重载树验证新节点是否添加成功，total keys 与total records
+	 * 是否符合预期，新添加的数据节点Key具有一定的规律
 	 *
 	 */
 	@Test
@@ -611,7 +635,7 @@ public class HashSortingMerkleTreeTest {
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
-		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
+		HashSortingMerkleTree merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
 		HashDigest rootHash0 = merkleTree.getRootHash();
 		assertNotNull(rootHash0);
 		assertEquals(count, merkleTree.getTotalKeys());
@@ -683,7 +707,7 @@ public class HashSortingMerkleTreeTest {
 		List<VersioningKVData<String, byte[]>> dataList = generateRandomKeyDatas(count);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
-		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
+		HashSortingMerkleTree merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
 		HashDigest rootHash0 = merkleTree.getRootHash();
 		assertNotNull(rootHash0);
 		assertEquals(count, merkleTree.getTotalKeys());
@@ -743,8 +767,7 @@ public class HashSortingMerkleTreeTest {
 		}
 		assertEquals(diffNum, diffIterator.getCount() - skipNum);
 
-
-		//re-interator and next test
+		// re-interator and next test
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		int diffNum1 = 0;
 		assertEquals(newAddCount, diffIterator.getCount());
@@ -758,7 +781,7 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(newAddCount, diffIterator.getCount());
 		assertEquals(diffNum1, diffIterator.getCount());
 
-		//re-interator and test next key consistency
+		// re-interator and test next key consistency
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		while (diffIterator.hasNext()) {
 			MerkleData data = diffIterator.next();
@@ -785,7 +808,7 @@ public class HashSortingMerkleTreeTest {
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
-		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
+		HashSortingMerkleTree merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
 		HashDigest rootHash0 = merkleTree.getRootHash();
 		assertNotNull(rootHash0);
 		assertEquals(count, merkleTree.getTotalKeys());
@@ -800,8 +823,8 @@ public class HashSortingMerkleTreeTest {
 
 		newdataListString = generateNewDatasString(count, newAddCount);
 		for (int i = 0; i < newAddCount; i++) {
-			VersioningKVData<String, byte[]> newdataKV = new VersioningKVData<String, byte[]>(newdataListString.get(i), 0,
-					BytesUtils.toBytes("NEW-VALUE"));
+			VersioningKVData<String, byte[]> newdataKV = new VersioningKVData<String, byte[]>(newdataListString.get(i),
+					0, BytesUtils.toBytes("NEW-VALUE"));
 			merkleTree_reload.setData(newdataKV.getKey(), newdataKV.getVersion(), newdataKV.getValue());
 		}
 
@@ -843,8 +866,7 @@ public class HashSortingMerkleTreeTest {
 		}
 		assertEquals(diffNum, diffIterator.getCount() - skipNum);
 
-
-		//re-interator and next test
+		// re-interator and next test
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		int diffNum1 = 0;
 		assertEquals(newAddCount, diffIterator.getCount());
@@ -857,7 +879,7 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(newAddCount, diffIterator.getCount());
 		assertEquals(diffNum1, diffIterator.getCount());
 
-		//re-interator and test next key consistency
+		// re-interator and test next key consistency
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		while (diffIterator.hasNext()) {
 			MerkleData data = diffIterator.next();
@@ -884,7 +906,7 @@ public class HashSortingMerkleTreeTest {
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
-		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
+		HashSortingMerkleTree merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
 		HashDigest rootHash0 = merkleTree.getRootHash();
 		assertNotNull(rootHash0);
 		assertEquals(count, merkleTree.getTotalKeys());
@@ -899,8 +921,8 @@ public class HashSortingMerkleTreeTest {
 
 		newdataListString = generateNewDatasString(count, newAddCount);
 		for (int i = 0; i < newAddCount; i++) {
-			VersioningKVData<String, byte[]> newdataKV = new VersioningKVData<String, byte[]>(newdataListString.get(i), 0,
-					BytesUtils.toBytes("NEW-VALUE"));
+			VersioningKVData<String, byte[]> newdataKV = new VersioningKVData<String, byte[]>(newdataListString.get(i),
+					0, BytesUtils.toBytes("NEW-VALUE"));
 			merkleTree_reload.setData(newdataKV.getKey(), newdataKV.getVersion(), newdataKV.getValue());
 		}
 
@@ -940,7 +962,7 @@ public class HashSortingMerkleTreeTest {
 		}
 		assertEquals(diffNum, diffIterator.getCount() - skipNum);
 
-		//re-interator and next test
+		// re-interator and next test
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		int diffNum1 = 0;
 		assertEquals(newAddCount, diffIterator.getCount());
@@ -954,7 +976,7 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(newAddCount, diffIterator.getCount());
 		assertEquals(diffNum1, diffIterator.getCount());
 
-		//re-interator and test next key consistency
+		// re-interator and test next key consistency
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		while (diffIterator.hasNext()) {
 			MerkleData data = diffIterator.next();
@@ -982,7 +1004,7 @@ public class HashSortingMerkleTreeTest {
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
-		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
+		HashSortingMerkleTree merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
 		HashDigest rootHash0 = merkleTree.getRootHash();
 		assertNotNull(rootHash0);
 		assertEquals(count, merkleTree.getTotalKeys());
@@ -997,12 +1019,12 @@ public class HashSortingMerkleTreeTest {
 
 		newdataListString = generateNewDatasString(count, newAddCount);
 		for (int i = 0; i < newAddCount; i++) {
-			VersioningKVData<String, byte[]> newdataKV = new VersioningKVData<String, byte[]>(newdataListString.get(i), 0,
-					BytesUtils.toBytes("NEW-VALUE"));
+			VersioningKVData<String, byte[]> newdataKV = new VersioningKVData<String, byte[]>(newdataListString.get(i),
+					0, BytesUtils.toBytes("NEW-VALUE"));
 			merkleTree_reload.setData(newdataKV.getKey(), newdataKV.getVersion(), newdataKV.getValue());
 		}
 
-		//first commit
+		// first commit
 		merkleTree_reload.commit();
 		HashDigest rootHash1 = merkleTree_reload.getRootHash();
 		assertNotNull(rootHash1);
@@ -1014,12 +1036,12 @@ public class HashSortingMerkleTreeTest {
 		int newAddCount1 = 200;
 		newdataListString1 = generateNewDatasString(count + newAddCount, newAddCount1);
 		for (int i = 0; i < newAddCount1; i++) {
-			VersioningKVData<String, byte[]> newdataKV = new VersioningKVData<String, byte[]>(newdataListString1.get(i), 0,
-					BytesUtils.toBytes("NEW-VALUE"));
+			VersioningKVData<String, byte[]> newdataKV = new VersioningKVData<String, byte[]>(newdataListString1.get(i),
+					0, BytesUtils.toBytes("NEW-VALUE"));
 			merkleTree_reload.setData(newdataKV.getKey(), newdataKV.getVersion(), newdataKV.getValue());
 		}
 
-		//second commit
+		// second commit
 		merkleTree_reload.commit();
 		HashDigest rootHash2 = merkleTree_reload.getRootHash();
 		assertNotNull(rootHash2);
@@ -1031,7 +1053,7 @@ public class HashSortingMerkleTreeTest {
 		LongSkippingIterator<MerkleData> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
 		// max boundary skip test
-		assertEquals(newAddCount+ newAddCount1, diffIterator.getCount());
+		assertEquals(newAddCount + newAddCount1, diffIterator.getCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped = diffIterator.skip(newAddCount + newAddCount1);
@@ -1051,12 +1073,13 @@ public class HashSortingMerkleTreeTest {
 			MerkleData data = diffIterator.next();
 			assertNotNull(data);
 			assertFalse(dataList.contains(new String(data.getKey())));
-			assertTrue(newdataListString.contains(new String(data.getKey())) || newdataListString1.contains(new String(data.getKey())));
+			assertTrue(newdataListString.contains(new String(data.getKey()))
+					|| newdataListString1.contains(new String(data.getKey())));
 			diffNum++;
 		}
 		assertEquals(diffNum, diffIterator.getCount() - skipNum);
 
-		//re-interator and next test
+		// re-interator and next test
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		int diffNum1 = 0;
 		while (diffIterator.hasNext()) {
@@ -1069,13 +1092,14 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(newAddCount + newAddCount1, diffIterator.getCount());
 		assertEquals(diffNum1, diffIterator.getCount());
 
-		//re-interator and test next key consistency
+		// re-interator and test next key consistency
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		while (diffIterator.hasNext()) {
 			MerkleData data = diffIterator.next();
 			assertNotNull(data);
 			assertFalse(dataList.contains(new String(data.getKey())));
-			assertTrue(newdataListString.contains(new String(data.getKey())) || newdataListString1.contains(new String(data.getKey())));
+			assertTrue(newdataListString.contains(new String(data.getKey()))
+					|| newdataListString1.contains(new String(data.getKey())));
 		}
 	}
 
@@ -1114,7 +1138,7 @@ public class HashSortingMerkleTreeTest {
 
 	@Test
 	public void testMerkleTreeDiffLeafToLeafType() {
-		//TODO
+		// TODO
 	}
 
 	@Test
@@ -1133,10 +1157,9 @@ public class HashSortingMerkleTreeTest {
 		dataList.add(orginData0);
 		dataListString.add(orginData0.getKey());
 
-
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
-		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
+		HashSortingMerkleTree merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
 		HashDigest rootHash0 = merkleTree.getRootHash();
 		assertNotNull(rootHash0);
 		assertEquals(count, merkleTree.getTotalKeys());
@@ -1170,7 +1193,8 @@ public class HashSortingMerkleTreeTest {
 		newdataList.add(data4);
 
 		for (int i = 0; i < newdataList.size(); i++) {
-			merkleTree_reload.setData(newdataList.get(i).getKey(), newdataList.get(i).getVersion(), newdataList.get(i).getValue());
+			merkleTree_reload.setData(newdataList.get(i).getKey(), newdataList.get(i).getVersion(),
+					newdataList.get(i).getValue());
 			newdataListString.add(newdataList.get(i).getKey());
 		}
 
@@ -1210,7 +1234,7 @@ public class HashSortingMerkleTreeTest {
 		}
 		assertEquals(diffNum, diffIterator.getCount() - skipNum);
 
-		//re-interator and next test
+		// re-interator and next test
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		int diffNum1 = 0;
 		assertEquals(newAddCount, diffIterator.getCount());
@@ -1224,7 +1248,7 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(newAddCount, diffIterator.getCount());
 		assertEquals(diffNum1, diffIterator.getCount());
 
-		//re-interator and test next key consistency
+		// re-interator and test next key consistency
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		while (diffIterator.hasNext()) {
 			MerkleData data = diffIterator.next();
@@ -1250,10 +1274,9 @@ public class HashSortingMerkleTreeTest {
 		dataList.add(orginData0);
 		dataListString.add(orginData0.getKey());
 
-
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
-		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
+		HashSortingMerkleTree merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
 		HashDigest rootHash0 = merkleTree.getRootHash();
 		assertNotNull(rootHash0);
 		assertEquals(count, merkleTree.getTotalKeys());
@@ -1271,7 +1294,8 @@ public class HashSortingMerkleTreeTest {
 		newdataList.add(data0);
 
 		for (int i = 0; i < newdataList.size(); i++) {
-			merkleTree_reload.setData(newdataList.get(i).getKey(), newdataList.get(i).getVersion(), newdataList.get(i).getValue());
+			merkleTree_reload.setData(newdataList.get(i).getKey(), newdataList.get(i).getVersion(),
+					newdataList.get(i).getValue());
 			newdataListString.add(newdataList.get(i).getKey());
 		}
 
@@ -1311,7 +1335,7 @@ public class HashSortingMerkleTreeTest {
 		}
 		assertEquals(diffNum, diffIterator.getCount() - skipNum);
 
-		//re-interator and next test
+		// re-interator and next test
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		int diffNum1 = 0;
 		assertEquals(newAddCount, diffIterator.getCount());
@@ -1325,7 +1349,7 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(newAddCount, diffIterator.getCount());
 		assertEquals(diffNum1, diffIterator.getCount());
 
-		//re-interator and test next key consistency
+		// re-interator and test next key consistency
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		while (diffIterator.hasNext()) {
 			MerkleData data = diffIterator.next();
@@ -1358,7 +1382,7 @@ public class HashSortingMerkleTreeTest {
 
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
-		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
+		HashSortingMerkleTree merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
 		HashDigest rootHash0 = merkleTree.getRootHash();
 		assertNotNull(rootHash0);
 		assertEquals(count, merkleTree.getTotalKeys());
@@ -1392,7 +1416,8 @@ public class HashSortingMerkleTreeTest {
 		newdataList.add(data4);
 
 		for (int i = 0; i < newdataList.size(); i++) {
-			merkleTree_reload.setData(newdataList.get(i).getKey(), newdataList.get(i).getVersion(), newdataList.get(i).getValue());
+			merkleTree_reload.setData(newdataList.get(i).getKey(), newdataList.get(i).getVersion(),
+					newdataList.get(i).getValue());
 			newdataListString.add(newdataList.get(i).getKey());
 		}
 
@@ -1432,7 +1457,7 @@ public class HashSortingMerkleTreeTest {
 		}
 		assertEquals(diffNum, diffIterator.getCount() - skipNum);
 
-		//re-interator and next test
+		// re-interator and next test
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		int diffNum1 = 0;
 		assertEquals(newAddCount, diffIterator.getCount());
@@ -1446,7 +1471,7 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(newAddCount, diffIterator.getCount());
 		assertEquals(diffNum1, diffIterator.getCount());
 
-		//re-interator and test next key consistency
+		// re-interator and test next key consistency
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		while (diffIterator.hasNext()) {
 			MerkleData data = diffIterator.next();
@@ -1471,7 +1496,7 @@ public class HashSortingMerkleTreeTest {
 
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
-		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
+		HashSortingMerkleTree merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
 		HashDigest rootHash0 = merkleTree.getRootHash();
 		assertNotNull(rootHash0);
 		assertEquals(count, merkleTree.getTotalKeys());
@@ -1505,7 +1530,8 @@ public class HashSortingMerkleTreeTest {
 		newdataList.add(data4);
 
 		for (int i = 0; i < newdataList.size(); i++) {
-			merkleTree_reload.setData(newdataList.get(i).getKey(), newdataList.get(i).getVersion(), newdataList.get(i).getValue());
+			merkleTree_reload.setData(newdataList.get(i).getKey(), newdataList.get(i).getVersion(),
+					newdataList.get(i).getValue());
 			newdataListString.add(newdataList.get(i).getKey());
 		}
 
@@ -1545,7 +1571,7 @@ public class HashSortingMerkleTreeTest {
 		}
 		assertEquals(diffNum, diffIterator.getCount() - skipNum);
 
-		//re-interator and next test
+		// re-interator and next test
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		int diffNum1 = 0;
 		assertEquals(newAddCount, diffIterator.getCount());
@@ -1559,7 +1585,7 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(newAddCount, diffIterator.getCount());
 		assertEquals(diffNum1, diffIterator.getCount());
 
-		//re-interator and test next key consistency
+		// re-interator and test next key consistency
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		while (diffIterator.hasNext()) {
 			MerkleData data = diffIterator.next();
@@ -1582,7 +1608,7 @@ public class HashSortingMerkleTreeTest {
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
-		HashSortingMerkleTree merkleTree = newMerkleTree(datas, cryptoSetting, storage);
+		HashSortingMerkleTree merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
 		HashDigest rootHash0 = merkleTree.getRootHash();
 		assertNotNull(rootHash0);
 
@@ -1590,7 +1616,7 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(count, merkleTree.getTotalRecords());
 
 		for (VersioningKVData<String, byte[]> data : datas) {
-			testMerkleProof(data, merkleTree, -1);
+			assertMerkleProof(data, merkleTree);
 		}
 		testMerkleProof1024(datas, merkleTree);
 
@@ -1624,10 +1650,10 @@ public class HashSortingMerkleTreeTest {
 		assertNotEquals(rootHash0, rootHash1);
 
 		MerkleProof proof = merkleTree_reload.getProof(data28.getKey(), 1);
-		HashDigest[] hashPaths = proof.getHashPaths();
+		HashDigest[] hashPaths = proof.getHashPath();
 		assertEquals(4, hashPaths.length);
 		proof = merkleTree_reload.getProof(data28.getKey(), 0);
-		hashPaths = proof.getHashPaths();
+		hashPaths = proof.getHashPath();
 		assertEquals(5, hashPaths.length);
 
 		MerkleData data28_reload_0 = merkleTree_reload.getData(data28.getKey(), 0);
@@ -1688,7 +1714,7 @@ public class HashSortingMerkleTreeTest {
 		// 验证默克尔证明的长度增长；
 		MerkleProof proof28_5 = merkleTree_1.getProof("KEY-28", 0);
 		assertNotNull(proof28_5);
-		hashPaths = proof28_5.getHashPaths();
+		hashPaths = proof28_5.getHashPath();
 		assertEquals(6, hashPaths.length);
 
 		// 重新加载默克尔树，默克尔证明是一致的；
@@ -1799,14 +1825,14 @@ public class HashSortingMerkleTreeTest {
 	private List<VersioningKVData<String, byte[]>> generateRandomKeyDatas(int count) {
 		List<VersioningKVData<String, byte[]>> dataList = new ArrayList<VersioningKVData<String, byte[]>>();
 		for (int i = 0; i < count; i++) {
-			VersioningKVData<String, byte[]> data = new VersioningKVData<String, byte[]>("KEY-" + i + System.nanoTime(), 0L,
-					BytesUtils.concat(BytesUtils.toBytes(i), BytesUtils.toBytes("VALUE")));
+			VersioningKVData<String, byte[]> data = new VersioningKVData<String, byte[]>("KEY-" + i + System.nanoTime(),
+					0L, BytesUtils.concat(BytesUtils.toBytes(i), BytesUtils.toBytes("VALUE")));
 			dataList.add(data);
 		}
 		return dataList;
 	}
 
-	//generate key data with index 3 in merkle tree child
+	// generate key data with index 3 in merkle tree child
 	private List<VersioningKVData<String, byte[]>> generateSpecKeyDatas(List<String> dataListString, int count) {
 		List<VersioningKVData<String, byte[]>> dataList = new ArrayList<VersioningKVData<String, byte[]>>();
 
@@ -1873,21 +1899,21 @@ public class HashSortingMerkleTreeTest {
 		return cryptoSetting;
 	}
 
-	private HashSortingMerkleTree buildMerkleTree(VersioningKVData<String, byte[]>[] datas) {
+	private HashSortingMerkleTree newMerkleTree_with_committed(VersioningKVData<String, byte[]>[] datas) {
 		CryptoSetting cryptoSetting = createCryptoSetting();
 		MemoryKVStorage storage = new MemoryKVStorage();
 
 		return newMerkleTree(datas, cryptoSetting, storage, true);
 	}
 
-	private HashSortingMerkleTree buildMerkleTree(VersioningKVData<String, byte[]>[] datas, boolean commit) {
+	private HashSortingMerkleTree newMerkleTree(VersioningKVData<String, byte[]>[] datas) {
 		CryptoSetting cryptoSetting = createCryptoSetting();
 		MemoryKVStorage storage = new MemoryKVStorage();
 
-		return newMerkleTree(datas, cryptoSetting, storage, commit);
+		return newMerkleTree(datas, cryptoSetting, storage, false);
 	}
 
-	private HashSortingMerkleTree newMerkleTree(VersioningKVData<String, byte[]>[] datas, CryptoSetting cryptoSetting,
+	private HashSortingMerkleTree newMerkleTree_with_committed(VersioningKVData<String, byte[]>[] datas, CryptoSetting cryptoSetting,
 			ExPolicyKVStorage storage) {
 		return newMerkleTree(datas, cryptoSetting, storage, true);
 	}
@@ -1914,7 +1940,7 @@ public class HashSortingMerkleTreeTest {
 	}
 
 	private HashDigest buildMerkleRootHash(VersioningKVData<String, byte[]>[] datas) {
-		HashSortingMerkleTree merkleTree = buildMerkleTree(datas);
+		HashSortingMerkleTree merkleTree = newMerkleTree_with_committed(datas);
 		HashDigest rootHash = merkleTree.getRootHash();
 
 		return rootHash;

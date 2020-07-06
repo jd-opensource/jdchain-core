@@ -25,12 +25,12 @@ public class HashArrayProof implements MerkleProof {
 	}
 
 	public HashArrayProof(MerkleProof proof) {
-		this.hashPaths = proof.getHashPaths();
+		this.hashPaths = proof.getHashPath();
 	}
 
 	public HashArrayProof(MerkleProof proof1, MerkleProof proof2) {
-		HashDigest[] path1 = proof1.getHashPaths();
-		HashDigest[] path2 = proof2.getHashPaths();
+		HashDigest[] path1 = proof1.getHashPath();
+		HashDigest[] path2 = proof2.getHashPath();
 		this.hashPaths = new HashDigest[path1.length + path2.length];
 		System.arraycopy(path1, 0, hashPaths, 0, path1.length);
 		System.arraycopy(path2, 0, hashPaths, path1.length, path2.length);
@@ -52,7 +52,7 @@ public class HashArrayProof implements MerkleProof {
 	}
 
 	@Override
-	public HashDigest[] getHashPaths() {
+	public HashDigest[] getHashPath() {
 		return hashPaths.clone();
 	}
 
@@ -66,7 +66,7 @@ public class HashArrayProof implements MerkleProof {
 		if (! (obj instanceof MerkleProof)) {
 			return false;
 		}
-		HashDigest[] path1 = ((MerkleProof)obj).getHashPaths();
+		HashDigest[] path1 = ((MerkleProof)obj).getHashPath();
 		if (hashPaths.length != path1.length) {
 			return false;
 		}
