@@ -1,16 +1,35 @@
 package com.jd.blockchain.gateway.web;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.servlet.http.HttpServletRequest;
-
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
+import com.jd.blockchain.crypto.AddressEncoding;
+import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.crypto.KeyGenUtils;
+import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.gateway.exception.BlockNonExistentException;
+import com.jd.blockchain.gateway.service.DataRetrievalService;
+import com.jd.blockchain.gateway.service.GatewayQueryService;
 import com.jd.blockchain.gateway.service.PeerConnectionManager;
 import com.jd.blockchain.gateway.service.settings.LedgerBaseSettings;
-import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.ledger.BlockchainIdentity;
+import com.jd.blockchain.ledger.ContractInfo;
+import com.jd.blockchain.ledger.DataAccountInfo;
+import com.jd.blockchain.ledger.Event;
+import com.jd.blockchain.ledger.KVInfoVO;
+import com.jd.blockchain.ledger.LedgerAdminInfo;
+import com.jd.blockchain.ledger.LedgerBlock;
+import com.jd.blockchain.ledger.LedgerInfo;
+import com.jd.blockchain.ledger.LedgerMetadata;
+import com.jd.blockchain.ledger.LedgerTransaction;
+import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.RoleSet;
+import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.ledger.TypedKVEntry;
+import com.jd.blockchain.ledger.UserInfo;
+import com.jd.blockchain.sdk.BlockchainExtendQueryService;
+import com.jd.blockchain.sdk.ContractSettings;
+import com.jd.blockchain.utils.BaseConstant;
+import com.jd.blockchain.utils.ConsoleUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,16 +40,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.jd.blockchain.crypto.AddressEncoding;
-import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.crypto.KeyGenUtils;
-import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.gateway.service.DataRetrievalService;
-import com.jd.blockchain.gateway.service.GatewayQueryService;
-import com.jd.blockchain.sdk.BlockchainExtendQueryService;
-import com.jd.blockchain.sdk.ContractSettings;
-import com.jd.blockchain.utils.BaseConstant;
-import com.jd.blockchain.utils.ConsoleUtils;
+import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping(path = "/")
@@ -255,8 +267,8 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/accounts/address/{address}")
 	@Override
-	public BlockchainIdentity getDataAccount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-			@PathVariable(name = "address") String address) {
+	public DataAccountInfo getDataAccount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+										  @PathVariable(name = "address") String address) {
 
 		return peerService.getQueryService(ledgerHash).getDataAccount(ledgerHash, address);
 	}
