@@ -7,6 +7,7 @@ import com.jd.blockchain.consensus.ClientIdentification;
 import com.jd.blockchain.consensus.ConsensusManageService;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingConfig;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.SignatureFunction;
 import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
@@ -34,10 +35,14 @@ public class BftsmartConsensusManageService implements ConsensusManageService {
 	@Override
 	public BftsmartClientIncomingSettings authClientIncoming(ClientIdentification authId) {
 		if (verify(authId)) {
-			BftsmartClientIncomingConfig clientIncomingSettings = new BftsmartClientIncomingConfig();
+			BftsmartTopology topology = nodeServer.getTopology();
+			if (topology == null) {
+				throw new IllegalStateException("Topology still not created !!!");
+			}
 
+			BftsmartClientIncomingConfig clientIncomingSettings = new BftsmartClientIncomingConfig();
 			clientIncomingSettings
-					.setTopology(BinarySerializeUtils.serialize(nodeServer.getTopology()));
+					.setTopology(BinarySerializeUtils.serialize(topology));
 
 			clientIncomingSettings
 					.setTomConfig(BinarySerializeUtils.serialize(nodeServer.getTomConfig()));
