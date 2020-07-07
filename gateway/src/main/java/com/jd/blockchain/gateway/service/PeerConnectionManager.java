@@ -8,6 +8,7 @@ import com.jd.blockchain.gateway.event.EventListener;
 import com.jd.blockchain.gateway.event.EventListenerService;
 import com.jd.blockchain.gateway.event.PullEventListener;
 import com.jd.blockchain.sdk.BlockchainService;
+import com.jd.blockchain.sdk.PeerBlockchainService;
 import com.jd.blockchain.sdk.service.PeerServiceProxy;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -121,15 +122,12 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 					// 等待被更新
 					return;
 				}
-				BlockchainQueryService queryService = serviceFactory.serviceFactory.getBlockchainService();
+				PeerBlockchainService queryService = serviceFactory.serviceFactory.getBlockchainService();
 				NetworkAddress peerAddress = serviceFactory.peerAddress;
 
-				HashDigest[] peerLedgerHashs = null;
-				if (queryService instanceof PeerServiceProxy) {
-					peerLedgerHashs = ((PeerServiceProxy) queryService).getLedgerHashsDirect();
-					LOGGER.info("Most peer {} load ledger's size = {}", peerAddress, peerLedgerHashs.length);
-				}
-				if (peerLedgerHashs != null && peerLedgerHashs.length > 0) {
+				HashDigest[] peerLedgerHashs = queryService.getLedgerHashsDirect();
+				LOGGER.info("Most peer {} load ledger's size = {}", peerAddress, peerLedgerHashs.length);
+				if (peerLedgerHashs.length > 0) {
 					boolean haveNewLedger = false;
 					for (HashDigest hash : peerLedgerHashs) {
 						if (!localLedgerCache.contains(hash)) {
@@ -335,7 +333,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 							blockHeight = Math.max(latestBlockHeight, blockHeight);
 						} catch (Exception e) {
 							// 需要判断是否具有当前账本，有的话，进行重连，没有的话就算了
-							BlockchainService blockchainService = sf.getBlockchainService();
+							PeerBlockchainService blockchainService = sf.getBlockchainService();
 							boolean isNeedReconnect = false;
 							ledgerHashs = blockchainService.getLedgerHashsDirect();
 							if (ledgerHashs != null) {
@@ -404,7 +402,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 				return null;
 			}
 			HashDigest[] ledgerHashs = null;
-			BlockchainService blockchainService = mostLedgerPeerServiceFactory.serviceFactory.getBlockchainService();
+			PeerBlockchainService blockchainService = mostLedgerPeerServiceFactory.serviceFactory.getBlockchainService();
 			try {
 				ledgerHashs = blockchainService.getLedgerHashsDirect();
 				if (ledgerHashs != null) {
@@ -424,7 +422,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 
 			// 遍历，获取对应端的账本数量及最新的区块高度
 			for (Map.Entry<NetworkAddress, PeerBlockchainServiceFactory> entry : peerBlockchainServiceFactories.entrySet()) {
-				BlockchainService loopBlockchainService = entry.getValue().getBlockchainService();
+				PeerBlockchainService loopBlockchainService = entry.getValue().getBlockchainService();
 				if (loopBlockchainService != blockchainService) {
 					// 处理账本数量
 					try {
