@@ -208,7 +208,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 			// 由于哈希校验失败，引发IllegalTransactionException，使外部调用抛弃此交易请求；
 			throw new IllegalTransactionException(
 					"Wrong  transaction content hash! --[TxHash=" + requestExt.getTransactionContent().getHash() + "]!",
-					TransactionState.IGNORED_BY_WRONG_CONTENT_SIGNATURE);
+					TransactionState.IGNORED_BY_INCONSISTENT_CONTENT_HASH);
 		}
 	}
 
@@ -223,7 +223,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 					throw new IllegalTransactionException(
 							String.format("Wrong transaction node signature! --[Tx Hash=%s][Node Signer=%s]!",
 									request.getTransactionContent().getHash(), node.getAddress()),
-							TransactionState.IGNORED_BY_WRONG_CONTENT_SIGNATURE);
+							TransactionState.IGNORED_BY_ILLEGAL_CONTENT_SIGNATURE);
 				}
 			}
 		}
@@ -240,7 +240,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 					throw new IllegalTransactionException(
 							String.format("Wrong transaction endpoint signature! --[Tx Hash=%s][Endpoint Signer=%s]!",
 									request.getTransactionContent().getHash(), endpoint.getAddress()),
-							TransactionState.IGNORED_BY_WRONG_CONTENT_SIGNATURE);
+							TransactionState.IGNORED_BY_ILLEGAL_CONTENT_SIGNATURE);
 				}
 			}
 		}
@@ -257,9 +257,11 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 	 */
 	private TransactionResponse handleTx(TransactionRequestExtension request, LedgerTransactionContext txCtx) {
 		TransactionState result;
+		EventManager eventManager;
 		List<OperationResult> operationResults = new ArrayList<>();
 		try {
 			LedgerDataset dataset = txCtx.getDataset();
+			eventManager = new EventManager(txCtx);
 
 			// 执行操作；
 			Operation[] ops = request.getTransactionContent().getOperations();
@@ -269,14 +271,14 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 					// assert; Instance of operation are one of User related operations or
 					// DataAccount related operations;
 					OperationHandle hdl = handlesRegisteration.getHandle(operation.getClass());
-					hdl.process(operation, dataset, request, ledger, this);
+					hdl.process(operation, dataset, request, ledger, this, eventManager);
 				}
 			};
 			OperationHandle opHandle;
 			int opIndex = 0;
 			for (Operation op : ops) {
 				opHandle = handlesRegisteration.getHandle(op.getClass());
-				BytesValue opResult = opHandle.process(op, dataset, request, ledger, handleContext);
+				BytesValue opResult = opHandle.process(op, dataset, request, ledger, handleContext, eventManager);
 				if (opResult != null) {
 					operationResults.add(new OperationResultData(opIndex, opResult));
 				}
@@ -293,6 +295,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 			LOGGER.debug("after commit().  --[BlockHeight={}][RequestHash={}][TxHash={}]",
 					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash());
 		} catch (TransactionRollbackException e) {
+			//
 			result = TransactionState.IGNORED_BY_TX_FULL_ROLLBACK;
 			txCtx.rollback();
 			LOGGER.error(String.format(

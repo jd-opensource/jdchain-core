@@ -5,8 +5,10 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
+import com.jd.blockchain.ledger.DataAccountInfo;
 import com.jd.blockchain.ledger.DataAccountKVSetOperation;
 import com.jd.blockchain.ledger.DataAccountRegisterOperation;
+import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.KVInfoVO;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
 import com.jd.blockchain.ledger.LedgerBlock;
@@ -30,7 +32,6 @@ import com.jd.blockchain.transaction.KVData;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilder;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilderImpl;
 import com.jd.blockchain.utils.Bytes;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,7 +57,7 @@ public class ContractLedgerContext implements LedgerContext {
 	public LedgerInfo getLedger(HashDigest ledgerHash) {
 		return innerQueryService.getLedger(ledgerHash);
 	}
-	
+
 	@Override
 	public LedgerAdminInfo getLedgerAdminInfo(HashDigest ledgerHash) {
 		return innerQueryService.getLedgerAdminInfo(ledgerHash);
@@ -168,7 +169,7 @@ public class ContractLedgerContext implements LedgerContext {
 	}
 
 	@Override
-	public BlockchainIdentity getDataAccount(HashDigest ledgerHash, String address) {
+	public DataAccountInfo getDataAccount(HashDigest ledgerHash, String address) {
 		return innerQueryService.getDataAccount(ledgerHash, address);
 	}
 
@@ -195,6 +196,76 @@ public class ContractLedgerContext implements LedgerContext {
 	@Override
 	public ContractInfo getContract(HashDigest ledgerHash, String address) {
 		return innerQueryService.getContract(ledgerHash, address);
+	}
+
+	@Override
+	public Event[] getSystemEvents(HashDigest ledgerHash, String eventName, long fromSequence, int maxCount) {
+		return innerQueryService.getSystemEvents(ledgerHash, eventName, fromSequence, maxCount);
+	}
+
+	@Override
+	public long getSystemEventNameTotalCount(HashDigest ledgerHash) {
+		return innerQueryService.getSystemEventNameTotalCount(ledgerHash);
+	}
+
+	@Override
+	public String[] getSystemEventNames(HashDigest ledgerHash, int fromIndex, int count) {
+		return innerQueryService.getSystemEventNames(ledgerHash, fromIndex, count);
+	}
+
+	@Override
+	public Event getLatestEvent(HashDigest ledgerHash, String eventName) {
+		return innerQueryService.getLatestEvent(ledgerHash, eventName);
+	}
+
+	@Override
+	public long getSystemEventsTotalCount(HashDigest ledgerHash, String eventName) {
+		return innerQueryService.getSystemEventsTotalCount(ledgerHash, eventName);
+	}
+
+	@Override
+	public BlockchainIdentity[] getUserEventAccounts(HashDigest ledgerHash, int fromIndex, int count) {
+		return innerQueryService.getUserEventAccounts(ledgerHash, fromIndex, count);
+	}
+
+	@Override
+	public BlockchainIdentity getUserEventAccount(HashDigest ledgerHash, String address) {
+		return innerQueryService.getUserEventAccount(ledgerHash, address);
+	}
+
+	@Override
+	public long getUserEventAccountTotalCount(HashDigest ledgerHash) {
+		return innerQueryService.getUserEventAccountTotalCount(ledgerHash);
+	}
+
+	@Override
+	public long getUserEventNameTotalCount(HashDigest ledgerHash, String address) {
+		return innerQueryService.getUserEventNameTotalCount(ledgerHash, address);
+	}
+
+	@Override
+	public String[] getUserEventNames(HashDigest ledgerHash, String address, int fromSequence, int count) {
+		return innerQueryService.getUserEventNames(ledgerHash, address, fromSequence, count);
+	}
+
+	@Override
+	public Event getLatestEvent(HashDigest ledgerHash, String address, String eventName) {
+		return innerQueryService.getLatestEvent(ledgerHash, address, eventName);
+	}
+
+	@Override
+	public long getUserEventsTotalCount(HashDigest ledgerHash, String address, String eventName) {
+		return innerQueryService.getUserEventsTotalCount(ledgerHash, address, eventName);
+	}
+
+	@Override
+	public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int count) {
+		return innerQueryService.getUserEvents(ledgerHash, address, eventName, fromSequence, count);
+	}
+
+	@Override
+	public ContractInfo getContract(HashDigest ledgerHash, String address, long version) {
+		return innerQueryService.getContract(ledgerHash, address, version);
 	}
 
 	// ---------------------------user()----------------------------
@@ -312,7 +383,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 //		@Deprecated
 //		@Override
 //		public DataAccountKVSetOperationBuilder set(String key, String value, long expVersion) {
@@ -321,7 +392,7 @@ public class ContractLedgerContext implements LedgerContext {
 //			handle(op);
 //			return this;
 //		}
-		
+
 		@Override
 		public DataAccountKVSetOperationBuilder setJSON(String key, String value, long expVersion) {
 			BytesValue bytesValue = TypedValue.fromJSON(value);
@@ -329,7 +400,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 		@Override
 		public DataAccountKVSetOperationBuilder setXML(String key, String value, long expVersion) {
 			BytesValue bytesValue = TypedValue.fromXML(value);
@@ -337,7 +408,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 		@Override
 		public DataAccountKVSetOperationBuilder setBytes(String key, byte[] value, long expVersion) {
 			BytesValue bytesValue = TypedValue.fromBytes(value);
@@ -345,7 +416,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 		@Override
 		public DataAccountKVSetOperationBuilder setImage(String key, byte[] value, long expVersion) {
 			BytesValue bytesValue = TypedValue.fromImage(value);
@@ -353,7 +424,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 		@Override
 		public DataAccountKVSetOperationBuilder setTimestamp(String key, long value, long expVersion) {
 			BytesValue bytesValue = TypedValue.fromTimestamp(value);
@@ -361,7 +432,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 		private void handle(Operation op) {
 			generatedOpList.add(op);
 			opHandleContext.handle(op);
@@ -369,7 +440,7 @@ public class ContractLedgerContext implements LedgerContext {
 
 		/**
 		 * 单个KV写入操作；
-		 * 
+		 *
 		 * @author huanghaiquan
 		 *
 		 */

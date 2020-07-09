@@ -11,6 +11,7 @@ import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.ledger.core.EventManager;
 
 public class UserRegisterOperationHandle extends AbstractLedgerOperationHandle<UserRegisterOperation> {
 
@@ -20,7 +21,7 @@ public class UserRegisterOperationHandle extends AbstractLedgerOperationHandle<U
 
 	@Override
 	protected void doProcess(UserRegisterOperation op, LedgerDataset newBlockDataset,
-			TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext) {
+							 TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager) {
 		// 权限校验；
 		SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
 		securityPolicy.checkEndpointPermission(LedgerPermission.REGISTER_USER, MultiIDsPolicy.AT_LEAST_ONE);

@@ -134,7 +134,7 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(expectedSize, dataBytes.length);
 
 		DataContractEncoder dataContractEncoder = DataContractContext.resolve(MerkleData.class);
-		DataSpecification dataSpec = dataContractEncoder.getSepcification();
+		DataSpecification dataSpec = dataContractEncoder.getSpecification();
 		assertEquals(4, dataSpec.getFields().size());
 		assertEquals(5, dataSpec.getSlices().size());
 

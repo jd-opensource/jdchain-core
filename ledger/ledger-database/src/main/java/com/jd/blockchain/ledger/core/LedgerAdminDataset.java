@@ -140,6 +140,7 @@ public class LedgerAdminDataset implements Transactional, LedgerAdminDataQuery, 
 		// 初始化元数据；
 		this.metadata = new LedgerMetadataInfo();
 		this.metadata.setSeed(initSetting.getLedgerSeed());
+		this.metadata.setLedgerStructureVersion(initSetting.getLedgerStructureVersion());
 		// 新配置；
 		this.settings = new LedgerConfiguration(initSetting.getConsensusProvider(), initSetting.getConsensusSettings(),
 				initSetting.getCryptoSetting());
@@ -421,6 +422,8 @@ public class LedgerAdminDataset implements Transactional, LedgerAdminDataQuery, 
 
 		private HashDigest userRolesHash;
 
+		private long ledgerStructureVersion = -1L;
+
 		public LedgerMetadataInfo() {
 		}
 
@@ -430,6 +433,7 @@ public class LedgerAdminDataset implements Transactional, LedgerAdminDataQuery, 
 			this.settingsHash = metadata.getSettingsHash();
 			this.rolePrivilegesHash = metadata.getRolePrivilegesHash();
 			this.userRolesHash = metadata.getUserRolesHash();
+			this.ledgerStructureVersion = metadata.getLedgerStructureVersion();
 		}
 
 		@Override
@@ -457,6 +461,11 @@ public class LedgerAdminDataset implements Transactional, LedgerAdminDataQuery, 
 			return userRolesHash;
 		}
 
+		@Override
+		public long getLedgerStructureVersion() {
+			return ledgerStructureVersion;
+		}
+
 		public void setSeed(byte[] seed) {
 			this.seed = seed;
 		}
@@ -475,6 +484,10 @@ public class LedgerAdminDataset implements Transactional, LedgerAdminDataQuery, 
 
 		public void setUserRolesHash(HashDigest userRolesHash) {
 			this.userRolesHash = userRolesHash;
+		}
+
+		public void setLedgerStructureVersion(long ledgerStructureVersion) {
+			this.ledgerStructureVersion = ledgerStructureVersion;
 		}
 	}
 

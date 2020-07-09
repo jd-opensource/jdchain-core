@@ -6,8 +6,6 @@ import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerSettings;
-import com.jd.blockchain.ledger.ParticipantInfo;
-import com.jd.blockchain.ledger.ParticipantInfoData;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.ParticipantNodeState;
 import com.jd.blockchain.ledger.ParticipantStateUpdateOperation;
@@ -21,6 +19,7 @@ import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.ledger.core.EventManager;
 
 
 public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperationHandle<ParticipantStateUpdateOperation> {
@@ -31,7 +30,7 @@ public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperati
     @Override
     protected void doProcess(ParticipantStateUpdateOperation op, LedgerDataset newBlockDataset,
                              TransactionRequestExtension requestContext, LedgerQuery previousBlockDataset,
-                             OperationHandleContext handleContext) {
+                             OperationHandleContext handleContext, EventManager manager) {
 
         // 权限校验；
         SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
@@ -49,15 +48,12 @@ public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperati
 
         for(int i = 0; i < participants.length; i++) {
             if (stateUpdateOperation.getStateUpdateIdentity().getPubKey().equals(participants[i].getPubKey())) {
-               participantNode = new PartNode(participants[i].getId(), participants[i].getName(), participants[i].getPubKey(), ParticipantNodeState.ACTIVED);
+               participantNode = new PartNode(participants[i].getId(), participants[i].getName(), participants[i].getPubKey(), ParticipantNodeState.CONSENSUS);
                break;
             }
         }
-
-        //update consensus setting
-        ParticipantInfo participantInfo = new ParticipantInfoData(participantNode.getName(), participantNode.getPubKey(), stateUpdateOperation.getNetworkAddress());
-
-        Bytes newConsensusSettings =  provider.getSettingsFactory().getConsensusSettingsBuilder().updateSettings(adminAccountDataSet.getSettings().getConsensusSetting(), participantInfo);
+        //update consensus system config property and view id for ledger setting
+        Bytes newConsensusSettings =  provider.getSettingsFactory().getConsensusSettingsBuilder().updateConsensusSettings(adminAccountDataSet.getSettings().getConsensusSetting(), null, null, (byte) 1);
 
         LedgerSettings ledgerSetting = new LedgerConfiguration(adminAccountDataSet.getSettings().getConsensusProvider(),
                 newConsensusSettings, adminAccountDataSet.getPreviousSetting().getCryptoSetting());

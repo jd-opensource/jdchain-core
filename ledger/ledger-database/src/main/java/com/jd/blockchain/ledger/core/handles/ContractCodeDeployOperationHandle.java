@@ -4,8 +4,10 @@ import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.ledger.ContractCodeDeployOperation;
+import com.jd.blockchain.ledger.ContractVersionConflictException;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.core.*;
+
 
 public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHandle<ContractCodeDeployOperation> {
 
@@ -23,7 +25,7 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 	@Override
 	protected void doProcess(ContractCodeDeployOperation op, LedgerDataset newBlockDataset,
 			TransactionRequestExtension requestContext, LedgerQuery ledger,
-			OperationHandleContext handleContext) {
+			OperationHandleContext handleContext, EventManager manager) {
 
 
 		// TODO: 请求者应该提供合约账户的公钥签名，以确保注册人对注册的地址和公钥具有合法的使用权；
@@ -58,8 +60,18 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 					contractOP.getContractID().getAddress().toBase58()));
 		}
 
-		newBlockDataset.getContractAccountset().deploy(contractOP.getContractID().getAddress(),
-				contractOP.getContractID().getPubKey(), contractOP.getAddressSignature(), contractOP.getChainCode());
+		// chainCodeVersion != null? then use it;
+		long contractVersion = contractOP.getChainCodeVersion();
+		if(contractVersion != -1L){
+			long rst = newBlockDataset.getContractAccountset().update(contractOP.getContractID().getAddress(),
+					contractOP.getChainCode(), contractVersion);
+			if(rst < 0 ){
+				throw new ContractVersionConflictException();
+			}
+		} else {
+			newBlockDataset.getContractAccountset().deploy(contractOP.getContractID().getAddress(),
+					contractOP.getContractID().getPubKey(), contractOP.getAddressSignature(), contractOP.getChainCode());
+		}
 	}
 
 }

@@ -7,7 +7,12 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
 
+import com.jd.blockchain.utils.net.NetworkAddress;
 import org.junit.Test;
 import org.springframework.core.io.ClassPathResource;
 
@@ -27,9 +32,23 @@ public class GatewayConfigPropertiesTest {
 			assertEquals(8081, configProps.http().getPort());
 			assertNull(configProps.http().getContextPath());
 
-			assertEquals("127.0.0.1", configProps.masterPeerAddress().getHost());
-			assertEquals(12000, configProps.masterPeerAddress().getPort());
-			assertTrue(configProps.masterPeerAddress().isSecure());
+			Set<NetworkAddress> networkAddresses = configProps.masterPeerAddresses();
+			assertEquals(2, networkAddresses.size());
+
+			List<NetworkAddress> networkAddressList = new ArrayList<>(networkAddresses);
+			networkAddressList.sort(new Comparator<NetworkAddress>() {
+				@Override
+				public int compare(NetworkAddress o1, NetworkAddress o2) {
+					return o1.getPort() - o2.getPort();
+				}
+			});
+			int index = 0;
+			for(NetworkAddress networkAddress : networkAddressList) {
+				assertEquals("127.0.0.1", networkAddress.getHost());
+				assertEquals(12000 + index, networkAddress.getPort());
+				assertTrue(networkAddress.isSecure());
+				index ++;
+			}
 
 			assertEquals("http://127.0.0.1:10001", configProps.dataRetrievalUrl());
 
