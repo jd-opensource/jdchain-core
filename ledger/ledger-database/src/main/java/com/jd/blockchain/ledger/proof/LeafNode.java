@@ -1,5 +1,7 @@
 package com.jd.blockchain.ledger.proof;
 
+import org.springframework.context.support.EmbeddedValueResolutionSupport;
+
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
@@ -17,9 +19,9 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 
 	private long keyHash;
 
+	private MerkleData[] lastDataEntries;
+
 	private MerkleData[] dataEntries;
-	
-	private MerkleLeaf origLeaf;
 
 	/**
 	 * 创建一个新的叶子节点；
@@ -36,7 +38,8 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 		this.nodeHash = nodeHash;
 		this.keyHash = leaf.getKeyHash();
 		this.dataEntries = leaf.getDataEntries();
-		this.origLeaf = leaf;
+		this.lastDataEntries = (this.dataEntries == null || this.dataEntries.length == 0) ? EMPTY_ENTRIES
+				: this.dataEntries.clone();
 	}
 
 	public void addKeyNode(MerkleDataEntry dataEntry) {
@@ -153,6 +156,7 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 
 		updatedListener.onUpdated(nodeHash, this, nodeBytes);
 
+		lastDataEntries = dataEntries.clone();
 		clearModified();
 	}
 
@@ -172,16 +176,15 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 		return entryHash;
 	}
 
-	
 	@Override
 	protected void cancel() {
 		if (!isModified()) {
 			return;
 		}
-		if (origLeaf == null) {
+		if (lastDataEntries.length == 0) {
 			dataEntries = EMPTY_ENTRIES;
-		}else {
-			dataEntries = origLeaf.getDataEntries();
+		} else {
+			dataEntries = lastDataEntries.clone();
 		}
 		clearModified();
 	}
