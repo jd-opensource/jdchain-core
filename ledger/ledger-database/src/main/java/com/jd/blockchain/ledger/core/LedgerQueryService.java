@@ -444,7 +444,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		EventAccountQuery eventAccountSet = ledger.getUserEvents(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) eventAccountSet.getTotal());
-		return eventAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
+		return eventAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	@Override
@@ -517,7 +517,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		UserAccountQuery userAccountSet = ledger.getUserAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) userAccountSet.getTotal());
-		return userAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
+		return userAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	@Override
@@ -526,7 +526,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) dataAccountSet.getTotal());
-		return dataAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
+		return dataAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	@Override
@@ -535,7 +535,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		ContractAccountQuery contractAccountSet = ledger.getContractAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) contractAccountSet.getTotal());
-		return contractAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
+		return contractAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 

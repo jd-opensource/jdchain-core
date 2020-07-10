@@ -13,7 +13,7 @@ public interface AccountQuery<T> extends MerkleProvable {
 	 */
 	long getTotal();
 
-	BlockchainIdentity[] getHeaders(int fromIndex, int count);
+	BlockchainIdentity[] getAccountIDs(int fromIndex, int count);
 
 	boolean contains(Bytes address);
 	
