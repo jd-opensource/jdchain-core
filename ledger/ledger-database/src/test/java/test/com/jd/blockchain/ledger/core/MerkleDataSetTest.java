@@ -24,7 +24,7 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.core.CryptoConfig;
 import com.jd.blockchain.ledger.core.MerkleDataSet;
-import com.jd.blockchain.ledger.proof.HashSortingMerkleTree;
+import com.jd.blockchain.ledger.proof.MerkleHashTrie;
 import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.Bytes;

@@ -7,7 +7,7 @@ import java.util.Random;
 import org.junit.Test;
 
 import com.jd.blockchain.ledger.CryptoSetting;
-import com.jd.blockchain.ledger.proof.HashSortingMerkleTree;
+import com.jd.blockchain.ledger.proof.MerkleHashTrie;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.Bytes;
 
@@ -60,7 +60,7 @@ public class MerkleTreePerformanceTest {
 				
 		long startTs = System.currentTimeMillis();
 
-		HashSortingMerkleTree merkleTree = new HashSortingMerkleTree(setting, prefix, storage);
+		MerkleHashTrie merkleTree = new MerkleHashTrie(setting, prefix, storage);
 		String key;
 		for (int r = 0; r < round; r++) {
 			for (int i = 0; i < count; i++) {

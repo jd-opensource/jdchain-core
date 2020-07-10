@@ -35,7 +35,7 @@ import com.jd.blockchain.ledger.core.LedgerTransactionalEditor;
 import com.jd.blockchain.ledger.core.MerkleDataSet;
 import com.jd.blockchain.ledger.core.TransactionQuery;
 import com.jd.blockchain.ledger.core.UserAccount;
-import com.jd.blockchain.ledger.proof.HashSortingMerkleTree;
+import com.jd.blockchain.ledger.proof.MerkleHashTrie;
 import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.storage.service.KVStorageService;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
@@ -304,7 +304,7 @@ public class LedgerEditorTest {
 		HashDigest valueHash = new HashDigest(Base58Utils.decode("j5o6mMnMQqE5fJKJ93FzXPnu4vFCfpBKp7u4r8tUUaFRK8"));
 		long version = 0;
 
-		HashSortingMerkleTree merkleTree = new HashSortingMerkleTree(setting, keyPrefix, storage);
+		MerkleHashTrie merkleTree = new MerkleHashTrie(setting, keyPrefix, storage);
 		
 		merkleTree.setData(key, version, valueHash);
 		
@@ -313,7 +313,7 @@ public class LedgerEditorTest {
 		MerkleData data = merkleTree.getData(key);
 		assertNotNull(data);
 		
-		merkleTree = new HashSortingMerkleTree(merkleTree.getRootHash(), setting, keyPrefix, storage, false);
+		merkleTree = new MerkleHashTrie(merkleTree.getRootHash(), setting, keyPrefix, storage, false);
 		data = merkleTree.getData(key);
 		assertNotNull(data);
 		
