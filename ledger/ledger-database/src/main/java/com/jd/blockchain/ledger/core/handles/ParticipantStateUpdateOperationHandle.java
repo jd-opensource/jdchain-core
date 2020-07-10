@@ -53,7 +53,7 @@ public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperati
             }
         }
         //update consensus system config property and view id for ledger setting
-        Bytes newConsensusSettings =  provider.getSettingsFactory().getConsensusSettingsBuilder().updateConsensusSettings(adminAccountDataSet.getSettings().getConsensusSetting(), null, null, (byte) 1);
+        Bytes newConsensusSettings =  provider.getSettingsFactory().getConsensusSettingsBuilder().updateConsensusSettings(adminAccountDataSet.getSettings().getConsensusSetting(), stateUpdateOperation.getStateUpdateIdentity().getPubKey(), null, (byte) 1);
 
         LedgerSettings ledgerSetting = new LedgerConfiguration(adminAccountDataSet.getSettings().getConsensusProvider(),
                 newConsensusSettings, adminAccountDataSet.getPreviousSetting().getCryptoSetting());

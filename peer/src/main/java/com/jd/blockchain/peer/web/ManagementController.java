@@ -466,7 +466,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					// 启动共识节点
 					if (newView != null) {
 						LOGGER.info("[ManagementController] updateView SUCC!");
-						setupServer(ledgerRepository, newView);
+						setupServer(ledgerRepository);
 					}
 				} else if (currNodeLastState.CODE == ParticipantNodeState.CONSENSUS.CODE && currNodeNewState.CODE == ParticipantNodeState.READY.CODE) {
 					// 如果参与方的状态由 true 变为 false，则停止节点，更新共识视图从共识网络移除节点；
@@ -512,7 +512,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	}
 
 	// 视图更新完成，启动共识节点
-	private void setupServer(LedgerRepository ledgerRepository, View newView) {
+	private void setupServer(LedgerRepository ledgerRepository) {
 		try {
 
 			ParticipantNode currNode = ledgerCurrNodes.get(ledgerRepository.getHash());
@@ -575,7 +575,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			Reconfiguration reconfiguration = new Reconfiguration(peerProxy.getProcessId(), peerProxy);
 
 			// addServer的第一个参数指待加入共识的新参与方的编号
-			reconfiguration.addServer(peerProxy.getViewManager().getCurrentViewN(), newPeer.getHost(), newPeer.getPort());
+			reconfiguration.addServer(currNode.getId(), newPeer.getHost(), newPeer.getPort());
 
 			// 执行更新目标共识网络的视图ID
 			ReconfigureReply reconfigureReply = reconfiguration.execute();
