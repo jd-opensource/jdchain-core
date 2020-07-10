@@ -3,17 +3,12 @@ package com.jd.blockchain.ledger.core;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.TransactionState;
-import com.jd.blockchain.ledger.proof.HashSortingMerkleTree;
 
-public interface TransactionQuery extends TxMerkleProvable {
+public interface TransactionQuery extends MerkleProvable {
 
 	LedgerTransaction[] getTxs(int fromIndex, int count);
 
-	LedgerTransaction[] getBlockTxs(int fromIndex, int count, TransactionQuery origTransactionSet);
-
 	byte[][] getValuesByIndex(int fromIndex, int count);
-
-	byte[][] getValuesByDiff(int fromIndex, int count, TransactionQuery origTransactionSet);
 
 	long getTotalCount();
 

@@ -219,6 +219,9 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	private LedgerBlock innerGetBlock(HashDigest blockHash) {
+		if (blockHash == null) {
+			return null;
+		}
 		Bytes key = encodeBlockStorageKey(blockHash);
 		// Every one block has only one version;
 		byte[] blockBytes = versioningStorage.get(key, 0);

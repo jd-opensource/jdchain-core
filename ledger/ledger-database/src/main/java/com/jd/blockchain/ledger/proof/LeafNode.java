@@ -31,6 +31,7 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 	LeafNode(long keyHash) {
 		this.keyHash = keyHash;
 		this.dataEntries = EMPTY_ENTRIES;
+		this.lastDataEntries = EMPTY_ENTRIES;
 		setModified();
 	}
 
