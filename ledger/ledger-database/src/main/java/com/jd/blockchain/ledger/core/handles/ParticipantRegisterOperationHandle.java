@@ -2,6 +2,7 @@ package com.jd.blockchain.ledger.core.handles;
 
 import com.jd.blockchain.consensus.ConsensusProvider;
 import com.jd.blockchain.consensus.ConsensusProviders;
+import com.jd.blockchain.consensus.ConsensusSettings;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.*;
@@ -9,6 +10,8 @@ import com.jd.blockchain.ledger.core.*;
 import com.jd.blockchain.transaction.UserRegisterOpTemplate;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.ledger.core.EventManager;
+
+import java.util.Properties;
 
 public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationHandle<ParticipantRegisterOperation> {
     public ParticipantRegisterOperationHandle() {
@@ -35,17 +38,29 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
         //add new participant as consensus node
         adminAccountDataSet.addParticipant(participantNode);
 
+        ConsensusSettings consensusSettings = provider.getSettingsFactory().getConsensusSettingsEncoder().decode(adminAccountDataSet.getSettings().getConsensusSetting().toBytes());
+
+        Properties properties = eidtProps(op);
+
+        provider.getSettingsFactory().getConsensusSettingsBuilder().writeSettings(consensusSettings, properties);
+
+
         //update consensus nodes setting, add new participant for ledger setting
-        Bytes newConsensusSettings =  provider.getSettingsFactory().getConsensusSettingsBuilder().updateConsensusSettings(adminAccountDataSet.getSettings().getConsensusSetting(), op.getParticipantRegisterIdentity().getPubKey(), op.getNetworkAddress(), ParticipantNodeOp.REGIST);
+//        Bytes newConsensusSettings =  provider.getSettingsFactory().getConsensusSettingsBuilder().updateConsensusSettings(adminAccountDataSet.getSettings().getConsensusSetting(), op.getParticipantRegisterIdentity().getPubKey(), op.getNetworkAddress(), ParticipantNodeOp.REGIST);
 
         LedgerSettings ledgerSetting = new LedgerConfiguration(adminAccountDataSet.getSettings().getConsensusProvider(),
-                newConsensusSettings, adminAccountDataSet.getPreviousSetting().getCryptoSetting());
+                new Bytes(provider.getSettingsFactory().getConsensusSettingsEncoder().encode(consensusSettings)), adminAccountDataSet.getPreviousSetting().getCryptoSetting());
 
         adminAccountDataSet.setLedgerSetting(ledgerSetting);
 
         // Build UserRegisterOperation, reg participant as user
         UserRegisterOperation userRegOp = new UserRegisterOpTemplate(participantRegOp.getParticipantRegisterIdentity());
         handleContext.handle(userRegOp);
+    }
+
+    private Properties eidtProps(ParticipantRegisterOperation op) {
+
+        return null;
     }
 
     private static class PartNode implements ParticipantNode {
