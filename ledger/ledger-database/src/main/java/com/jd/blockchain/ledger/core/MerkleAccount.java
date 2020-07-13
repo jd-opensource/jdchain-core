@@ -207,7 +207,7 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 		if (rootProof == null) {
 			return null;
 		}
-		HashArrayProof proof = new HashArrayProof(rootProof, dataProof);
+		HashPathProof proof = new HashPathProof(rootProof, dataProof);
 		return proof;
 	}
 

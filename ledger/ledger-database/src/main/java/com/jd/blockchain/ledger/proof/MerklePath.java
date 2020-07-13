@@ -14,7 +14,7 @@ import com.jd.blockchain.crypto.HashDigest;
  *
  */
 @DataContract(code = DataCodes.MERKLE_PATH)
-public interface MerklePath extends MerkleElement {
+public interface MerklePath extends MerkleTrieElement {
 
 	/**
 	 * 键数；
@@ -27,7 +27,7 @@ public interface MerklePath extends MerkleElement {
 	/**
 	 * 记录数；<br>
 	 * 
-	 * 一条记录是键的一个版本；所以记录数({@link #getRecords()})大于等于键数({@link #getDataEntries()})；
+	 * 一条记录是键的一个版本；所以记录数({@link #getRecords()})大于等于键数({@link #getKeys()})；
 	 * 
 	 * @return
 	 */

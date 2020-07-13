@@ -12,12 +12,12 @@ import com.jd.blockchain.consts.DataCodes;
  *
  */
 @DataContract(code = DataCodes.MERKLE_LEAF)
-public interface MerkleLeaf extends MerkleElement{
+public interface MerkleLeaf extends MerkleTrieElement{
 
 	@DataField(order = 1, primitiveType = PrimitiveType.INT64)
 	long getKeyHash();
 
 	@DataField(order = 2, refContract = true, list = true)
-	MerkleData[] getDataEntries();
+	MerkleKey[] getKeys();
 
 }

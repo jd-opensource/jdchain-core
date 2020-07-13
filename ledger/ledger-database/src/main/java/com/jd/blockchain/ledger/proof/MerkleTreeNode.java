@@ -9,7 +9,7 @@ import com.jd.blockchain.crypto.HashFunction;
  * @author huanghaiquan
  *
  */
-abstract class MerkleTreeNode implements MerkleElement {
+abstract class MerkleTreeNode implements MerkleTrieElement {
 
 	protected HashDigest nodeHash;
 

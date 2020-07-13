@@ -221,7 +221,7 @@ public class MerkleTree implements Transactional {
 			}
 		}
 		HashDigest[] hashPaths = ArrayUtils.cast(nodePath, HashDigest.class, p -> p.getNodeHash());
-		HashArrayProof hashProof = new HashArrayProof(hashPaths);
+		HashPathProof hashProof = new HashPathProof(hashPaths);
 		return hashProof;
 //		return new MerkleProofImpl(sn, nodePath);
 	}

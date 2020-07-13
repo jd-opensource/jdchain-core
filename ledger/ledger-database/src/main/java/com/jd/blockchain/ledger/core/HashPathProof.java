@@ -12,28 +12,28 @@ import com.jd.blockchain.ledger.MerkleProof;
  * @author huanghaiquan
  *
  */
-public class HashArrayProof implements MerkleProof {
+public class HashPathProof implements MerkleProof {
 
-	private HashDigest[] hashPaths;
+	private HashDigest[] path;
 
-	public HashArrayProof(HashDigest... hashPaths) {
-		this.hashPaths = hashPaths;
+	public HashPathProof(HashDigest... hashPaths) {
+		this.path = hashPaths;
 	}
 
-	public HashArrayProof(List<HashDigest> hashPaths) {
-		this.hashPaths = hashPaths.toArray(new HashDigest[hashPaths.size()]);
+	public HashPathProof(List<HashDigest> hashPaths) {
+		this.path = hashPaths.toArray(new HashDigest[hashPaths.size()]);
 	}
 
-	public HashArrayProof(MerkleProof proof) {
-		this.hashPaths = proof.getHashPath();
+	public HashPathProof(MerkleProof proof) {
+		this.path = proof.getHashPath();
 	}
 
-	public HashArrayProof(MerkleProof proof1, MerkleProof proof2) {
+	public HashPathProof(MerkleProof proof1, MerkleProof proof2) {
 		HashDigest[] path1 = proof1.getHashPath();
 		HashDigest[] path2 = proof2.getHashPath();
-		this.hashPaths = new HashDigest[path1.length + path2.length];
-		System.arraycopy(path1, 0, hashPaths, 0, path1.length);
-		System.arraycopy(path2, 0, hashPaths, path1.length, path2.length);
+		this.path = new HashDigest[path1.length + path2.length];
+		System.arraycopy(path1, 0, path, 0, path1.length);
+		System.arraycopy(path2, 0, path, path1.length, path2.length);
 	}
 
 	@Override
@@ -43,22 +43,22 @@ public class HashArrayProof implements MerkleProof {
 
 	@Override
 	public HashDigest getRootHash() {
-		return hashPaths[0];
+		return path[0];
 	}
 
 	@Override
 	public HashDigest getDataHash() {
-		return hashPaths[hashPaths.length - 1];
+		return path[path.length - 1];
 	}
 
 	@Override
 	public HashDigest[] getHashPath() {
-		return hashPaths.clone();
+		return path.clone();
 	}
 
 	@Override
 	public int hashCode() {
-		return Arrays.hashCode(hashPaths);
+		return Arrays.hashCode(path);
 	}
 
 	@Override
@@ -67,11 +67,11 @@ public class HashArrayProof implements MerkleProof {
 			return false;
 		}
 		HashDigest[] path1 = ((MerkleProof)obj).getHashPath();
-		if (hashPaths.length != path1.length) {
+		if (path.length != path1.length) {
 			return false;
 		}
 		for (int i = 0; i < path1.length; i++) {
-			if (!hashPaths[i].equals(path1[i])) {
+			if (!path[i].equals(path1[i])) {
 				return false;
 			}
 		}
@@ -81,11 +81,11 @@ public class HashArrayProof implements MerkleProof {
 	@Override
 	public String toString() {
 		StringBuilder strPath = new StringBuilder();
-		for (int i = 0; i < hashPaths.length; i++) {
+		for (int i = 0; i < path.length; i++) {
 			if (i > 0) {
 				strPath.append("/");
 			}
-			strPath.append(hashPaths[i].toBase58());
+			strPath.append(path[i].toBase58());
 		}
 		return strPath.toString();
 	}
@@ -96,12 +96,12 @@ public class HashArrayProof implements MerkleProof {
 
 		@Override
 		public boolean hasNext() {
-			return index < hashPaths.length;
+			return index < path.length;
 		}
 
 		@Override
 		public HashDigest next() {
-			return hashPaths[index++];
+			return path[index++];
 		}
 
 	}

@@ -15,7 +15,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.core.HashArrayProof;
+import com.jd.blockchain.ledger.core.HashPathProof;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage.ExPolicy;
@@ -48,7 +48,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 
 	public static final int MAX_LEVEL = 14;
 
-	private static final Acceptor NULL_SELECTOR = new FullAcceptor();
+	private static final SeekingSelector NULL_SELECTOR = new FullSelector();
 
 	private HashFunction hashFunc;
 
@@ -221,14 +221,14 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 
 		long keyHash = KeyIndexer.hash(key);
 
-		ProofAcceptor selector = new ProofAcceptor(rootHash);
+		ProofPathsSelector selector = new ProofPathsSelector(rootHash);
 
 		MerkleData dataEntry = seekDataEntry(key, version, keyHash, root, 0, selector);
 		if (dataEntry == null) {
 			return null;
 		}
 		selector.addProof(dataEntry.getValueHash());
-		return selector.getProof();
+		return selector.createProof();
 	}
 
 	public MerkleData getData(String key) {
@@ -304,18 +304,18 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @param keyHash
 	 * @param path
 	 * @param level
-	 * @param acceptor
+	 * @param selector
 	 * @return
 	 */
 	private MerkleData seekDataEntry(byte[] key, long version, long keyHash, MerklePath path, int level,
-			Acceptor acceptor) {
+			SeekingSelector selector) {
 		HashDigest[] childHashs = path.getChildHashs();
 		byte keyIndex = KeyIndexer.index(keyHash, level);
 
 		HashDigest childHash = childHashs == null ? null : childHashs[keyIndex];
 
 		final int childLevel = level + 1;
-		MerkleElement child = null;
+		MerkleTrieElement child = null;
 		if (path instanceof PathNode) {
 			// 从内存中加载；
 			child = ((PathNode) path).getChildNode(keyIndex);
@@ -328,19 +328,19 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 			child = loadMerkleEntry(childHash);
 		}
 
-		if (!acceptor.accept(childHash, child, childLevel)) {
+		if (!selector.accept(childHash, child, childLevel)) {
 			return null;
 		}
 
 		if (child instanceof MerklePath) {
 			// Path;
-			return seekDataEntry(key, version, keyHash, (MerklePath) child, childLevel, acceptor);
+			return seekDataEntry(key, version, keyHash, (MerklePath) child, childLevel, selector);
 		}
 
 		// Leaf；
 		MerkleLeaf leaf = (MerkleLeaf) child;
 
-		MerkleData[] merkleKeys = leaf.getDataEntries();
+		MerkleData[] merkleKeys = leaf.getKeys();
 		for (MerkleData dataEntry : merkleKeys) {
 			if (BytesUtils.equals(dataEntry.getKey(), key)) {
 				if (version > dataEntry.getVersion()) {
@@ -349,16 +349,17 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 				}
 
 				if (version < 0 || version == dataEntry.getVersion()) {
+					//如果指定的 version 小于零，则匹配最新版本；
 					return dataEntry;
 				}
 
-				return seekPreviousData(dataEntry, version, childLevel, acceptor);
+				return seekPreviousData(dataEntry, version, childLevel, selector);
 			}
 		}
 		return null;
 	}
 
-	private MerkleData seekPreviousData(MerkleData data, long version, int level, Acceptor acceptor) {
+	private MerkleData seekPreviousData(MerkleData data, long version, int level, SeekingSelector acceptor) {
 		HashDigest previousHash = data.getPreviousEntryHash();
 
 		MerkleData previousEntry = null;
@@ -481,7 +482,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 			lnodes = new LinkedList<String>();
 			nodes.put(k, lnodes);
 		}
-		MerkleData[] keys = leafNode.getDataEntries();
+		MerkleData[] keys = leafNode.getKeys();
 		StringBuilder nodeInfo = new StringBuilder(
 				String.format("[L-%s-(k:%s;r=%s)-::", leafNode.getKeyHash(), keys.length, leafNode.getTotalRecords()));
 		for (int i = 0; i < keys.length; i++) {
@@ -578,7 +579,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	}
 
 	private MerkleTreeNode loadMerkleNode(HashDigest nodeHash) {
-		MerkleElement entry = loadMerkleEntry(nodeHash);
+		MerkleTrieElement entry = loadMerkleEntry(nodeHash);
 		if (entry instanceof MerkleLeaf) {
 			return LeafNode.create(nodeHash, (MerkleLeaf) entry);
 		} else if (entry instanceof MerklePath) {
@@ -588,13 +589,13 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 	}
 
-	private MerkleElement loadMerkleEntry(HashDigest nodeHash) {
+	private MerkleTrieElement loadMerkleEntry(HashDigest nodeHash) {
 		Bytes key = encodeNodeKey(nodeHash);
 		byte[] bytes = storage.get(key);
 		if (bytes == null) {
 			throw new MerkleProofException("Merkle node[" + nodeHash.toBase58() + "] does not exist!");
 		}
-		MerkleElement entry = BinaryProtocol.decode(bytes);
+		MerkleTrieElement entry = BinaryProtocol.decode(bytes);
 		return entry;
 	}
 
@@ -606,7 +607,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		pathNode.update(hashFunc, new NodeUpdatedListener() {
 
 			@Override
-			public void onUpdated(HashDigest nodeHash, MerkleElement nodeEntry, byte[] nodeBytes) {
+			public void onUpdated(HashDigest nodeHash, MerkleTrieElement nodeEntry, byte[] nodeBytes) {
 				Bytes key = encodeNodeKey(nodeHash);
 				boolean success = storage.set(key, nodeBytes, ExPolicy.NOT_EXISTING);
 				if (!success) {
@@ -621,30 +622,38 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	}
 
 	/**
-	 * 默克尔树的节点选择器；<br>
+	 * 默克尔树的节点遍历选择器；<br>
 	 * 
 	 * 用于在树节点的遍历中收集节点信息；
 	 * 
 	 * @author huanghaiquan
 	 *
 	 */
-	private static interface Acceptor {
-		boolean accept(HashDigest hash, MerkleElement element, int level);
+	private static interface SeekingSelector {
+		
+		/**
+		 * 检查接收节点；
+		 * @param hash 节点哈希；
+		 * @param element 节点；
+		 * @param level 深度；
+		 * @return 是否继续；
+		 */
+		boolean accept(HashDigest hash, MerkleTrieElement element, int level);
 	}
 
-	private static class FullAcceptor implements Acceptor {
+	private static class FullSelector implements SeekingSelector {
 		@Override
-		public boolean accept(HashDigest hash, MerkleElement element, int level) {
+		public boolean accept(HashDigest hash, MerkleTrieElement element, int level) {
 			return true;
 		}
 
 	}
 
-	private static class ProofAcceptor implements Acceptor {
+	private static class ProofPathsSelector implements SeekingSelector {
 
 		private List<HashDigest> hashPaths = new ArrayList<HashDigest>();
 
-		ProofAcceptor(HashDigest rootHash) {
+		ProofPathsSelector(HashDigest rootHash) {
 			hashPaths.add(rootHash);
 		}
 
@@ -653,7 +662,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 
 		@Override
-		public boolean accept(HashDigest hash, MerkleElement element, int level) {
+		public boolean accept(HashDigest hash, MerkleTrieElement element, int level) {
 			if (hash == null) {
 				return false;
 			}
@@ -661,8 +670,8 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 			return true;
 		}
 
-		MerkleProof getProof() {
-			return new HashArrayProof(hashPaths);
+		MerkleProof createProof() {
+			return new HashPathProof(hashPaths);
 		}
 	}
 
@@ -808,7 +817,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		private int cursor = -1;
 
 		public LeafNodeIterator(MerkleLeaf leaf) {
-			this.dataEntries = leaf.getDataEntries();
+			this.dataEntries = leaf.getKeys();
 		}
 
 		public long getCursor() {
@@ -1146,7 +1155,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		private LinkedList<MerkleData> createDataEntries(LeafNode leafNode) {
 			LinkedList<MerkleData> dataEntries = new LinkedList<>();
 			for (int i = 0; i < leafNode.getTotalKeys(); i++) {
-				dataEntries.add(leafNode.getDataEntries()[i]);
+				dataEntries.add(leafNode.getKeys()[i]);
 			}
 			return dataEntries;
 		}
@@ -1264,7 +1273,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 			super(root1, orignalLeafNode);
 			this.tree1 = tree1;
 			this.iterator1 = new MerkleDataIterator(tree1, root1);
-			this.origKeys = orignalLeafNode.getDataEntries();
+			this.origKeys = orignalLeafNode.getKeys();
 			this.origKeyIndexes = seekKeyIndexes(this.origKeys, root1, level);
 		}
 
@@ -1343,7 +1352,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 			} else {
 				// 3.2 childNode instanceof LeafNode
 				LeafNode leafNode = (LeafNode) childNode;
-				MerkleData[] dataEntries = leafNode.getDataEntries();
+				MerkleData[] dataEntries = leafNode.getKeys();
 				for (int i = 0; i < dataEntries.length; i++) {
 					if (compare(merkleDataKey, dataEntries[i].getKey()) == 0) {
 						keyIndex = i;
