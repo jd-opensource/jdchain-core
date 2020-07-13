@@ -8,6 +8,7 @@ import java.util.Properties;
 
 import com.jd.blockchain.consensus.ConsensusProviders;
 import com.jd.blockchain.consensus.NodeSettings;
+import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.ParticipantRegisterOperation;
 import com.jd.blockchain.utils.Bytes;
@@ -186,12 +187,15 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 		} else if (opFlag == 1) {
 			// when active new participant, update system config setting and view id
 			BftsmartNodeSettings[] bftsmartNodeSettings = new BftsmartNodeSettings[consensusSettings.getNodes().length];
-
+			int id = -1; //将要激活的节点对应的id;
 			for (int i = 0; i < nodeSettings.length; i++) {
 				bftsmartNodeSettings[i] = (BftsmartNodeSettings) nodeSettings[i];
+				if (bftsmartNodeSettings[i].getAddress().equals(AddressEncoding.generateAddress(newParticipantPk).toBase58())) {
+					id = bftsmartNodeSettings[i].getId();
+				}
 			}
 
-			Property[] systemConfigs = modifySystemProperties(consensusSettings.getSystemConfigs());
+			Property[] systemConfigs = modifySystemProperties(consensusSettings.getSystemConfigs(), id);
 			bftsmartConsensusConfig = new BftsmartConsensusConfig(bftsmartNodeSettings, systemConfigs, consensusSettings.getViewId() + 1);
 		}
 
@@ -266,16 +270,17 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 	 * system.initial.view
 	 *
 	 */
-	private Property[] modifySystemProperties(Property[] systemProperties) {
+	private Property[] modifySystemProperties(Property[] systemProperties, int id) {
 		Map<String, Property> propertyMap = convert2Map(systemProperties);
 		int oldServerNum = Integer.parseInt(propertyMap.get("system.servers.num").getValue());
 		int oldF = Integer.parseInt(propertyMap.get("system.servers.f").getValue());
+		String oldView = propertyMap.get("system.initial.view").getValue();
 
 		// 更新账本中的system.servers.num共识参数
 		propertyMap.put("system.servers.num", new Property("system.servers.num", String.valueOf(oldServerNum + 1)));
 
 		// 更新system.initial.view
-		propertyMap.put("system.initial.view", new Property("system.initial.view", initView(oldServerNum + 1)));
+		propertyMap.put("system.initial.view", new Property("system.initial.view", createView(oldView, id)));
 
 		if ((oldServerNum + 1) >= (3*(oldF + 1) + 1)) {
 			// 更新system.servers.f
@@ -286,16 +291,14 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 
 	}
 
-	private String initView(int nodeNum) {
+	private String createView(String oldView, int id) {
 
-		StringBuilder views = new StringBuilder();
+		StringBuilder views = new StringBuilder(oldView);
 
-		for (int i = 0; i < nodeNum; i++) {
-			if (views.length() > 0) {
-				views.append(",");
-			}
-			views.append(i);
-		}
+		views.append(",");
+
+		views.append(id);
+
 		return views.toString();
 	}
 
