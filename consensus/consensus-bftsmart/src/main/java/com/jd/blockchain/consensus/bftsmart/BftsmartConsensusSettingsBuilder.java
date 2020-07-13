@@ -10,6 +10,7 @@ import com.jd.blockchain.consensus.ConsensusProviders;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.ParticipantNodeOp;
 import com.jd.blockchain.ledger.ParticipantRegisterOperation;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.PropertiesUtils;
@@ -173,7 +174,7 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 	}
 
 	@Override
-	public Bytes updateConsensusSettings(Bytes oldConsensusSettings, PubKey newParticipantPk, NetworkAddress networkAddress, byte opFlag) {
+	public Bytes updateConsensusSettings(Bytes oldConsensusSettings, PubKey newParticipantPk, NetworkAddress networkAddress, ParticipantNodeOp participantNodeOp) {
 
 		BftsmartConsensusConfig bftsmartConsensusConfig = null;
 
@@ -181,10 +182,10 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 		NodeSettings[] nodeSettings = consensusSettings.getNodes();
 
 		// when regist new participant, update consensus nodes setting
-		if (opFlag == 0) {
+		if (participantNodeOp.CODE == ParticipantNodeOp.REGIST.CODE) {
 			BftsmartNodeSettings[] newNodeSettings = addNodeSetting(nodeSettings, newParticipantPk, networkAddress);
 			bftsmartConsensusConfig = new BftsmartConsensusConfig(newNodeSettings, consensusSettings.getSystemConfigs(), consensusSettings.getViewId());
-		} else if (opFlag == 1) {
+		} else if (participantNodeOp.CODE == ParticipantNodeOp.ACTIVATE.CODE) {
 			// when active new participant, update system config setting and view id
 			BftsmartNodeSettings[] bftsmartNodeSettings = new BftsmartNodeSettings[consensusSettings.getNodes().length];
 			int id = -1; //将要激活的节点对应的id;
@@ -197,6 +198,8 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 
 			Property[] systemConfigs = modifySystemProperties(consensusSettings.getSystemConfigs(), id);
 			bftsmartConsensusConfig = new BftsmartConsensusConfig(bftsmartNodeSettings, systemConfigs, consensusSettings.getViewId() + 1);
+		} else {
+			throw new IllegalArgumentException("Unsupported participant node op code!");
 		}
 
 		return new Bytes(ConsensusProviders.getProvider(BFTSMART_PROVIDER).getSettingsFactory().getConsensusSettingsEncoder().encode(bftsmartConsensusConfig));

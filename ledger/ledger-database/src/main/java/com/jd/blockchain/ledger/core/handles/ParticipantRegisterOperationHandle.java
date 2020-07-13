@@ -36,7 +36,7 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
         adminAccountDataSet.addParticipant(participantNode);
 
         //update consensus nodes setting, add new participant for ledger setting
-        Bytes newConsensusSettings =  provider.getSettingsFactory().getConsensusSettingsBuilder().updateConsensusSettings(adminAccountDataSet.getSettings().getConsensusSetting(), op.getParticipantRegisterIdentity().getPubKey(), op.getNetworkAddress(), (byte) 0);
+        Bytes newConsensusSettings =  provider.getSettingsFactory().getConsensusSettingsBuilder().updateConsensusSettings(adminAccountDataSet.getSettings().getConsensusSetting(), op.getParticipantRegisterIdentity().getPubKey(), op.getNetworkAddress(), ParticipantNodeOp.REGIST);
 
         LedgerSettings ledgerSetting = new LedgerConfiguration(adminAccountDataSet.getSettings().getConsensusProvider(),
                 newConsensusSettings, adminAccountDataSet.getPreviousSetting().getCryptoSetting());
