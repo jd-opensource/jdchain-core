@@ -14,7 +14,7 @@ import com.jd.blockchain.crypto.HashDigest;
  *
  */
 @DataContract(code = DataCodes.MERKLE_PATH)
-public interface MerklePath extends MerkleTrieElement {
+public interface MerklePath extends MerkleTrieEntry {
 
 	/**
 	 * 键数；

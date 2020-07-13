@@ -14,7 +14,7 @@ import com.jd.blockchain.crypto.HashDigest;
  *
  */
 @DataContract(code = DataCodes.MERKLE_DATA)
-public interface MerkleData extends MerkleTrieElement {
+public interface MerkleData extends MerkleTrieEntry {
 
 	/**
 	 * 键；

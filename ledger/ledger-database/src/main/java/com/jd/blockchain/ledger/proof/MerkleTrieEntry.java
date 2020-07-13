@@ -5,6 +5,6 @@ package com.jd.blockchain.ledger.proof;
  * @author huanghaiquan
  *
  */
-public interface MerkleTrieElement {
+public interface MerkleTrieEntry {
 	
 }

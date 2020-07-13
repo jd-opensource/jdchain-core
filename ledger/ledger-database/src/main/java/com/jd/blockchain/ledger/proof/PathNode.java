@@ -51,7 +51,7 @@ public class PathNode extends MerkleTreeNode implements MerklePath {
 		if (childNode != null) {
 			childKeys[index] = childNode.getTotalKeys();
 			childRecords[index] = childNode.getTotalRecords();
-			childNode.parent = this;
+			childNode.setParent(this);
 			if (childNode.isModified()) {
 				setModified();
 			}

@@ -14,7 +14,7 @@ import com.jd.blockchain.crypto.HashDigest;
  *
  */
 @DataContract(code = DataCodes.MERKLE_KEY)
-public interface MerkleKey extends MerkleTrieElement {
+public interface MerkleKey extends MerkleTrieEntry {
 
 	/**
 	 * 键；
@@ -23,9 +23,15 @@ public interface MerkleKey extends MerkleTrieElement {
 	byte[] getKey();
 	
 	/**
+	 * 键的版本；
+	 */
+	@DataField(order = 2, primitiveType = PrimitiveType.INT64, numberEncoding = NumberEncoding.LONG)
+	long getVersion();
+	
+	/**
 	 * 数据节点哈希；
 	 */
-	@DataField(order = 2, primitiveType = PrimitiveType.BYTES)
+	@DataField(order = 3, primitiveType = PrimitiveType.BYTES)
 	HashDigest getDataEntryHash();
 
 }

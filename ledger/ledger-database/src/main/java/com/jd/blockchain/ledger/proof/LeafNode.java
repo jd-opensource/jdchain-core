@@ -1,7 +1,5 @@
 package com.jd.blockchain.ledger.proof;
 
-import org.springframework.context.support.EmbeddedValueResolutionSupport;
-
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
@@ -15,17 +13,19 @@ import com.jd.blockchain.ledger.core.MerkleProofException;
  */
 class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 
-	private static final MerkleKey[] EMPTY_ENTRIES = {};
+	private static final MerkleKey[] EMPTY_KEYS = {};
+
+	private static final MerkleData[] EMPTY_DATA_ENTRIES = {};
 
 	private long keyHash;
 
-	private MerkleKey[] keys;
+	private volatile MerkleKey[] keys;
 
-	//变更前的键列表；用于回滚数据；
-	private MerkleKey[] previousKeys;
+	// 变更前的键列表；用于回滚数据；
+	private volatile MerkleKey[] previousKeys;
 
-	//与 key 对应的数据项；用做缓存；
-	private MerkleData[] datas;
+	// 与 key 对应的数据项；用做缓存；
+	private volatile MerkleData[] dataEntries;
 
 	/**
 	 * 创建一个新的叶子节点；
@@ -34,71 +34,89 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 	 */
 	LeafNode(long keyHash) {
 		this.keyHash = keyHash;
-		this.keys = EMPTY_ENTRIES;
-		this.previousKeys = EMPTY_ENTRIES;
-		
+		this.keys = EMPTY_KEYS;
+		this.dataEntries = EMPTY_DATA_ENTRIES;
+		this.previousKeys = EMPTY_KEYS;
+		// 新节点初始便标记为“已修改”状态；
 		setModified();
 	}
 
 	LeafNode(HashDigest nodeHash, MerkleLeaf leaf) {
 		this.nodeHash = nodeHash;
 		this.keyHash = leaf.getKeyHash();
+
 		this.keys = leaf.getKeys();
-		this.previousKeys = (this.keys == null || this.keys.length == 0) ? EMPTY_ENTRIES : this.keys.clone();
+		this.dataEntries = (this.keys == null || this.keys.length == 0) ? EMPTY_DATA_ENTRIES : new MerkleData[keys.length];
+
+		this.previousKeys = (this.keys == null || this.keys.length == 0) ? EMPTY_KEYS : this.keys.clone();
 	}
-	
-	private MerkleDataEntry getDataEntry(byte[] key) {
-		
+
+	protected MerkleData[] getDataEntries() {
+		return dataEntries;
 	}
-	
+
 	/**
 	 * 插入数据；
+	 * 
 	 * @param index
 	 * @param dataEntry
 	 */
 	private void insertDataEntry(int index, MerkleDataEntry dataEntry) {
-		if (index > keys.length) {
+		if (index < 0 || index > keys.length) {
 			throw new IndexOutOfBoundsException("index of data entry is out of bounds!");
 		}
-		MerkleKey[] newKeys = new MerkleKey[keys.length + 1];
+		if (dataEntry.getVersion() != 0) {
+			throw new MerkleProofException("The version of the new key is not zero!");
+		}
+		int origLen = this.keys.length;
+		int newLen = origLen + 1;
+
+		MerkleKey[] newKeys = new MerkleKey[newLen];
+		MerkleData[] newDatas = new MerkleData[newLen];
 		if (index > 0) {
-			System.arraycopy(keys, 0, newKeys, 0, index);
+			System.arraycopy(this.keys, 0, newKeys, 0, index);
+			System.arraycopy(this.dataEntries, 0, newDatas, 0, index);
 		}
-		newKeys[index]  = new MerkleKeyEntry(dataEntry.getKey(), null);//哈希置为 null 标记此项是待写入的数据；
-		if (index < keys.length) {
-			System.arraycopy(keys, index, newKeys, index+1, keys.length - index);
+		newKeys[index] = new MerkleKeyEntry(dataEntry.getKey(), dataEntry.getVersion(), null);// 哈希置为 null 标记此项是待写入的数据；
+		newDatas[index] = dataEntry;
+		if (index < this.keys.length) {
+			System.arraycopy(this.keys, index, newKeys, index + 1, origLen - index);
+			System.arraycopy(this.dataEntries, index, newDatas, index + 1, origLen - index);
 		}
-		keys = newKeys;
-		
-		if (datas != null) {
-			
-		}
+		this.keys = newKeys;
+		this.dataEntries = newDatas;
 	}
-	
+
 	/**
-	 * 插入数据；
+	 * 更改指定位置的数据项；
+	 * 
 	 * @param index
 	 * @param dataEntry
 	 */
-	private void updateDataEntry(int index, MerkleDataEntry dataEntry) {
-		
-		
+	private void setDataEntry(int index, MerkleDataEntry dataEntry) {
+		if (index < 0 || index >= keys.length) {
+			throw new IndexOutOfBoundsException("index of data entry is out of bounds!");
+		}
+		if (dataEntry.getVersion() != (keys[index].getVersion() + 1)) {
+			throw new IllegalArgumentException("The version of the key doesn't increase by 1!");
+		}
+		this.keys[index] = new MerkleKeyEntry(dataEntry.getKey(), dataEntry.getVersion(), null);// 哈希置为 null
+		this.dataEntries[index] = dataEntry;
 	}
 
 	public void addKeyNode(MerkleDataEntry dataEntry) {
-		//在升序序列中查找合适的插入位置；
-		
-		//如果 key 已存在，则更新数据值；否则插入数据值到匹配的位置上，把该位置之后的数据项都后移 1 位；
-		
+		// 在升序序列中查找合适的插入位置；
+		// 如果 key 已存在，则更新数据值；否则插入数据值到匹配的位置上，把该位置之后的数据项都后移 1 位；
+
 		if (keys.length == 0) {
 			if (dataEntry.getVersion() != 0) {
 				throw new MerkleProofException("The version of the new key is not zero!");
 			}
-			keys = new MerkleKey[] { new MerkleKeyEntry(dataEntry.getKey(), dataEntryHash) };
+			insertDataEntry(0, dataEntry);
 		} else {
 			// 按升序插入新元素；
 			byte[] newKey = dataEntry.getKey();
-			
+
 			int i = 0;
 			int count = keys.length;
 			int c = -1;
@@ -108,22 +126,13 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 					break;
 				}
 			}
-			
+
 			if (c == 0) {
-				// 更新 key 的新版本；
-				dataEntry.setPreviousEntry(keys[i].getDataEntryHash());
-				keys[i] = dataEntry;
+				// 有相同的 key 存在，更新该 key 的新版本；
+				setDataEntry(i, dataEntry);
 			} else {
-				// 插入新的 key；
-				MerkleData[] newDataEntries = new MerkleData[count + 1];
-				if (i > 0) {
-					System.arraycopy(keys, 0, newDataEntries, 0, i);
-				}
-				newDataEntries[i] = dataEntry;
-				if (i < count) {
-					System.arraycopy(keys, i, newDataEntries, i + 1, count - i);
-				}
-				keys = newDataEntries;
+				// 没有相同的 key 存在，插入新的 key；
+				insertDataEntry(i, dataEntry);
 			}
 		}
 
@@ -177,8 +186,8 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 	@Override
 	public long getTotalRecords() {
 		long sum = 0;
-		for (MerkleData dataEntry : keys) {
-			sum += dataEntry.getVersion() + 1;
+		for (MerkleKey key : keys) {
+			sum += key.getVersion() + 1;
 		}
 		return sum;
 	}
@@ -189,13 +198,11 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 			return;
 		}
 
-		for (MerkleData data : keys) {
-			if (data instanceof MerkleDataEntry) {
-				MerkleDataEntry entry = (MerkleDataEntry) data;
-				if (entry.getPreviousEntryHash() == null && entry.getPreviousEntry() != null) {
-					HashDigest entryHash = updateDataEntry(entry.getPreviousEntry(), hashFunc, updatedListener);
-					entry.setPreviousEntryHash(entryHash);
-				}
+		for (int i = 0; i < keys.length; i++) {
+			if (keys[i].getDataEntryHash() == null) {
+				MerkleDataEntry entry = (MerkleDataEntry) dataEntries[i];
+				HashDigest entryHash = updateDataEntry(entry, hashFunc, updatedListener);
+				((MerkleKeyEntry) keys[i]).setDataEntryHash(entryHash);
 			}
 		}
 
@@ -217,7 +224,7 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 				entry.setPreviousEntryHash(entryHash);
 			}
 		}
-
+		// TODO: 优化重复写入已有节点的问题；
 		byte[] nodeBytes = BinaryProtocol.encode(data, MerkleData.class);
 		HashDigest entryHash = hashFunc.hash(nodeBytes);
 		updatedListener.onUpdated(entryHash, this, nodeBytes);
@@ -231,7 +238,7 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 			return;
 		}
 		if (previousKeys.length == 0) {
-			keys = EMPTY_ENTRIES;
+			keys = EMPTY_KEYS;
 		} else {
 			keys = previousKeys.clone();
 		}
