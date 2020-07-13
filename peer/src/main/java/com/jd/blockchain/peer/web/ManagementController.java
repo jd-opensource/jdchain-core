@@ -362,9 +362,12 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	public TransactionResponse activateParticipant(@RequestParam("ledgerHash") String base58LedgerHash) {
 		HashDigest remoteNewBlockHash;
 		TransactionResponse transactionResponse = new TxResponseMessage();
-		HashDigest ledgerHash = new HashDigest(Base58Utils.decode(base58LedgerHash));
 		try {
+			HashDigest ledgerHash = new HashDigest(Base58Utils.decode(base58LedgerHash));
 
+			if (ledgerKeypairs.get(ledgerHash) == null) {
+				throw new IllegalArgumentException("[ManagementController] input ledgerhash not exist!");
+			}
 			// 由本节点准备交易
 			TransactionRequest txRequest = prepareTx(ledgerHash);
 
@@ -388,7 +391,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			// 如果交易执行失败，则返回失败结果；
 			if (!txResponse.isSuccess()) {
-				LOGGER.error("[ManagementController] : Commit tx to orig consensus, tx execute failed!");
+				LOGGER.error("[ManagementController] commit tx to orig consensus, tx execute failed!");
 				return txResponse;
 			}
 			// 如果交易执行成功，记录远程共识网络的新区块哈希；
@@ -408,12 +411,16 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		} catch (ViewUpdateException e) {
 			LOGGER.error("[ManagementController] view update exception!");
-			return null;
-
 		} catch (StartServerException e) {
 			LOGGER.error("[ManagementController] start server exception!");
-			return null;
+		} catch (IllegalArgumentException e) {
+			LOGGER.error("[ManagementController] input ledgerhash not exist, check ledgerhash!");
+		} catch (RuntimeException e) {
+			LOGGER.error("[ManagementController] not a base58 input, check ledgerhash!");
 		}
+
+		((TxResponseMessage) transactionResponse).setExecutionState(TransactionState.SYSTEM_ERROR);
+		return transactionResponse;
 	}
 
 	// 在指定的账本上准备一笔激活参与方状态的操作
