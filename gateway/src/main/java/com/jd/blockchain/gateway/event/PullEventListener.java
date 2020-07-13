@@ -5,9 +5,8 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.LedgerInfo;
 import com.jd.blockchain.sdk.EventPoint;
-import com.jd.blockchain.sdk.SystemEventPointData;
+import com.jd.blockchain.sdk.SystemEventPoint;
 import com.jd.blockchain.sdk.UserEventPoint;
-import com.jd.blockchain.sdk.UserEventPointData;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 
 import java.util.ArrayList;
@@ -76,13 +75,13 @@ public class PullEventListener implements EventListener {
 
     @Override
     public Event[] getSystemEvents(HashDigest ledgerHash, String eventName, long fromSequence, int maxCount) {
-        EventPoint eventPoint = new SystemEventPointData(eventName);
+        EventPoint eventPoint = new SystemEventPoint(eventName);
         return getEvents(ledgerHash, eventPoint, fromSequence, maxCount);
     }
 
     @Override
     public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int count) {
-        EventPoint eventPoint = new UserEventPointData(address, eventName);
+        EventPoint eventPoint = new UserEventPoint(address, eventName);
         return getEvents(ledgerHash, eventPoint, fromSequence, count);
     }
 
