@@ -5,8 +5,8 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
-import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.DataAccountInfo;
+import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.KVDataVO;
 import com.jd.blockchain.ledger.KVInfoVO;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
@@ -14,16 +14,15 @@ import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.LedgerInfo;
 import com.jd.blockchain.ledger.LedgerMetadata;
+import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerPrivilege;
-import com.jd.blockchain.ledger.LedgerPrivilegeVO;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.PrivilegeSet;
-import com.jd.blockchain.ledger.PrivilegeSetVO;
-import com.jd.blockchain.ledger.RolePrivileges;
+import com.jd.blockchain.ledger.RolePrivilegeSet;
 import com.jd.blockchain.ledger.RoleSet;
+import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.TransactionPrivilege;
-import com.jd.blockchain.ledger.TransactionPrivilegeVO;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVData;
 import com.jd.blockchain.ledger.TypedKVEntry;
@@ -38,6 +37,7 @@ import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.DataIterator;
 import com.jd.blockchain.utils.query.QueryArgs;
 import com.jd.blockchain.utils.query.QueryUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -544,7 +544,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	}
 
 	@Override
-	public PrivilegeSetVO getRolePrivileges(HashDigest ledgerHash, String roleName) {
+	public RolePrivilegeSet getRolePrivileges(HashDigest ledgerHash, String roleName) {
 		checkLedgerHash(ledgerHash);
 		return this.getRolePrivilegeByRole(roleName);
 	}
@@ -553,7 +553,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public UserPrivilege getUserPrivileges(HashDigest ledgerHash, String userAddress) {
 		checkLedgerHash(ledgerHash);
 		UserRoles userRoles = ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
-		List<PrivilegeSetVO> rolePrivilegesSet = new ArrayList<>();
+		List<RolePrivilegeSet> rolePrivilegesSet = new ArrayList<>();
 
 		for(String roleName : userRoles.getRoles()){
 			rolePrivilegesSet.add(this.getRolePrivilegeByRole(roleName));
@@ -565,39 +565,33 @@ public class LedgerQueryService implements BlockchainQueryService {
 			}
 
 			@Override
-			public List<PrivilegeSetVO> getRolePrivilege() {
+			public List<RolePrivilegeSet> getRolePrivilege() {
 				return rolePrivilegesSet;
 			}
 		};
 		return userPrivilege;
 	}
 
-	private PrivilegeSetVO getRolePrivilegeByRole(String roleName){
+	private RolePrivilegeSet getRolePrivilegeByRole(String roleName){
 		PrivilegeSet privilegeSet =  ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(roleName);
-		PrivilegeSetVO privilegeSetVO = new PrivilegeSetVO() {
+		RolePrivilegeSet rolePrivilegeSet = new RolePrivilegeSet() {
 			@Override
 			public String getRoleName() {
 				return roleName;
 			}
 
 			@Override
-			public LedgerPrivilegeVO getLedgerPrivilege() {
+			public List<LedgerPermission> getLedgerPrivilege() {
 				LedgerPrivilege ledgerPrivilege =  privilegeSet.getLedgerPrivilege();
-				LedgerPrivilegeVO ledgerPrivilegeVO = new LedgerPrivilegeVO();
-				ledgerPrivilegeVO.setPrivilege(ledgerPrivilege.getPrivilege());
-				ledgerPrivilegeVO.setPermissionCount(ledgerPrivilege.getPermissionCount());
-				return ledgerPrivilegeVO;
+				return ledgerPrivilege.getPrivilege();
 			}
 
 			@Override
-			public TransactionPrivilegeVO getTransactionPrivilege() {
+			public List<TransactionPermission> getTransactionPrivilege() {
 				TransactionPrivilege transactionPrivilege =  privilegeSet.getTransactionPrivilege();
-				TransactionPrivilegeVO transactionPrivilegeVO = new TransactionPrivilegeVO();
-				transactionPrivilegeVO.setPrivilege(transactionPrivilege.getPrivilege());
-				transactionPrivilegeVO.setPermissionCount(transactionPrivilege.getPermissionCount());
-				return transactionPrivilegeVO;
+				return transactionPrivilege.getPrivilege();
 			}
 		};
-		return privilegeSetVO;
+		return rolePrivilegeSet;
 	}
 }

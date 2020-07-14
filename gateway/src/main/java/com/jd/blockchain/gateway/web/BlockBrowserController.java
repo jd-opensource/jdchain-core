@@ -22,7 +22,7 @@ import com.jd.blockchain.ledger.LedgerInfo;
 import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.PrivilegeSetVO;
+import com.jd.blockchain.ledger.RolePrivilegeSet;
 import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVEntry;
@@ -776,8 +776,8 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/role-privilege/{roleName}")
 	@Override
-	public PrivilegeSetVO getRolePrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-											@PathVariable(name = "roleName") String roleName) {
+	public RolePrivilegeSet getRolePrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+											  @PathVariable(name = "roleName") String roleName) {
 
 		return peerService.getQueryService(ledgerHash).getRolePrivileges(ledgerHash, roleName);
 	}
