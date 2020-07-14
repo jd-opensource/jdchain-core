@@ -14,14 +14,23 @@ import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.LedgerInfo;
 import com.jd.blockchain.ledger.LedgerMetadata;
+import com.jd.blockchain.ledger.LedgerPrivilege;
+import com.jd.blockchain.ledger.LedgerPrivilegeVO;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.PrivilegeSet;
+import com.jd.blockchain.ledger.PrivilegeSetVO;
+import com.jd.blockchain.ledger.RolePrivileges;
 import com.jd.blockchain.ledger.RoleSet;
+import com.jd.blockchain.ledger.TransactionPrivilege;
+import com.jd.blockchain.ledger.TransactionPrivilegeVO;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVData;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
+import com.jd.blockchain.ledger.UserPrivilege;
+import com.jd.blockchain.ledger.UserRoles;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.Bytes;
@@ -534,4 +543,61 @@ public class LedgerQueryService implements BlockchainQueryService {
 		return ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
 	}
 
+	@Override
+	public PrivilegeSetVO getRolePrivileges(HashDigest ledgerHash, String roleName) {
+		checkLedgerHash(ledgerHash);
+		return this.getRolePrivilegeByRole(roleName);
+	}
+
+	@Override
+	public UserPrivilege getUserPrivileges(HashDigest ledgerHash, String userAddress) {
+		checkLedgerHash(ledgerHash);
+		UserRoles userRoles = ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
+		List<PrivilegeSetVO> rolePrivilegesSet = new ArrayList<>();
+
+		for(String roleName : userRoles.getRoles()){
+			rolePrivilegesSet.add(this.getRolePrivilegeByRole(roleName));
+		}
+		UserPrivilege userPrivilege = new UserPrivilege() {
+			@Override
+			public RoleSet getRoleSet() {
+				return userRoles;
+			}
+
+			@Override
+			public List<PrivilegeSetVO> getRolePrivilege() {
+				return rolePrivilegesSet;
+			}
+		};
+		return userPrivilege;
+	}
+
+	private PrivilegeSetVO getRolePrivilegeByRole(String roleName){
+		PrivilegeSet privilegeSet =  ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(roleName);
+		PrivilegeSetVO privilegeSetVO = new PrivilegeSetVO() {
+			@Override
+			public String getRoleName() {
+				return roleName;
+			}
+
+			@Override
+			public LedgerPrivilegeVO getLedgerPrivilege() {
+				LedgerPrivilege ledgerPrivilege =  privilegeSet.getLedgerPrivilege();
+				LedgerPrivilegeVO ledgerPrivilegeVO = new LedgerPrivilegeVO();
+				ledgerPrivilegeVO.setPrivilege(ledgerPrivilege.getPrivilege());
+				ledgerPrivilegeVO.setPermissionCount(ledgerPrivilege.getPermissionCount());
+				return ledgerPrivilegeVO;
+			}
+
+			@Override
+			public TransactionPrivilegeVO getTransactionPrivilege() {
+				TransactionPrivilege transactionPrivilege =  privilegeSet.getTransactionPrivilege();
+				TransactionPrivilegeVO transactionPrivilegeVO = new TransactionPrivilegeVO();
+				transactionPrivilegeVO.setPrivilege(transactionPrivilege.getPrivilege());
+				transactionPrivilegeVO.setPermissionCount(transactionPrivilege.getPermissionCount());
+				return transactionPrivilegeVO;
+			}
+		};
+		return privilegeSetVO;
+	}
 }

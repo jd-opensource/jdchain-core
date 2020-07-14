@@ -17,7 +17,7 @@ import com.jd.blockchain.utils.Bytes;
  * @author huanghaiquan
  *
  */
-class UserRolesPrivileges {
+public class UserRolesPrivileges {
 
 	private Bytes userAddress;
 

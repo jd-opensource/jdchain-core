@@ -14,14 +14,22 @@ import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.LedgerInfo;
 import com.jd.blockchain.ledger.LedgerMetadata;
+import com.jd.blockchain.ledger.LedgerPrivilege;
+import com.jd.blockchain.ledger.LedgerPrivilegeVO;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.PrivilegeSet;
+import com.jd.blockchain.ledger.PrivilegeSetVO;
 import com.jd.blockchain.ledger.RoleSet;
+import com.jd.blockchain.ledger.TransactionPrivilege;
+import com.jd.blockchain.ledger.TransactionPrivilegeVO;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVData;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
+import com.jd.blockchain.ledger.UserPrivilege;
+import com.jd.blockchain.ledger.UserRoles;
 import com.jd.blockchain.ledger.core.ContractAccountQuery;
 import com.jd.blockchain.ledger.core.DataAccount;
 import com.jd.blockchain.ledger.core.DataAccountQuery;
@@ -705,7 +713,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		return contractAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
-	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/userrole/{userAddress}")
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/user-role/{userAddress}")
 	@Override
 	public RoleSet getUserRoles(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 								@PathVariable(name = "userAddress") String userAddress) {
@@ -713,6 +721,38 @@ public class LedgerQueryController implements BlockchainQueryService {
 		return ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
 	}
 
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/role-privilege/{roleName}")
+	@Override
+	public PrivilegeSetVO getRolePrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+											@PathVariable(name = "roleName") String roleName) {
+//		return ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(roleName);
+		return this.getRolePrivilegeByRole(ledgerHash,roleName);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/user-privilege/{userAddress}")
+	@Override
+	public UserPrivilege getUserPrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+										   @PathVariable(name = "userAddress") String userAddress) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		UserRoles userRoles = ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
+		List<PrivilegeSetVO> privilegesList = new ArrayList<>();
+
+		for(String roleName : userRoles.getRoles()){
+			privilegesList.add(this.getRolePrivilegeByRole(ledgerHash,roleName));
+		}
+		UserPrivilege userPrivilege = new UserPrivilege() {
+			@Override
+			public RoleSet getRoleSet() {
+				return userRoles;
+			}
+
+			@Override
+			public List<PrivilegeSetVO> getRolePrivilege() {
+				return privilegesList;
+			}
+		};
+		return userPrivilege;
+	}
 
 	private LedgerTransaction txDecorator(LedgerTransaction ledgerTransaction) {
 		if (ledgerTransaction == null) {
@@ -737,5 +777,35 @@ public class LedgerQueryController implements BlockchainQueryService {
 			return null;
 		}
 		return new LedgerAdminInfoDecorator(ledgerAdministration);
+	}
+
+	private PrivilegeSetVO getRolePrivilegeByRole(HashDigest ledgerHash, String roleName){
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		PrivilegeSet privilegeSet =  ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(roleName);
+		PrivilegeSetVO privilegeSetVO = new PrivilegeSetVO() {
+			@Override
+			public String getRoleName() {
+				return roleName;
+			}
+
+			@Override
+			public LedgerPrivilegeVO getLedgerPrivilege() {
+				LedgerPrivilege ledgerPrivilege =  privilegeSet.getLedgerPrivilege();
+				LedgerPrivilegeVO ledgerPrivilegeVO = new LedgerPrivilegeVO();
+				ledgerPrivilegeVO.setPrivilege(ledgerPrivilege.getPrivilege());
+				ledgerPrivilegeVO.setPermissionCount(ledgerPrivilege.getPermissionCount() );
+				return ledgerPrivilegeVO;
+			}
+
+			@Override
+			public TransactionPrivilegeVO getTransactionPrivilege() {
+				TransactionPrivilege transactionPrivilege =  privilegeSet.getTransactionPrivilege();
+				TransactionPrivilegeVO transactionPrivilegeVO = new TransactionPrivilegeVO();
+				transactionPrivilegeVO.setPrivilege(transactionPrivilege.getPrivilege());
+				transactionPrivilegeVO.setPermissionCount(transactionPrivilege.getPermissionCount());
+				return transactionPrivilegeVO;
+			}
+		};
+		return privilegeSetVO;
 	}
 }
