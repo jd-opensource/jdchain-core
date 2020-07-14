@@ -21,6 +21,7 @@ import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.PrivilegeSet;
 import com.jd.blockchain.ledger.RolePrivilegeSet;
 import com.jd.blockchain.ledger.RoleSet;
+import com.jd.blockchain.ledger.RolesPolicy;
 import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.TransactionPrivilege;
 import com.jd.blockchain.ledger.TransactionState;
@@ -39,7 +40,10 @@ import com.jd.blockchain.utils.query.QueryArgs;
 import com.jd.blockchain.utils.query.QueryUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+
+import static com.jd.blockchain.utils.BaseConstant.DEFAULT_ROLE_NAME;
 
 public class LedgerQueryService implements BlockchainQueryService {
 
@@ -554,14 +558,41 @@ public class LedgerQueryService implements BlockchainQueryService {
 		checkLedgerHash(ledgerHash);
 		UserRoles userRoles = ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
 		List<RolePrivilegeSet> rolePrivilegesSet = new ArrayList<>();
-
-		for(String roleName : userRoles.getRoles()){
-			rolePrivilegesSet.add(this.getRolePrivilegeByRole(roleName));
+		//if userRoles=null, perhaps it's default role; But if it's intruder, we should stop it;
+		if(!ledger.getUserAccountSet().contains(Bytes.fromBase58(userAddress))){
+			return null;
 		}
+		//default role;
+		if(userRoles == null){
+			userRoles = new UserRoles(Bytes.fromBase58(userAddress), -1, RolesPolicy.UNION);
+			userRoles.setRoles(new String[]{DEFAULT_ROLE_NAME});
+			RolePrivilegeSet rolePrivilegeSet = new RolePrivilegeSet() {
+				@Override
+				public String getRoleName() {
+					return DEFAULT_ROLE_NAME;
+				}
+
+				@Override
+				public List<LedgerPermission> getLedgerPrivilege() {
+					return Arrays.asList(LedgerPermission.values());
+				}
+
+				@Override
+				public List<TransactionPermission> getTransactionPrivilege() {
+					return Arrays.asList(TransactionPermission.values());
+				}
+			};
+			rolePrivilegesSet.add(rolePrivilegeSet);
+		}else {
+			for(String roleName : userRoles.getRoles()){
+				rolePrivilegesSet.add(this.getRolePrivilegeByRole(roleName));
+			}
+		}
+		UserRoles finalUserRoles = userRoles;
 		UserPrivilege userPrivilege = new UserPrivilege() {
 			@Override
 			public RoleSet getRoleSet() {
-				return userRoles;
+				return finalUserRoles;
 			}
 
 			@Override
