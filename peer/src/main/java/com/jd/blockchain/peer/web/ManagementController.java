@@ -194,7 +194,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		DataContractRegistry.register(ActionResponse.class);
 
-
+		DataContractRegistry.register(BftsmartConsensusSettings.class);
+		DataContractRegistry.register(BftsmartNodeSettings.class);
 
 		DataContractRegistry.register(LedgerAdminInfo.class);
 		DataContractRegistry.register(LedgerSettings.class);
@@ -256,23 +257,23 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			ConsensusProvider provider = ConsensusProviders.getProvider(peer.getProviderName());
 
-			ClientIncomingSettings clientIncomingSettings = null;
-			for (ClientIdentification authId : identificationArray) {
-				if (authId.getProviderName() == null ||
-						authId.getProviderName().length() <= 0 ||
-						!authId.getProviderName().equalsIgnoreCase(peerProviderName)) {
-					continue;
-				}
-				try {
-					clientIncomingSettings = peer.getConsensusManageService().authClientIncoming(authId);
-					break;
-				} catch (Exception e) {
-					throw new AuthenticationServiceException(e.getMessage(), e);
-				}
-			}
-			if (clientIncomingSettings == null) {
-				continue;
-			}
+            ClientIncomingSettings clientIncomingSettings = null;
+            for (ClientIdentification authId : identificationArray) {
+                if (authId.getProviderName() == null ||
+                        authId.getProviderName().length() <= 0 ||
+                        !authId.getProviderName().equalsIgnoreCase(peerProviderName)) {
+                    continue;
+                }
+                try {
+                    clientIncomingSettings = peer.getConsensusManageService().authClientIncoming(authId);
+                    break;
+                } catch (Exception e) {
+                    throw new AuthenticationServiceException(e.getMessage(), e);
+                }
+            }
+            if (clientIncomingSettings == null) {
+                continue;
+            }
 
 			byte[] clientIncomingBytes = provider.getSettingsFactory().getIncomingSettingsEncoder()
 					.encode(clientIncomingSettings);
