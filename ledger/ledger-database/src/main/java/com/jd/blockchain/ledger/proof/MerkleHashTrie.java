@@ -350,11 +350,11 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 
 			if (merkleKey.getKey().equals(key)) {
 				long latestVersion = merkleKey.getVersion();
-				if (version >latestVersion) {
+				if (version > latestVersion) {
 					// 指定的版本超出最大版本；
 					return null;
 				}
-				
+
 				HashDigest dataEntryHash = merkleKey.getDataEntryHash();
 				MerkleData data = null;
 				if (leaf instanceof LeafNode) {
@@ -373,8 +373,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 					data = loadDataEntry(dataEntryHash);
 					if (data == null) {
 						// 丢失数据；只有数据库存储层面被恶意或者非恶意地破坏数据完整性才可能出现此情况；
-						throw new IllegalStateException(
-								"Miss MerkleData with hash[" + dataEntryHash + "]!");
+						throw new IllegalStateException("Miss MerkleData with hash[" + dataEntryHash + "]!");
 					}
 				}
 				if (data.getVersion() != latestVersion) {
@@ -385,12 +384,12 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 				if (setting.getAutoVerifyHash()) {
 					// TODO: 验证哈希；
 				}
-				
+
 				int dataEntryLevel = childLevel + 1;
-				
+
 				if (version < 0 || version == latestVersion) {
 					// 如果指定的 version 小于零，则等同于查询最新版本；
-					
+
 					// 匹配到最终版本的数据项；
 					if (!selector.accept(dataEntryHash, data, dataEntryLevel)) {
 						// 如果选择器不接受最终的版本匹配节点，则返回 null，结束继续向前搜索；
@@ -867,6 +866,12 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 
 	}
 
+	/**
+	 * 对叶子节点最新版本数据项的迭代器；
+	 * 
+	 * @author huanghaiquan
+	 *
+	 */
 	private static class MerkleLeafDataIterator implements SkippingIterator<MerkleData> {
 
 		private MerkleHashTrie tree;
