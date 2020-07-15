@@ -16,15 +16,14 @@ import com.jd.blockchain.ledger.LedgerInfo;
 import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.RolePrivilegeSet;
+import com.jd.blockchain.ledger.PrivilegeSet;
 import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVData;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
-import com.jd.blockchain.ledger.UserPrivilege;
-import com.jd.blockchain.ledger.UserRoles;
+import com.jd.blockchain.ledger.UserPrivilegeSet;
 import com.jd.blockchain.ledger.core.ContractAccountQuery;
 import com.jd.blockchain.ledger.core.DataAccount;
 import com.jd.blockchain.ledger.core.DataAccountQuery;
@@ -719,16 +718,16 @@ public class LedgerQueryController implements BlockchainQueryService {
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/role-privilege/{roleName}")
 	@Override
-	public RolePrivilegeSet getRolePrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-											  @PathVariable(name = "roleName") String roleName) {
+	public PrivilegeSet getRolePrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+										  @PathVariable(name = "roleName") String roleName) {
 		LedgerQueryService queryService = new LedgerQueryService(ledgerService.getLedger(ledgerHash));
 		return queryService.getRolePrivileges(ledgerHash,roleName);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/user-privilege/{userAddress}")
 	@Override
-	public UserPrivilege getUserPrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-										   @PathVariable(name = "userAddress") String userAddress) {
+	public UserPrivilegeSet getUserPrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+											  @PathVariable(name = "userAddress") String userAddress) {
 		LedgerQueryService queryService = new LedgerQueryService(ledgerService.getLedger(ledgerHash));
 		return queryService.getUserPrivileges(ledgerHash,userAddress);
 	}

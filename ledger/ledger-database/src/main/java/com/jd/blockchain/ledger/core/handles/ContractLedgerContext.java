@@ -17,13 +17,13 @@ import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.RolePrivilegeSet;
+import com.jd.blockchain.ledger.PrivilegeSet;
 import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
-import com.jd.blockchain.ledger.UserPrivilege;
+import com.jd.blockchain.ledger.UserPrivilegeSet;
 import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.transaction.BlockchainQueryService;
@@ -34,6 +34,7 @@ import com.jd.blockchain.transaction.KVData;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilder;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilderImpl;
 import com.jd.blockchain.utils.Bytes;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -313,12 +314,12 @@ public class ContractLedgerContext implements LedgerContext {
 	}
 
 	@Override
-	public RolePrivilegeSet getRolePrivileges(HashDigest ledgerHash, String roleName) {
+	public PrivilegeSet getRolePrivileges(HashDigest ledgerHash, String roleName) {
 		return innerQueryService.getRolePrivileges(ledgerHash, roleName);
 	}
 
 	@Override
-	public UserPrivilege getUserPrivileges(HashDigest ledgerHash, String userAddress) {
+	public UserPrivilegeSet getUserPrivileges(HashDigest ledgerHash, String userAddress) {
 		return innerQueryService.getUserPrivileges(ledgerHash, userAddress);
 	}
 

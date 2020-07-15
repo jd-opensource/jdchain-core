@@ -9,15 +9,16 @@ import com.jd.blockchain.ledger.RolePrivileges;
 import com.jd.blockchain.ledger.RolesPolicy;
 import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.TransactionPrivilege;
+import com.jd.blockchain.ledger.UserPrivilegeSet;
 import com.jd.blockchain.utils.Bytes;
 
 /**
  * {@link UserRolesPrivileges} 表示多角色用户的综合权限；
- * 
+ *
  * @author huanghaiquan
  *
  */
-public class UserRolesPrivileges {
+public class UserRolesPrivileges implements UserPrivilegeSet {
 
 	private Bytes userAddress;
 
