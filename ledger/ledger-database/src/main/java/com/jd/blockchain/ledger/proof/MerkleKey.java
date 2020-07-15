@@ -6,6 +6,7 @@ import com.jd.blockchain.binaryproto.NumberEncoding;
 import com.jd.blockchain.binaryproto.PrimitiveType;
 import com.jd.blockchain.consts.DataCodes;
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.utils.Bytes;
 
 /**
  * Merk
@@ -20,7 +21,7 @@ public interface MerkleKey extends MerkleTrieEntry {
 	 * 键；
 	 */
 	@DataField(order = 1, primitiveType = PrimitiveType.BYTES)
-	byte[] getKey();
+	Bytes getKey();
 	
 	/**
 	 * 键的版本；

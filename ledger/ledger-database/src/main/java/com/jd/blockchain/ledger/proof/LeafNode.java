@@ -4,6 +4,7 @@ import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.core.MerkleProofException;
+import com.jd.blockchain.utils.Bytes;
 
 /**
  * 叶子节点；
@@ -46,7 +47,8 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 		this.keyHash = leaf.getKeyHash();
 
 		this.keys = leaf.getKeys();
-		this.dataEntries = (this.keys == null || this.keys.length == 0) ? EMPTY_DATA_ENTRIES : new MerkleData[keys.length];
+		this.dataEntries = (this.keys == null || this.keys.length == 0) ? EMPTY_DATA_ENTRIES
+				: new MerkleData[keys.length];
 
 		this.previousKeys = (this.keys == null || this.keys.length == 0) ? EMPTY_KEYS : this.keys.clone();
 	}
@@ -100,6 +102,9 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 		if (dataEntry.getVersion() != (keys[index].getVersion() + 1)) {
 			throw new IllegalArgumentException("The version of the key doesn't increase by 1!");
 		}
+		if (dataEntry.getVersion() > 0) {
+			dataEntry.setPreviousEntry(this.keys[index].getDataEntryHash(), this.dataEntries[index]);
+		}
 		this.keys[index] = new MerkleKeyEntry(dataEntry.getKey(), dataEntry.getVersion(), null);// 哈希置为 null
 		this.dataEntries[index] = dataEntry;
 	}
@@ -115,13 +120,13 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 			insertDataEntry(0, dataEntry);
 		} else {
 			// 按升序插入新元素；
-			byte[] newKey = dataEntry.getKey();
+			Bytes newKey = dataEntry.getKey();
 
 			int i = 0;
 			int count = keys.length;
 			int c = -1;
 			for (; i < count; i++) {
-				c = compare(keys[i].getKey(), newKey);
+				c = keys[i].getKey().compare(newKey);
 				if (c >= 0) {
 					break;
 				}
@@ -137,32 +142,6 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 		}
 
 		setModified();
-	}
-
-	/**
-	 * Compare this key and specified key;
-	 * 
-	 * @param otherKey
-	 * @return Values: -1, 0, 1. <br>
-	 *         Return -1 means that the current key is less than the specified
-	 *         key;<br>
-	 *         Return 0 means that the current key is equal to the specified
-	 *         key;<br>
-	 *         Return 1 means that the current key is great than the specified key;
-	 */
-	public int compare(byte[] key1, byte[] key2) {
-		int len = Math.min(key1.length, key2.length);
-		for (int i = 0; i < len; i++) {
-			if (key1[i] == key2[i]) {
-				continue;
-			}
-			return key1[i] < key2[i] ? -1 : 1;
-		}
-		if (key1.length == key2.length) {
-			return 0;
-		}
-
-		return key1.length < key2.length ? -1 : 1;
 	}
 
 	public static LeafNode create(HashDigest nodeHash, MerkleLeaf leaf) {
@@ -216,15 +195,25 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 		clearModified();
 	}
 
+	/**
+	 * 更新指定的数据节点，返回节点新的哈希；
+	 * @param data 数据节点；
+	 * @param hashFunc 哈希函数；
+	 * @param updatedListener 更新监听器；
+	 * @return
+	 */
 	private HashDigest updateDataEntry(MerkleData data, HashFunction hashFunc, NodeUpdatedListener updatedListener) {
+		//检查指定的数据节点是否存在未更新的前版本数据节点；
 		if (data instanceof MerkleDataEntry) {
 			MerkleDataEntry entry = (MerkleDataEntry) data;
-			if (entry.getPreviousEntryHash() == null && entry.getPreviousEntry() != null) {
-				HashDigest entryHash = updateDataEntry(entry.getPreviousEntry(), hashFunc, updatedListener);
-				entry.setPreviousEntryHash(entryHash);
+			MerkleData previousDataEntry = entry.getPreviousEntry();
+			if (entry.getPreviousEntryHash() == null && previousDataEntry != null) {
+				//保存前版本数据节点；
+				HashDigest entryHash = updateDataEntry(previousDataEntry, hashFunc, updatedListener);
+				entry.setPreviousEntry(entryHash, previousDataEntry);
 			}
 		}
-		// TODO: 优化重复写入已有节点的问题；
+		//更新指定的数据节点；
 		byte[] nodeBytes = BinaryProtocol.encode(data, MerkleData.class);
 		HashDigest entryHash = hashFunc.hash(nodeBytes);
 		updatedListener.onUpdated(entryHash, this, nodeBytes);

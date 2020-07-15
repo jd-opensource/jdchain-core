@@ -189,7 +189,7 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 			MerkleData dataNode = iterator.next();
 			Bytes dataKey = encodeDataKey(dataNode.getKey());
 			bytesValue = valueStorage.get(dataKey, dataNode.getVersion());
-			values[i] = new VersioningKVData<Bytes, byte[]>(new Bytes(dataNode.getKey()), dataNode.getVersion(),
+			values[i] = new VersioningKVData<Bytes, byte[]>(dataNode.getKey(), dataNode.getVersion(),
 					bytesValue);
 		}
 		return values;
@@ -207,7 +207,7 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 			MerkleData dataNode = iterator.next();
 			Bytes dataKey = encodeDataKey(dataNode.getKey());
 			bytesValue = valueStorage.get(dataKey, dataNode.getVersion());
-			DataEntry<Bytes, byte[]> entry = new VersioningKVData<Bytes, byte[]>(new Bytes(dataNode.getKey()),
+			DataEntry<Bytes, byte[]> entry = new VersioningKVData<Bytes, byte[]>(dataNode.getKey(),
 					dataNode.getVersion(), bytesValue);
 			return entry;
 		}

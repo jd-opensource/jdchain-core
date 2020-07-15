@@ -8,7 +8,7 @@ public class MerkleKeyEntry implements MerkleKey {
 	/**
 	 * 键；
 	 */
-	private byte[] key;
+	private Bytes key;
 
 	/**
 	 * 版本；
@@ -48,8 +48,8 @@ public class MerkleKeyEntry implements MerkleKey {
 	 * @param valueHash 值的哈希；
 	 * @param ts        记录数据的逻辑时间戳；
 	 */
-	public MerkleKeyEntry(Bytes key, long version, HashDigest dataEntryHash) {
-		this(key.toBytes(), version, dataEntryHash);
+	public MerkleKeyEntry(byte[] key, long version, HashDigest dataEntryHash) {
+		this(new Bytes(key), version, dataEntryHash);
 	}
 
 	/**
@@ -58,14 +58,14 @@ public class MerkleKeyEntry implements MerkleKey {
 	 * @param valueHash 值的哈希；
 	 * @param ts        记录数据的逻辑时间戳；
 	 */
-	public MerkleKeyEntry(byte[] key, long version, HashDigest dataEntryHash) {
+	public MerkleKeyEntry(Bytes key, long version, HashDigest dataEntryHash) {
 		this.key = key;
 		this.version = version;
 		this.dataEntryHash = dataEntryHash;
 	}
 
 	@Override
-	public byte[] getKey() {
+	public Bytes getKey() {
 		return key;
 	}
 

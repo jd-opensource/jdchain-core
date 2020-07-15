@@ -19,6 +19,7 @@ import com.jd.blockchain.ledger.core.HashPathProof;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage.ExPolicy;
+import com.jd.blockchain.utils.AbstractSkippingIterator;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
@@ -34,7 +35,8 @@ import com.jd.blockchain.utils.io.BytesUtils;
  * 哈希前缀树(Hash Trie)是一种特殊的前缀树（Trie），对输入的 KEY 进行哈希计算之后，基于得到的哈希值进行前缀排序的有序树；<br>
  * 通过哈希计算使树节点的分布更均匀；
  * <p>
- * {@link MerkleHashTrie} 不保证输入 KEY 的自然顺序和写入的先后顺序，但是保证集合顺序的确定性，称为不变性（immutability）<br>
+ * {@link MerkleHashTrie} 不保证输入 KEY
+ * 的自然顺序和写入的先后顺序，但是保证集合顺序的确定性，称为不变性（immutability）<br>
  * 即对于相同的数据集合组成的 {@link MerkleHashTrie} 都具有相同的根哈希和完全一致的树节点分布，与每一项数据写入的先后顺序无关；
  * 
  * @author huanghaiquan
@@ -329,6 +331,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 
 		if (!selector.accept(childHash, child, childLevel)) {
+			// 对于路径节点，如果选择器不接受，则直接终止搜索；
 			return null;
 		}
 
@@ -341,25 +344,85 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		MerkleLeaf leaf = (MerkleLeaf) child;
 
 		MerkleKey[] merkleKeys = leaf.getKeys();
-		for (MerkleKey merkleKey : merkleKeys) {
-			if (BytesUtils.equals(merkleKey.getKey(), key)) {
-				if (version > merkleKey.getVersion()) {
+
+		for (int i = 0; i < merkleKeys.length; i++) {
+			MerkleKey merkleKey = merkleKeys[i];
+
+			if (merkleKey.getKey().equals(key)) {
+				long latestVersion = merkleKey.getVersion();
+				if (version >latestVersion) {
 					// 指定的版本超出最大版本；
 					return null;
 				}
+				
+				HashDigest dataEntryHash = merkleKey.getDataEntryHash();
+				MerkleData data = null;
+				if (leaf instanceof LeafNode) {
+					// LeafNode 是新增或者新修改的；
+					MerkleData[] datas = ((LeafNode) leaf).getDataEntries();
+					data = datas[i];
+				}
+				if (data == null) {
+					// 注：不应同时出现 data == null and merkleKey.getDataEntryHash() == null 的情形；
+					// 因为只有新增节点尚未提交时，才存在 merkleKey.getDataEntryHash() == null 的情形；
+					if (dataEntryHash == null) {
+						throw new IllegalStateException(
+								"Illegal state that a merkle key has a null hash of data-entry and has no uncommitted data-entry! ");
+					}
 
-				if (version < 0 || version == merkleKey.getVersion()) {
-					//如果指定的 version 小于零，则匹配最新版本；
-					return merkleKey;
+					data = loadDataEntry(dataEntryHash);
+					if (data == null) {
+						// 丢失数据；只有数据库存储层面被恶意或者非恶意地破坏数据完整性才可能出现此情况；
+						throw new IllegalStateException(
+								"Miss MerkleData with hash[" + dataEntryHash + "]!");
+					}
+				}
+				if (data.getVersion() != latestVersion) {
+					throw new IllegalStateException(
+							"The version of MerkleData doesn't match the expected version of MerkleKey!");
 				}
 
-				return seekPreviousData(merkleKey, version, childLevel, selector);
+				if (setting.getAutoVerifyHash()) {
+					// TODO: 验证哈希；
+				}
+				
+				int dataEntryLevel = childLevel + 1;
+				
+				if (version < 0 || version == latestVersion) {
+					// 如果指定的 version 小于零，则等同于查询最新版本；
+					
+					// 匹配到最终版本的数据项；
+					if (!selector.accept(dataEntryHash, data, dataEntryLevel)) {
+						// 如果选择器不接受最终的版本匹配节点，则返回 null，结束继续向前搜索；
+						return null;
+					}
+					return data;
+				} else {
+					// 查询的版本仍然小于前一个数据项，仍然需要继续往前搜索；
+
+					// 对于数据节点，此处忽略选择器的判断，是因为需要继续向前搜索至目标版本的数据节点；
+					// 这样设计的考虑是：数据节点的不同版本之间形成的是链表结构，链表的头部是最新加入的版本，有可能新加入的版本是尚未提交的数据；
+					// 通过采用不间断地继续往前搜索的策略，可以实现即使存在未提交的新版本，依然可以正常地检索到已提交版本的数据；
+					selector.accept(dataEntryHash, data, dataEntryLevel);
+					return seekPreviousData(data, version, dataEntryLevel, selector);
+				}
 			}
 		}
 		return null;
 	}
 
-	private MerkleData seekPreviousData(MerkleData data, long version, int level, SeekingSelector acceptor) {
+	/**
+	 * 查询指定数据节点的早期版本；
+	 * 
+	 * @param data     要查询的数据节点；
+	 * @param version  要查询的版本；
+	 * @param level    所属叶子节点的深度；
+	 * @param selector 节点选择器；
+	 * @return
+	 */
+	private MerkleData seekPreviousData(MerkleData data, long version, int level, SeekingSelector selector) {
+		assert version < data.getVersion();
+
 		HashDigest previousHash = data.getPreviousEntryHash();
 
 		MerkleData previousEntry = null;
@@ -375,19 +438,31 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 			previousEntry = loadDataEntry(previousHash);
 		}
 
-		if (!acceptor.accept(previousHash, previousEntry, level)) {
-			return null;
-		}
-
-		if (previousEntry.getVersion() == version) {
-			return previousEntry;
-		}
 		if (version > previousEntry.getVersion()) {
-			// 未知异常；前向的数据链的版本本应该是顺序递减 1 直至版本 0 ，发生此错误表明数据链的版本存在错误；
+			// 查询的版本大于前一个数据项版本，如果出现这种状态，可能的原因包括：a、从存储加载的数据节点存在错误；b、属于外部调用的逻辑错误，正常情况不应该出现此条件分支；
+			// 因为前向的数据链的版本总是顺序递减 1 直至版本 0 的，出现此条件表明继续向前搜索是没有意义的；
 			throw new IllegalStateException("Version is illegal in the data entry chain!");
 		}
 
-		return seekPreviousData(previousEntry, version, level, acceptor);
+		int previousDataLevel = level + 1;
+
+		if (previousEntry.getVersion() == version) {
+			// 匹配到最终版本的数据项；
+			if (!selector.accept(previousHash, previousEntry, previousDataLevel)) {
+				// 如果选择器不接受最终的版本匹配节点，则返回 null，结束继续向前搜索；
+				return null;
+			}
+			return previousEntry;
+		} else {
+			// 查询的版本仍然小于前一个数据项，仍然需要继续往前搜索；
+
+			// 对于数据节点，此处忽略选择器的判断，是因为需要继续向前搜索至目标版本的数据节点；
+			// 这样设计的考虑是：数据节点的不同版本之间形成的是链表结构，链表的头部是最新加入的版本，有可能新加入的版本是尚未提交的数据；
+			// 通过采用不间断地继续往前搜索的策略，可以实现即使存在未提交的新版本，依然可以正常地检索到已提交版本的数据；
+			selector.accept(previousHash, previousEntry, previousDataLevel);
+
+			return seekPreviousData(previousEntry, version, previousDataLevel, selector);
+		}
 	}
 
 	private MerkleData loadDataEntry(HashDigest dataEntryHash) {
@@ -395,8 +470,24 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 //		byte[] bytes = storage.get(key);
 //		MerkleData dataEntry = BinaryProtocol.decode(bytes);
 //		return dataEntry;
-		
+
 		return (MerkleData) loadMerkleTrieEntry(dataEntryHash);
+	}
+
+	private MerkleData[] loadDataEntries(MerkleLeaf leafNode) {
+		MerkleKey[] keys = leafNode.getKeys();
+		MerkleData[] datas;
+		if (leafNode instanceof LeafNode) {
+			datas = ((LeafNode) leafNode).getDataEntries();
+		} else {
+			datas = new MerkleData[keys.length];
+		}
+		for (int i = 0; i < datas.length; i++) {
+			if (datas[i] == null) {
+				datas[i] = loadDataEntry(keys[i].getDataEntryHash());
+			}
+		}
+		return datas;
 	}
 
 	@Override
@@ -436,8 +527,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		int i = 0;
 		while (iterator.hasNext()) {
 			MerkleData data = iterator.next();
-			System.out.printf("[%s] - KEY=%s; VERSION=%s;\r\n", i, Base58Utils.encode(data.getKey()),
-					data.getVersion());
+			System.out.printf("[%s] - KEY=%s; VERSION=%s;\r\n", i, data.getKey().toBase58(), data.getVersion());
 		}
 		System.out.printf("\r\n------------------\r\n", iterator.getCount());
 	}
@@ -489,7 +579,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 				String.format("[L-%s-(k:%s;r=%s)-::", leafNode.getKeyHash(), keys.length, leafNode.getTotalRecords()));
 		for (int i = 0; i < keys.length; i++) {
 			if (keys[i] != null) {
-				nodeInfo.append(BytesUtils.toString(keys[i].getKey()));
+				nodeInfo.append(keys[i].getKey());
 			}
 			if (i < keys.length - 1) {
 				nodeInfo.append(";");
@@ -595,7 +685,8 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		Bytes key = encodeEntryKey(entryHash);
 		byte[] bytes = storage.get(key);
 		if (bytes == null) {
-			throw new MerkleProofException("The merkle trie entry with hash [" + entryHash.toBase58() + "] does not exist!");
+			throw new MerkleProofException(
+					"The merkle trie entry with hash [" + entryHash.toBase58() + "] does not exist!");
 		}
 		MerkleTrieEntry entry = BinaryProtocol.decode(bytes);
 		return entry;
@@ -632,12 +723,13 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 *
 	 */
 	private static interface SeekingSelector {
-		
+
 		/**
 		 * 检查接收节点；
-		 * @param hash 节点哈希；
+		 * 
+		 * @param hash    节点哈希；
 		 * @param element 节点；
-		 * @param level 深度；
+		 * @param level   深度；
 		 * @return 是否继续；
 		 */
 		boolean accept(HashDigest hash, MerkleTrieEntry element, int level);
@@ -665,9 +757,18 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 
 		@Override
 		public boolean accept(HashDigest hash, MerkleTrieEntry element, int level) {
+			// 默克尔证明收集器需要忽略哈希为 null 的默克尔前缀树节点；
+			// 哈希为 null 的情形包括：
+			// 1：未提交的路径节点；
+			// 2：未提交的数据节点；
+			// 对于调用者来说，在此方法返回 false 时，仍然会继续向前搜索，以便继续遍历排列在未提交节点之后的已提交节点；
 			if (hash == null) {
 				return false;
 			}
+
+			// TODO: 需要改进可能的超长的证明路径；当一个 key 的数据节点产生了许多版本之后，查历史版本可能会出现很深的路径；
+			// 通过参数 level 可以判断这一点；
+			// 当出现很深的路径时，可以采用对中间路径进行压缩计算成一个哈希证明；
 			hashPaths.add(hash);
 			return true;
 		}
@@ -677,49 +778,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 	}
 
-	/**
-	 * DiffIterator 提供对两个默克尔节点表示的默克尔树的新增节点的遍历；
-	 * 
-	 * <p>
-	 * 
-	 * 遍历的结果是得到一个数据差集：包含在新数据默克尔树中，但不包含在比较基准默克尔树中的数据集合；
-	 * 
-	 * @author huanghaiquan
-	 *
-	 */
-	public static abstract class AbstractMerkleDataIterator implements SkippingIterator<MerkleData> {
-
-		protected long cursor = -1;
-
-		public long getCursor() {
-			return cursor;
-		}
-
-		@Override
-		public boolean hasNext() {
-			return cursor + 1 < getCount();
-		}
-
-		public long skip(long skippingCount) {
-			if (skippingCount < 0) {
-				throw new IllegalArgumentException("The specified count is out of bound!");
-			}
-			if (skippingCount == 0) {
-				return 0;
-			}
-			long count = getCount();
-			if (cursor + skippingCount < count) {
-				cursor += skippingCount;
-				return skippingCount;
-			}
-			long skipped = count - cursor - 1;
-			cursor = count - 1;
-			return skipped;
-		}
-
-	}
-
-	public static class MerkleDataIterator extends AbstractMerkleDataIterator {
+	public static class MerkleDataIterator extends AbstractSkippingIterator<MerkleData> {
 
 		private MerkleHashTrie tree;
 
@@ -730,7 +789,6 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		private PathNode root;
 
 		private SkippingIterator<MerkleData> childIterator;
-
 
 		public MerkleDataIterator(PathNode rootNode, MerkleHashTrie tree) {
 			this.root = rootNode;
@@ -810,11 +868,11 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	}
 
 	private static class MerkleLeafDataIterator implements SkippingIterator<MerkleData> {
-		
+
 		private MerkleHashTrie tree;
 
 		private MerkleKey[] keys;
-		
+
 		private MerkleData[] dataEntries;
 
 		private int cursor = -1;
@@ -822,9 +880,9 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		public MerkleLeafDataIterator(MerkleLeaf leaf, MerkleHashTrie tree) {
 			this.keys = leaf.getKeys();
 			if (leaf instanceof LeafNode) {
-				this.dataEntries = ((LeafNode)leaf).getDataEntries();
+				this.dataEntries = ((LeafNode) leaf).getDataEntries();
 			}
-			
+
 			this.tree = tree;
 		}
 
@@ -887,7 +945,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @author huanghaiquan
 	 *
 	 */
-	public static abstract class DiffIterator extends AbstractMerkleDataIterator {
+	public static abstract class DiffDataIterator extends AbstractSkippingIterator<MerkleData> {
 
 		/**
 		 * 新增
@@ -903,7 +961,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		 * @param root1 包含新数据的默克尔树的根节点;
 		 * @param root2 作为比较基准的默克尔树的根节点;
 		 */
-		public DiffIterator(MerkleTreeNode root1, MerkleTreeNode root2) {
+		public DiffDataIterator(MerkleTreeNode root1, MerkleTreeNode root2) {
 			this.root1 = root1;
 			this.root2 = root2;
 		}
@@ -931,7 +989,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @author huanghaiquan
 	 *
 	 */
-	public static abstract class PathDiffIterator extends DiffIterator {
+	public static abstract class PathDiffIterator extends DiffDataIterator {
 
 		protected MerkleHashTrie tree1;
 
@@ -1096,10 +1154,10 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 				return new PathKeysDiffIterator((PathNode) node1, tree1, (PathNode) node2, tree2, level + 1);
 			}
 			if (node1 instanceof PathNode && node2 instanceof LeafNode) {
-				return new NewPathKeysDiffIterator(tree1, (PathNode) node1, (LeafNode) node2, level + 1);
+				return new NewPathKeysDiffIterator((PathNode) node1, tree1, (LeafNode) node2, tree2, level + 1);
 			}
 			if (node1 instanceof LeafNode && node2 instanceof LeafNode) {
-				return new LeafKeysDiffIterator((LeafNode) node1, (LeafNode) node2);
+				return new LeafKeysDiffIterator((LeafNode) node1, tree1, (LeafNode) node2, tree2);
 			}
 			throw new IllegalStateException("Both nodes type exception!");
 		}
@@ -1129,7 +1187,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 
 		@Override
-		protected DiffIterator createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
+		protected DiffDataIterator createDiffIterator(MerkleTreeNode rootNode1, MerkleTreeNode rootNode2) {
 			// TODO Auto-generated method stub
 			return null;
 		}
@@ -1142,57 +1200,48 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class LeafKeysDiffIterator extends DiffIterator {
-		private LinkedList<MerkleData> origDataEntries;
-		private LinkedList<MerkleData> baseDataEntries;
-		private LinkedList<MerkleData> diffDataEntries;
+	private static class LeafKeysDiffIterator extends AbstractSkippingIterator<MerkleData> {
+		private MerkleData[] diffDataEntries;
 
-		public LeafKeysDiffIterator(LeafNode root1, LeafNode orignalLeafNode) {
-			super(root1, orignalLeafNode);
-			origDataEntries = createDataEntries(orignalLeafNode);
-			baseDataEntries = createDataEntries(root1);
-			diffDataEntries = createDiffDataEntries(baseDataEntries, origDataEntries);
+		public LeafKeysDiffIterator(LeafNode leaf1, MerkleHashTrie tree1, LeafNode leaf2, MerkleHashTrie tree2) {
+			MerkleData[] dataEntries1 = tree1.loadDataEntries(leaf1);
+			MerkleData[] dataEntries2 = tree2.loadDataEntries(leaf2);
+			diffDataEntries = selectDiffDataEntries(dataEntries1, dataEntries2);
 		}
 
 		@Override
-		protected long getCount(MerkleTreeNode node) {
-			return ((LeafNode) node).getTotalKeys();
+		public long getCount() {
+			return diffDataEntries.length;
 		}
 
 		@Override
 		public MerkleData next() {
-			return diffDataEntries.removeFirst();
+			return diffDataEntries[(int) cursor];
 		}
 
-		// 获取叶子节点对应的所有数据入口集
-		private LinkedList<MerkleData> createDataEntries(LeafNode leafNode) {
-			LinkedList<MerkleData> dataEntries = new LinkedList<>();
-			for (int i = 0; i < leafNode.getTotalKeys(); i++) {
-				dataEntries.add(leafNode.getKeys()[i]);
-			}
-			return dataEntries;
-		}
-
-		// 获取两个叶子节点数据入口的差异集
-		private LinkedList<MerkleData> createDiffDataEntries(LinkedList<MerkleData> baseDataEntries,
-				LinkedList<MerkleData> origDataEntries) {
-			LinkedList<MerkleData> diffDataEntries = new LinkedList<>();
+		/**
+		 * 获取数据集合的差集；即包含在集合 dataEntries1 中且不包含在集合 dataEntries2 中的数据项；
+		 * 
+		 * @param dataEntries1
+		 * @param dataEntries2
+		 * @return
+		 */
+		private MerkleData[] selectDiffDataEntries(MerkleData[] dataEntries1, MerkleData[] dataEntries2) {
+			// MerkleHashTrie 的 Leaf 节点由于哈希冲突概率极小，同一个 LeafNode 中有 1 条以上的概率极小；故优化 ArrayList
+			// 初始化容量为 2；
+			List<MerkleData> diffDataEntries = new ArrayList<MerkleData>(2);
 			boolean found = false;
-
-			for (int baseindex = 0; baseindex < baseDataEntries.size(); baseindex++) {
-				for (int origindex = 0; origindex < origDataEntries.size(); origindex++) {
-					if (Arrays.equals(origDataEntries.get(origindex).getKey(),
-							baseDataEntries.get(baseindex).getKey())) {
-						found = true;
-						break;
-					}
-				}
-				if (!found) {
-					diffDataEntries.add(baseDataEntries.get(baseindex));
-					found = false;
-				}
+			Set<Bytes> keys2 = new HashSet<Bytes>();
+			for (int i = 0; i < dataEntries2.length; i++) {
+				keys2.add(dataEntries2[i].getKey());
 			}
-			return baseDataEntries;
+			for (int i = 0; i < dataEntries1.length; i++) {
+				if (keys2.contains(dataEntries1[i].getKey())) {
+					continue;
+				}
+				diffDataEntries.add(dataEntries1[i]);
+			}
+			return diffDataEntries.toArray(new MerkleData[diffDataEntries.size()]);
 		}
 	}
 
@@ -1202,7 +1251,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @author huanghaiquan
 	 *
 	 */
-	private class LeafRecordsDiffIterator extends DiffIterator {
+	private class LeafRecordsDiffIterator extends DiffDataIterator {
 
 		public LeafRecordsDiffIterator(LeafNode root1, LeafNode root2) {
 			super(root1, root2);
@@ -1226,7 +1275,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @author huanghaiquan
 	 *
 	 */
-	private class NewLeafRecordsDiffIterator extends DiffIterator {
+	private class NewLeafRecordsDiffIterator extends DiffDataIterator {
 
 		public NewLeafRecordsDiffIterator(MerkleTreeNode root1, MerkleTreeNode root2) {
 			super(root1, root2);
@@ -1249,7 +1298,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @author huanghaiquan
 	 *
 	 */
-	private class NewPathRecordsDiffIterator1 extends DiffIterator {
+	private class NewPathRecordsDiffIterator1 extends DiffDataIterator {
 
 		public NewPathRecordsDiffIterator1(MerkleTreeNode root1, MerkleTreeNode root2) {
 			super(root1, root2);
@@ -1272,7 +1321,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @author huanghaiquan
 	 *
 	 */
-	public static class NewPathKeysDiffIterator extends DiffIterator {
+	public static class NewPathKeysDiffIterator extends DiffDataIterator {
 
 		private MerkleHashTrie tree1;
 
@@ -1282,12 +1331,13 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 
 		private MerkleDataIterator iterator1;
 
-		public NewPathKeysDiffIterator(MerkleHashTrie tree1, PathNode root1, LeafNode orignalLeafNode, int level) {
-			super(root1, orignalLeafNode);
+		public NewPathKeysDiffIterator(PathNode node1, MerkleHashTrie tree1, LeafNode origNode, MerkleHashTrie origTree,
+				int level) {
+			super(node1, origNode);
 			this.tree1 = tree1;
-			this.iterator1 = new MerkleDataIterator(root1, tree1);
-			this.origKeys = orignalLeafNode.getKeys();
-			this.origKeyIndexes = seekKeyIndexes(this.origKeys, root1, level);
+			this.iterator1 = new MerkleDataIterator(node1, tree1);
+			this.origKeys = origNode.getKeys();
+			this.origKeyIndexes = seekKeyIndexes(this.origKeys, node1, level);
 		}
 
 		// 不包括toIndex对应子孩子的key总数
@@ -1301,40 +1351,14 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 
 		/**
-		 * Compare this key and specified key;
-		 *
-		 * @param otherKey
-		 * @return Values: -1, 0, 1. <br>
-		 *         Return -1 means that the current key is less than the specified
-		 *         key;<br>
-		 *         Return 0 means that the current key is equal to the specified
-		 *         key;<br>
-		 *         Return 1 means that the current key is great than the specified key;
-		 */
-		public int compare(byte[] key1, byte[] key2) {
-			int len = Math.min(key1.length, key2.length);
-			for (int i = 0; i < len; i++) {
-				if (key1[i] == key2[i]) {
-					continue;
-				}
-				return key1[i] < key2[i] ? -1 : 1;
-			}
-			if (key1.length == key2.length) {
-				return 0;
-			}
-
-			return key1.length < key2.length ? -1 : 1;
-		}
-
-		/**
 		 * 寻找指定key在指定的子树中的线性位置；
 		 * 
-		 * @param merkleDataKey 要查找的key；
-		 * @param pathNode      key所在的子树的根节点；
-		 * @param level         子树根节点的深度；
+		 * @param key      要查找的key；
+		 * @param pathNode key所在的子树的根节点；
+		 * @param level    子树根节点的深度；
 		 * @return 返回 key 在子树中的线性位置，值大于等于 0；如果不存在，-1；
 		 */
-		private long seekKeyIndex(byte[] merkleDataKey, PathNode pathNode, int level) {
+		private long seekKeyIndex(Bytes key, PathNode pathNode, int level) {
 			// 1：计算 key 在当前路径节点中的子节点位置；
 			// 2：计算 key 所在子节点之前的所有key的数量，作为 key 最终线性位置基准；
 			// 3：计算 key 在子节点表示的线性位置；有两种情况：(1)子节点为路径节点；(2)子节点为叶子节点；
@@ -1343,7 +1367,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 			// 4：基准位置和当前偏移位置相加，得到 key 的最终线性位置，该位置与左序遍历得到的位置一致；
 
 			// 1
-			long keyHash = KeyIndexer.hash(merkleDataKey);
+			long keyHash = KeyIndexer.hash(key);
 			byte index = KeyIndexer.index(keyHash, level);
 
 			// 2
@@ -1361,13 +1385,13 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 			// 3.1
 			long keyIndex = -1;
 			if (childNode instanceof PathNode) {
-				keyIndex = seekKeyIndex(merkleDataKey, (PathNode) childNode, level + 1);
+				keyIndex = seekKeyIndex(key, (PathNode) childNode, level + 1);
 			} else {
 				// 3.2 childNode instanceof LeafNode
 				LeafNode leafNode = (LeafNode) childNode;
-				MerkleData[] dataEntries = leafNode.getKeys();
+				MerkleKey[] dataEntries = leafNode.getKeys();
 				for (int i = 0; i < dataEntries.length; i++) {
-					if (compare(merkleDataKey, dataEntries[i].getKey()) == 0) {
+					if (key.equals(dataEntries[i].getKey())) {
 						keyIndex = i;
 						break;
 					}
@@ -1381,11 +1405,11 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 			return childCounts + keyIndex;
 		}
 
-		private Set<Long> seekKeyIndexes(MerkleData[] origKeys, PathNode root1, int level) {
+		private Set<Long> seekKeyIndexes(MerkleKey[] keys, PathNode node, int level) {
 			Set<Long> origKeyIndexes = new HashSet<Long>();
 
-			for (MerkleData data : origKeys) {
-				origKeyIndexes.add(seekKeyIndex(data.getKey(), root1, level));
+			for (MerkleKey key : keys) {
+				origKeyIndexes.add(seekKeyIndex(key.getKey(), node, level));
 			}
 			return origKeyIndexes;
 		}
@@ -1412,7 +1436,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 				if (k < 1) {
 					break;
 				}
-				while (origKeyIndexes.contains(new Long(iterator1.cursor))) {
+				while (origKeyIndexes.contains(new Long(iterator1.getCursor()))) {
 					k = iterator1.skip(1);
 					if (k < 1) {
 						return s;
@@ -1425,9 +1449,9 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 
 		// 判断原始叶子键值集中是否包含指定的键值
-		private boolean contains(MerkleData[] origKeys, byte[] key) {
-			for (MerkleData origKey : origKeys) {
-				if (Arrays.equals(origKey.getKey(), key)) {
+		private boolean contains(MerkleKey[] origKeys, Bytes key) {
+			for (MerkleKey origKey : origKeys) {
+				if (origKey.getKey().equals(key)) {
 					return true;
 				}
 			}
@@ -1455,7 +1479,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @author huanghaiquan
 	 *
 	 */
-	private class NewPathRecordsDiffIterator extends DiffIterator {
+	private class NewPathRecordsDiffIterator extends DiffDataIterator {
 
 		public NewPathRecordsDiffIterator(PathNode root1, LeafNode root2) {
 			super(root1, root2);

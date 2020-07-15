@@ -1,6 +1,8 @@
 package com.jd.blockchain.ledger.proof;
 
+import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.utils.Bytes;
 
@@ -9,7 +11,7 @@ public class MerkleDataEntry implements MerkleData {
 	/**
 	 * 键；
 	 */
-	private byte[] key;
+	private Bytes key;
 
 	/**
 	 * 键的版本；
@@ -30,16 +32,6 @@ public class MerkleDataEntry implements MerkleData {
 	 * 前一个数据节点；
 	 */
 	private MerkleData previousEntry;
-	
-	/**
-	 * @param key       键；
-	 * @param version   键的版本；
-	 * @param valueHash 值的哈希；
-	 * @param ts        记录数据的逻辑时间戳；
-	 */
-	public MerkleDataEntry(Bytes key, long version, HashDigest valueHash) {
-		this(key.toBytes(), version, valueHash);
-	}
 
 	/**
 	 * @param key       键；
@@ -48,13 +40,23 @@ public class MerkleDataEntry implements MerkleData {
 	 * @param ts        记录数据的逻辑时间戳；
 	 */
 	public MerkleDataEntry(byte[] key, long version, HashDigest valueHash) {
+		this(new Bytes(key), version, valueHash);
+	}
+
+	/**
+	 * @param key       键；
+	 * @param version   键的版本；
+	 * @param valueHash 值的哈希；
+	 * @param ts        记录数据的逻辑时间戳；
+	 */
+	public MerkleDataEntry(Bytes key, long version, HashDigest valueHash) {
 		this.key = key;
 		this.version = version;
 		this.valueHash = valueHash;
 	}
 
 	@Override
-	public byte[] getKey() {
+	public Bytes getKey() {
 		return key;
 	}
 
@@ -77,19 +79,23 @@ public class MerkleDataEntry implements MerkleData {
 		return previousEntry;
 	}
 
-	void setPreviousEntryHash(HashDigest previousEntryHash) {
-		this.previousEntryHash = previousEntryHash;
-	}
-
-	void setPreviousEntry(MerkleData previousData) {
-		if (previousEntryHash != null) {
+	void setPreviousEntry(HashDigest previousEntryHash, MerkleData previousData) {
+		if (this.previousEntryHash != null) {
 			throw new IllegalStateException("Hash of previous data entry cann't be rewrited!");
 		}
-		if (version != previousData.getVersion() + 1) {
+
+		if (this.version == 0 && previousEntryHash != null) {
+			throw new IllegalStateException("Cann't set a previous data entry for the data entry with version 0!");
+		}
+		
+		if (previousData != null && this.version != previousData.getVersion() + 1) {
 			throw new MerkleProofException("The current version of data entry has not increased by 1!");
 		}
+		
+		this.previousEntryHash = previousEntryHash;
 		this.previousEntry = previousData;
 	}
+
 
 //	HashDigest update(HashFunction hashFunc, NodeUpdatedListener updatedListener) {
 //		if (previousEntryHash == null && previousEntry != null) {
