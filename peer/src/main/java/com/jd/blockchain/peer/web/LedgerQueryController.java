@@ -713,19 +713,16 @@ public class LedgerQueryController implements BlockchainQueryService {
 	@Override
 	public RoleSet getUserRoles(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 								@PathVariable(name = "userAddress") String userAddress) {
-		LedgerQueryService queryService = new LedgerQueryService(ledgerService.getLedger(ledgerHash));
-		return queryService.getUserRoles(ledgerHash,userAddress);
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		return ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/role-privilege/{roleName}")
 	@Override
 	public PrivilegeSet getRolePrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 										  @PathVariable(name = "roleName") String roleName) {
-		LedgerQueryService queryService = new LedgerQueryService(ledgerService.getLedger(ledgerHash));
-		
-		LedgerRepository ledger = ledgerService.getLedger(ledgerHash);
-		
-		return queryService.getRolePrivileges(ledgerHash,roleName);
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		return ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(roleName);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/user-privilege/{userAddress}")

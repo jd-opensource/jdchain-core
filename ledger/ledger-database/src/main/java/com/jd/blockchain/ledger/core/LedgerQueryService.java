@@ -17,16 +17,13 @@ import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.PrivilegeSet;
-import com.jd.blockchain.ledger.RolePrivileges;
 import com.jd.blockchain.ledger.RoleSet;
-import com.jd.blockchain.ledger.RolesPolicy;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVData;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
 import com.jd.blockchain.ledger.UserPrivilegeSet;
-import com.jd.blockchain.ledger.UserRoles;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.Bytes;
@@ -37,8 +34,6 @@ import com.jd.blockchain.utils.query.QueryUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.jd.blockchain.ledger.core.LedgerSecurityManager.DEFAULT_ROLE;
 
 public class LedgerQueryService implements BlockchainQueryService {
 
@@ -551,31 +546,13 @@ public class LedgerQueryService implements BlockchainQueryService {
 	@Override
 	public UserPrivilegeSet getUserPrivileges(HashDigest ledgerHash, String userAddress) {
 		checkLedgerHash(ledgerHash);
-		LedgerSecurityManager securityManager = ledger.getSecurityManager();
-		
+//		LedgerSecurityManager securityManager = ledger.getSecurityManager();
+		LedgerDataQuery ledgerDataQuery = ledger.getLedgerData();
+		LedgerAdminDataQuery previousAdminDataset = ledgerDataQuery.getAdminDataset();
+		LedgerSecurityManager securityManager = new LedgerSecurityManagerImpl(previousAdminDataset.getAdminInfo().getRolePrivileges(),
+				previousAdminDataset.getAdminInfo().getAuthorizations(), previousAdminDataset.getParticipantDataset(),
+				ledgerDataQuery.getUserAccountSet());
 		return securityManager.getUserRolesPrivilegs(Bytes.fromBase58(userAddress));
-//		UserRolesPrivileges userPrivileges;
-//		checkLedgerHash(ledgerHash);
-//		UserRoles userRoles = ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
-//		List<PrivilegeSet> privilegeSetList = new ArrayList<>();
-//		//if userRoles=null, perhaps it's default role; But if it's intruder, we should stop it;
-//		if(!ledger.getUserAccountSet().contains(Bytes.fromBase58(userAddress))){
-//			return null;
-//		}
-//		//default role;
-//		List<RolePrivileges> privilegesList = new ArrayList<>();
-//		if(userRoles == null || userRoles.getRoleSet().size()==0){
-//			RolePrivileges privilegeSet = ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(DEFAULT_ROLE);
-//			privilegesList.add(privilegeSet);
-//			userPrivileges = new UserRolesPrivileges(Bytes.fromBase58(userAddress), RolesPolicy.UNION, privilegesList);
-//		}else {
-//			for(String roleName : userRoles.getRoles()){
-//				RolePrivileges privilegeSet = ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(roleName);
-//				privilegesList.add(privilegeSet);
-//			}
-//			userPrivileges = new UserRolesPrivileges(Bytes.fromBase58(userAddress), userRoles.getPolicy(), privilegesList);
-//		}
-//		return userPrivileges;
 	}
 
 	private PrivilegeSet getRolePrivilegeByRole(String roleName){
