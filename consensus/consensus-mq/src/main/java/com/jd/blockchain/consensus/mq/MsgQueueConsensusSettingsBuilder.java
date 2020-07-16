@@ -151,12 +151,6 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
         return consensusConfig;
     }
 
-    @Override
-    public Bytes updateConsensusSettings(Bytes oldConsensusSettings, PubKey newParticipantPk, NetworkAddress networkAddress, ParticipantNodeOp participantNodeOp) {
-        // todo
-        return null;
-    }
-
     private MsgQueueNodeSettings[] addNodeSetting(NodeSettings[] nodeSettings, PubKey newParticipantPk) {
 
         MsgQueueNodeSettings msgQueueNodeSettings = new MsgQueueNodeConfig();
@@ -178,50 +172,55 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
     }
 
     @Override
-    public void writeSettings(ConsensusSettings settings, Properties props) {
+    public ConsensusSettings writeSettings(ConsensusSettings settings, Bytes newProps, ParticipantNodeOp op) {
+        return null;
+    }
 
-        if (!(settings instanceof MsgQueueConsensusSettings)) {
-            throw new IllegalArgumentException("ConsensusSettings data isn't supported! Accept MsgQueueConsensusSettings only!");
-        }
-
-        MsgQueueConsensusSettings consensusSettings = (MsgQueueConsensusSettings) settings;
-
-        MsgQueueNetworkSettings networkSettings = consensusSettings.getNetworkSettings();
-        if (networkSettings == null || networkSettings.getServer() == null || networkSettings.getServer().length() <= 0) {
-            throw new IllegalArgumentException("MsgQueue Consensus server is empty!");
-        }
-
-        String server = networkSettings.getServer();
-        props.setProperty(MSG_QUEUE_SERVER, server);
-
-        String txTopic = networkSettings.getTxTopic();
-        if (txTopic == null || txTopic.length() <= 0) {
-            txTopic = DEFAULT_TOPIC_TX;
-        }
-        props.setProperty(MSG_QUEUE_TOPIC_TX, txTopic);
-
-        String blTopic = networkSettings.getBlTopic();
-        if (blTopic == null || blTopic.length() <= 0) {
-            blTopic = DEFAULT_TOPIC_BL;
-        }
-        props.setProperty(MSG_QUEUE_TOPIC_BL, blTopic);
-
-        String msgTopic = networkSettings.getMsgTopic();
-        if (msgTopic == null || msgTopic.length() <= 0) {
-            msgTopic = DEFAULT_TOPIC_MSG;
-        }
-        props.setProperty(MSG_QUEUE_TOPIC_MSG, msgTopic);
-
-        MsgQueueBlockSettings blockSettings = consensusSettings.getBlockSettings();
-        if (blockSettings == null) {
-            props.setProperty(MSG_QUEUE_BLOCK_TXSIZE, DEFAULT_TXSIZE + "");
-            props.setProperty(MSG_QUEUE_BLOCK_MAXDELAY, DEFAULT_MAXDELAY + "");
-        } else {
-            int txSize = blockSettings.getTxSizePerBlock();
-            long maxDelay = blockSettings.getMaxDelayMilliSecondsPerBlock();
-            props.setProperty(MSG_QUEUE_BLOCK_TXSIZE, txSize + "");
-            props.setProperty(MSG_QUEUE_BLOCK_MAXDELAY, maxDelay + "");
-        }
+//    @Override
+//    public void writeSettings(ConsensusSettings settings, Properties props) {
+//
+//        if (!(settings instanceof MsgQueueConsensusSettings)) {
+//            throw new IllegalArgumentException("ConsensusSettings data isn't supported! Accept MsgQueueConsensusSettings only!");
+//        }
+//
+//        MsgQueueConsensusSettings consensusSettings = (MsgQueueConsensusSettings) settings;
+//
+//        MsgQueueNetworkSettings networkSettings = consensusSettings.getNetworkSettings();
+//        if (networkSettings == null || networkSettings.getServer() == null || networkSettings.getServer().length() <= 0) {
+//            throw new IllegalArgumentException("MsgQueue Consensus server is empty!");
+//        }
+//
+//        String server = networkSettings.getServer();
+//        props.setProperty(MSG_QUEUE_SERVER, server);
+//
+//        String txTopic = networkSettings.getTxTopic();
+//        if (txTopic == null || txTopic.length() <= 0) {
+//            txTopic = DEFAULT_TOPIC_TX;
+//        }
+//        props.setProperty(MSG_QUEUE_TOPIC_TX, txTopic);
+//
+//        String blTopic = networkSettings.getBlTopic();
+//        if (blTopic == null || blTopic.length() <= 0) {
+//            blTopic = DEFAULT_TOPIC_BL;
+//        }
+//        props.setProperty(MSG_QUEUE_TOPIC_BL, blTopic);
+//
+//        String msgTopic = networkSettings.getMsgTopic();
+//        if (msgTopic == null || msgTopic.length() <= 0) {
+//            msgTopic = DEFAULT_TOPIC_MSG;
+//        }
+//        props.setProperty(MSG_QUEUE_TOPIC_MSG, msgTopic);
+//
+//        MsgQueueBlockSettings blockSettings = consensusSettings.getBlockSettings();
+//        if (blockSettings == null) {
+//            props.setProperty(MSG_QUEUE_BLOCK_TXSIZE, DEFAULT_TXSIZE + "");
+//            props.setProperty(MSG_QUEUE_BLOCK_MAXDELAY, DEFAULT_MAXDELAY + "");
+//        } else {
+//            int txSize = blockSettings.getTxSizePerBlock();
+//            long maxDelay = blockSettings.getMaxDelayMilliSecondsPerBlock();
+//            props.setProperty(MSG_QUEUE_BLOCK_TXSIZE, txSize + "");
+//            props.setProperty(MSG_QUEUE_BLOCK_MAXDELAY, maxDelay + "");
+//        }
 
 
 //        int serversNum = PropertiesUtils.getInt(props, SERVER_NUM_KEY);
@@ -249,7 +248,7 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 //            String keyOfHost = nodeKey(CONSENSUS_HOST_PATTERN, id);
 //            props.setProperty(keyOfHost, mqns.getAddress() == null ? "" : mqns.getAddress());
 //        }
-    }
+//    }
 
     private String initProp(Properties resolvingProps, String key, String defaultVal) {
         try {

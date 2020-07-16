@@ -141,7 +141,7 @@ public class OperationDecoratorFactory {
     public static Operation decorateParticipantRegisterOperation(ParticipantRegisterOperation op) {
         BlockchainIdentity partId = decorateBlockchainIdentity(op.getParticipantRegisterIdentity());
         return new ParticipantRegisterOpTemplate(op.getParticipantName(),
-                partId, op.getNetworkAddress());
+                partId, op.getConsensusSettings());
     }
 
     /**

@@ -52,26 +52,17 @@ public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperati
             }
         }
         //update consensus system config property and view id for ledger setting
-//        Bytes newConsensusSettings =  provider.getSettingsFactory().getConsensusSettingsBuilder().updateConsensusSettings(adminAccountDataSet.getSettings().getConsensusSetting(), stateUpdateOperation.getStateUpdateIdentity().getPubKey(), null, ParticipantNodeOp.ACTIVATE);
-
         ConsensusSettings consensusSettings = provider.getSettingsFactory().getConsensusSettingsEncoder().decode(adminAccountDataSet.getSettings().getConsensusSetting().toBytes());
 
-        Properties properties = eidtProps(op);
-
-        provider.getSettingsFactory().getConsensusSettingsBuilder().writeSettings(consensusSettings, properties);
-
+        ConsensusSettings newConsensusSettings = provider.getSettingsFactory().getConsensusSettingsBuilder().writeSettings(consensusSettings, new Bytes(op.getStateUpdateIdentity().getPubKey().toBytes()), ParticipantNodeOp.ACTIVATE);
 
         LedgerSettings ledgerSetting = new LedgerConfiguration(adminAccountDataSet.getSettings().getConsensusProvider(),
-                new Bytes(provider.getSettingsFactory().getConsensusSettingsEncoder().encode(consensusSettings)), adminAccountDataSet.getPreviousSetting().getCryptoSetting());
+                new Bytes(provider.getSettingsFactory().getConsensusSettingsEncoder().encode(newConsensusSettings)), adminAccountDataSet.getPreviousSetting().getCryptoSetting());
 
         adminAccountDataSet.setLedgerSetting(ledgerSetting);
 
         adminAccountDataSet.updateParticipant(participantNode);
 
-    }
-
-    private Properties eidtProps(ParticipantStateUpdateOperation op) {
-        return null;
     }
 
     private static class PartNode implements ParticipantNode {

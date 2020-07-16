@@ -40,27 +40,17 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
 
         ConsensusSettings consensusSettings = provider.getSettingsFactory().getConsensusSettingsEncoder().decode(adminAccountDataSet.getSettings().getConsensusSetting().toBytes());
 
-        Properties properties = eidtProps(op);
-
-        provider.getSettingsFactory().getConsensusSettingsBuilder().writeSettings(consensusSettings, properties);
-
+        ConsensusSettings newConsensusSettings = provider.getSettingsFactory().getConsensusSettingsBuilder().writeSettings(consensusSettings, participantRegOp.getConsensusSettings(), ParticipantNodeOp.REGIST);
 
         //update consensus nodes setting, add new participant for ledger setting
-//        Bytes newConsensusSettings =  provider.getSettingsFactory().getConsensusSettingsBuilder().updateConsensusSettings(adminAccountDataSet.getSettings().getConsensusSetting(), op.getParticipantRegisterIdentity().getPubKey(), op.getNetworkAddress(), ParticipantNodeOp.REGIST);
-
         LedgerSettings ledgerSetting = new LedgerConfiguration(adminAccountDataSet.getSettings().getConsensusProvider(),
-                new Bytes(provider.getSettingsFactory().getConsensusSettingsEncoder().encode(consensusSettings)), adminAccountDataSet.getPreviousSetting().getCryptoSetting());
+                new Bytes(provider.getSettingsFactory().getConsensusSettingsEncoder().encode(newConsensusSettings)), adminAccountDataSet.getPreviousSetting().getCryptoSetting());
 
         adminAccountDataSet.setLedgerSetting(ledgerSetting);
 
         // Build UserRegisterOperation, reg participant as user
         UserRegisterOperation userRegOp = new UserRegisterOpTemplate(participantRegOp.getParticipantRegisterIdentity());
         handleContext.handle(userRegOp);
-    }
-
-    private Properties eidtProps(ParticipantRegisterOperation op) {
-
-        return null;
     }
 
     private static class PartNode implements ParticipantNode {
