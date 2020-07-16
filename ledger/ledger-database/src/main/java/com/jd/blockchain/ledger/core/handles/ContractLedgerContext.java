@@ -9,6 +9,8 @@ import com.jd.blockchain.ledger.DataAccountInfo;
 import com.jd.blockchain.ledger.DataAccountKVSetOperation;
 import com.jd.blockchain.ledger.DataAccountRegisterOperation;
 import com.jd.blockchain.ledger.Event;
+import com.jd.blockchain.ledger.EventAccountRegisterOperation;
+import com.jd.blockchain.ledger.EventPublishOperation;
 import com.jd.blockchain.ledger.KVInfoVO;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
 import com.jd.blockchain.ledger.LedgerBlock;
@@ -30,6 +32,10 @@ import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.transaction.DataAccountKVSetOperationBuilder;
 import com.jd.blockchain.transaction.DataAccountRegisterOperationBuilder;
 import com.jd.blockchain.transaction.DataAccountRegisterOperationBuilderImpl;
+import com.jd.blockchain.transaction.EventAccountRegisterOperationBuilder;
+import com.jd.blockchain.transaction.EventAccountRegisterOperationBuilderImpl;
+import com.jd.blockchain.transaction.EventData;
+import com.jd.blockchain.transaction.EventPublishOperationBuilder;
 import com.jd.blockchain.transaction.KVData;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilder;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilderImpl;
@@ -314,6 +320,21 @@ public class ContractLedgerContext implements LedgerContext {
 	}
 
 	@Override
+	public EventAccountRegisterOperationBuilder eventAccounts() {
+		return new EventAccountRegisterOperationBuilder1();
+	}
+
+	@Override
+	public EventPublishOperationBuilder eventAccount(String accountAddress) {
+		return new EventPublishOperationExecBuilder(Bytes.fromBase58(accountAddress));
+	}
+
+	@Override
+	public EventPublishOperationBuilder eventAccount(Bytes accountAddress) {
+		return new EventPublishOperationExecBuilder(accountAddress);
+	}
+
+	@Override
 	public PrivilegeSet getRolePrivileges(HashDigest ledgerHash, String roleName) {
 		return innerQueryService.getRolePrivileges(ledgerHash, roleName);
 	}
@@ -342,6 +363,17 @@ public class ContractLedgerContext implements LedgerContext {
 		@Override
 		public UserRegisterOperation register(BlockchainIdentity userID) {
 			UserRegisterOperation op = USER_REG_OP_BUILDER.register(userID);
+			generatedOpList.add(op);
+			opHandleContext.handle(op);
+			return op;
+		}
+	}
+
+	private class EventAccountRegisterOperationBuilder1 implements EventAccountRegisterOperationBuilder {
+		@Override
+		public EventAccountRegisterOperation register(BlockchainIdentity accountID) {
+			final EventAccountRegisterOperationBuilderImpl EVENT_ACC_REG_OP_BUILDER = new EventAccountRegisterOperationBuilderImpl();
+			EventAccountRegisterOperation op = EVENT_ACC_REG_OP_BUILDER.register(accountID);
 			generatedOpList.add(op);
 			opHandleContext.handle(op);
 			return op;
@@ -475,6 +507,113 @@ public class ContractLedgerContext implements LedgerContext {
 				return writeset;
 			}
 
+		}
+	}
+
+	private class EventPublishOperationExecBuilder implements EventPublishOperationBuilder {
+
+		private Bytes eventAddress;
+
+		private SingleEventPublishOpTemplate op;
+
+		public EventPublishOperationExecBuilder(Bytes eventAddress) {
+			this.eventAddress = eventAddress;
+		}
+
+		private void handle(Operation op) {
+			generatedOpList.add(op);
+			opHandleContext.handle(op);
+		}
+
+		@Override
+		public EventPublishOperation getOperation() {
+			return op;
+		}
+
+		@Override
+		public EventPublishOperationBuilder publish(String name, byte[] content, long sequence) {
+			BytesValue bytesValue = TypedValue.fromBytes(content);
+			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
+			handle(op);
+			return this;
+		}
+
+		@Override
+		public EventPublishOperationBuilder publish(String name, Bytes content, long sequence) {
+			BytesValue bytesValue = TypedValue.fromBytes(content);
+			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
+			handle(op);
+			return this;
+		}
+
+		@Override
+		public EventPublishOperationBuilder publish(String name, String content, long sequence) {
+			BytesValue bytesValue = TypedValue.fromText(content);
+			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
+			handle(op);
+			return this;
+		}
+
+		@Override
+		public EventPublishOperationBuilder publish(String name, long content, long sequence) {
+			BytesValue bytesValue = TypedValue.fromInt64(content);
+			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
+			handle(op);
+			return this;
+		}
+
+		@Override
+		public EventPublishOperationBuilder publishTimestamp(String name, long content, long sequence) {
+			BytesValue bytesValue = TypedValue.fromTimestamp(content);
+			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
+			handle(op);
+			return this;
+		}
+
+		@Override
+		public EventPublishOperationBuilder publishImage(String name, byte[] content, long sequence) {
+			BytesValue bytesValue = TypedValue.fromImage(content);
+			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
+			handle(op);
+			return this;
+		}
+
+		@Override
+		public EventPublishOperationBuilder publishJSON(String name, String content, long sequence) {
+			BytesValue bytesValue = TypedValue.fromJSON(content);
+			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
+			handle(op);
+			return this;
+		}
+
+		@Override
+		public EventPublishOperationBuilder publishXML(String name, String content, long sequence) {
+			BytesValue bytesValue = TypedValue.fromXML(content);
+			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
+			handle(op);
+			return this;
+		}
+
+		/**
+		 * 单个事件发布操作
+		 */
+		private class SingleEventPublishOpTemplate implements EventPublishOperation {
+
+			private EventEntry[] writeset = new EventEntry[1];
+
+			private SingleEventPublishOpTemplate(String key, BytesValue value, long expVersion) {
+				writeset[0] = new EventData(key, value, expVersion);
+			}
+
+			@Override
+			public Bytes getEventAddress() {
+				return eventAddress;
+			}
+
+			@Override
+			public EventEntry[] getEvents() {
+				return writeset;
+			}
 		}
 	}
 }
