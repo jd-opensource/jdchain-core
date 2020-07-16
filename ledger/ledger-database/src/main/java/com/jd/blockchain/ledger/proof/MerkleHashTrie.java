@@ -238,50 +238,54 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	}
 
 	public MerkleData getData(String key, long version) {
-//		if (root.getNodeHash() == null) {
-//			return null;
-//		}
-		byte[] keyBytes = BytesUtils.toBytes(key);
-		long keyHash = KeyIndexer.hash(keyBytes);
-		MerkleData dataEntry = seekDataEntry(keyBytes, version, keyHash, root, 0, NULL_SELECTOR);
-		return dataEntry;
+		return getData(Bytes.fromString(key), version);
 	}
 
 	public MerkleData getData(byte[] key) {
-//		if (root.getNodeHash() == null) {
-//			return null;
-//		}
-		long keyHash = KeyIndexer.hash(key);
-		MerkleData dataEntry = seekDataEntry(key, -1, keyHash, root, 0, NULL_SELECTOR);
-		return dataEntry;
+		return getData(new Bytes(key));
 	}
 
 	public MerkleData getData(byte[] key, long version) {
-//		if (root.getNodeHash() == null) {
-//			return null;
-//		}
+		return getData(new Bytes(key), version);
+	}
+
+	public MerkleData getData(Bytes key) {
+		return getData(key, -1);
+	}
+
+	public MerkleData getData(Bytes key, long version) {
 		long keyHash = KeyIndexer.hash(key);
 		MerkleData dataEntry = seekDataEntry(key, version, keyHash, root, 0, NULL_SELECTOR);
 		return dataEntry;
 	}
 
-	public MerkleData getData(Bytes key) {
-//		if (root.getNodeHash() == null) {
-//			return null;
-//		}
-		byte[] keyBytes = key.toBytes();
-		long keyHash = KeyIndexer.hash(keyBytes);
-
-		MerkleData dataEntry = seekDataEntry(keyBytes, -1, keyHash, root, 0, NULL_SELECTOR);
-		return dataEntry;
-	}
-
 	/**
-	 * 迭代器包含所有最新版本的数据项；
+	 * 返回所有键的最新版本数据；
 	 */
 	@Override
 	public MerkleDataIterator iterator() {
 		return new MerkleDataIterator(root, this);
+	}
+
+	/**
+	 * 返回指定键的所有版本数据；
+	 * 
+	 * @param key
+	 * @return
+	 */
+	public MerkleDataIterator iterator(byte[] key) {
+
+	}
+
+	/**
+	 * 返回指定键的指定版本之前的所有数据（含指定版本）；
+	 * 
+	 * @param key
+	 * @param version
+	 * @return
+	 */
+	public MerkleDataIterator iterator(byte[] key, long version) {
+		
 	}
 
 //	/**
@@ -309,7 +313,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @param selector
 	 * @return
 	 */
-	private MerkleData seekDataEntry(byte[] key, long version, long keyHash, MerklePath path, int level,
+	private MerkleData seekDataEntry(Bytes key, long version, long keyHash, MerklePath path, int level,
 			SeekingSelector selector) {
 		HashDigest[] childHashs = path.getChildHashs();
 		byte keyIndex = KeyIndexer.index(keyHash, level);
