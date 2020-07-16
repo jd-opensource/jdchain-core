@@ -67,7 +67,8 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 		return new UserRolesSecurityPolicy(endpointPrivilegeMap, nodePrivilegeMap, participantsQuery, userAccountsQuery);
 	}
 
-	private UserRolesPrivileges getUserRolesPrivilegs(Bytes userAddress) {
+	@Override
+	public UserRolesPrivileges getUserRolesPrivilegs(Bytes userAddress) {
 		UserRolesPrivileges userPrivileges = userPrivilegesCache.get(userAddress);
 		if (userPrivileges != null) {
 			return userPrivileges;

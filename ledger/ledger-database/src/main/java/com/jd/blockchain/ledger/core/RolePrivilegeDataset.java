@@ -5,7 +5,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.LedgerPermission;
-import com.jd.blockchain.ledger.LedgerPrivilege;
+import com.jd.blockchain.ledger.LedgerPrivilegeBitset;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.PrivilegeSet;
 import com.jd.blockchain.ledger.Privileges;
@@ -70,7 +70,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable, Role
 	}
 
 	@Override
-	public long addRolePrivilege(String roleName, LedgerPrivilege ledgerPrivilege, TransactionPrivilege txPrivilege) {
+	public long addRolePrivilege(String roleName, LedgerPrivilegeBitset ledgerPrivilege, TransactionPrivilege txPrivilege) {
 		RolePrivileges roleAuth = new RolePrivileges(roleName, -1, ledgerPrivilege, txPrivilege);
 		long nv = setRolePrivilege(roleAuth);
 		if (nv < 0) {
@@ -82,7 +82,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable, Role
 	@Override
 	public long addRolePrivilege(String roleName, LedgerPermission[] ledgerPermissions,
 			TransactionPermission[] txPermissions) {
-		LedgerPrivilege ledgerPrivilege = new LedgerPrivilege();
+		LedgerPrivilegeBitset ledgerPrivilege = new LedgerPrivilegeBitset();
 		for (LedgerPermission lp : ledgerPermissions) {
 			ledgerPrivilege.enable(lp);
 		}

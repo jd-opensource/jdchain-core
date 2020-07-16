@@ -32,6 +32,7 @@ import com.jd.blockchain.ledger.core.EventGroup;
 import com.jd.blockchain.ledger.core.EventPublishingAccount;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.LedgerQueryService;
+import com.jd.blockchain.ledger.core.LedgerRepository;
 import com.jd.blockchain.ledger.core.LedgerService;
 import com.jd.blockchain.ledger.core.ParticipantCertData;
 import com.jd.blockchain.ledger.core.TransactionQuery;
@@ -721,6 +722,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 	public PrivilegeSet getRolePrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 										  @PathVariable(name = "roleName") String roleName) {
 		LedgerQueryService queryService = new LedgerQueryService(ledgerService.getLedger(ledgerHash));
+		
+		LedgerRepository ledger = ledgerService.getLedger(ledgerHash);
+		
 		return queryService.getRolePrivileges(ledgerHash,roleName);
 	}
 
@@ -728,8 +732,8 @@ public class LedgerQueryController implements BlockchainQueryService {
 	@Override
 	public UserPrivilegeSet getUserPrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 											  @PathVariable(name = "userAddress") String userAddress) {
-		LedgerQueryService queryService = new LedgerQueryService(ledgerService.getLedger(ledgerHash));
-		return queryService.getUserPrivileges(ledgerHash,userAddress);
+		LedgerRepository ledger = ledgerService.getLedger(ledgerHash);
+		return ledger.getSecurityManager().getUserRolesPrivilegs(Bytes.fromBase58(userAddress));
 	}
 
 	private LedgerTransaction txDecorator(LedgerTransaction ledgerTransaction) {

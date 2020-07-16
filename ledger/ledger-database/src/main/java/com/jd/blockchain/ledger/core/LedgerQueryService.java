@@ -550,28 +550,32 @@ public class LedgerQueryService implements BlockchainQueryService {
 
 	@Override
 	public UserPrivilegeSet getUserPrivileges(HashDigest ledgerHash, String userAddress) {
-		UserRolesPrivileges userPrivileges;
 		checkLedgerHash(ledgerHash);
-		UserRoles userRoles = ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
-		List<PrivilegeSet> privilegeSetList = new ArrayList<>();
-		//if userRoles=null, perhaps it's default role; But if it's intruder, we should stop it;
-		if(!ledger.getUserAccountSet().contains(Bytes.fromBase58(userAddress))){
-			return null;
-		}
-		//default role;
-		List<RolePrivileges> privilegesList = new ArrayList<>();
-		if(userRoles == null || userRoles.getRoleSet().size()==0){
-			RolePrivileges privilegeSet = ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(DEFAULT_ROLE);
-			privilegesList.add(privilegeSet);
-			userPrivileges = new UserRolesPrivileges(Bytes.fromBase58(userAddress), RolesPolicy.UNION, privilegesList);
-		}else {
-			for(String roleName : userRoles.getRoles()){
-				RolePrivileges privilegeSet = ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(roleName);
-				privilegesList.add(privilegeSet);
-			}
-			userPrivileges = new UserRolesPrivileges(Bytes.fromBase58(userAddress), userRoles.getPolicy(), privilegesList);
-		}
-		return userPrivileges;
+		LedgerSecurityManager securityManager = ledger.getSecurityManager();
+		
+		return securityManager.getUserRolesPrivilegs(Bytes.fromBase58(userAddress));
+//		UserRolesPrivileges userPrivileges;
+//		checkLedgerHash(ledgerHash);
+//		UserRoles userRoles = ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
+//		List<PrivilegeSet> privilegeSetList = new ArrayList<>();
+//		//if userRoles=null, perhaps it's default role; But if it's intruder, we should stop it;
+//		if(!ledger.getUserAccountSet().contains(Bytes.fromBase58(userAddress))){
+//			return null;
+//		}
+//		//default role;
+//		List<RolePrivileges> privilegesList = new ArrayList<>();
+//		if(userRoles == null || userRoles.getRoleSet().size()==0){
+//			RolePrivileges privilegeSet = ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(DEFAULT_ROLE);
+//			privilegesList.add(privilegeSet);
+//			userPrivileges = new UserRolesPrivileges(Bytes.fromBase58(userAddress), RolesPolicy.UNION, privilegesList);
+//		}else {
+//			for(String roleName : userRoles.getRoles()){
+//				RolePrivileges privilegeSet = ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(roleName);
+//				privilegesList.add(privilegeSet);
+//			}
+//			userPrivileges = new UserRolesPrivileges(Bytes.fromBase58(userAddress), userRoles.getPolicy(), privilegesList);
+//		}
+//		return userPrivileges;
 	}
 
 	private PrivilegeSet getRolePrivilegeByRole(String roleName){

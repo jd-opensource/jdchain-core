@@ -4,6 +4,7 @@ import java.util.Collection;
 
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerPrivilege;
+import com.jd.blockchain.ledger.LedgerPrivilegeBitset;
 import com.jd.blockchain.ledger.PrivilegeBitset;
 import com.jd.blockchain.ledger.RolePrivileges;
 import com.jd.blockchain.ledger.RolesPolicy;
@@ -22,13 +23,13 @@ public class UserRolesPrivileges implements UserPrivilegeSet {
 
 	private Bytes userAddress;
 
-	private LedgerPrivilege ledgerPrivileges;
+	private LedgerPrivilegeBitset ledgerPrivileges;
 
 	private TransactionPrivilege transactionPrivileges;
 
 	public UserRolesPrivileges(Bytes userAddress, RolesPolicy policy, Collection<RolePrivileges> privilegesList) {
 		this.userAddress = userAddress;
-		LedgerPrivilege[] ledgerPrivileges = privilegesList.stream().map(p -> p.getLedgerPrivilege())
+		LedgerPrivilegeBitset[] ledgerPrivileges = privilegesList.stream().map(p -> p.getLedgerPrivilege())
 				.toArray(LedgerPrivilege[]::new);
 		TransactionPrivilege[] transactionPrivileges = privilegesList.stream().map(p -> p.getTransactionPrivilege())
 				.toArray(TransactionPrivilege[]::new);
