@@ -8,7 +8,6 @@
  */
 package com.jd.blockchain.consensus.mq;
 
-import com.jd.blockchain.consensus.ConsensusProviders;
 import com.jd.blockchain.consensus.ConsensusSettings;
 import com.jd.blockchain.consensus.ConsensusSettingsBuilder;
 import com.jd.blockchain.consensus.NodeSettings;
@@ -24,15 +23,10 @@ import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.ParticipantNodeOp;
-import com.jd.blockchain.ledger.ParticipantRegisterOperation;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.PropertiesUtils;
-import com.jd.blockchain.utils.codec.Base58Utils;
-import com.jd.blockchain.utils.io.BytesEncoder;
 import com.jd.blockchain.utils.io.BytesUtils;
 import com.jd.blockchain.utils.io.FileUtils;
-import com.jd.blockchain.utils.net.NetworkAddress;
 
 import org.springframework.core.io.ClassPathResource;
 
@@ -171,56 +165,52 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
         return PropertiesUtils.cloneFrom(CONFIG_TEMPLATE);
     }
 
-    @Override
-    public ConsensusSettings writeSettings(ConsensusSettings settings, Bytes newProps, ParticipantNodeOp op) {
-        return null;
-    }
 
-//    @Override
-//    public void writeSettings(ConsensusSettings settings, Properties props) {
-//
-//        if (!(settings instanceof MsgQueueConsensusSettings)) {
-//            throw new IllegalArgumentException("ConsensusSettings data isn't supported! Accept MsgQueueConsensusSettings only!");
-//        }
-//
-//        MsgQueueConsensusSettings consensusSettings = (MsgQueueConsensusSettings) settings;
-//
-//        MsgQueueNetworkSettings networkSettings = consensusSettings.getNetworkSettings();
-//        if (networkSettings == null || networkSettings.getServer() == null || networkSettings.getServer().length() <= 0) {
-//            throw new IllegalArgumentException("MsgQueue Consensus server is empty!");
-//        }
-//
-//        String server = networkSettings.getServer();
-//        props.setProperty(MSG_QUEUE_SERVER, server);
-//
-//        String txTopic = networkSettings.getTxTopic();
-//        if (txTopic == null || txTopic.length() <= 0) {
-//            txTopic = DEFAULT_TOPIC_TX;
-//        }
-//        props.setProperty(MSG_QUEUE_TOPIC_TX, txTopic);
-//
-//        String blTopic = networkSettings.getBlTopic();
-//        if (blTopic == null || blTopic.length() <= 0) {
-//            blTopic = DEFAULT_TOPIC_BL;
-//        }
-//        props.setProperty(MSG_QUEUE_TOPIC_BL, blTopic);
-//
-//        String msgTopic = networkSettings.getMsgTopic();
-//        if (msgTopic == null || msgTopic.length() <= 0) {
-//            msgTopic = DEFAULT_TOPIC_MSG;
-//        }
-//        props.setProperty(MSG_QUEUE_TOPIC_MSG, msgTopic);
-//
-//        MsgQueueBlockSettings blockSettings = consensusSettings.getBlockSettings();
-//        if (blockSettings == null) {
-//            props.setProperty(MSG_QUEUE_BLOCK_TXSIZE, DEFAULT_TXSIZE + "");
-//            props.setProperty(MSG_QUEUE_BLOCK_MAXDELAY, DEFAULT_MAXDELAY + "");
-//        } else {
-//            int txSize = blockSettings.getTxSizePerBlock();
-//            long maxDelay = blockSettings.getMaxDelayMilliSecondsPerBlock();
-//            props.setProperty(MSG_QUEUE_BLOCK_TXSIZE, txSize + "");
-//            props.setProperty(MSG_QUEUE_BLOCK_MAXDELAY, maxDelay + "");
-//        }
+    @Override
+    public void writeSettings(ConsensusSettings settings, Properties props) {
+
+        if (!(settings instanceof MsgQueueConsensusSettings)) {
+            throw new IllegalArgumentException("ConsensusSettings data isn't supported! Accept MsgQueueConsensusSettings only!");
+        }
+
+        MsgQueueConsensusSettings consensusSettings = (MsgQueueConsensusSettings) settings;
+
+        MsgQueueNetworkSettings networkSettings = consensusSettings.getNetworkSettings();
+        if (networkSettings == null || networkSettings.getServer() == null || networkSettings.getServer().length() <= 0) {
+            throw new IllegalArgumentException("MsgQueue Consensus server is empty!");
+        }
+
+        String server = networkSettings.getServer();
+        props.setProperty(MSG_QUEUE_SERVER, server);
+
+        String txTopic = networkSettings.getTxTopic();
+        if (txTopic == null || txTopic.length() <= 0) {
+            txTopic = DEFAULT_TOPIC_TX;
+        }
+        props.setProperty(MSG_QUEUE_TOPIC_TX, txTopic);
+
+        String blTopic = networkSettings.getBlTopic();
+        if (blTopic == null || blTopic.length() <= 0) {
+            blTopic = DEFAULT_TOPIC_BL;
+        }
+        props.setProperty(MSG_QUEUE_TOPIC_BL, blTopic);
+
+        String msgTopic = networkSettings.getMsgTopic();
+        if (msgTopic == null || msgTopic.length() <= 0) {
+            msgTopic = DEFAULT_TOPIC_MSG;
+        }
+        props.setProperty(MSG_QUEUE_TOPIC_MSG, msgTopic);
+
+        MsgQueueBlockSettings blockSettings = consensusSettings.getBlockSettings();
+        if (blockSettings == null) {
+            props.setProperty(MSG_QUEUE_BLOCK_TXSIZE, DEFAULT_TXSIZE + "");
+            props.setProperty(MSG_QUEUE_BLOCK_MAXDELAY, DEFAULT_MAXDELAY + "");
+        } else {
+            int txSize = blockSettings.getTxSizePerBlock();
+            long maxDelay = blockSettings.getMaxDelayMilliSecondsPerBlock();
+            props.setProperty(MSG_QUEUE_BLOCK_TXSIZE, txSize + "");
+            props.setProperty(MSG_QUEUE_BLOCK_MAXDELAY, maxDelay + "");
+        }
 
 
 //        int serversNum = PropertiesUtils.getInt(props, SERVER_NUM_KEY);
@@ -248,7 +238,12 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 //            String keyOfHost = nodeKey(CONSENSUS_HOST_PATTERN, id);
 //            props.setProperty(keyOfHost, mqns.getAddress() == null ? "" : mqns.getAddress());
 //        }
-//    }
+    }
+
+    @Override
+    public ConsensusSettings updateSettings(ConsensusSettings oldConsensusSettings, Properties newProps) {
+        return null;
+    }
 
     private String initProp(Properties resolvingProps, String key, String defaultVal) {
         try {
