@@ -114,9 +114,9 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     protected int findServerId() {
         int serverId = 0;
 
-        for (int i = 0; i < hostsConfig.getNum(); i++) {
-            String host = ((BftsmartNodeSettings)serverSettings.getReplicaSettings()).getNetworkAddress().getHost();
-            int port = ((BftsmartNodeSettings)serverSettings.getReplicaSettings()).getNetworkAddress().getPort();
+        String host = ((BftsmartNodeSettings)serverSettings.getReplicaSettings()).getNetworkAddress().getHost();
+        int port = ((BftsmartNodeSettings)serverSettings.getReplicaSettings()).getNetworkAddress().getPort();
+        for (int i : hostsConfig.getHostsIds()) {
 
             if (hostsConfig.getHost(i).equals(host) && hostsConfig.getPort(i) == port) {
                 serverId = i;
@@ -625,7 +625,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         if (this.getId() < 0) {
             throw new IllegalStateException("Unset server node ID！");
         }
-        LOGGER.debug("=============================== Start replica ===================================");
+        LOGGER.info("=============================== Start replica ===================================");
 
         if (status != Status.STOPPED) {
             return;
@@ -637,14 +637,14 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             status = Status.STARTING;
 
             try {
-                LOGGER.debug("Start replica...[ID=" + getId() + "]");
+                LOGGER.info("Start replica...[ID=" + getId() + "]");
 //                this.replica = new ServiceReplica(tomConfig, this, this);
                 this.replica = new ServiceReplica(tomConfig, this, this, (int)latestStateId -1, latestView);
                 this.topology = new BftsmartTopology(replica.getReplicaContext().getCurrentView());
 //                initOutTopology();
                 status = Status.RUNNING;
 //                createProxyClient();
-                LOGGER.debug(
+                LOGGER.info(
                         "=============================== Replica started success! ===================================");
             } catch (RuntimeException e) {
                 status = Status.STOPPED;

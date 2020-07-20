@@ -8,6 +8,30 @@ import bftsmart.reconfiguration.views.MemoryBasedViewStorage;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.ServiceProxy;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.blockchain.service.TransactionBatchResultHandle;
+import com.jd.blockchain.transaction.SignatureUtils;
+import com.jd.blockchain.transaction.TxBuilder;
+import com.jd.blockchain.transaction.TxRequestMessage;
+import com.jd.blockchain.transaction.TxResponseMessage;
+import com.jd.blockchain.utils.PropertiesUtils;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import com.jd.blockchain.crypto.CryptoAlgorithm;
+import com.jd.blockchain.crypto.CryptoProvider;
+import com.jd.blockchain.ledger.core.TransactionSetQuery;
+import com.jd.blockchain.ledger.json.CryptoConfigInfo;
+import com.jd.blockchain.ledger.proof.MerkleData;
+import com.jd.blockchain.ledger.proof.MerkleLeaf;
+import com.jd.blockchain.ledger.proof.MerklePath;
+import com.jd.blockchain.peer.consensus.LedgerStateManager;
+import com.jd.blockchain.utils.Property;
+import com.jd.blockchain.utils.codec.Base58Utils;
+import com.jd.blockchain.utils.net.NetworkAddress;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.consensus.ClientIdentification;
 import com.jd.blockchain.consensus.ClientIdentifications;
@@ -25,8 +49,6 @@ import com.jd.blockchain.consensus.service.ServerSettings;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.Crypto;
-import com.jd.blockchain.crypto.CryptoAlgorithm;
-import com.jd.blockchain.crypto.CryptoProvider;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.crypto.KeyGenUtils;
@@ -76,36 +98,18 @@ import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.LedgerRepository;
 import com.jd.blockchain.ledger.core.OperationHandleRegisteration;
 import com.jd.blockchain.ledger.core.TransactionBatchProcessor;
-import com.jd.blockchain.ledger.core.TransactionSetQuery;
-import com.jd.blockchain.ledger.json.CryptoConfigInfo;
-import com.jd.blockchain.ledger.proof.MerkleData;
-import com.jd.blockchain.ledger.proof.MerkleLeaf;
-import com.jd.blockchain.ledger.proof.MerklePath;
 import com.jd.blockchain.peer.ConsensusRealm;
 import com.jd.blockchain.peer.LedgerBindingConfigAware;
 import com.jd.blockchain.peer.PeerManage;
-import com.jd.blockchain.peer.consensus.LedgerStateManager;
-import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.setting.GatewayIncomingSetting;
 import com.jd.blockchain.setting.LedgerIncomingSetting;
 import com.jd.blockchain.storage.service.DbConnection;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig.BindingConfig;
-import com.jd.blockchain.transaction.SignatureUtils;
-import com.jd.blockchain.transaction.TxBuilder;
-import com.jd.blockchain.transaction.TxRequestMessage;
-import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.PropertiesUtils;
-import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.ByteArray;
-import com.jd.blockchain.utils.net.NetworkAddress;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -113,12 +117,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.*;
 import static com.jd.blockchain.ledger.TransactionState.LEDGER_ERROR;
 
 /**
@@ -134,6 +136,8 @@ import static com.jd.blockchain.ledger.TransactionState.LEDGER_ERROR;
 public class ManagementController implements LedgerBindingConfigAware, PeerManage {
 
 	private static Logger LOGGER = LoggerFactory.getLogger(ManagementController.class);
+
+	public static final  String  BFTSMART_PROVIDER = "com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider";
 
 	public static final String GATEWAY_PUB_EXT_NAME = ".gw.pub";
 
@@ -409,60 +413,80 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	 *
 	 * <p>
 	 * 如果操作中涉及到共识参与方的共识参数变化，将触发将此节点的共识拓扑改变的操作；
-	 *
+	 * 
 	 * @param base58LedgerHash
+	 *              base58格式的账本哈希；
+	 * @param consensusIp
+	 *              激活参与方的共识Ip
+	 * @param consensusPort
+	 *              激活参与方的共识Port
+	 *
 	 * @return
 	 */
 	@RequestMapping(path = "/delegate/activeparticipant", method = RequestMethod.POST)
-	public TransactionResponse activateParticipant(@RequestParam("ledgerHash") String base58LedgerHash) {
+	public TransactionResponse activateParticipant(@RequestParam("ledgerHash") String base58LedgerHash, @RequestParam("consensusHost") String consensusIp, @RequestParam("consensusPort") String consensusPort) {
 		HashDigest remoteNewBlockHash;
 		TransactionResponse transactionResponse = new TxResponseMessage();
+
 		try {
 			HashDigest ledgerHash = new HashDigest(Base58Utils.decode(base58LedgerHash));
 
 			if (ledgerKeypairs.get(ledgerHash) == null) {
 				throw new IllegalArgumentException("[ManagementController] input ledgerhash not exist!");
 			}
-			// 由本节点准备交易
-			TransactionRequest txRequest = prepareTx(ledgerHash);
 
 			LedgerRepository ledgerRepo = (LedgerRepository) ledgerQuerys.get(ledgerHash);
 
-			systemConfig = PropertiesUtils.createProperties(((BftsmartConsensusSettings)getConsensusSetting(ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()))).getSystemConfigs());
+			LedgerAdminInfo ledgerAdminInfo = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock());
 
-			viewId = ((BftsmartConsensusSettings) getConsensusSetting(ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()))).getViewId();
+			if (ledgerAdminInfo.getSettings().getConsensusProvider().equals(BFTSMART_PROVIDER)) {
 
-			// 验证本参与方是否已经被注册，没有被注册的参与方不能进行状态更新
-			if (!verifyState(ledgerRepo)) {
-				((TxResponseMessage) transactionResponse).setExecutionState(TransactionState.SUCCESS);
-				return txResponseWrapper(transactionResponse);
-			}
+				ParticipantNode[] participants = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()).getParticipants();
 
-			// 为交易添加本节点的签名信息，防止无法通过安全策略检查
-			txRequest = addNodeSigner(txRequest);
+				systemConfig = PropertiesUtils.createProperties(((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getSystemConfigs());
 
-			// 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行新参与方的状态激活操作
-			TransactionResponse txResponse = commitTxToOrigConsensus(ledgerRepo, txRequest);
+				viewId = ((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getViewId();
 
-			// 如果交易执行失败，则返回失败结果；
-			if (!txResponse.isSuccess()) {
-				LOGGER.error("[ManagementController] commit tx to orig consensus, tx execute failed!");
+				// 由本节点准备交易
+				TransactionRequest txRequest = prepareTx(ledgerHash, participants, consensusIp, consensusPort);
+
+				// 验证本参与方是否已经被注册，没有被注册的参与方不能进行状态更新
+				if (!verifyState(ledgerRepo)) {
+					((TxResponseMessage) transactionResponse).setExecutionState(TransactionState.SUCCESS);
+					return txResponseWrapper(transactionResponse);
+				}
+
+				// 为交易添加本节点的签名信息，防止无法通过安全策略检查
+				txRequest = addNodeSigner(txRequest);
+
+				// 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行新参与方的状态激活操作
+				TransactionResponse txResponse = commitTxToOrigConsensus(ledgerRepo, txRequest);
+
+				// 如果交易执行失败，则返回失败结果；
+				if (!txResponse.isSuccess()) {
+					LOGGER.error("[ManagementController] commit tx to orig consensus, tx execute failed!");
+					return txResponse;
+				}
+
+				// 如果交易执行成功，记录远程共识网络的新区块哈希；
+				remoteNewBlockHash = txResponse.getBlockHash();
+
+				// 在本地账本执行交易；
+				// 验证本地区块与远程区块是否一致，如果不一致，返回失败结果；
+				// 如果区块一致，提交区块；
+				txResponse = commitTxToLocalLedger(ledgerRepo, remoteNewBlockHash, txRequest);
+
+				if (txResponse.isSuccess()) {
+					// 更新原有共识网络节点以及本地新启动节点的视图ID，并启动本地新节点的共识服务
+					TransactionState transactionState = updateViewAndStartServer(ledgerRepo);
+					((TxResponseMessage) txResponse).setExecutionState(transactionState);
+				}
 				return txResponse;
+			} else {
+				//Todo
+				//mq or others
+				return null;
 			}
-			// 如果交易执行成功，记录远程共识网络的新区块哈希；
-			remoteNewBlockHash = txResponse.getBlockHash();
-
-			// 在本地账本执行交易；
-			// 验证本地区块与远程区块是否一致，如果不一致，返回失败结果；
-			// 如果区块一致，提交区块；
-			txResponse = commitTxToLocalLedger(ledgerRepo, remoteNewBlockHash, txRequest);
-
-			if (txResponse.isSuccess()) {
-				// 更新原有共识网络节点以及本地新启动节点的视图ID，并启动本地新节点的共识服务
-				TransactionState transactionState = updateViewAndStartServer(ledgerRepo);
-				((TxResponseMessage)txResponse).setExecutionState(transactionState);
-			}
-			return txResponse;
 
 		} catch (ViewUpdateException e) {
 			LOGGER.error("[ManagementController] view update exception!");
@@ -478,12 +502,65 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		return transactionResponse;
 	}
 
-	// 在指定的账本上准备一笔激活参与方状态的操作
-	private TransactionRequest prepareTx(HashDigest ledgerHash) {
+	private static String keyOfNode(String pattern, int id) {
+		return String.format(pattern, id);
+	}
+
+	private String createView(String oldView, int id) {
+
+		StringBuilder views = new StringBuilder(oldView);
+
+		views.append(",");
+
+		views.append(id);
+
+		return views.toString();
+	}
+
+	// organize system config properties
+	Property[] createActiveProperties(String host, String port, PubKey activePubKey, int activeID) {
+		int oldServerNum = Integer.parseInt(systemConfig.getProperty(SERVER_NUM_KEY));
+		int oldFNum = Integer.parseInt(systemConfig.getProperty(F_NUM_KEY));
+		String oldView = systemConfig.getProperty(SERVER_VIEW_KEY);
+
+
+		List<Property> properties = new ArrayList<Property>();
+
+		properties.add(new Property(keyOfNode(CONSENSUS_HOST_PATTERN, activeID), host));
+		properties.add(new Property(keyOfNode(CONSENSUS_PORT_PATTERN, activeID), port));
+		properties.add(new Property(keyOfNode(CONSENSUS_SECURE_PATTERN, activeID), "false"));
+		properties.add(new Property(keyOfNode(PUBKEY_PATTERN, activeID), activePubKey.toBase58()));
+		properties.add(new Property(SERVER_NUM_KEY, String.valueOf(Integer.parseInt(systemConfig.getProperty(SERVER_NUM_KEY)) + 1)));
+
+		if ((oldServerNum + 1) >= (3*(oldFNum + 1) + 1)) {
+			properties.add(new Property(F_NUM_KEY, String.valueOf(oldFNum + 1)));
+		}
+		properties.add(new Property(SERVER_VIEW_KEY, createView(oldView, activeID)));
+
+		return properties.toArray(new Property[properties.size()]);
+	}
+
+	// 在指定的账本上准备一笔激活参与方状态及系统配置参数的操作
+	private TransactionRequest prepareTx(HashDigest ledgerHash, ParticipantNode[] participants, String host, String port) {
+		PubKey activePubKey = ledgerKeypairs.get(ledgerHash).getPubKey();
+		int activeID = 0;
+
+		for(int i = 0; i < participants.length; i++) {
+			if (activePubKey.equals(participants[i].getPubKey())) {
+				activeID = participants[i].getId();
+				break;
+			}
+		}
+
+		// organize system config properties
+		Property[] properties = createActiveProperties(host, port, activePubKey, activeID);
 
 		TxBuilder txbuilder = new TxBuilder(ledgerHash);
 
-		txbuilder.states().update(new BlockchainIdentityData(ledgerKeypairs.get(ledgerHash).getPubKey()), ParticipantNodeState.CONSENSUS);
+		// This transaction contains participant state update and settings update two ops
+		txbuilder.states().update(new BlockchainIdentityData(activePubKey), ParticipantNodeState.CONSENSUS);
+
+		txbuilder.settings().update(properties);
 
 		TransactionRequestBuilder reqBuilder = txbuilder.prepareRequest();
 
@@ -606,6 +683,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			LOGGER.info("[ManagementController] setupServer SUCC!");
 		} catch (Exception e) {
+			e.printStackTrace();
 			throw new StartServerException("[ManagementController] start server fail exception");
 		}
 
@@ -736,7 +814,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			// 构建tom 配置
 			TOMConfiguration tomConfig = new TOMConfiguration((int) -System.nanoTime(), tempSystemConfig, hostsConfig);
 
-			// 根据配置信息构建客户端视图，VIEW ID没有持久化，所以不能确定原有共识网络中的视图信息，在这里先使用默认的0
 			View view = new View(viewId, origConsensusProcesses, tomConfig.getF(), nodeAddresses.toArray(new InetSocketAddress[nodeAddresses.size()]));
 
 			// 构建共识的代理客户端，连接目标共识节点，并递交交易进行共识过程

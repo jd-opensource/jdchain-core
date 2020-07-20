@@ -1,16 +1,9 @@
 package com.jd.blockchain.ledger.core.handles;
 
-import com.jd.blockchain.consensus.ConsensusProvider;
-import com.jd.blockchain.consensus.ConsensusProviders;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.ledger.LedgerPermission;
-import com.jd.blockchain.ledger.LedgerSettings;
-import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.ParticipantNodeState;
-import com.jd.blockchain.ledger.ParticipantStateUpdateOperation;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.LedgerAdminDataset;
-import com.jd.blockchain.ledger.core.LedgerConfiguration;
 import com.jd.blockchain.ledger.core.LedgerDataset;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
@@ -36,30 +29,20 @@ public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperati
         SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
         securityPolicy.checkEndpointPermission(LedgerPermission.REGISTER_PARTICIPANT, MultiIDsPolicy.AT_LEAST_ONE);
 
-        ParticipantStateUpdateOperation stateUpdateOperation = (ParticipantStateUpdateOperation) op;
-
         LedgerAdminDataset adminAccountDataSet = newBlockDataset.getAdminDataset();
-
-        ConsensusProvider provider = ConsensusProviders.getProvider(adminAccountDataSet.getSettings().getConsensusProvider());
 
         ParticipantNode[] participants = adminAccountDataSet.getParticipants();
 
         ParticipantNode participantNode = null;
 
         for(int i = 0; i < participants.length; i++) {
-            if (stateUpdateOperation.getStateUpdateIdentity().getPubKey().equals(participants[i].getPubKey())) {
-               participantNode = new PartNode(participants[i].getId(), participants[i].getName(), participants[i].getPubKey(), ParticipantNodeState.CONSENSUS);
+            if (op.getParticipantID().getPubKey().equals(participants[i].getPubKey())) {
+               participantNode = new PartNode(participants[i].getId(), participants[i].getName(), participants[i].getPubKey(), op.getState());
                break;
             }
         }
-        //update consensus system config property and view id for ledger setting
-        Bytes newConsensusSettings =  provider.getSettingsFactory().getConsensusSettingsBuilder().updateConsensusSettings(adminAccountDataSet.getSettings().getConsensusSetting(), stateUpdateOperation.getStateUpdateIdentity().getPubKey(), null, (byte) 1);
 
-        LedgerSettings ledgerSetting = new LedgerConfiguration(adminAccountDataSet.getSettings().getConsensusProvider(),
-                newConsensusSettings, adminAccountDataSet.getPreviousSetting().getCryptoSetting());
-
-        adminAccountDataSet.setLedgerSetting(ledgerSetting);
-
+        // 激活新参与方的共识状态
         adminAccountDataSet.updateParticipant(participantNode);
 
     }
