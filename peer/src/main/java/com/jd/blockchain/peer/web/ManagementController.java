@@ -65,6 +65,7 @@ import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.io.ByteArray;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
 
+import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.*;
 import static com.jd.blockchain.ledger.TransactionState.LEDGER_ERROR;
 
 /**
@@ -356,11 +357,17 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	 * <p>
 	 * 如果操作中涉及到共识参与方的共识参数变化，将触发将此节点的共识拓扑改变的操作；
 	 * 
-	 * @param txRequest
+	 * @param base58LedgerHash
+	 *              base58格式的账本哈希；
+	 * @param consensusIp
+	 *              激活参与方的共识Ip
+	 * @param consensusPort
+	 *              激活参与方的共识Port
+	 *
 	 * @return
 	 */
 	@RequestMapping(path = "/delegate/activeparticipant", method = RequestMethod.POST)
-	public TransactionResponse activateParticipant(@RequestParam("ledgerHash") String base58LedgerHash, @RequestParam("host") String host, @RequestParam("port") String port) {
+	public TransactionResponse activateParticipant(@RequestParam("ledgerHash") String base58LedgerHash, @RequestParam("consensusIp") String consensusIp, @RequestParam("consensusPort") String consensusPort) {
 		HashDigest remoteNewBlockHash;
 		TransactionResponse transactionResponse = new TxResponseMessage();
 
@@ -375,12 +382,14 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			if (ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()).getSettings().getConsensusProvider().equals("com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider")) {
 
-				// 由本节点准备交易
-				TransactionRequest txRequest = prepareTx(ledgerRepo, host, port);
+				ParticipantNode[] participants = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()).getParticipants();
 
 				systemConfig = PropertiesUtils.createProperties(((BftsmartConsensusSettings) getConsensusSetting(ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()))).getSystemConfigs());
 
 				viewId = ((BftsmartConsensusSettings) getConsensusSetting(ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()))).getViewId();
+
+				// 由本节点准备交易
+				TransactionRequest txRequest = prepareTx(ledgerHash, participants, consensusIp, consensusPort);
 
 				// 验证本参与方是否已经被注册，没有被注册的参与方不能进行状态更新
 				if (!verifyState(ledgerRepo)) {
@@ -434,13 +443,46 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		return transactionResponse;
 	}
 
-	// 在指定的账本上准备一笔激活参与方状态的操作
-	private TransactionRequest prepareTx(LedgerRepository ledgerRepository, String host, String port) {
-		HashDigest ledgerHash = ledgerRepository.getHash();
+	private static String keyOfNode(String pattern, int id) {
+		return String.format(pattern, id);
+	}
+
+	private String createView(String oldView, int id) {
+
+		StringBuilder views = new StringBuilder(oldView);
+
+		views.append(",");
+
+		views.append(id);
+
+		return views.toString();
+	}
+
+	// organize system config properties
+	Property[] createActiveProperties(String host, String port, PubKey activePubKey, int activeID) {
+		int oldServerNum = Integer.parseInt(systemConfig.getProperty(SERVER_NUM_KEY));
+		int oldFNum = Integer.parseInt(systemConfig.getProperty(F_NUM_KEY));
+		String oldView = systemConfig.getProperty(SERVER_VIEW_KEY);
+		Property[] properties = new Property[7];
+
+		properties[0] = new Property(keyOfNode(CONSENSUS_HOST_PATTERN, activeID), host);
+		properties[1] = new Property(keyOfNode(CONSENSUS_PORT_PATTERN, activeID), port);
+		properties[2] = new Property(keyOfNode(CONSENSUS_SECURE_PATTERN, activeID), "false");
+		properties[3] = new Property(keyOfNode(PUBKEY_PATTERN, activeID), activePubKey.toBase58());
+		properties[4] = new Property(SERVER_NUM_KEY, String.valueOf(Integer.parseInt(systemConfig.getProperty(SERVER_NUM_KEY)) + 1));
+
+		if ((oldServerNum + 1) >= (3*(oldFNum + 1) + 1)) {
+			properties[5] = new Property(F_NUM_KEY, String.valueOf(oldFNum + 1));
+		}
+		properties[6] = new Property(SERVER_VIEW_KEY, createView(oldView, activeID));
+
+		return properties;
+	}
+
+	// 在指定的账本上准备一笔激活参与方状态及系统配置参数的操作
+	private TransactionRequest prepareTx(HashDigest ledgerHash, ParticipantNode[] participants, String host, String port) {
 		PubKey activePubKey = ledgerKeypairs.get(ledgerHash).getPubKey();
 		int activeID = 0;
-
-		ParticipantNode [] participants = ledgerRepository.getAdminInfo(ledgerRepository.retrieveLatestBlock()).getParticipants();
 
 		for(int i = 0; i < participants.length; i++) {
 			if (activePubKey.equals(participants[i].getPubKey())) {
@@ -449,12 +491,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			}
 		}
 
-		Property[] properties = new Property[4];
-
-		properties[0] = new Property("host", host);
-		properties[1] = new Property("port", port);
-		properties[2] = new Property("pubkey", activePubKey.toBase58());
-		properties[3] = new Property("activeId", String.valueOf(activeID));
+		// organize system config properties
+		Property[] properties = createActiveProperties(host, port, activePubKey, activeID);
 
 		TxBuilder txbuilder = new TxBuilder(ledgerHash);
 
