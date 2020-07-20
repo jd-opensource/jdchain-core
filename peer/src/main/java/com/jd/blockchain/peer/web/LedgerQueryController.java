@@ -709,7 +709,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		return contractAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
-	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/role-privilege/{roleName}")
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/authorization/role/{roleName}")
 	@Override
 	public PrivilegeSet getRolePrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 										  @PathVariable(name = "roleName") String roleName) {
@@ -717,7 +717,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		return ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(roleName);
 	}
 
-	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/user-privilege/{userAddress}")
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/authorization/user/{userAddress}")
 	@Override
 	public UserPrivilegeSet getUserPrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 											  @PathVariable(name = "userAddress") String userAddress) {
