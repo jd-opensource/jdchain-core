@@ -1,10 +1,11 @@
-package com.jd.blockchain.ledger.core;
+package com.jd.blockchain.ledger.proof;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import com.jd.blockchain.ledger.core.MerkleSequenceTree.DataNode;
+import com.jd.blockchain.ledger.core.MerkleDataNodeEncoder;
+import com.jd.blockchain.ledger.proof.MerkleSequenceTree.DataNode;
 
 class MerkleTreeEncoder {
 

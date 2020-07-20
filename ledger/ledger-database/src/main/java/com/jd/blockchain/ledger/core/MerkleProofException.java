@@ -1,5 +1,7 @@
 package com.jd.blockchain.ledger.core;
 
+import com.jd.blockchain.ledger.proof.MerkleSequenceTree;
+
 /**
  * 默克尔证明异常；
  * <p>

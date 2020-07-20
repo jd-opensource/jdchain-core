@@ -1,9 +1,10 @@
-package com.jd.blockchain.ledger.core;
+package com.jd.blockchain.ledger.proof;
 
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
-import com.jd.blockchain.ledger.core.MerkleSequenceTree.DataNode;
+import com.jd.blockchain.ledger.core.MerkleDataNodeEncoder;
+import com.jd.blockchain.ledger.proof.MerkleSequenceTree.DataNode;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.io.BytesUtils;
 import com.jd.blockchain.utils.io.NumberMask;
@@ -31,7 +32,7 @@ import com.jd.blockchain.utils.io.NumberMask;
  * @author huanghaiquan
  *
  */
-class MerkleDataNodeEncoder_V0 implements MerkleDataNodeEncoder {
+public class MerkleDataNodeEncoder_V0 implements MerkleDataNodeEncoder {
 
 	@Override
 	public byte getFormatVersion() {

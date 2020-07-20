@@ -36,7 +36,6 @@ import com.jd.blockchain.ledger.proof.KeyIndexer;
 import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.ledger.proof.MerkleDataEntry;
 import com.jd.blockchain.ledger.proof.MerkleHashTrie;
-import com.jd.blockchain.ledger.proof.MerkleHashTrie.MerkleDataIterator;
 import com.jd.blockchain.ledger.proof.MerklePath;
 import com.jd.blockchain.ledger.proof.PathNode;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;

@@ -5,6 +5,7 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleDataNode;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.proof.MerkleSequenceTree;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage.ExPolicy;
 import com.jd.blockchain.storage.service.VersioningKVStorage;

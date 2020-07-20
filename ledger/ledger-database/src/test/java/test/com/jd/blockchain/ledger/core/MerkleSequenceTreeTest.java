@@ -20,8 +20,8 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleDataNode;
 import com.jd.blockchain.ledger.MerkleNode;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.core.MerkleSequenceTree;
-import com.jd.blockchain.ledger.core.MerkleSequenceTree.DataNode;
+import com.jd.blockchain.ledger.proof.MerkleSequenceTree;
+import com.jd.blockchain.ledger.proof.MerkleSequenceTree.DataNode;
 import com.jd.blockchain.storage.service.utils.ExistancePolicyKVStorageMap;
 import com.jd.blockchain.utils.Bytes;
 

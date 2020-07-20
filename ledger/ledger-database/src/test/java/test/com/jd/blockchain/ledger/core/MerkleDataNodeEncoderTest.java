@@ -1,4 +1,4 @@
-package com.jd.blockchain.ledger.core;
+package test.com.jd.blockchain.ledger.core;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -11,7 +11,10 @@ import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
-import com.jd.blockchain.ledger.core.MerkleSequenceTree.DataNode;
+import com.jd.blockchain.ledger.core.MerkleDataNodeEncoder;
+import com.jd.blockchain.ledger.proof.MerkleDataNodeEncoder_V0;
+import com.jd.blockchain.ledger.proof.MerkleDataNodeEncoder_V1;
+import com.jd.blockchain.ledger.proof.MerkleSequenceTree.DataNode;
 import com.jd.blockchain.utils.Bytes;
 
 public class MerkleDataNodeEncoderTest {

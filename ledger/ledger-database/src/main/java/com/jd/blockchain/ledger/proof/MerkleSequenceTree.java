@@ -1,4 +1,4 @@
-package com.jd.blockchain.ledger.core;
+package com.jd.blockchain.ledger.proof;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,6 +22,8 @@ import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleDataNode;
 import com.jd.blockchain.ledger.MerkleNode;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.core.HashPathProof;
+import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage.ExPolicy;
 import com.jd.blockchain.utils.ArrayUtils;
@@ -59,9 +61,9 @@ public class MerkleSequenceTree implements Transactional {
 
 	public static final long MAX_SN = MAX_DATACOUNT - 1;
 
-	public static final String NODE_PREFIX = "MKT://";
-
-	public static final String PATH_SEPERATOR = "/";
+//	public static final String NODE_PREFIX = "MKT://";
+//
+//	public static final String PATH_SEPERATOR = "/";
 
 	public static final boolean PARALLEL;
 
@@ -129,21 +131,6 @@ public class MerkleSequenceTree implements Transactional {
 	public MerkleSequenceTree(CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
 		this(null, setting, keyPrefix, kvStorage, false);
 	}
-
-	// /**
-	// * 创建一颗可写的 Merkle 树；
-	// *
-	// * @param rootHash
-	// * 节点的根Hash; 如果指定为 null，则实际上创建一个空的 Merkle Tree；
-	// * @param verifyOnLoad
-	// * 从外部存储加载节点时是否校验节点的哈希；
-	// * @param kvStorage
-	// * 保存 Merkle 节点的存储服务；
-	// */
-	// public MerkleTree(HashDigest rootHash, CryptoSetting setting,
-	// ExistentialKVStorage kvStorage) {
-	// this(rootHash, setting, kvStorage, false);
-	// }
 
 	/**
 	 * 创建 Merkle 树；
