@@ -82,6 +82,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	private static Logger LOGGER = LoggerFactory.getLogger(ManagementController.class);
 
+	public static final  String  BFTSMART_PROVIDER = "com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider";
+
 	public static final String GATEWAY_PUB_EXT_NAME = ".gw.pub";
 
 	public static final int MIN_GATEWAY_ID = 10000;
@@ -380,13 +382,15 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			LedgerRepository ledgerRepo = (LedgerRepository) ledgerQuerys.get(ledgerHash);
 
-			if (ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()).getSettings().getConsensusProvider().equals("com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider")) {
+			LedgerAdminInfo ledgerAdminInfo = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock());
+
+			if (ledgerAdminInfo.getSettings().getConsensusProvider().equals(BFTSMART_PROVIDER)) {
 
 				ParticipantNode[] participants = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()).getParticipants();
 
-				systemConfig = PropertiesUtils.createProperties(((BftsmartConsensusSettings) getConsensusSetting(ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()))).getSystemConfigs());
+				systemConfig = PropertiesUtils.createProperties(((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getSystemConfigs());
 
-				viewId = ((BftsmartConsensusSettings) getConsensusSetting(ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()))).getViewId();
+				viewId = ((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getViewId();
 
 				// 由本节点准备交易
 				TransactionRequest txRequest = prepareTx(ledgerHash, participants, consensusIp, consensusPort);
