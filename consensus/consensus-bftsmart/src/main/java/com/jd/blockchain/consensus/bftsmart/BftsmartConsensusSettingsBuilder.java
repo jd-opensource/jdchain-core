@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
+import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.utils.PropertiesUtils;
 import com.jd.blockchain.utils.Property;
@@ -19,7 +20,6 @@ import org.springframework.core.io.ClassPathResource;
 import com.jd.blockchain.consensus.ConsensusSettings;
 import com.jd.blockchain.consensus.ConsensusSettingsBuilder;
 import com.jd.blockchain.crypto.PubKey;
-
 
 public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilder {
 
@@ -243,17 +243,16 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 	@Override
 	public ConsensusSettings updateSettings(ConsensusSettings oldConsensusSettings, Properties newProps) {
 
-		// update system config and node settings
-		Property[] systemConfigs = modifySystemProperties(((BftsmartConsensusSettings) oldConsensusSettings).getSystemConfigs(), newProps);
-		BftsmartNodeSettings[] newNodeSettings = createNewNodeSetting(systemConfigs);
+        if (newProps != null) {
+            // update system config and node settings
+            Property[] systemConfigs = modifySystemProperties(((BftsmartConsensusSettings) oldConsensusSettings).getSystemConfigs(), newProps);
+            if (newProps.getProperty(SERVER_VIEW_KEY) != null) {
 
-		if (newProps != null) {
-			if (newProps.getProperty(SERVER_VIEW_KEY) != null) {
-
-				// when active new participant, update view id
+                // in active new participant's case, update nodesetting and view id
+                BftsmartNodeSettings[] newNodeSettings = createNewNodeSetting(oldConsensusSettings.getNodes(), newProps);
 				return new BftsmartConsensusConfig(newNodeSettings, systemConfigs, ((BftsmartConsensusSettings) oldConsensusSettings).getViewId() + 1);
 			} else {
-				return new BftsmartConsensusConfig(newNodeSettings, systemConfigs, ((BftsmartConsensusSettings) oldConsensusSettings).getViewId());
+				return new BftsmartConsensusConfig((BftsmartNodeSettings[]) oldConsensusSettings.getNodes(), systemConfigs, ((BftsmartConsensusSettings) oldConsensusSettings).getViewId());
 			}
 		} else {
 			throw new IllegalArgumentException("updateSettings parameters error!");
@@ -261,11 +260,13 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 
 	}
 
-	private BftsmartNodeSettings[] createNewNodeSetting(Property[] systemConfigs) {
+	private BftsmartNodeSettings[] createNewNodeSetting(NodeSettings[] oldNodeSettings, Properties newProps) {
 
-		Properties properties = PropertiesUtils.createProperties(systemConfigs);
+        BftsmartNodeSettings[] bftsmartNodeSettings = null;
 
-		String serversView = properties.getProperty(SERVER_VIEW_KEY);
+		bftsmartNodeSettings = new BftsmartNodeSettings[oldNodeSettings.length + 1];
+
+        String serversView = newProps.getProperty(SERVER_VIEW_KEY);
 
 		StringTokenizer str = new StringTokenizer(serversView, ",");
 		int[] initialView = new int[str.countTokens()];
@@ -274,30 +275,39 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 			initialView[i] = Integer.parseInt(str.nextToken());
 		}
 
-		BftsmartNodeSettings[] nodesSettings = new BftsmartNodeSettings[initialView.length];
+		// get activate id from system.initial.view property
+		int activeId = -1;
+        for (int i = 0; i < initialView.length; i++) {
+            boolean found = false;
 
-		for (int i = 0; i < initialView.length; i++) {
-			int id = initialView[i];
+            for (int j = 0; j < oldNodeSettings.length; j++) {
+                bftsmartNodeSettings[j] = (BftsmartNodeSettings) oldNodeSettings[j];
+                if (bftsmartNodeSettings[j].getId() == initialView[i]) {
+                   found = true;
+                   break;
+                }
+            }
 
-			String keyOfHost = keyOfNode(CONSENSUS_HOST_PATTERN, id);
-			String networkAddressHost = PropertiesUtils.getRequiredProperty(properties, keyOfHost);
+            if (!found) {
+                activeId = initialView[i];
+                break;
+            }
+        }
 
-			String keyOfPort = keyOfNode(CONSENSUS_PORT_PATTERN, id);
-			int networkAddressPort = PropertiesUtils.getInt(properties, keyOfPort);
+        // organize new participant node
+        String host = newProps.getProperty(keyOfNode(CONSENSUS_HOST_PATTERN, activeId));
+        int port = Integer.parseInt(newProps.getProperty(keyOfNode(CONSENSUS_PORT_PATTERN, activeId)));
+        PubKey pubKey = new PubKey(Base58Utils.decode(newProps.getProperty(keyOfNode(PUBKEY_PATTERN, activeId))));
 
-			String keyOfSecure = keyOfNode(CONSENSUS_SECURE_PATTERN, id);
-			boolean networkAddressSecure = PropertiesUtils.getBoolean(properties, keyOfSecure);
+        BftsmartNodeConfig bftsmartNodeConfig = new BftsmartNodeConfig(pubKey, activeId, new NetworkAddress(host, port));
 
-			String keyOfPubkey = keyOfNode(PUBKEY_PATTERN, id);
-			String networkAddressPubkey = PropertiesUtils.getRequiredProperty(properties, keyOfPubkey);
-
-
-			BftsmartNodeConfig nodeConfig = new BftsmartNodeConfig(new PubKey(Base58Utils.decode(networkAddressPubkey)), id,
-					new NetworkAddress(networkAddressHost, networkAddressPort, networkAddressSecure));
-			nodesSettings[i] = nodeConfig;
+		for (int i = 0; i < oldNodeSettings.length; i++) {
+			bftsmartNodeSettings[i] = (BftsmartNodeSettings) oldNodeSettings[i];
 		}
 
-		return nodesSettings;
+		bftsmartNodeSettings[oldNodeSettings.length] = bftsmartNodeConfig;
+
+		return bftsmartNodeSettings;
 	}
 
 	/**

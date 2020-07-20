@@ -367,7 +367,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	 * @return
 	 */
 	@RequestMapping(path = "/delegate/activeparticipant", method = RequestMethod.POST)
-	public TransactionResponse activateParticipant(@RequestParam("ledgerHash") String base58LedgerHash, @RequestParam("consensusIp") String consensusIp, @RequestParam("consensusPort") String consensusPort) {
+	public TransactionResponse activateParticipant(@RequestParam("ledgerHash") String base58LedgerHash, @RequestParam("consensusHost") String consensusIp, @RequestParam("consensusPort") String consensusPort) {
 		HashDigest remoteNewBlockHash;
 		TransactionResponse transactionResponse = new TxResponseMessage();
 
@@ -463,20 +463,22 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		int oldServerNum = Integer.parseInt(systemConfig.getProperty(SERVER_NUM_KEY));
 		int oldFNum = Integer.parseInt(systemConfig.getProperty(F_NUM_KEY));
 		String oldView = systemConfig.getProperty(SERVER_VIEW_KEY);
-		Property[] properties = new Property[7];
 
-		properties[0] = new Property(keyOfNode(CONSENSUS_HOST_PATTERN, activeID), host);
-		properties[1] = new Property(keyOfNode(CONSENSUS_PORT_PATTERN, activeID), port);
-		properties[2] = new Property(keyOfNode(CONSENSUS_SECURE_PATTERN, activeID), "false");
-		properties[3] = new Property(keyOfNode(PUBKEY_PATTERN, activeID), activePubKey.toBase58());
-		properties[4] = new Property(SERVER_NUM_KEY, String.valueOf(Integer.parseInt(systemConfig.getProperty(SERVER_NUM_KEY)) + 1));
+
+		List<Property> properties = new ArrayList<Property>();
+
+		properties.add(new Property(keyOfNode(CONSENSUS_HOST_PATTERN, activeID), host));
+		properties.add(new Property(keyOfNode(CONSENSUS_PORT_PATTERN, activeID), port));
+		properties.add(new Property(keyOfNode(CONSENSUS_SECURE_PATTERN, activeID), "false"));
+		properties.add(new Property(keyOfNode(PUBKEY_PATTERN, activeID), activePubKey.toBase58()));
+		properties.add(new Property(SERVER_NUM_KEY, String.valueOf(Integer.parseInt(systemConfig.getProperty(SERVER_NUM_KEY)) + 1)));
 
 		if ((oldServerNum + 1) >= (3*(oldFNum + 1) + 1)) {
-			properties[5] = new Property(F_NUM_KEY, String.valueOf(oldFNum + 1));
+			properties.add(new Property(F_NUM_KEY, String.valueOf(oldFNum + 1)));
 		}
-		properties[6] = new Property(SERVER_VIEW_KEY, createView(oldView, activeID));
+		properties.add(new Property(SERVER_VIEW_KEY, createView(oldView, activeID)));
 
-		return properties;
+		return properties.toArray(new Property[properties.size()]);
 	}
 
 	// 在指定的账本上准备一笔激活参与方状态及系统配置参数的操作
