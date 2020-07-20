@@ -315,11 +315,6 @@ public class ContractLedgerContext implements LedgerContext {
 	}
 
 	@Override
-	public RoleSet getUserRoles(HashDigest ledgerHash, String userAddress){
-		return innerQueryService.getUserRoles(ledgerHash, userAddress);
-	}
-
-	@Override
 	public EventAccountRegisterOperationBuilder eventAccounts() {
 		return new EventAccountRegisterOperationBuilder1();
 	}

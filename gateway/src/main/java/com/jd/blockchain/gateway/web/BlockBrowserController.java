@@ -767,13 +767,6 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 		return accounts;
 	}
 
-	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/user-role/{userAddress}")
-	@Override
-	public RoleSet getUserRoles(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-								@PathVariable(name = "userAddress") String userAddress) {
-		return peerService.getQueryService(ledgerHash).getUserRoles(ledgerHash, userAddress);
-	}
-
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/role-privilege/{roleName}")
 	@Override
 	public PrivilegeSet getRolePrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,

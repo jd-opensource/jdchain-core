@@ -530,13 +530,6 @@ public class LedgerQueryService implements BlockchainQueryService {
 		return contractAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
-
-	@Override
-	public RoleSet getUserRoles(HashDigest ledgerHash, String userAddress){
-		checkLedgerHash(ledgerHash);
-		return ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
-	}
-
 	@Override
 	public PrivilegeSet getRolePrivileges(HashDigest ledgerHash, String roleName) {
 		checkLedgerHash(ledgerHash);
@@ -552,7 +545,8 @@ public class LedgerQueryService implements BlockchainQueryService {
 		LedgerSecurityManager securityManager = new LedgerSecurityManagerImpl(previousAdminDataset.getAdminInfo().getRolePrivileges(),
 				previousAdminDataset.getAdminInfo().getAuthorizations(), previousAdminDataset.getParticipantDataset(),
 				ledgerDataQuery.getUserAccountSet());
-		return securityManager.getUserRolesPrivilegs(Bytes.fromBase58(userAddress));
+		UserPrivilegeSet userPrivilegeSet = securityManager.getUserRolesPrivilegs(Bytes.fromBase58(userAddress));
+		return userPrivilegeSet;
 	}
 
 	private PrivilegeSet getRolePrivilegeByRole(String roleName){

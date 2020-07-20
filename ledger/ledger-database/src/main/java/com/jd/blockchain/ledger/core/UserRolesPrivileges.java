@@ -9,6 +9,8 @@ import com.jd.blockchain.ledger.UserPrivilegeSet;
 import com.jd.blockchain.utils.Bytes;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * {@link UserRolesPrivileges} 表示多角色用户的综合权限；
@@ -19,6 +21,8 @@ import java.util.Collection;
 public class UserRolesPrivileges implements UserPrivilegeSet {
 
 	private Bytes userAddress;
+
+	private Set<String> userRoles;
 
 	private LedgerPrivilegeBitset ledgerPrivilegesBitset;
 
@@ -33,6 +37,12 @@ public class UserRolesPrivileges implements UserPrivilegeSet {
 
 		this.ledgerPrivilegesBitset = ledgerPrivileges[0].clone();
 		this.transactionPrivilegesBitset = transactionPrivilegeBitsets[0].clone();
+		if(userRoles == null){
+			userRoles = new HashSet<>();
+			for(RolePrivileges rolePrivileges : privilegesList){
+				userRoles.add(rolePrivileges.getRoleName());
+			}
+		}
 
 		if (policy == RolesPolicy.UNION) {
 			this.ledgerPrivilegesBitset.union(ledgerPrivileges, 1, ledgerPrivileges.length - 1);
@@ -59,4 +69,7 @@ public class UserRolesPrivileges implements UserPrivilegeSet {
 		return transactionPrivilegesBitset;
 	}
 
+	public Set<String> getUserRole() {
+		return this.userRoles;
+	}
 }
