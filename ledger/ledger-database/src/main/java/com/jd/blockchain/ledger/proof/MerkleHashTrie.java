@@ -32,8 +32,8 @@ import com.jd.blockchain.utils.io.BytesUtils;
  * 
  * 结合了默克尔树 (MerkleTree) 和哈希前缀树(Hash Trie)；
  * <p>
- * 哈希前缀树(Hash Trie)是一种特殊的前缀树（Trie），对输入的 KEY 进行哈希计算之后，基于得到的哈希值进行前缀排序的有序树；<br>
- * 通过哈希计算使树节点的分布更均匀；
+ * 哈希前缀树(Hash Trie)是一种特殊的前缀树（Trie），或者说是一种 Bitwise Trie，对输入的 KEY 进行哈希计算之后，基于得到的哈希值进行前缀排序的有序树；<br>
+ * 通过哈希计算使树节点的分布更均匀；(即：)；
  * <p>
  * {@link MerkleHashTrie} 不保证输入 KEY
  * 的自然顺序和写入的先后顺序，但是保证集合顺序的确定性，称为不变性（immutability）<br>

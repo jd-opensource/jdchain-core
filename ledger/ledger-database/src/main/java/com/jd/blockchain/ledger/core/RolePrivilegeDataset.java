@@ -21,16 +21,16 @@ import com.jd.blockchain.utils.DataEntry;
 
 public class RolePrivilegeDataset implements Transactional, MerkleProvable, RolePrivilegeSettings {
 
-	private MerkleDataSet dataset;
+	private MerkleHashDataset dataset;
 
 	public RolePrivilegeDataset(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage verStorage) {
-		dataset = new MerkleDataSet(cryptoSetting, prefix, exPolicyStorage, verStorage);
+		dataset = new MerkleHashDataset(cryptoSetting, prefix, exPolicyStorage, verStorage);
 	}
 
 	public RolePrivilegeDataset(HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
 			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new MerkleDataSet(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage,
+		dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage,
 				verStorage, readonly);
 	}
 

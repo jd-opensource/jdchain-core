@@ -23,7 +23,7 @@ import com.jd.blockchain.crypto.service.sm.SMCryptoService;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.core.CryptoConfig;
-import com.jd.blockchain.ledger.core.MerkleDataSet;
+import com.jd.blockchain.ledger.core.MerkleHashDataset;
 import com.jd.blockchain.ledger.proof.MerkleHashTrie;
 import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
@@ -60,7 +60,7 @@ public class MerkleDataSetTest {
 		
 		MemoryKVStorage storage = new MemoryKVStorage();
 		
-		MerkleDataSet mds = new MerkleDataSet(cryptoConfig, keyPrefix, storage, storage);
+		MerkleHashDataset mds = new MerkleHashDataset(cryptoConfig, keyPrefix, storage, storage);
 		mds.setValue(Bytes.fromString("A"), "A".getBytes(), -1);
 		mds.setValue(Bytes.fromString("B"), "B".getBytes(), -1);
 		mds.setValue(Bytes.fromString("C"), "C".getBytes(), -1);
@@ -92,7 +92,7 @@ public class MerkleDataSetTest {
 
 		MemoryKVStorage storage = new MemoryKVStorage();
 
-		MerkleDataSet mds = new MerkleDataSet(cryptoConfig, keyPrefix, storage, storage);
+		MerkleHashDataset mds = new MerkleHashDataset(cryptoConfig, keyPrefix, storage, storage);
 		Dataset<String, byte[]> ds = DatasetHelper.map(mds);
 		ds.setValue("A", "A".getBytes(), -1);
 		ds.setValue("B", "B".getBytes(), -1);
@@ -203,7 +203,7 @@ public class MerkleDataSetTest {
 
 		MemoryKVStorage storage = new MemoryKVStorage();
 
-		MerkleDataSet mds = new MerkleDataSet(cryptoConfig, keyPrefix, storage, storage);
+		MerkleHashDataset mds = new MerkleHashDataset(cryptoConfig, keyPrefix, storage, storage);
 		Dataset<String, byte[]> ds = DatasetHelper.map(mds);
 
 		// 初始的时候没有任何数据，总是返回 null；
@@ -257,7 +257,7 @@ public class MerkleDataSetTest {
 
 		// verify;
 		{
-			MerkleDataSet mdsReload = new MerkleDataSet(rootHash, cryptoConfig, keyPrefix, storage, storage, true);
+			MerkleHashDataset mdsReload = new MerkleHashDataset(rootHash, cryptoConfig, keyPrefix, storage, storage, true);
 			// verify every keys;
 			Map<String, KeySnapshot> snapshot = history.get(rootHash);
 			MerkleProof expProof;
@@ -325,7 +325,7 @@ public class MerkleDataSetTest {
 			for (HashDigest hisRootHash : history.keySet()) {
 				Map<String, KeySnapshot> snapshot = history.get(hisRootHash);
 
-				MerkleDataSet mdsReload = new MerkleDataSet(hisRootHash, cryptoConfig, keyPrefix, storage, storage,
+				MerkleHashDataset mdsReload = new MerkleHashDataset(hisRootHash, cryptoConfig, keyPrefix, storage, storage,
 						true);
 				Dataset<String, byte[]> dsReload = DatasetHelper.map(mdsReload);
 				assertEquals(hisRootHash, mdsReload.getRootHash());
@@ -368,7 +368,7 @@ public class MerkleDataSetTest {
 
 		MemoryKVStorage storage = new MemoryKVStorage();
 
-		MerkleDataSet mds = new MerkleDataSet(cryptoSetting, keyPrefix, storage, storage);
+		MerkleHashDataset mds = new MerkleHashDataset(cryptoSetting, keyPrefix, storage, storage);
 		Dataset<String, byte[]> ds = DatasetHelper.map(mds);
 
 		// 初始的时候没有任何数据，总是返回 null；
@@ -422,7 +422,7 @@ public class MerkleDataSetTest {
 
 		// verify;
 		{
-			MerkleDataSet mdsReload = new MerkleDataSet(rootHash, cryptoSetting, keyPrefix, storage, storage, true);
+			MerkleHashDataset mdsReload = new MerkleHashDataset(rootHash, cryptoSetting, keyPrefix, storage, storage, true);
 			Dataset<String, byte[]> dsReload = DatasetHelper.map(mdsReload);
 			// verify every keys;
 			Map<String, KeySnapshot> snapshot = history.get(rootHash);
@@ -446,7 +446,7 @@ public class MerkleDataSetTest {
 		CryptoSetting cryptoSetting = createCryptoSetting();
 		MemoryKVStorage storage = new MemoryKVStorage();
 
-		MerkleDataSet mds = new MerkleDataSet(cryptoSetting, KEY_PREFIX, storage, storage);
+		MerkleHashDataset mds = new MerkleHashDataset(cryptoSetting, KEY_PREFIX, storage, storage);
 
 		Bytes key = Bytes.fromBase58("j5sXmpcomtM2QMUNWeQWsF8bNFFnyeXoCjVAekEeLSscgY");
 		byte[] value = BytesUtils.toBytes("Special Use-Case VALUE");
@@ -462,7 +462,7 @@ public class MerkleDataSetTest {
 		data = mds.getValue(key);
 		assertNotNull(data);
 
-		MerkleDataSet mds_reload = new MerkleDataSet(mds.getRootHash(), cryptoSetting, KEY_PREFIX, storage, storage, false);
+		MerkleHashDataset mds_reload = new MerkleHashDataset(mds.getRootHash(), cryptoSetting, KEY_PREFIX, storage, storage, false);
 
 		data = mds_reload.getValue(key);
 		assertNotNull(data);

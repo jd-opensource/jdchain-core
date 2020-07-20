@@ -32,7 +32,7 @@ import com.jd.blockchain.ledger.core.LedgerManager;
 import com.jd.blockchain.ledger.core.LedgerRepository;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.LedgerTransactionalEditor;
-import com.jd.blockchain.ledger.core.MerkleDataSet;
+import com.jd.blockchain.ledger.core.MerkleHashDataset;
 import com.jd.blockchain.ledger.core.TransactionQuery;
 import com.jd.blockchain.ledger.core.UserAccount;
 import com.jd.blockchain.ledger.proof.MerkleHashTrie;
@@ -296,7 +296,7 @@ public class LedgerEditorTest {
 	public void testMerkleDataSet1() {
 		CryptoSetting setting = LedgerTestUtils.createDefaultCryptoSetting();
 
-		Bytes keyPrefix = Bytes.fromString(LedgerTestUtils.LEDGER_KEY_PREFIX).concat(MerkleDataSet.MERKLE_TREE_PREFIX);
+		Bytes keyPrefix = Bytes.fromString(LedgerTestUtils.LEDGER_KEY_PREFIX).concat(MerkleHashDataset.MERKLE_TREE_PREFIX);
 
 		MemoryKVStorage storage = new MemoryKVStorage();
 

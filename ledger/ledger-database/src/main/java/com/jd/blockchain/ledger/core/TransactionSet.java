@@ -24,7 +24,7 @@ public class TransactionSet implements Transactional, TransactionQuery {
 
 	private final Bytes txStatePrefix;
 
-	private MerkleDataSet txSet;
+	private MerkleHashDataset txSet;
 
 	@Override
 	public LedgerTransaction[] getTxs(int fromIndex, int count) {
@@ -76,7 +76,7 @@ public class TransactionSet implements Transactional, TransactionQuery {
 	public TransactionSet(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage merkleTreeStorage,
 			VersioningKVStorage dataStorage) {
 		this.txStatePrefix = Bytes.fromString(keyPrefix + TX_STATE_PREFIX);
-		this.txSet = new MerkleDataSet(setting, keyPrefix, merkleTreeStorage, dataStorage);
+		this.txSet = new MerkleHashDataset(setting, keyPrefix, merkleTreeStorage, dataStorage);
 	}
 
 	/**
@@ -89,7 +89,7 @@ public class TransactionSet implements Transactional, TransactionQuery {
 	public TransactionSet(HashDigest txRootHash, CryptoSetting setting, String keyPrefix,
 			ExPolicyKVStorage merkleTreeStorage, VersioningKVStorage dataStorage, boolean readonly) {
 		this.txStatePrefix = Bytes.fromString(keyPrefix + TX_STATE_PREFIX);
-		this.txSet = new MerkleDataSet(txRootHash, setting, Bytes.fromString(keyPrefix), merkleTreeStorage, dataStorage,
+		this.txSet = new MerkleHashDataset(txRootHash, setting, Bytes.fromString(keyPrefix), merkleTreeStorage, dataStorage,
 				readonly);
 	}
 

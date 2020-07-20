@@ -14,9 +14,9 @@ public class MerkleDataCluster implements Transactional, MerkleSnapshot {
 
 	private boolean readonly;
 
-	private MerkleDataSet rootDS;
+	private MerkleHashDataset rootDS;
 
-	private Map<Bytes, MerkleDataSet> partitions;
+	private Map<Bytes, MerkleHashDataset> partitions;
 
 	/**
 	 * Create an empty readable {@link MerkleDataCluster} instance;
@@ -34,7 +34,7 @@ public class MerkleDataCluster implements Transactional, MerkleSnapshot {
 	 */
 	public MerkleDataCluster(HashDigest rootHash, CryptoSetting setting, Bytes keyPrefix,
 			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
-		this.rootDS = new MerkleDataSet(rootHash, setting, keyPrefix, exPolicyStorage, versioningStorage, readonly);
+		this.rootDS = new MerkleHashDataset(rootHash, setting, keyPrefix, exPolicyStorage, versioningStorage, readonly);
 	}
 
 	@Override
