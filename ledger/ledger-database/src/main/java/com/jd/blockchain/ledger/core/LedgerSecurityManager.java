@@ -17,4 +17,6 @@ public interface LedgerSecurityManager {
 	 */
 	SecurityPolicy createSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes);
 
+	UserRolesPrivileges getUserRolesPrivilegs(Bytes userAddress);
+
 }

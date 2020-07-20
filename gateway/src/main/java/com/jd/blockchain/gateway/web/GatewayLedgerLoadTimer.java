@@ -49,8 +49,8 @@ public class GatewayLedgerLoadTimer {
     //每1钟执行一次
     @Scheduled(cron = "0 */1 * * * * ")
     public void ledgerLoad(){
-        lock.lock();
         boolean acquire = false;
+        lock.lock();
         try {
             // 5秒内获取授权
             acquire = loadSemaphore.tryAcquire(5, TimeUnit.SECONDS);

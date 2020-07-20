@@ -57,7 +57,7 @@
 			<version>${framework.version}</version>
 		</dependency>
 
-		<!-- <dependency> <groupId>com.jd.blockchain</groupId> <artifactId>consensus</artifactId> 
+		<!-- <dependency> <groupId>com.jd.blockchain</groupId> <artifactId>consensus</artifactId>
 			<version>${project.version}</version> </dependency> -->
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>

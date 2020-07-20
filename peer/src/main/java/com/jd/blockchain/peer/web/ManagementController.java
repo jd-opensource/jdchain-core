@@ -1,9 +1,5 @@
 package com.jd.blockchain.peer.web;
 
-import java.net.InetSocketAddress;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-
 import bftsmart.reconfiguration.Reconfiguration;
 import bftsmart.reconfiguration.ReconfigureReply;
 import bftsmart.reconfiguration.util.HostsConfig;
@@ -12,65 +8,124 @@ import bftsmart.reconfiguration.views.MemoryBasedViewStorage;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.ServiceProxy;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
-import com.jd.blockchain.consensus.*;
-import com.jd.blockchain.consensus.bftsmart.*;
-import com.jd.blockchain.crypto.*;
-import com.jd.blockchain.ledger.*;
-import com.jd.blockchain.ledger.core.*;
-import com.jd.blockchain.service.TransactionBatchResultHandle;
-import com.jd.blockchain.transaction.SignatureUtils;
-import com.jd.blockchain.transaction.TxBuilder;
-import com.jd.blockchain.transaction.TxRequestMessage;
-import com.jd.blockchain.transaction.TxResponseMessage;
-import com.jd.blockchain.utils.PropertiesUtils;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.blockchain.consensus.ClientIdentification;
+import com.jd.blockchain.consensus.ClientIdentifications;
+import com.jd.blockchain.consensus.ClientIncomingSettings;
+import com.jd.blockchain.consensus.ConsensusProvider;
+import com.jd.blockchain.consensus.ConsensusProviders;
+import com.jd.blockchain.consensus.ConsensusSettings;
+import com.jd.blockchain.consensus.NodeSettings;
+import com.jd.blockchain.consensus.action.ActionResponse;
+import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
+import com.jd.blockchain.consensus.service.MessageHandle;
+import com.jd.blockchain.consensus.service.NodeServer;
+import com.jd.blockchain.consensus.service.ServerSettings;
+import com.jd.blockchain.consensus.service.StateMachineReplicate;
+import com.jd.blockchain.crypto.AsymmetricKeypair;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.CryptoProvider;
+import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.crypto.HashFunction;
+import com.jd.blockchain.crypto.KeyGenUtils;
+import com.jd.blockchain.crypto.PrivKey;
+import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.ledger.BlockchainIdentityData;
+import com.jd.blockchain.ledger.ContractCodeDeployOperation;
+import com.jd.blockchain.ledger.ContractEventSendOperation;
+import com.jd.blockchain.ledger.CreateProxyClientException;
+import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.DataAccountKVSetOperation;
+import com.jd.blockchain.ledger.DataAccountRegisterOperation;
+import com.jd.blockchain.ledger.DigitalSignature;
+import com.jd.blockchain.ledger.EndpointRequest;
+import com.jd.blockchain.ledger.EventAccountRegisterOperation;
+import com.jd.blockchain.ledger.EventPublishOperation;
+import com.jd.blockchain.ledger.LedgerAdminInfo;
+import com.jd.blockchain.ledger.LedgerBlock;
+import com.jd.blockchain.ledger.LedgerInitOperation;
+import com.jd.blockchain.ledger.LedgerMetadata_V2;
+import com.jd.blockchain.ledger.LedgerSettings;
+import com.jd.blockchain.ledger.NodeRequest;
+import com.jd.blockchain.ledger.Operation;
+import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.ParticipantNodeState;
+import com.jd.blockchain.ledger.ParticipantRegisterOperation;
+import com.jd.blockchain.ledger.ParticipantStateUpdateOperation;
+import com.jd.blockchain.ledger.PrivilegeSet;
+import com.jd.blockchain.ledger.RoleInitSettings;
+import com.jd.blockchain.ledger.RoleSet;
+import com.jd.blockchain.ledger.RolesConfigureOperation;
+import com.jd.blockchain.ledger.SecurityInitSettings;
+import com.jd.blockchain.ledger.StartServerException;
+import com.jd.blockchain.ledger.TransactionContent;
+import com.jd.blockchain.ledger.TransactionContentBody;
+import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.TransactionRequestBuilder;
+import com.jd.blockchain.ledger.TransactionResponse;
+import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.ledger.UserAuthInitSettings;
+import com.jd.blockchain.ledger.UserAuthorizeOperation;
+import com.jd.blockchain.ledger.UserRegisterOperation;
+import com.jd.blockchain.ledger.ViewUpdateException;
+import com.jd.blockchain.ledger.core.DefaultOperationHandleRegisteration;
+import com.jd.blockchain.ledger.core.LedgerManage;
+import com.jd.blockchain.ledger.core.LedgerQuery;
+import com.jd.blockchain.ledger.core.LedgerRepository;
+import com.jd.blockchain.ledger.core.OperationHandleRegisteration;
+import com.jd.blockchain.ledger.core.TransactionBatchProcessor;
 import com.jd.blockchain.ledger.core.TransactionSetQuery;
 import com.jd.blockchain.ledger.json.CryptoConfigInfo;
 import com.jd.blockchain.ledger.proof.MerkleData;
 import com.jd.blockchain.ledger.proof.MerkleLeaf;
 import com.jd.blockchain.ledger.proof.MerklePath;
-import com.jd.blockchain.peer.consensus.LedgerStateManager;
-import com.jd.blockchain.utils.codec.Base58Utils;
-import com.jd.blockchain.utils.net.NetworkAddress;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AuthenticationServiceException;
-import org.springframework.web.bind.annotation.*;
-import com.jd.blockchain.binaryproto.DataContractRegistry;
-import com.jd.blockchain.consensus.action.ActionResponse;
-import com.jd.blockchain.consensus.mq.server.MsgQueueMessageDispatcher;
-import com.jd.blockchain.consensus.service.MessageHandle;
-import com.jd.blockchain.consensus.service.NodeServer;
-import com.jd.blockchain.consensus.service.ServerSettings;
-import com.jd.blockchain.consensus.service.StateMachineReplicate;
-import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.core.LedgerManage;
-import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.peer.ConsensusRealm;
 import com.jd.blockchain.peer.LedgerBindingConfigAware;
 import com.jd.blockchain.peer.PeerManage;
+import com.jd.blockchain.peer.consensus.LedgerStateManager;
+import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.setting.GatewayIncomingSetting;
 import com.jd.blockchain.setting.LedgerIncomingSetting;
 import com.jd.blockchain.storage.service.DbConnection;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig.BindingConfig;
+import com.jd.blockchain.transaction.SignatureUtils;
+import com.jd.blockchain.transaction.TxBuilder;
+import com.jd.blockchain.transaction.TxRequestMessage;
+import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.PropertiesUtils;
+import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.ByteArray;
+import com.jd.blockchain.utils.net.NetworkAddress;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.jd.blockchain.ledger.TransactionState.LEDGER_ERROR;
 
 /**
  * 网关管理服务；
- * 
+ *
  * 提供
- * 
+ *
  * @author huanghaiquan
  *
  */
@@ -94,7 +149,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	@Autowired
 	private DbConnectionFactory connFactory;
 
-	private Map<HashDigest, MsgQueueMessageDispatcher> ledgerTxConverters = new ConcurrentHashMap<>();
+//	private Map<HashDigest, MsgQueueMessageDispatcher> ledgerTxConverters = new ConcurrentHashMap<>();
 
 	private Map<HashDigest, NodeServer> ledgerPeers = new ConcurrentHashMap<>();
 
@@ -172,7 +227,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	/**
 	 * 接入认证；
-	 * 
+	 *
 	 * @param clientIdentifications
 	 * @return
 	 */
@@ -341,21 +396,21 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	/**
 	 * 代理交易； <br>
-	 * 
+	 *
 	 * 此方法假设当前节点是一个新建但尚未加入共识网络的共识节点, 通过此方法接收一笔用于实现管理操作的交易；
-	 * 
+	 *
 	 * <p>
-	 * 
+	 *
 	 * 此方法接收到交易之后，先把交易提交到已有的共识网络执行； <br>
-	 * 
+	 *
 	 * 如果交易通过验证并执行成功，则将交易在本地的账本中以本地方式执行; <br>
-	 * 
+	 *
 	 * 如果执行之后的新区块一致，则提交本地区块；
-	 * 
+	 *
 	 * <p>
 	 * 如果操作中涉及到共识参与方的共识参数变化，将触发将此节点的共识拓扑改变的操作；
-	 * 
-	 * @param txRequest
+	 *
+	 * @param base58LedgerHash
 	 * @return
 	 */
 	@RequestMapping(path = "/delegate/activeparticipant", method = RequestMethod.POST)
@@ -426,15 +481,15 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	// 在指定的账本上准备一笔激活参与方状态的操作
 	private TransactionRequest prepareTx(HashDigest ledgerHash) {
 
-			TxBuilder txbuilder = new TxBuilder(ledgerHash);
+		TxBuilder txbuilder = new TxBuilder(ledgerHash);
 
-			txbuilder.states().update(new BlockchainIdentityData(ledgerKeypairs.get(ledgerHash).getPubKey()), ParticipantNodeState.CONSENSUS);
+		txbuilder.states().update(new BlockchainIdentityData(ledgerKeypairs.get(ledgerHash).getPubKey()), ParticipantNodeState.CONSENSUS);
 
-			TransactionRequestBuilder reqBuilder = txbuilder.prepareRequest();
+		TransactionRequestBuilder reqBuilder = txbuilder.prepareRequest();
 
-		    reqBuilder.signAsEndpoint(new AsymmetricKeypair(ledgerKeypairs.get(ledgerHash).getPubKey(), ledgerKeypairs.get(ledgerHash).getPrivKey()));
+		reqBuilder.signAsEndpoint(new AsymmetricKeypair(ledgerKeypairs.get(ledgerHash).getPubKey(), ledgerKeypairs.get(ledgerHash).getPrivKey()));
 
-		    return reqBuilder.buildRequest();
+		return reqBuilder.buildRequest();
 
 	}
 
