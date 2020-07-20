@@ -22,7 +22,7 @@ import com.jd.blockchain.utils.Bytes;
 
 /**
  * 账本安全管理器；
- * 
+ *
  * @author huanghaiquan
  *
  */
@@ -67,7 +67,8 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 		return new UserRolesSecurityPolicy(endpointPrivilegeMap, nodePrivilegeMap, participantsQuery, userAccountsQuery);
 	}
 
-	private UserRolesPrivileges getUserRolesPrivilegs(Bytes userAddress) {
+	@Override
+	public UserRolesPrivileges getUserRolesPrivilegs(Bytes userAddress) {
 		UserRolesPrivileges userPrivileges = userPrivilegesCache.get(userAddress);
 		if (userPrivileges != null) {
 			return userPrivileges;
@@ -162,7 +163,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 			if (MultiIDsPolicy.AT_LEAST_ONE == midPolicy) {
 				// 至少一个；
 				for (UserRolesPrivileges p : endpointPrivilegeMap.values()) {
-					if (p.getLedgerPrivileges().isEnable(permission)) {
+					if (p.getLedgerPrivilegesBitset().isEnable(permission)) {
 						return true;
 					}
 				}
@@ -170,7 +171,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 			} else if (MultiIDsPolicy.ALL == midPolicy) {
 				// 全部；
 				for (UserRolesPrivileges p : endpointPrivilegeMap.values()) {
-					if (!p.getLedgerPrivileges().isEnable(permission)) {
+					if (!p.getLedgerPrivilegesBitset().isEnable(permission)) {
 						return false;
 					}
 				}
@@ -185,7 +186,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 			if (MultiIDsPolicy.AT_LEAST_ONE == midPolicy) {
 				// 至少一个；
 				for (UserRolesPrivileges p : endpointPrivilegeMap.values()) {
-					if (p.getTransactionPrivileges().isEnable(permission)) {
+					if (p.getTransactionPrivilegesBitset().isEnable(permission)) {
 						return true;
 					}
 				}
@@ -193,7 +194,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 			} else if (MultiIDsPolicy.ALL == midPolicy) {
 				// 全部；
 				for (UserRolesPrivileges p : endpointPrivilegeMap.values()) {
-					if (!p.getTransactionPrivileges().isEnable(permission)) {
+					if (!p.getTransactionPrivilegesBitset().isEnable(permission)) {
 						return false;
 					}
 				}
@@ -208,7 +209,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 			if (MultiIDsPolicy.AT_LEAST_ONE == midPolicy) {
 				// 至少一个；
 				for (UserRolesPrivileges p : nodePrivilegeMap.values()) {
-					if (p.getLedgerPrivileges().isEnable(permission)) {
+					if (p.getLedgerPrivilegesBitset().isEnable(permission)) {
 						return true;
 					}
 				}
@@ -216,7 +217,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 			} else if (MultiIDsPolicy.ALL == midPolicy) {
 				// 全部；
 				for (UserRolesPrivileges p : nodePrivilegeMap.values()) {
-					if (!p.getLedgerPrivileges().isEnable(permission)) {
+					if (!p.getLedgerPrivilegesBitset().isEnable(permission)) {
 						return false;
 					}
 				}
@@ -231,7 +232,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 			if (MultiIDsPolicy.AT_LEAST_ONE == midPolicy) {
 				// 至少一个；
 				for (UserRolesPrivileges p : nodePrivilegeMap.values()) {
-					if (p.getTransactionPrivileges().isEnable(permission)) {
+					if (p.getTransactionPrivilegesBitset().isEnable(permission)) {
 						return true;
 					}
 				}
@@ -239,7 +240,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 			} else if (MultiIDsPolicy.ALL == midPolicy) {
 				// 全部；
 				for (UserRolesPrivileges p : nodePrivilegeMap.values()) {
-					if (!p.getTransactionPrivileges().isEnable(permission)) {
+					if (!p.getTransactionPrivilegesBitset().isEnable(permission)) {
 						return false;
 					}
 				}

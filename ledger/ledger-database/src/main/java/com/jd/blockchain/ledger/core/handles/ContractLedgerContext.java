@@ -19,11 +19,13 @@ import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.PrivilegeSet;
 import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
+import com.jd.blockchain.ledger.UserPrivilegeSet;
 import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.transaction.BlockchainQueryService;
@@ -313,11 +315,6 @@ public class ContractLedgerContext implements LedgerContext {
 	}
 
 	@Override
-	public RoleSet getUserRoles(HashDigest ledgerHash, String userAddress){
-		return innerQueryService.getUserRoles(ledgerHash, userAddress);
-	}
-
-	@Override
 	public EventAccountRegisterOperationBuilder eventAccounts() {
 		return new EventAccountRegisterOperationBuilder1();
 	}
@@ -330,6 +327,16 @@ public class ContractLedgerContext implements LedgerContext {
 	@Override
 	public EventPublishOperationBuilder eventAccount(Bytes accountAddress) {
 		return new EventPublishOperationExecBuilder(accountAddress);
+	}
+
+	@Override
+	public PrivilegeSet getRolePrivileges(HashDigest ledgerHash, String roleName) {
+		return innerQueryService.getRolePrivileges(ledgerHash, roleName);
+	}
+
+	@Override
+	public UserPrivilegeSet getUserPrivileges(HashDigest ledgerHash, String userAddress) {
+		return innerQueryService.getUserPrivileges(ledgerHash, userAddress);
 	}
 
 	// ========end=============
