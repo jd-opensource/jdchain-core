@@ -157,7 +157,7 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 			throw new IllegalArgumentException("The specified from-index and count are out of bound!");
 		}
 		byte[][] values = new byte[count][];
-		MerkleDataIterator iterator = merkleTree.iterator();
+		SkippingIterator<MerkleData> iterator = merkleTree.iterator();
 		iterator.skip(fromIndex);
 		for (int i = 0; i < count && iterator.hasNext(); i++) {
 			MerkleData dataNode = iterator.next();
@@ -183,7 +183,7 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 		DataEntry<Bytes, byte[]>[] values = new DataEntry[count];
 		byte[] bytesValue;
 
-		MerkleDataIterator iterator = merkleTree.iterator();
+		SkippingIterator<MerkleData> iterator = merkleTree.iterator();
 		iterator.skip(fromIndex);
 		for (int i = 0; i < count && iterator.hasNext(); i++) {
 			MerkleData dataNode = iterator.next();
@@ -201,7 +201,7 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 			throw new IllegalArgumentException("Index out of bound!");
 		}
 		byte[] bytesValue;
-		MerkleDataIterator iterator = merkleTree.iterator();
+		SkippingIterator<MerkleData> iterator = merkleTree.iterator();
 		iterator.skip(index);
 		if (iterator.hasNext()) {
 			MerkleData dataNode = iterator.next();
@@ -222,7 +222,7 @@ public class MerkleDataSet implements Transactional, MerkleProvable, Dataset<Byt
 	 */
 	@Deprecated // 基于 MerkleHashTrie 的数据是无序固定排列的；
 	public byte[] getValuesAtIndex(int fromIndex) {
-		MerkleDataIterator iterator = merkleTree.iterator();
+		SkippingIterator<MerkleData> iterator = merkleTree.iterator();
 		iterator.skip(fromIndex);
 		if (iterator.hasNext()) {
 			MerkleData dataNode = iterator.next();

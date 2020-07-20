@@ -225,7 +225,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 
 		ProofPathsSelector selector = new ProofPathsSelector(rootHash);
 
-		MerkleData dataEntry = seekDataEntry(key, version, keyHash, root, 0, selector);
+		MerkleData dataEntry = seekDataEntry(new Bytes(key), version, keyHash, root, 0, selector);
 		if (dataEntry == null) {
 			return null;
 		}
@@ -263,7 +263,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * 返回所有键的最新版本数据；
 	 */
 	@Override
-	public MerkleDataIterator iterator() {
+	public SkippingIterator<MerkleData> iterator() {
 		return new MerkleDataIterator(root, this);
 	}
 
@@ -273,8 +273,8 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @param key
 	 * @return
 	 */
-	public MerkleDataIterator iterator(byte[] key) {
-
+	public SkippingIterator<MerkleData> iterator(byte[] key) {
+		return iterator(key, -1);
 	}
 
 	/**
@@ -284,16 +284,11 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @param version
 	 * @return
 	 */
-	public MerkleDataIterator iterator(byte[] key, long version) {
-		
+	public SkippingIterator<MerkleData> iterator(byte[] key, long version) {
+		//TODO;
+		return null;
 	}
 
-//	/**
-//	 * 迭代器包含所有基准树与原始树之间差异的数据项
-//	 */
-//	public PathKeysDiffIterator keysDiffIterator(HashDigest baseHash, HashDigest origHash) {
-//		return new PathKeysDiffIterator( (PathNode) loadMerkleNode(baseHash), (PathNode) loadMerkleNode(origHash), 0);
-//	}
 
 	/**
 	 * 迭代器包含所有基准树与原始树之间差异的数据项
@@ -524,7 +519,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	}
 
 	public void printDatas() {
-		MerkleDataIterator iterator = iterator();
+		SkippingIterator<MerkleData> iterator = iterator();
 		System.out.println("\r\n\rn-------- HASH-SORTING-MERKLE-TREE -------");
 		System.out.printf("total-size=%s\r\n", iterator.getCount());
 		int i = 0;
@@ -779,6 +774,28 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		MerkleProof createProof() {
 			return new HashPathProof(hashPaths);
 		}
+	}
+	
+	
+	public static class MerkleKeyVersionIterator extends AbstractSkippingIterator<MerkleData>{
+		
+		private MerkleHashTrie tree;
+		
+		private MerkleKey key;
+		
+
+		@Override
+		public long getCount() {
+			// TODO Auto-generated method stub
+			return key.getVersion()+1;
+		}
+
+		@Override
+		public MerkleData next() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+		
 	}
 
 	public static class MerkleDataIterator extends AbstractSkippingIterator<MerkleData> {

@@ -438,7 +438,7 @@ public class MerkleHashTrieTest {
 		assertEquals(0, dataMap.size());
 		assertEquals(count, index);
 
-		MerkleDataIterator skippingIterator = merkleTree.iterator();
+		SkippingIterator<MerkleData> skippingIterator = merkleTree.iterator();
 		testDataIteratorSkipping(dataKeys, skippingIterator, 0);
 
 		skippingIterator = merkleTree.iterator();
@@ -530,7 +530,7 @@ public class MerkleHashTrieTest {
 		assertNotNull(mkdata);
 	}
 
-	private void testDataIteratorSkipping(String[] expectedKeys, MerkleDataIterator iterator, int skip) {
+	private void testDataIteratorSkipping(String[] expectedKeys, SkippingIterator<MerkleData> iterator, int skip) {
 		int count = expectedKeys.length;
 		int index = skip;
 		iterator.skip(index);
@@ -2024,8 +2024,8 @@ public class MerkleHashTrieTest {
 		assertNotNull(rootHash_N1);
 		assertNotNull(rootHash_N2);
 
-		MerkleDataIterator iterator = merkleTree.iterator();
-		MerkleDataIterator iterator1 = merkleTree1.iterator();
+		SkippingIterator<MerkleData> iterator = merkleTree.iterator();
+		SkippingIterator<MerkleData> iterator1 = merkleTree1.iterator();
 		MerkleData dt;
 		MerkleData dt1;
 		assertEquals(iterator.getCount(), iterator1.getCount());
