@@ -48,7 +48,7 @@ import com.jd.blockchain.utils.io.NumberMask;
  * @author huanghaiquan
  *
  */
-public class MerkleTree implements Transactional {
+public class MerkleSequenceTree implements Transactional {
 
 	public static final int TREE_DEGREE = 16;
 
@@ -117,7 +117,7 @@ public class MerkleTree implements Transactional {
 	 * 
 	 * @param kvStorage
 	 */
-	public MerkleTree(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage) {
+	public MerkleSequenceTree(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage) {
 		this(null, setting, Bytes.fromString(keyPrefix), kvStorage, false);
 	}
 
@@ -126,7 +126,7 @@ public class MerkleTree implements Transactional {
 	 * 
 	 * @param kvStorage
 	 */
-	public MerkleTree(CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
+	public MerkleSequenceTree(CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
 		this(null, setting, keyPrefix, kvStorage, false);
 	}
 
@@ -153,7 +153,7 @@ public class MerkleTree implements Transactional {
 	 * @param kvStorage    保存 Merkle 节点的存储服务；
 	 * @param readonly     是否只读；
 	 */
-	public MerkleTree(HashDigest rootHash, CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage,
+	public MerkleSequenceTree(HashDigest rootHash, CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage,
 			boolean readonly) {
 		this(rootHash, setting, Bytes.fromString(keyPrefix), kvStorage, readonly);
 	}
@@ -166,7 +166,7 @@ public class MerkleTree implements Transactional {
 	 * @param kvStorage    保存 Merkle 节点的存储服务；
 	 * @param readonly     是否只读；
 	 */
-	public MerkleTree(HashDigest rootHash, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage,
+	public MerkleSequenceTree(HashDigest rootHash, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage,
 			boolean readonly) {
 		this.setting = setting;
 		this.keyPrefix = keyPrefix;
@@ -485,7 +485,7 @@ public class MerkleTree implements Transactional {
 
 		private static final long serialVersionUID = -9165021733321713070L;
 
-		private MerkleTree tree;
+		private MerkleSequenceTree tree;
 
 		private PathNode[] pathNodes;
 
@@ -493,7 +493,7 @@ public class MerkleTree implements Transactional {
 
 		private static int TASK_THRESHOLD = 100;
 
-		public RehashTask(PathNode[] pathNodes, MerkleTree tree, ExPolicyKVStorage kvStorage) {
+		public RehashTask(PathNode[] pathNodes, MerkleSequenceTree tree, ExPolicyKVStorage kvStorage) {
 			this.tree = tree;
 			this.pathNodes = pathNodes;
 			this.kvStorage = kvStorage;

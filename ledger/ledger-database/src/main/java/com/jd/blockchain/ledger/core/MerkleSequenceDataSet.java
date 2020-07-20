@@ -26,7 +26,7 @@ import com.jd.blockchain.utils.io.BytesUtils;
  * @author huanghaiquan
  *
  */
-public class MerkleDataSet_old implements Transactional, MerkleProvable, Dataset<Bytes, byte[]> {
+public class MerkleSequenceDataSet implements Transactional, MerkleProvable, Dataset<Bytes, byte[]> {
 
 	/**
 	 * 4 MB MaxSize of value;
@@ -50,7 +50,7 @@ public class MerkleDataSet_old implements Transactional, MerkleProvable, Dataset
 
 	private ExPolicyKVStorage snStorage;
 
-	private MerkleTree merkleTree;
+	private MerkleSequenceTree merkleTree;
 
 	private SNGenerator snGenerator;
 
@@ -73,7 +73,7 @@ public class MerkleDataSet_old implements Transactional, MerkleProvable, Dataset
 	 * @param exPolicyStorage   默克尔树的存储；
 	 * @param versioningStorage 数据的存储；
 	 */
-	public MerkleDataSet_old(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
+	public MerkleSequenceDataSet(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage versioningStorage) {
 		this(setting, Bytes.fromString(keyPrefix), exPolicyStorage, versioningStorage);
 	}
@@ -85,7 +85,7 @@ public class MerkleDataSet_old implements Transactional, MerkleProvable, Dataset
 	 * @param exPolicyStorage   默克尔树的存储；
 	 * @param versioningStorage 数据的存储；
 	 */
-	public MerkleDataSet_old(CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage exPolicyStorage,
+	public MerkleSequenceDataSet(CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage versioningStorage) {
 		// 缓冲对KV的写入；
 		this.bufferedStorage = new BufferedKVStorage(exPolicyStorage, versioningStorage, false);
@@ -105,7 +105,7 @@ public class MerkleDataSet_old implements Transactional, MerkleProvable, Dataset
 		// PrefixAppender.prefix(MERKLE_TREE_PREFIX, exPolicyStorage);
 		merkleKeyPrefix = keyPrefix.concat(MERKLE_TREE_PREFIX);
 		ExPolicyKVStorage merkleTreeStorage = exPolicyStorage;
-		this.merkleTree = new MerkleTree(setting, merkleKeyPrefix, merkleTreeStorage);
+		this.merkleTree = new MerkleSequenceTree(setting, merkleKeyPrefix, merkleTreeStorage);
 		this.snGenerator = new MerkleSequenceSNGenerator(merkleTree);
 	}
 
@@ -118,7 +118,7 @@ public class MerkleDataSet_old implements Transactional, MerkleProvable, Dataset
 	 * @param merkleTreeStorage
 	 * @param snGenerator
 	 */
-	public MerkleDataSet_old(HashDigest merkleRootHash, CryptoSetting setting, String keyPrefix,
+	public MerkleSequenceDataSet(HashDigest merkleRootHash, CryptoSetting setting, String keyPrefix,
 			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
 		this(merkleRootHash, setting, Bytes.fromString(keyPrefix), exPolicyStorage, versioningStorage, readonly);
 	}
@@ -132,7 +132,7 @@ public class MerkleDataSet_old implements Transactional, MerkleProvable, Dataset
 	 * @param merkleTreeStorage
 	 * @param snGenerator
 	 */
-	public MerkleDataSet_old(HashDigest merkleRootHash, CryptoSetting setting, Bytes keyPrefix,
+	public MerkleSequenceDataSet(HashDigest merkleRootHash, CryptoSetting setting, Bytes keyPrefix,
 			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
 		// 缓冲对KV的写入；
 		this.bufferedStorage = new BufferedKVStorage(exPolicyStorage, versioningStorage, false);
@@ -148,7 +148,7 @@ public class MerkleDataSet_old implements Transactional, MerkleProvable, Dataset
 		// MerkleTree 本身是可缓冲的；
 		merkleKeyPrefix = keyPrefix.concat(MERKLE_TREE_PREFIX);
 		ExPolicyKVStorage merkleTreeStorage = exPolicyStorage;
-		this.merkleTree = new MerkleTree(merkleRootHash, setting, merkleKeyPrefix, merkleTreeStorage, readonly);
+		this.merkleTree = new MerkleSequenceTree(merkleRootHash, setting, merkleKeyPrefix, merkleTreeStorage, readonly);
 
 		this.snGenerator = new MerkleSequenceSNGenerator(merkleTree);
 		this.readonly = readonly;

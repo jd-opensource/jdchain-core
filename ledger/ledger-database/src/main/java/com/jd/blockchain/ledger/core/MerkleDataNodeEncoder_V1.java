@@ -3,7 +3,7 @@ package com.jd.blockchain.ledger.core;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
-import com.jd.blockchain.ledger.core.MerkleTree.DataNode;
+import com.jd.blockchain.ledger.core.MerkleSequenceTree.DataNode;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.io.BytesUtils;
 import com.jd.blockchain.utils.io.NumberMask;

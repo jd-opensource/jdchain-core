@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import com.jd.blockchain.ledger.core.MerkleTree.DataNode;
+import com.jd.blockchain.ledger.core.MerkleSequenceTree.DataNode;
 
 class MerkleTreeEncoder {
 

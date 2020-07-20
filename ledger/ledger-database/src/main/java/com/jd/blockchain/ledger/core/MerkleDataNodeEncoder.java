@@ -1,6 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
-import com.jd.blockchain.ledger.core.MerkleTree.DataNode;
+import com.jd.blockchain.ledger.core.MerkleSequenceTree.DataNode;
 import com.jd.blockchain.utils.Bytes;
 
 public interface MerkleDataNodeEncoder {

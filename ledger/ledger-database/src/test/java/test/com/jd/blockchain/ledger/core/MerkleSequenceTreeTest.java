@@ -20,12 +20,12 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleDataNode;
 import com.jd.blockchain.ledger.MerkleNode;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.core.MerkleTree;
-import com.jd.blockchain.ledger.core.MerkleTree.DataNode;
+import com.jd.blockchain.ledger.core.MerkleSequenceTree;
+import com.jd.blockchain.ledger.core.MerkleSequenceTree.DataNode;
 import com.jd.blockchain.storage.service.utils.ExistancePolicyKVStorageMap;
 import com.jd.blockchain.utils.Bytes;
 
-public class MerkleTreeTest {
+public class MerkleSequenceTreeTest {
 
 	private static String keyPrefix = "";
 
@@ -40,7 +40,7 @@ public class MerkleTreeTest {
 
 		// 测试从空的树开始，顺序增加数据节点；
 		ExistancePolicyKVStorageMap kvs1 = new ExistancePolicyKVStorageMap();
-		MerkleTree mkt = new MerkleTree(setting, Bytes.fromString(keyPrefix), kvs1);
+		MerkleSequenceTree mkt = new MerkleSequenceTree(setting, Bytes.fromString(keyPrefix), kvs1);
 
 		// 初始化，按照顺序的序列号加入10条记录；
 		int count = 18;
@@ -62,7 +62,7 @@ public class MerkleTreeTest {
 		assertEquals(dataCount - 1, maxSN);// 仅仅在采用顺序加入的情况下成立；
 
 		// reload;
-		mkt = new MerkleTree(rootHash, setting, keyPrefix, kvs1, false);
+		mkt = new MerkleSequenceTree(rootHash, setting, keyPrefix, kvs1, false);
 		// 校验是否与之前的一致；
 		maxSN = mkt.getMaxSn();
 		dataCount = mkt.getDataCount();
@@ -93,7 +93,7 @@ public class MerkleTreeTest {
 		ExistancePolicyKVStorageMap kvs1 = new ExistancePolicyKVStorageMap();
 
 		// 创建空的的树；
-		MerkleTree mkt = new MerkleTree(setting, keyPrefix, kvs1);
+		MerkleSequenceTree mkt = new MerkleSequenceTree(setting, keyPrefix, kvs1);
 
 		// 查询空树的最大序列号，将返回 -1；
 		long maxSN = mkt.getMaxSn();
@@ -145,7 +145,7 @@ public class MerkleTreeTest {
 
 		// 测试从空的树开始，顺序增加数据节点；
 		ExistancePolicyKVStorageMap kvs1 = new ExistancePolicyKVStorageMap();
-		MerkleTree mkt = new MerkleTree(setting, keyPrefix, kvs1);
+		MerkleSequenceTree mkt = new MerkleSequenceTree(setting, keyPrefix, kvs1);
 
 		long sn = 0;
 		// 初始化，加入10条记录，预期目前的树只有一层；
@@ -329,7 +329,7 @@ public class MerkleTreeTest {
 
 		// 测试从空的树开始，顺序增加数据节点；
 		ExistancePolicyKVStorageMap kvs1 = new ExistancePolicyKVStorageMap();
-		MerkleTree mkt = new MerkleTree(setting, keyPrefix, kvs1);
+		MerkleSequenceTree mkt = new MerkleSequenceTree(setting, keyPrefix, kvs1);
 
 		// 加入 30 条数据记录，分两批各15条分别从序号两端加入，预期构成以一颗 4 层 16 叉树；
 		int count = 4097;
@@ -421,7 +421,7 @@ public class MerkleTreeTest {
 		ExistancePolicyKVStorageMap storage = new ExistancePolicyKVStorageMap();
 
 		// 创建空的的树；
-		MerkleTree mkt = new MerkleTree(setting, keyPrefix, storage);
+		MerkleSequenceTree mkt = new MerkleSequenceTree(setting, keyPrefix, storage);
 
 		long sn = 0;
 		// 加入 4097 条数据记录，预期构成以一颗 4 层 16 叉树；
@@ -504,7 +504,7 @@ public class MerkleTreeTest {
 		ExistancePolicyKVStorageMap storage = new ExistancePolicyKVStorageMap();
 
 		// 创建空的的树；
-		MerkleTree mkt = new MerkleTree(setting, keyPrefix, storage);
+		MerkleSequenceTree mkt = new MerkleSequenceTree(setting, keyPrefix, storage);
 
 		long sn = 0;
 		// 加入 4097 条数据记录，预期构成以一颗 4 层 16 叉树；
@@ -574,7 +574,7 @@ public class MerkleTreeTest {
 		ExistancePolicyKVStorageMap storage = new ExistancePolicyKVStorageMap();
 
 		// 创建空的的树；
-		MerkleTree mkt = new MerkleTree(setting, keyPrefix, storage);
+		MerkleSequenceTree mkt = new MerkleSequenceTree(setting, keyPrefix, storage);
 
 		long sn = 0;
 		// 加入 4097 条数据记录，预期构成以一颗 4 层 16 叉树；
@@ -616,7 +616,7 @@ public class MerkleTreeTest {
 			assertEquals(expectedNodes, storage.getCount());
 			
 			//重新加载，判断数据是否正确；
-			MerkleTree r1_mkt = new MerkleTree(r1_rootHash, setting, keyPrefix, storage, true);
+			MerkleSequenceTree r1_mkt = new MerkleSequenceTree(r1_rootHash, setting, keyPrefix, storage, true);
 			{
 				// 验证每一个数据节点都产生了存在性证明；
 				MerkleProof proof = null;
@@ -717,7 +717,7 @@ public class MerkleTreeTest {
 		// --------------------
 		// 重新从存储加载生成新的 MerkleTree 实例，验证与初始实例的一致性；
 		// 从第 2 轮提交的 Merkle 根哈希加载；
-		MerkleTree r1_mkt = new MerkleTree(r1_rootHash, setting, keyPrefix, storage, true);
+		MerkleSequenceTree r1_mkt = new MerkleSequenceTree(r1_rootHash, setting, keyPrefix, storage, true);
 		assertEquals(r1_maxSN, r1_mkt.getMaxSn());
 		assertEquals(r1_rootHash, r1_mkt.getRootHash());
 		assertEquals(r1_dataCount, r1_mkt.getDataCount());
@@ -727,7 +727,7 @@ public class MerkleTreeTest {
 
 		// 从第 2 轮提交的 Merkle 根哈希加载；
 		// 第 2 轮生成的 Merkle 树是对第 1 轮的数据的全部节点的修改，因此同一个 SN 的节点的证明是不同的；
-		MerkleTree r2_mkt = new MerkleTree(r2_rootHash, setting, keyPrefix, storage, true);
+		MerkleSequenceTree r2_mkt = new MerkleSequenceTree(r2_rootHash, setting, keyPrefix, storage, true);
 		assertEquals(r1_maxSN, r2_mkt.getMaxSn());
 		assertEquals(r1_dataCount, r2_mkt.getDataCount());
 
@@ -743,7 +743,7 @@ public class MerkleTreeTest {
 
 		// 从第 3 轮提交的 Merkle 根哈希加载；
 		// 第 3 轮生成的 Merkle 树是在第 2 轮的数据基础上做新增，因此非新增的同一个 SN 的节点的Merkle证明是相同的；
-		MerkleTree r3_mkt = new MerkleTree(r3_rootHash, setting, keyPrefix, storage, true);
+		MerkleSequenceTree r3_mkt = new MerkleSequenceTree(r3_rootHash, setting, keyPrefix, storage, true);
 		assertEquals(r2_maxSN + NEW_INSERTED_COUNT, r3_mkt.getMaxSn());
 		assertNotEquals(r2_rootHash, r3_mkt.getRootHash());
 		assertEquals(r2_dataCount + NEW_INSERTED_COUNT, r3_mkt.getDataCount());
@@ -771,7 +771,7 @@ public class MerkleTreeTest {
 			throw new IllegalArgumentException("The specified data count is negative!");
 		}
 		int l = 1;
-		while (dataCount > power(MerkleTree.TREE_DEGREE, l)) {
+		while (dataCount > power(MerkleSequenceTree.TREE_DEGREE, l)) {
 			l++;
 		}
 		return l;
@@ -789,7 +789,7 @@ public class MerkleTreeTest {
 		}
 		long count = 0;
 		for (int i = 0; i < level; i++) {
-			count += power(MerkleTree.TREE_DEGREE, i);
+			count += power(MerkleSequenceTree.TREE_DEGREE, i);
 		}
 		return count;
 	}

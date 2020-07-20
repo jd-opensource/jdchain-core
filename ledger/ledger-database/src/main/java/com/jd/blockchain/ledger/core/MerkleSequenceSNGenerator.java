@@ -8,7 +8,7 @@ public class MerkleSequenceSNGenerator implements SNGenerator {
 	
 	private AtomicLong sn;
 	
-	public MerkleSequenceSNGenerator(MerkleTree merkleTree) {
+	public MerkleSequenceSNGenerator(MerkleSequenceTree merkleTree) {
 		this.sn = new AtomicLong(merkleTree.getMaxSn() + 1);
 	}
 
