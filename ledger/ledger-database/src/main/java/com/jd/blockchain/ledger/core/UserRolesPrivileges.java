@@ -37,11 +37,9 @@ public class UserRolesPrivileges implements UserPrivilegeSet {
 
 		this.ledgerPrivilegesBitset = ledgerPrivileges[0].clone();
 		this.transactionPrivilegesBitset = transactionPrivilegeBitsets[0].clone();
-		if(userRoles == null){
-			userRoles = new HashSet<>();
-			for(RolePrivileges rolePrivileges : privilegesList){
-				userRoles.add(rolePrivileges.getRoleName());
-			}
+		userRoles = new HashSet<>();
+		for(RolePrivileges rolePrivileges : privilegesList){
+			userRoles.add(rolePrivileges.getRoleName());
 		}
 
 		if (policy == RolesPolicy.UNION) {
