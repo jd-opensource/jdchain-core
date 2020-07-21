@@ -19,12 +19,10 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
-import com.jd.blockchain.ledger.MerkleDataNode;
 import com.jd.blockchain.ledger.MerkleNode;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.core.HashPathProof;
 import com.jd.blockchain.ledger.core.MerkleProofException;
-import com.jd.blockchain.ledger.proof.MerkleSequenceTree.DataNode;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage.ExPolicy;
 import com.jd.blockchain.utils.ArrayUtils;
@@ -187,7 +185,7 @@ public class MerkleSortedTree<T> implements Transactional {
 	 */
 	public MerkleProof getProof(long sn) {
 		MerkleNode[] nodePath = new MerkleNode[root.level + 1];
-		MerkleDataNode dataNode = seekPath(sn, nodePath);
+		MerkleNode dataNode = seekPath(sn, nodePath);
 		if (dataNode == null) {
 			return null;
 		}
@@ -1405,24 +1403,15 @@ public class MerkleSortedTree<T> implements Transactional {
 	 * @author huanghaiquan
 	 *
 	 */
-	public static class DataNode extends AbstractMerkleNode implements MerkleDataNode {
+	public static class DataNode extends AbstractMerkleNode {
 
 		private long sn;
 
-		private Bytes key;
-
-		private long version;
-
 		private byte[] nodeBytes;
 
-		private HashDigest valueHash;
-
-		DataNode(HashDigest nodeHash, long sn, Bytes key, long version, HashDigest valueHash, byte[] nodeBytes) {
+		DataNode(HashDigest nodeHash, long sn, byte[] nodeBytes) {
 			this.sn = sn;
-			this.key = key;
-			this.version = version;
 			this.nodeHash = nodeHash;
-			this.valueHash = valueHash;
 			this.nodeBytes = nodeBytes;
 		}
 
@@ -1456,58 +1445,9 @@ public class MerkleSortedTree<T> implements Transactional {
 			return sn;
 		}
 
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see com.jd.blockchain.ledger.core.MerkleDataNode#getKey()
-		 */
-		@Override
-		public Bytes getKey() {
-			return key;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see com.jd.blockchain.ledger.core.MerkleDataNode#getVersion()
-		 */
-		@Override
-		public long getVersion() {
-			return version;
-		}
-
-		@Override
-		public HashDigest getValueHash() {
-			return valueHash;
-		}
 
 		@Override
 		public byte[] toBytes() {
-			// ByteArrayOutputStream out = new ByteArrayOutputStream();
-			//
-			// BytesUtils.writeLong(sn, out);
-			//
-			// byte[] keyBytes = BytesUtils.toBytes(key);
-			// BytesEncoding.write(keyBytes, NumberMask.SHORT, out);
-			//
-			// BytesUtils.writeLong(version, out);
-
-			// int hashSize = nodeHash.size();
-			//
-			// int totalSize = dataNodeBytes.length + NumberMask.TINY.MAX_HEADER_LENGTH +
-			// hashSize;
-			// byte[] totalBytes = new byte[totalSize];
-			//
-			// int offset = 0;
-			// System.arraycopy(dataNodeBytes, 0, totalBytes, offset, dataNodeBytes.length);
-			// offset += dataNodeBytes.length;
-
-			// BytesEncoding.write(nodeHash.toBytes(), NumberMask.SHORT, out);
-			// NumberMask.TINY.writeMask(hashSize, totalBytes, offset);
-			// offset += NumberMask.TINY.MAX_HEADER_LENGTH;
-			//
-			// System.arraycopy(nodeHash.toBytes(), 0, totalBytes, offset, hashSize);
-
 			return nodeBytes;
 		}
 
