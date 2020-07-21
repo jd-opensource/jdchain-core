@@ -70,6 +70,8 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     private TOMConfiguration tomConfig;
 
+    private TOMConfiguration outerTomConfig;
+
     private HostsConfig hostsConfig;
 
     private Properties systemConfig;
@@ -153,7 +155,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     protected void initConfig(int id, Properties systemsConfig, HostsConfig hostConfig) {
         byte[] serialHostConf = BinarySerializeUtils.serialize(hostConfig);
-//        Properties sysConfClone = (Properties)systemsConfig.clone();
+        Properties sysConfClone = (Properties)systemsConfig.clone();
         int port = hostConfig.getPort(id);
 //        hostConfig.add(id, DEFAULT_BINDING_HOST, port);
 
@@ -170,9 +172,11 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             LOGGER.info("###peer-startup.sh###,set up the -DhostIp="+preHostIp);
         }
 
-        this.tomConfig = new TOMConfiguration(id, systemsConfig, hostConfig, BinarySerializeUtils.deserialize(serialHostConf));
+        this.tomConfig = new TOMConfiguration(id, systemsConfig, hostConfig);
 
         this.latestView = new View(setting.getViewId(), tomConfig.getInitialView(), tomConfig.getF(), consensusAddresses.toArray(new InetSocketAddress[consensusAddresses.size()]));
+
+        this.outerTomConfig = new TOMConfiguration(id, sysConfClone, BinarySerializeUtils.deserialize(serialHostConf));
 
     }
 
@@ -193,7 +197,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     // 由于节点动态入网的原因，共识的配置环境是随时可能变化的，需要每次get时从replica动态读取
     public TOMConfiguration getTomConfig() {
-        return this.replica.getReplicaContext().getStaticConfiguration();
+       return outerTomConfig;
     }
 
     public int getId() {
@@ -205,6 +209,8 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             throw new IllegalArgumentException("ReplicaID is negative!");
         }
         this.tomConfig.setProcessId(id);
+        this.outerTomConfig.setProcessId(id);
+
     }
 
     // 注意：该方法获得的共识环境为节点启动时从账本里读取的共识环境，如果运行过程中发生了节点动态入网，该环境没有得到更新
@@ -235,7 +241,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         for (int i = 0; i < processes.length; i++) {
             int pid = processes[i];
             if (id == pid) {
-                addresses[i] = new InetSocketAddress(getTomConfig().getOuterHost(id), getTomConfig().getOuterPort(id));
+                addresses[i] = new InetSocketAddress(getTomConfig().getHost(id), getTomConfig().getPort(id));
             } else {
                 addresses[i] = currView.getAddress(pid);
             }
@@ -688,7 +694,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         for (int i = 0; i < processes.length; i++) {
             int pid = processes[i];
             if (curProcessId == pid) {
-                addresses[i] = new InetSocketAddress(this.tomConfig.getOuterHost(pid), this.tomConfig.getOuterPort(pid));
+                addresses[i] = new InetSocketAddress(this.tomConfig.getHost(pid), this.tomConfig.getPort(pid));
             } else {
                 addresses[i] = currView.getAddress(pid);
             }
