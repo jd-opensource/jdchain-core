@@ -14,7 +14,7 @@ import com.jd.blockchain.utils.Bytes;
  * @author huanghaiquan
  *
  */
-@DataContract(code = DataCodes.MERKLE_KEY)
+@DataContract(code = DataCodes.MERKLE_TRIE_KEY)
 public interface MerkleKey extends MerkleTrieEntry {
 
 	/**

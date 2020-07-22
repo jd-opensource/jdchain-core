@@ -11,7 +11,7 @@ import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.json.ExtendJsonSerializeUtil;
 import com.jd.blockchain.ledger.json.serialize.JsonSerializeFactory;
-import com.jd.blockchain.ledger.proof.MerkleData;
+import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.ledger.proof.MerkleLeaf;
 import com.jd.blockchain.ledger.proof.MerklePath;
 import com.jd.blockchain.web.serializes.ByteArrayObjectUtil;
@@ -54,7 +54,7 @@ public class GatewayWebServerConfigurer implements WebMvcConfigurer {
 		DataContractRegistry.register(LedgerMetadata_V2.class);
 
 		// 注册默克尔树相关接口
-		DataContractRegistry.register(MerkleData.class);
+		DataContractRegistry.register(MerkleTrieData.class);
 		DataContractRegistry.register(MerkleLeaf.class);
 		DataContractRegistry.register(MerklePath.class);
 		DataContractRegistry.register(CryptoSetting.class);

@@ -13,7 +13,7 @@ import com.jd.blockchain.crypto.HashDigest;
  * @author huanghaiquan
  *
  */
-@DataContract(code = DataCodes.MERKLE_PATH)
+@DataContract(code = DataCodes.MERKLE_TRIE_PATH)
 public interface MerklePath extends MerkleTrieEntry {
 
 	/**

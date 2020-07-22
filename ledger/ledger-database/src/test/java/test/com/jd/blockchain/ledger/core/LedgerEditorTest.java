@@ -36,7 +36,7 @@ import com.jd.blockchain.ledger.core.MerkleHashDataset;
 import com.jd.blockchain.ledger.core.TransactionQuery;
 import com.jd.blockchain.ledger.core.UserAccount;
 import com.jd.blockchain.ledger.proof.MerkleHashTrie;
-import com.jd.blockchain.ledger.proof.MerkleData;
+import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.storage.service.KVStorageService;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.Bytes;
@@ -310,7 +310,7 @@ public class LedgerEditorTest {
 		
 		merkleTree.commit();
 		
-		MerkleData data = merkleTree.getData(key);
+		MerkleTrieData data = merkleTree.getData(key);
 		assertNotNull(data);
 		
 		merkleTree = new MerkleHashTrie(merkleTree.getRootHash(), setting, keyPrefix, storage, false);

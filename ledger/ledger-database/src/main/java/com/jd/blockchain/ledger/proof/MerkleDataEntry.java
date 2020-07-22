@@ -6,7 +6,7 @@ import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.utils.Bytes;
 
-public class MerkleDataEntry implements MerkleData {
+public class MerkleDataEntry implements MerkleTrieData {
 
 	/**
 	 * 键；
@@ -31,7 +31,7 @@ public class MerkleDataEntry implements MerkleData {
 	/**
 	 * 前一个数据节点；
 	 */
-	private MerkleData previousEntry;
+	private MerkleTrieData previousEntry;
 
 	/**
 	 * @param key       键；
@@ -75,11 +75,11 @@ public class MerkleDataEntry implements MerkleData {
 		return previousEntryHash;
 	}
 
-	public MerkleData getPreviousEntry() {
+	public MerkleTrieData getPreviousEntry() {
 		return previousEntry;
 	}
 
-	void setPreviousEntry(HashDigest previousEntryHash, MerkleData previousData) {
+	void setPreviousEntry(HashDigest previousEntryHash, MerkleTrieData previousData) {
 		if (this.previousEntryHash != null) {
 			throw new IllegalStateException("Hash of previous data entry cann't be rewrited!");
 		}

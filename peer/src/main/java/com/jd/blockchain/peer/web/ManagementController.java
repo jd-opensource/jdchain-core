@@ -30,7 +30,7 @@ import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.CryptoProvider;
 import com.jd.blockchain.ledger.core.TransactionSetQuery;
 import com.jd.blockchain.ledger.json.CryptoConfigInfo;
-import com.jd.blockchain.ledger.proof.MerkleData;
+import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.ledger.proof.MerkleLeaf;
 import com.jd.blockchain.ledger.proof.MerklePath;
 import com.jd.blockchain.peer.consensus.LedgerStateManager;
@@ -158,7 +158,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		DataContractRegistry.register(LedgerMetadata_V2.class);
 
 		// 注册默克尔树相关接口
-		DataContractRegistry.register(MerkleData.class);
+		DataContractRegistry.register(MerkleTrieData.class);
 		DataContractRegistry.register(MerkleLeaf.class);
 		DataContractRegistry.register(MerklePath.class);
 

@@ -11,7 +11,7 @@ import com.jd.blockchain.consts.DataCodes;
  * @author huanghaiquan
  *
  */
-@DataContract(code = DataCodes.MERKLE_LEAF)
+@DataContract(code = DataCodes.MERKLE_TRIE_LEAF)
 public interface MerkleLeaf extends MerkleTrieEntry{
 
 	@DataField(order = 1, primitiveType = PrimitiveType.INT64)

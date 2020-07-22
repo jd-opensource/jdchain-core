@@ -42,9 +42,9 @@ import com.jd.blockchain.utils.io.BytesUtils;
  * @author huanghaiquan
  *
  */
-public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
+public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 
-	private static final SkippingIterator<MerkleData> NULL_DATA_ITERATOR = SkippingIterator.empty();
+	private static final SkippingIterator<MerkleTrieData> NULL_DATA_ITERATOR = SkippingIterator.empty();
 
 	public static final int TREE_DEGREE = 16;
 
@@ -225,7 +225,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 
 		ProofPathsSelector selector = new ProofPathsSelector(rootHash);
 
-		MerkleData dataEntry = seekDataEntry(new Bytes(key), version, keyHash, root, 0, selector);
+		MerkleTrieData dataEntry = seekDataEntry(new Bytes(key), version, keyHash, root, 0, selector);
 		if (dataEntry == null) {
 			return null;
 		}
@@ -233,29 +233,29 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		return selector.createProof();
 	}
 
-	public MerkleData getData(String key) {
+	public MerkleTrieData getData(String key) {
 		return getData(key, -1);
 	}
 
-	public MerkleData getData(String key, long version) {
+	public MerkleTrieData getData(String key, long version) {
 		return getData(Bytes.fromString(key), version);
 	}
 
-	public MerkleData getData(byte[] key) {
+	public MerkleTrieData getData(byte[] key) {
 		return getData(new Bytes(key));
 	}
 
-	public MerkleData getData(byte[] key, long version) {
+	public MerkleTrieData getData(byte[] key, long version) {
 		return getData(new Bytes(key), version);
 	}
 
-	public MerkleData getData(Bytes key) {
+	public MerkleTrieData getData(Bytes key) {
 		return getData(key, -1);
 	}
 
-	public MerkleData getData(Bytes key, long version) {
+	public MerkleTrieData getData(Bytes key, long version) {
 		long keyHash = KeyIndexer.hash(key);
-		MerkleData dataEntry = seekDataEntry(key, version, keyHash, root, 0, NULL_SELECTOR);
+		MerkleTrieData dataEntry = seekDataEntry(key, version, keyHash, root, 0, NULL_SELECTOR);
 		return dataEntry;
 	}
 
@@ -263,7 +263,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * 返回所有键的最新版本数据；
 	 */
 	@Override
-	public SkippingIterator<MerkleData> iterator() {
+	public SkippingIterator<MerkleTrieData> iterator() {
 		return new MerkleDataIterator(root, this);
 	}
 
@@ -273,7 +273,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @param key
 	 * @return
 	 */
-	public SkippingIterator<MerkleData> iterator(byte[] key) {
+	public SkippingIterator<MerkleTrieData> iterator(byte[] key) {
 		return iterator(key, -1);
 	}
 
@@ -284,7 +284,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @param version
 	 * @return
 	 */
-	public SkippingIterator<MerkleData> iterator(byte[] key, long version) {
+	public SkippingIterator<MerkleTrieData> iterator(byte[] key, long version) {
 		//TODO;
 		return null;
 	}
@@ -293,7 +293,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	/**
 	 * 迭代器包含所有基准树与原始树之间差异的数据项
 	 */
-	public SkippingIterator<MerkleData> getKeyDiffIterator(MerkleHashTrie origTree) {
+	public SkippingIterator<MerkleTrieData> getKeyDiffIterator(MerkleHashTrie origTree) {
 		return new PathKeysDiffIterator(root, this, origTree.root, origTree, 0);
 	}
 
@@ -308,7 +308,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @param selector
 	 * @return
 	 */
-	private MerkleData seekDataEntry(Bytes key, long version, long keyHash, MerklePath path, int level,
+	private MerkleTrieData seekDataEntry(Bytes key, long version, long keyHash, MerklePath path, int level,
 			SeekingSelector selector) {
 		HashDigest[] childHashs = path.getChildHashs();
 		byte keyIndex = KeyIndexer.index(keyHash, level);
@@ -355,10 +355,10 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 				}
 
 				HashDigest dataEntryHash = merkleKey.getDataEntryHash();
-				MerkleData data = null;
+				MerkleTrieData data = null;
 				if (leaf instanceof LeafNode) {
 					// LeafNode 是新增或者新修改的；
-					MerkleData[] datas = ((LeafNode) leaf).getDataEntries();
+					MerkleTrieData[] datas = ((LeafNode) leaf).getDataEntries();
 					data = datas[i];
 				}
 				if (data == null) {
@@ -418,12 +418,12 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @param selector 节点选择器；
 	 * @return
 	 */
-	private MerkleData seekPreviousData(MerkleData data, long version, int level, SeekingSelector selector) {
+	private MerkleTrieData seekPreviousData(MerkleTrieData data, long version, int level, SeekingSelector selector) {
 		assert version < data.getVersion();
 
 		HashDigest previousHash = data.getPreviousEntryHash();
 
-		MerkleData previousEntry = null;
+		MerkleTrieData previousEntry = null;
 		if (data instanceof MerkleDataEntry) {
 			// 从内存中加载；
 			previousEntry = ((MerkleDataEntry) data).getPreviousEntry();
@@ -463,22 +463,22 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 	}
 
-	private MerkleData loadDataEntry(HashDigest dataEntryHash) {
+	private MerkleTrieData loadDataEntry(HashDigest dataEntryHash) {
 //		Bytes key = encodeEntryKey(dataEntryHash);
 //		byte[] bytes = storage.get(key);
 //		MerkleData dataEntry = BinaryProtocol.decode(bytes);
 //		return dataEntry;
 
-		return (MerkleData) loadMerkleTrieEntry(dataEntryHash);
+		return (MerkleTrieData) loadMerkleTrieEntry(dataEntryHash);
 	}
 
-	private MerkleData[] loadDataEntries(MerkleLeaf leafNode) {
+	private MerkleTrieData[] loadDataEntries(MerkleLeaf leafNode) {
 		MerkleKey[] keys = leafNode.getKeys();
-		MerkleData[] datas;
+		MerkleTrieData[] datas;
 		if (leafNode instanceof LeafNode) {
 			datas = ((LeafNode) leafNode).getDataEntries();
 		} else {
-			datas = new MerkleData[keys.length];
+			datas = new MerkleTrieData[keys.length];
 		}
 		for (int i = 0; i < datas.length; i++) {
 			if (datas[i] == null) {
@@ -519,12 +519,12 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	}
 
 	public void printDatas() {
-		SkippingIterator<MerkleData> iterator = iterator();
+		SkippingIterator<MerkleTrieData> iterator = iterator();
 		System.out.println("\r\n\rn-------- HASH-SORTING-MERKLE-TREE -------");
 		System.out.printf("total-size=%s\r\n", iterator.getCount());
 		int i = 0;
 		while (iterator.hasNext()) {
-			MerkleData data = iterator.next();
+			MerkleTrieData data = iterator.next();
 			System.out.printf("[%s] - KEY=%s; VERSION=%s;\r\n", i, data.getKey().toBase58(), data.getVersion());
 		}
 		System.out.printf("\r\n------------------\r\n", iterator.getCount());
@@ -777,7 +777,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	}
 	
 	
-	public static class MerkleKeyVersionIterator extends AbstractSkippingIterator<MerkleData>{
+	public static class MerkleKeyVersionIterator extends AbstractSkippingIterator<MerkleTrieData>{
 		
 		private MerkleHashTrie tree;
 		
@@ -791,14 +791,14 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 
 		@Override
-		public MerkleData next() {
+		public MerkleTrieData next() {
 			// TODO Auto-generated method stub
 			return null;
 		}
 		
 	}
 
-	public static class MerkleDataIterator extends AbstractSkippingIterator<MerkleData> {
+	public static class MerkleDataIterator extends AbstractSkippingIterator<MerkleTrieData> {
 
 		private MerkleHashTrie tree;
 
@@ -808,7 +808,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 
 		private PathNode root;
 
-		private SkippingIterator<MerkleData> childIterator;
+		private SkippingIterator<MerkleTrieData> childIterator;
 
 		public MerkleDataIterator(PathNode rootNode, MerkleHashTrie tree) {
 			this.root = rootNode;
@@ -821,7 +821,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 
 		@Override
-		public MerkleData next() {
+		public MerkleTrieData next() {
 			if (!hasNext()) {
 				return null;
 			}
@@ -838,7 +838,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 			long childDiffOffset = cursor - getChildCount(0, childCursor);
 			MerkleTreeNode childNode = getChildNode(root, (byte) childCursor);
 
-			SkippingIterator<MerkleData> childIterator = getOrCreateDiffIterator(childNode);
+			SkippingIterator<MerkleTrieData> childIterator = getOrCreateDiffIterator(childNode);
 			long nextChildCursor = childIterator.getCursor() + 1;
 
 			childIterator.skip(childDiffOffset - nextChildCursor);
@@ -846,14 +846,14 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 			return childIterator.next();
 		}
 
-		private SkippingIterator<MerkleData> getOrCreateDiffIterator(MerkleTreeNode childNode) {
+		private SkippingIterator<MerkleTrieData> getOrCreateDiffIterator(MerkleTreeNode childNode) {
 			if (childIterator == null) {
 				childIterator = createDiffIterator(childNode);
 			}
 			return childIterator;
 		}
 
-		private SkippingIterator<MerkleData> createDiffIterator(MerkleTreeNode childNode) {
+		private SkippingIterator<MerkleTrieData> createDiffIterator(MerkleTreeNode childNode) {
 			if (childNode == null) {
 				return NULL_DATA_ITERATOR;
 			}
@@ -893,13 +893,13 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class MerkleLeafDataIterator implements SkippingIterator<MerkleData> {
+	private static class MerkleLeafDataIterator implements SkippingIterator<MerkleTrieData> {
 
 		private MerkleHashTrie tree;
 
 		private MerkleKey[] keys;
 
-		private MerkleData[] dataEntries;
+		private MerkleTrieData[] dataEntries;
 
 		private int cursor = -1;
 
@@ -947,10 +947,10 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 
 		@Override
-		public MerkleData next() {
+		public MerkleTrieData next() {
 			if (hasNext()) {
 				int nextIndex = cursor + 1;
-				MerkleData data = dataEntries[nextIndex];
+				MerkleTrieData data = dataEntries[nextIndex];
 				if (data == null) {
 					data = tree.loadDataEntry(keys[nextIndex].getDataEntryHash());
 				}
@@ -971,7 +971,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @author huanghaiquan
 	 *
 	 */
-	public static abstract class DiffDataIterator extends AbstractSkippingIterator<MerkleData> {
+	public static abstract class DiffDataIterator extends AbstractSkippingIterator<MerkleTrieData> {
 
 		/**
 		 * 新增
@@ -1023,7 +1023,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 
 		private byte childCursor = 0;
 
-		private SkippingIterator<MerkleData> childDiffIterator;
+		private SkippingIterator<MerkleTrieData> childDiffIterator;
 
 		/**
 		 * 创建一个差异遍历器；
@@ -1043,7 +1043,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 
 		@Override
-		public MerkleData next() {
+		public MerkleTrieData next() {
 			if (!hasNext()) {
 				return null;
 			}
@@ -1061,7 +1061,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 			MerkleTreeNode childNode1 = getChildNode(tree1, (PathNode) root1, childCursor);
 			MerkleTreeNode childNode2 = getChildNode(tree2, (PathNode) root2, childCursor);
 
-			SkippingIterator<MerkleData> childDiffIterator = getOrCreateDiffIterator(childNode1, childNode2);
+			SkippingIterator<MerkleTrieData> childDiffIterator = getOrCreateDiffIterator(childNode1, childNode2);
 			long nextChildDiffCursor = childDiffIterator.getCursor() + 1;
 
 			childDiffIterator.skip(childDiffOffset - nextChildDiffCursor);
@@ -1125,7 +1125,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 			return s1;
 		}
 
-		protected SkippingIterator<MerkleData> getOrCreateDiffIterator(MerkleTreeNode rootNode1,
+		protected SkippingIterator<MerkleTrieData> getOrCreateDiffIterator(MerkleTreeNode rootNode1,
 				MerkleTreeNode rootNode2) {
 			if (childDiffIterator == null) {
 				childDiffIterator = createDiffIterator(rootNode1, rootNode2);
@@ -1137,7 +1137,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 
 		protected abstract long getChildCount(MerkleTreeNode node, int childIndex);
 
-		protected abstract SkippingIterator<MerkleData> createDiffIterator(MerkleTreeNode rootNode1,
+		protected abstract SkippingIterator<MerkleTrieData> createDiffIterator(MerkleTreeNode rootNode1,
 				MerkleTreeNode rootNode2);
 
 	}
@@ -1169,7 +1169,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 
 		@Override
-		protected SkippingIterator<MerkleData> createDiffIterator(MerkleTreeNode node1, MerkleTreeNode node2) {
+		protected SkippingIterator<MerkleTrieData> createDiffIterator(MerkleTreeNode node1, MerkleTreeNode node2) {
 			if (node2 == null && node1 instanceof LeafNode) {
 				return new MerkleLeafDataIterator((LeafNode) node1, tree1);
 			}
@@ -1226,12 +1226,12 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class LeafKeysDiffIterator extends AbstractSkippingIterator<MerkleData> {
-		private MerkleData[] diffDataEntries;
+	private static class LeafKeysDiffIterator extends AbstractSkippingIterator<MerkleTrieData> {
+		private MerkleTrieData[] diffDataEntries;
 
 		public LeafKeysDiffIterator(LeafNode leaf1, MerkleHashTrie tree1, LeafNode leaf2, MerkleHashTrie tree2) {
-			MerkleData[] dataEntries1 = tree1.loadDataEntries(leaf1);
-			MerkleData[] dataEntries2 = tree2.loadDataEntries(leaf2);
+			MerkleTrieData[] dataEntries1 = tree1.loadDataEntries(leaf1);
+			MerkleTrieData[] dataEntries2 = tree2.loadDataEntries(leaf2);
 			diffDataEntries = selectDiffDataEntries(dataEntries1, dataEntries2);
 		}
 
@@ -1241,7 +1241,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 
 		@Override
-		public MerkleData next() {
+		public MerkleTrieData next() {
 			return diffDataEntries[(int) cursor];
 		}
 
@@ -1252,10 +1252,10 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		 * @param dataEntries2
 		 * @return
 		 */
-		private MerkleData[] selectDiffDataEntries(MerkleData[] dataEntries1, MerkleData[] dataEntries2) {
+		private MerkleTrieData[] selectDiffDataEntries(MerkleTrieData[] dataEntries1, MerkleTrieData[] dataEntries2) {
 			// MerkleHashTrie 的 Leaf 节点由于哈希冲突概率极小，同一个 LeafNode 中有 1 条以上的概率极小；故优化 ArrayList
 			// 初始化容量为 2；
-			List<MerkleData> diffDataEntries = new ArrayList<MerkleData>(2);
+			List<MerkleTrieData> diffDataEntries = new ArrayList<MerkleTrieData>(2);
 			boolean found = false;
 			Set<Bytes> keys2 = new HashSet<Bytes>();
 			for (int i = 0; i < dataEntries2.length; i++) {
@@ -1267,7 +1267,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 				}
 				diffDataEntries.add(dataEntries1[i]);
 			}
-			return diffDataEntries.toArray(new MerkleData[diffDataEntries.size()]);
+			return diffDataEntries.toArray(new MerkleTrieData[diffDataEntries.size()]);
 		}
 	}
 
@@ -1289,7 +1289,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 
 		@Override
-		public MerkleData next() {
+		public MerkleTrieData next() {
 			// TODO Auto-generated method stub
 			return null;
 		}
@@ -1313,7 +1313,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 
 		@Override
-		public MerkleData next() {
+		public MerkleTrieData next() {
 			return null;
 		}
 	}
@@ -1336,7 +1336,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 
 		@Override
-		public MerkleData next() {
+		public MerkleTrieData next() {
 			return null;
 		}
 	}
@@ -1485,8 +1485,8 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 
 		@Override
-		public MerkleData next() {
-			MerkleData nextKey = null;
+		public MerkleTrieData next() {
+			MerkleTrieData nextKey = null;
 
 			while (iterator1.hasNext()) {
 				nextKey = iterator1.next();
@@ -1520,7 +1520,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleData> {
 		}
 
 		@Override
-		public MerkleData next() {
+		public MerkleTrieData next() {
 			// TODO Auto-generated method stub
 			return null;
 		}

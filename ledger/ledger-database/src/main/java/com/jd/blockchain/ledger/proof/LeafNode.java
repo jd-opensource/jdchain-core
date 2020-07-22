@@ -16,7 +16,7 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 
 	private static final MerkleKey[] EMPTY_KEYS = {};
 
-	private static final MerkleData[] EMPTY_DATA_ENTRIES = {};
+	private static final MerkleTrieData[] EMPTY_DATA_ENTRIES = {};
 
 	private long keyHash;
 
@@ -26,7 +26,7 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 	private volatile MerkleKey[] previousKeys;
 
 	// 与 key 对应的数据项；用做缓存；
-	private volatile MerkleData[] dataEntries;
+	private volatile MerkleTrieData[] dataEntries;
 
 	/**
 	 * 创建一个新的叶子节点；
@@ -48,12 +48,12 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 
 		this.keys = leaf.getKeys();
 		this.dataEntries = (this.keys == null || this.keys.length == 0) ? EMPTY_DATA_ENTRIES
-				: new MerkleData[keys.length];
+				: new MerkleTrieData[keys.length];
 
 		this.previousKeys = (this.keys == null || this.keys.length == 0) ? EMPTY_KEYS : this.keys.clone();
 	}
 
-	protected MerkleData[] getDataEntries() {
+	protected MerkleTrieData[] getDataEntries() {
 		return dataEntries;
 	}
 
@@ -74,7 +74,7 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 		int newLen = origLen + 1;
 
 		MerkleKey[] newKeys = new MerkleKey[newLen];
-		MerkleData[] newDatas = new MerkleData[newLen];
+		MerkleTrieData[] newDatas = new MerkleTrieData[newLen];
 		if (index > 0) {
 			System.arraycopy(this.keys, 0, newKeys, 0, index);
 			System.arraycopy(this.dataEntries, 0, newDatas, 0, index);
@@ -202,11 +202,11 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 	 * @param updatedListener 更新监听器；
 	 * @return
 	 */
-	private HashDigest updateDataEntry(MerkleData data, HashFunction hashFunc, NodeUpdatedListener updatedListener) {
+	private HashDigest updateDataEntry(MerkleTrieData data, HashFunction hashFunc, NodeUpdatedListener updatedListener) {
 		//检查指定的数据节点是否存在未更新的前版本数据节点；
 		if (data instanceof MerkleDataEntry) {
 			MerkleDataEntry entry = (MerkleDataEntry) data;
-			MerkleData previousDataEntry = entry.getPreviousEntry();
+			MerkleTrieData previousDataEntry = entry.getPreviousEntry();
 			if (entry.getPreviousEntryHash() == null && previousDataEntry != null) {
 				//保存前版本数据节点；
 				HashDigest entryHash = updateDataEntry(previousDataEntry, hashFunc, updatedListener);
@@ -214,7 +214,7 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 			}
 		}
 		//更新指定的数据节点；
-		byte[] nodeBytes = BinaryProtocol.encode(data, MerkleData.class);
+		byte[] nodeBytes = BinaryProtocol.encode(data, MerkleTrieData.class);
 		HashDigest entryHash = hashFunc.hash(nodeBytes);
 		updatedListener.onUpdated(entryHash, this, nodeBytes);
 
