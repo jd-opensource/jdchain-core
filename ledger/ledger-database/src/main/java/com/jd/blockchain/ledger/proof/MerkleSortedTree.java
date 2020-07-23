@@ -56,7 +56,7 @@ public class MerkleSortedTree implements Transactional {
 
 	private HashDigest rootHash;
 
-	private MerkleNode root;
+	private AbstractMerklePath root;
 
 	/**
 	 * 构建空的树；
@@ -107,13 +107,13 @@ public class MerkleSortedTree implements Transactional {
 		}
 	}
 
-	private MerkleNode loadNode(HashDigest nodeHash) {
+	private AbstractMerklePath loadPathNode(HashDigest nodeHash) {
 		byte[] nodeBytes = loadNodeBytes(nodeHash);
 		MerkleIndex idx = BinaryProtocol.decode(nodeBytes, MerkleIndex.class);
 		if (idx.getStep() == 1) {
-			return new MerkleLeafNode<E>(nodeHash, idx.getOffset(), idx.getChildHashs(), dataCodec);
+			return new MerkleLeafNode(nodeHash, idx.getOffset(), idx.getChildHashs());
 		} else if (idx.getStep() > 1) {
-			return new MerklePathNode<E>(nodeHash, idx.getOffset(), idx.getStep(), idx.getChildHashs(), dataCodec);
+			return new MerklePathNode(nodeHash, idx);
 		}
 		throw new MerkleProofException(
 				"Illegal step value[" + idx.getStep() + "] of MerkleIndex which is loaded from storage!");
@@ -138,8 +138,7 @@ public class MerkleSortedTree implements Transactional {
 		}
 		return r;
 	}
-	
-	
+
 	private static long getLeafNodeOffset(long id) {
 		return id - id % TREE_DEGREE;
 	}
@@ -154,19 +153,19 @@ public class MerkleSortedTree implements Transactional {
 			int index = (int) (id - offset);
 			leaf.setData(index, data);
 			root = leaf;
-			
+
 			return true;
 		}
-		
+
 		if (id < root.getOffset()) {
-			//要插入的节点在根节点的左侧的子树；
-			
-		}else if(id >= root.getOffset() + root.getStep() * TREE_DEGREE) {
-			//要插入的节点在根节点的右侧的子树；
-			
-		}else {
-			//要插入的节点在根节点当前的子树；
-			
+			// 要插入的节点在根节点的左侧的子树；
+
+		} else if (id >= root.getOffset() + root.getStep() * TREE_DEGREE) {
+			// 要插入的节点在根节点的右侧的子树；
+
+		} else {
+			// 要插入的节点在根节点当前的子树；
+
 		}
 	}
 
@@ -197,6 +196,16 @@ public class MerkleSortedTree implements Transactional {
 		// TODO Auto-generated method stub
 
 	}
+	
+	private Bytes encodePathNodeKey(HashDigest nodeHash) {
+		// TODO:
+				throw new IllegalStateException("Not implemented!");
+	}
+	
+	private Bytes encodeDataNodeKey(long id) {
+		// TODO:
+		throw new IllegalStateException("Not implemented!");
+	}
 
 	/**
 	 * 加载指定节点的内容，如果不存在，则抛出异常；
@@ -213,20 +222,32 @@ public class MerkleSortedTree implements Transactional {
 		// TODO:
 		throw new IllegalStateException("Not implemented!");
 	}
-	
+
 	/**
+	 * 表示 {@link MerkleSortedTree} 维护的数据项；
+	 * 
 	 * @author huanghaiquan
 	 *
 	 */
 	@DataContract(code = DataCodes.MERKLE_SORTED_TREE_DATA)
-	public static interface MerkleData{
-		
+	public static interface MerkleData {
+
+		/**
+		 * 数据哈希；
+		 * 
+		 * @return
+		 */
 		@DataField(order = 0, primitiveType = PrimitiveType.BYTES)
 		HashDigest getHash();
-		
+
+		/**
+		 * 数据字节；
+		 * 
+		 * @return
+		 */
 		@DataField(order = 1, primitiveType = PrimitiveType.BYTES)
 		byte[] getBytes();
-		
+
 	}
 
 	/**
@@ -269,7 +290,61 @@ public class MerkleSortedTree implements Transactional {
 		HashDigest[] getChildHashs();
 	}
 
-	private abstract class MerkleNode implements MerkleIndex {
+	/**
+	 * 默克尔节点；
+	 * 
+	 * @author huanghaiquan
+	 *
+	 */
+	private static interface MerkleNode {
+
+	}
+
+	/**
+	 * 默克尔数据节点；
+	 * 
+	 * @author huanghaiquan
+	 *
+	 */
+	private static class MerkleDataNode implements MerkleData, MerkleNode {
+
+		private HashDigest hash;
+
+		private byte[] bytes;
+
+		/**
+		 * 创建默克尔数据节点；
+		 * 
+		 * @param hash  数据参数的哈希值；
+		 * @param bytes 数据；
+		 */
+		public MerkleDataNode(HashDigest hash, byte[] bytes) {
+			this.hash = hash;
+			this.bytes = bytes;
+		}
+
+		@Override
+		public HashDigest getHash() {
+			return hash;
+		}
+
+		@Override
+		public byte[] getBytes() {
+			return bytes;
+		}
+
+	}
+
+	/**
+	 * 默克尔路径的抽象实现；
+	 * 
+	 * @author huanghaiquan
+	 *
+	 */
+	private abstract class AbstractMerklePath implements MerkleIndex, MerkleNode {
+		
+		
+		private final long MAX_ID;
 
 		private HashDigest nodeHash;
 
@@ -281,11 +356,13 @@ public class MerkleSortedTree implements Transactional {
 
 		private HashDigest[] childHashs;
 
-		private Object[] children;
+		private MerkleNode[] children;
 
 		private boolean modified;
 
-		public MerkleNode(long offset, byte step) {
+		public AbstractMerklePath(long offset, byte step) {
+			MAX_ID = offset + step * TREE_DEGREE;
+			
 			this.offset = offset;
 			this.step = step;
 			this.childHashs = new HashDigest[TREE_DEGREE];
@@ -293,13 +370,22 @@ public class MerkleSortedTree implements Transactional {
 			this.modified = true;
 		}
 
-		public MerkleNode(HashDigest nodeHash, long offset, byte step, HashDigest[] childHashs) {
+		public AbstractMerklePath(HashDigest nodeHash, MerkleIndex index) {
+			this(nodeHash, index.getOffset(), index.getStep(), index.getChildHashs());
+		}
+		
+		protected AbstractMerklePath(HashDigest nodeHash, long offset, byte step, HashDigest[] childHashs) {
+			MAX_ID = offset + step * TREE_DEGREE;
+			
 			this.nodeHash = nodeHash;
+			
 			this.offset = offset;
 			this.step = step;
 			this.childHashs = childHashs;
 			this.origChildHashs = childHashs.clone();
 			this.modified = false;
+			
+			assert childHashs.length == TREE_DEGREE;
 		}
 
 		public boolean isModified() {
@@ -324,18 +410,20 @@ public class MerkleSortedTree implements Transactional {
 		/**
 		 * 返回子节点；
 		 * 
-		 * @param index 子节点在哈希列表 {@link #getChildHashs()} 中的位置；
+		 * @param id 子节点的id, 如果子节点不属于当前节点的存储空间。则抛出异常；
 		 */
-		public Object getChildNode(int index) {
-			Object childNode = children[index];
+		public MerkleNode getChildNode(long id) {
+			assert id >= offset && id < MAX_ID;
+			int index = (int) (id - MAX_ID);
+			MerkleNode childNode = children[index];
 			if (childNode != null) {
 				return childNode;
 			}
-			HashDigest nodeHash = childHashs[index];
-			if (nodeHash == null) {
+			HashDigest childHash = childHashs[index];
+			if (childHash == null) {
 				return null;
 			}
-			childNode = loadChildNode(nodeHash);
+			childNode = loadChild(id, childHash);
 			children[index] = childNode;
 			return childNode;
 		}
@@ -343,7 +431,7 @@ public class MerkleSortedTree implements Transactional {
 		/**
 		 * @param child
 		 */
-		protected void setChild(int index, Object child) {
+		protected void setChild(int index, MerkleNode child) {
 			children[index] = child;
 			childHashs[index] = null;
 		}
@@ -355,7 +443,7 @@ public class MerkleSortedTree implements Transactional {
 			// save the modified childNodes;
 			for (int i = 0; i < TREE_DEGREE; i++) {
 				if (children[i] != null && childHashs[i] == null) {
-					HashDigest childHash = saveChildNode(children[i]);
+					HashDigest childHash = saveChild(children[i]);
 					childHashs[i] = childHash;
 				}
 			}
@@ -372,13 +460,13 @@ public class MerkleSortedTree implements Transactional {
 			return hash;
 		}
 
-		abstract HashDigest saveChildNode(Object node);
+		abstract HashDigest saveChild(MerkleNode childNode);
 
-		abstract Object loadChildNode(HashDigest nodeHash);
+		abstract MerkleNode loadChild(long id, HashDigest childHash);
 
 	}
 
-	private class MerklePathNode<E> extends MerkleNode {
+	private class MerklePathNode extends AbstractMerklePath {
 
 		public MerklePathNode(long offset, byte step) {
 			super(offset, step);
@@ -386,57 +474,55 @@ public class MerkleSortedTree implements Transactional {
 			assert step > 1;
 		}
 
-		public MerklePathNode(HashDigest nodeHash, long offset, byte step, HashDigest[] childHashs) {
-			super(nodeHash, offset, step, childHashs);
+		public MerklePathNode(HashDigest nodeHash, MerkleIndex index) {
+			super(nodeHash, index);
 
-			assert step > 1;
-		}
-
-		public void setChildNode(int index, MerkleNode child) {
-			super.setChild(index, child);
+			assert index.getStep() > 1;
 		}
 
 		@SuppressWarnings("unchecked")
 		@Override
 		HashDigest saveChildNode(Object node) {
-			return ((MerkleNode) node).commit();
+			return ((AbstractMerklePath) node).commit();
 		}
-
+		
 		@Override
-		Object loadChildNode(HashDigest nodeHash) {
-			return loadNode(nodeHash);
+		MerkleNode loadChild(long id, HashDigest childHash) {
+			return loadPathNode(childHash);
 		}
 	}
-	
-	
 
-	private class MerkleLeafNode extends MerkleNode {
+	private class MerkleLeafNode extends AbstractMerklePath {
 
 		public MerkleLeafNode(long offset) {
 			super(offset, (byte) 1);
 		}
 
-		public MerkleLeafNode(HashDigest nodeHash, long offset, HashDigest[] childHashs) {
-			super(nodeHash, offset, (byte) 1, childHashs);
-		}
-
-		public void setData(int index, byte[] data) {
-			setChild(index, data);
+		public MerkleLeafNode(HashDigest nodeHash, MerkleIndex index) {
+			super(nodeHash, index.getOffset(), (byte) 1, index.getChildHashs());
+			assert index.getStep() == 1;
 		}
 
 		@SuppressWarnings("unchecked")
 		@Override
-		HashDigest saveChildNode(Object data) {
-			byte[] bytes = dataCodec.encode((E) data);
+		HashDigest saveChild(MerkleNode data) {
+			byte[] bytes = BinaryProtocol.encode(data, MerkleData.class);
 			HashDigest hash = hashFunc.hash(bytes);
 			saveNodeBytes(hash, bytes);
 			return hash;
 		}
 
 		@Override
-		Object loadChildNode(HashDigest nodeHash) {
-			byte[] nodeBytes = loadNodeBytes(nodeHash);
+		MerkleNode loadChild(long id, HashDigest childHash) {
+			byte[] nodeBytes = loadNodeBytes(childHash);
+			
 			return dataCodec.decode(nodeBytes);
+		}
+
+		@Override
+		MerkleNode loadChild(long id, HashDigest childHash) {
+			// TODO Auto-generated method stub
+			return null;
 		}
 
 	}
