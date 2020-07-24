@@ -290,48 +290,55 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	@Override
 	public NodeServer setConfig(BindingConfig bindingConfig, HashDigest ledgerHash) {
 //		LedgerBindingConfig.BindingConfig bindingConfig = config.getLedger(ledgerHash);
-		DbConnection dbConnNew = connFactory.connect(bindingConfig.getDbConnection().getUri(),
-				bindingConfig.getDbConnection().getPassword());
-		LedgerQuery ledgerRepository = ledgerManager.register(ledgerHash, dbConnNew.getStorageService());
+		LedgerQuery ledgerRepository = null;
+		NodeServer server = null;
+		ParticipantNode currentNode = null;
+		LedgerAdminInfo ledgerAdminAccount = null;
+
+		try {
+			DbConnection dbConnNew = connFactory.connect(bindingConfig.getDbConnection().getUri(),
+					bindingConfig.getDbConnection().getPassword());
+			ledgerRepository = ledgerManager.register(ledgerHash, dbConnNew.getStorageService());
+
+			ledgerAdminAccount = ledgerRepository.getAdminInfo();
+
+			ConsensusProvider provider = getProvider(ledgerAdminAccount);
+
+			// load consensus setting;
+			ConsensusSettings csSettings = getConsensusSetting(ledgerAdminAccount);
+
+			// find current node;
+
+			for (ParticipantNode participantNode : ledgerAdminAccount.getParticipants()) {
+				if (participantNode.getAddress().toString().equals(bindingConfig.getParticipant().getAddress())) {
+					currentNode = participantNode;
+				}
+			}
+			if (currentNode == null) {
+				throw new IllegalArgumentException(
+						"Current node is not found from the participant settings of ledger[" + ledgerHash.toBase58() + "]!");
+			}
+
+			// 处于ACTIVED状态的参与方才会创建共识节点
+			if (currentNode.getParticipantNodeState() == ParticipantNodeState.CONSENSUS) {
+
+				ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(ledgerHash.toBase58(),
+						csSettings, currentNode.getAddress().toString());
+
+				((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
+
+				server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
+						consensusStateManager);
+				ledgerPeers.put(ledgerHash, server);
+			}
+
+		} catch (Exception e) {
+			ledgerManager.unregister(ledgerHash);
+			throw e;
+		}
 
 		ledgerQuerys.put(ledgerHash, ledgerRepository);
-
-		LedgerAdminInfo ledgerAdminAccount = ledgerRepository.getAdminInfo();
-
-		ConsensusProvider provider = getProvider(ledgerAdminAccount);
-
-		// load consensus setting;
-		ConsensusSettings csSettings = getConsensusSetting(ledgerAdminAccount);
-
-		// find current node;
-		ParticipantNode currentNode = null;
-		for (ParticipantNode participantNode : ledgerAdminAccount.getParticipants()) {
-			if (participantNode.getAddress().toString().equals(bindingConfig.getParticipant().getAddress())) {
-				currentNode = participantNode;
-			}
-		}
-		if (currentNode == null) {
-			throw new IllegalArgumentException(
-					"Current node is not found from the participant settings of ledger[" + ledgerHash.toBase58() + "]!");
-		}
-
 		ledgerCurrNodes.put(ledgerHash, currentNode);
-
-		NodeServer server = null;
-
-		// 处于ACTIVED状态的参与方才会创建共识节点
-		if (currentNode.getParticipantNodeState() == ParticipantNodeState.CONSENSUS) {
-
-			ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(ledgerHash.toBase58(),
-					csSettings, currentNode.getAddress().toString());
-
-			((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
-
-			server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
-					consensusStateManager);
-			ledgerPeers.put(ledgerHash, server);
-		}
-
 		ledgerCryptoSettings.put(ledgerHash, ledgerAdminAccount.getSettings().getCryptoSetting());
 		ledgerKeypairs.put(ledgerHash, loadIdentity(currentNode, bindingConfig));
 
