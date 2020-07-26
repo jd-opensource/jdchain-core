@@ -688,20 +688,20 @@ public class MerkleSortedTree implements Transactional {
 		 * 
 		 * 如果指定编号的数据已经存在，则抛出 {@link MerkleProofException} 异常；
 		 * 
-		 * @param id   数据的唯一编号；
-		 * @param data 数据；
+		 * @param id        数据的唯一编号；
+		 * @param dataBytes 数据；
 		 * @return 返回该编号的数据写入的子树的位置; <br>
 		 *         如果指定编号不属于该子树，则返回值大于等于 0 且小于 {@value MerkleSortedTree#TREE_DEGREE};
 		 *         <br>
 		 *         如果指定编号不属于该子树，则返回 -1；
 		 */
-		public int setData(long id, byte[] data) {
+		public int setData(long id, byte[] dataBytes) {
 			int index = index(id);
 			if (index < 0) {
 				return index;
 			}
 
-			MerkleData dataNode = new MerkleDataNode(id, data);
+			MerkleData newData = new MerkleDataNode(id, dataBytes);
 
 			HashDigest childHash = childHashs[index];
 			MerkleEntry child = children[index];
@@ -710,7 +710,7 @@ public class MerkleSortedTree implements Transactional {
 				if (childHash == null) {
 					// 完全没有子树时，直接附加数据节点；
 					// 当新节点在此子树中没有其它兄弟节点时，不建立从当前节点到叶子节点之间完整的路径节点，目的是缩减空间，优化处理少量数据节点的情形；
-					setChild(index, null, dataNode);
+					setChild(index, null, newData);
 					return index;
 				}
 
@@ -725,12 +725,12 @@ public class MerkleSortedTree implements Transactional {
 					throw new MerkleProofException("The data entry with the same id[" + id + "] already exist!");
 				}
 
-				child = mergeChildren(dataNode, childData);
+				child = mergeChildren(newData, childData);
 			} else {
 				// 已经有子树存在，检查要加入的节点属于该子树，还是与其是兄弟子树，合并这两个节点；
 				MerkleIndex merkleIndex = (MerkleIndex) child;
 
-				child = mergeChildren(dataNode, childHash, merkleIndex);
+				child = mergeChildren(newData, childHash, merkleIndex);
 			}
 
 			setChild(index, null, child);
@@ -799,13 +799,29 @@ public class MerkleSortedTree implements Transactional {
 			Bytes storageKey = encodeStorageKey(hash);
 			saveNodeBytes(storageKey, nodeBytes);
 
+			// update hash;
+			for (int i = 0; i < TREE_DEGREE; i++) {
+				origChildHashs[i] = childHashs[i];
+			}
 			this.nodeHash = hash;
 
 			return hash;
 		}
 
 		public void cancel() {
-
+			MerkleEntry child;
+			for (int i = 0; i < TREE_DEGREE; i++) {
+				if (childHashs[i] == null || origChildHashs[i] == null || (!childHashs[i].equals(origChildHashs[i]))) {
+					child = children[i];
+					children[i] = null;
+					// 清理字节点以便优化大对象的垃圾回收效率；
+					if (child != null && child instanceof MerklePath) {
+						((MerklePath) child).cancel();
+					}
+				}
+				childHashs[i] = origChildHashs[i];
+			}
+			// 注：不需要处理 nodeHash 的回滚，因为 nodeHash 是 commit 操作的最后确认标志；
 		}
 
 		HashDigest saveData(long id, MerkleData data) {
