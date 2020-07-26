@@ -55,7 +55,7 @@ public class MerkleSortedTree implements Transactional {
 
 	private HashDigest rootHash;
 
-	private MerklePath root;
+	private MerkleIndex root;
 
 	/**
 	 * 构建空的树；
@@ -106,6 +106,62 @@ public class MerkleSortedTree implements Transactional {
 		}
 	}
 
+	public void set(long id, byte[] data) {
+		if (id < 0) {
+			throw new IllegalArgumentException("The argument 'id' is negative!");
+		}
+		if (root == null) {
+			long offset = calculateLeafOffset(id);
+			MerklePath leaf = createLeafPath(offset);
+			leaf.setData(id, data);
+			root = leaf;
+			return;
+		}
+
+		MerkleData dataNode = new MerkleDataNode(id, data);
+		root = mergeChildren(dataNode, rootHash, root);
+	}
+
+	public HashDigest getRootHash() {
+		return rootHash;
+	}
+
+	public MerkleProof getProof(long id) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean isUpdated() {
+		if (root == null) {
+			return true;
+		}
+		if (root instanceof MerklePath) {
+			return ((MerklePath) root).isModified();
+		}
+		return false;
+	}
+
+	@Override
+	public void commit() {
+		if (root == null) {
+			throw new IllegalStateException("Nothing to commit!");
+		}
+		if (root instanceof MerklePath) {
+			rootHash = ((MerklePath) root).commit();
+		}
+	}
+
+	@Override
+	public void cancel() {
+		if (root == null) {
+			return;
+		}
+		if (root instanceof MerklePath) {
+			((MerklePath) root).cancel();
+		}
+	}
+
 	/**
 	 * 计算 value 的 x 次方；
 	 * <p>
@@ -126,62 +182,166 @@ public class MerkleSortedTree implements Transactional {
 		return r;
 	}
 
-	private static long getLeafOffset(long id) {
-		return id - id % TREE_DEGREE;
+	/**
+	 * 计算指定 id 在叶子节点上的偏移量；
+	 * 
+	 * @param id
+	 * @return
+	 */
+	private static long calculateLeafOffset(long id) {
+		// 叶子节点的 level 为 0 ；
+		return calculateOffset(id, 0);
 	}
 
-	public boolean set(long id, byte[] data, ExPolicy ex) {
-		if (id < 0) {
-			throw new IllegalArgumentException("The argument 'id' is negative!");
+	/**
+	 * 计算指定 id 在指定 level 的子树根节点的偏移量； <br>
+	 * level 大于等于 0 ，直接包含数据项的叶子节点的 level 为 0； <br>
+	 * 默克尔索引节点的步长 {@link MerkleIndex#getStep()} step 等于 {@link #TREE_DEGREE} 的 level
+	 * 次方；
+	 * 
+	 * @param id    要计算的编号；
+	 * @param level
+	 * @return
+	 */
+	private static long calculateOffset(long id, int level) {
+		// 该层节点数；
+		long step = power(TREE_DEGREE, level);
+		return calculateOffset(id, step);
+	}
+
+	/**
+	 * 计算指定 id 在指定 step 的子树根节点的偏移量；
+	 * 
+	 * @param id
+	 * @param step
+	 * @return
+	 */
+	private static long calculateOffset(long id, long step) {
+		long count = step * TREE_DEGREE;
+		return id - id % count;
+	}
+
+	/**
+	 * 上一级的步长；
+	 * 
+	 * @param step
+	 * @return
+	 */
+	private static long upStep(long step) {
+		return step * TREE_DEGREE;
+	}
+
+	private static long nextOffset(long offset, long step) {
+		return offset + step * TREE_DEGREE;
+	}
+
+//	private static int index(long id, MerkleIndex merkleIndex) {
+//		return index(id, merkleIndex.getOffset(), merkleIndex.getStep());
+//	}
+//
+//	private static int index(long id, long offset, long step) {
+//		if (id < offset) {
+//			return -1;
+//		}
+//		long nextOffset = nextOffset(offset, step);
+//		if (id >= nextOffset) {
+//			return -1;
+//		}
+//		long p = id - offset;
+//		long m = p % step;
+//		return (int) ((p - m) / step);
+//	}
+
+	/**
+	 * 合并子节点，返回共同的父节点；
+	 * 
+	 * @param data         数据项；
+	 * @param pathNodeHash 路径节点的哈希；
+	 * @param pathNode     路径节点；
+	 * @return
+	 */
+	private MerklePath mergeChildren(MerkleData data, HashDigest pathNodeHash, MerkleIndex pathNode) {
+		long id1 = data.getId();
+		long pathOffset = pathNode.getOffset();
+		long id2 = pathOffset;
+
+		long step = pathNode.getStep();
+		long offset1 = calculateOffset(id1, step);
+		long offset2 = pathOffset;
+
+		while (offset1 != offset2) {
+			step = upStep(step);
+			if (step >= MAX_COUNT) {
+				throw new IllegalStateException("The 'step' overlows!");
+			}
+			offset1 = calculateOffset(id1, step);
+			offset2 = calculateOffset(id2, step);
 		}
-		if (root == null) {
-			long offset = getLeafOffset(id);
-			MerklePath leaf = createLeafNode(offset);
-//			int index = (int) (id - offset);
-			leaf.setChild(index, data);
-			root = leaf;
 
-			return true;
-		}
+		// offset1 == offset2;
+		int index;
+		MerklePath childRoot = null;
 
-		if (id < root.getOffset()) {
-			// 要插入的节点在根节点的左侧的子树；
+		if (offset2 == pathOffset) {
+			// 数据节点属于 pathNode 路径节点；
+			// 把数据节点合并到 pathNode 路径节点；
+			if (pathNode instanceof MerklePath) {
+				childRoot = (MerklePath) pathNode;
+			} else {
+				childRoot = new MerklePath(pathNodeHash, pathNode);
+			}
 
-		} else if (id >= root.getOffset() + root.getStep() * TREE_DEGREE) {
-			// 要插入的节点在根节点的右侧的子树；
-
+			index = childRoot.index(id1);
+			childRoot.setChild(index, null, data);
 		} else {
-			// 要插入的节点在根节点当前的子树；
+			// 数据节点不属于 pathNode 路径节点；
+			// 创建共同的父节点；
+			childRoot = new MerklePath(offset2, step);
 
+			int index1 = childRoot.index(id1);
+			childRoot.setChild(index1, null, data);
+
+			int index2 = childRoot.index(id2);
+			childRoot.setChild(index2, pathNodeHash, pathNode);
 		}
+
+		return childRoot;
 	}
 
-	public HashDigest getRootHash() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+	/**
+	 * 合并指定的两个编号的数据项到他们共同的父节点；
+	 * 
+	 * @param data1
+	 * @param data2
+	 * @return
+	 */
+	private MerklePath mergeChildren(MerkleData data1, MerkleData data2) {
+		long id1 = data1.getId();
+		long id2 = data2.getId();
+		long offset1 = -1;
+		long offset2 = -1;
+		int level;
 
-	public MerkleProof getProof(long id) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+		// 查找共同的父节点；
+		for (level = 0; level < MAX_LEVEL; level++) {
+			offset1 = MerkleSortedTree.calculateOffset(id1, level);
+			offset2 = MerkleSortedTree.calculateOffset(id2, level);
+			if (offset1 == offset2) {
+				break;
+			}
+		}
+		if (offset1 == -1) {
+			//
+			throw new IllegalStateException(
+					String.format("Cann't find the \"offset\" of common parent node!  -- id1=%s, id2=!", id1, id2));
+		}
+		long step = power(TREE_DEGREE, level);
+		MerklePath path = new MerklePath(offset1, step);
 
-	@Override
-	public boolean isUpdated() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+		path.setChild(null, data1);
+		path.setChild(null, data2);
 
-	@Override
-	public void commit() {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void cancel() {
-		// TODO Auto-generated method stub
-
+		return path;
 	}
 
 	private MerkleIndex loadPathNode(HashDigest nodeHash) {
@@ -253,6 +413,7 @@ public class MerkleSortedTree implements Transactional {
 		return nodeBytes;
 	}
 
+	@SuppressWarnings("unused")
 	private void saveNodeBytes(byte[] key, byte[] nodeBytes) {
 		Bytes storageKey = encodeStorageKey(key);
 		boolean success = kvStorage.set(storageKey, nodeBytes, ExPolicy.NOT_EXISTING);
@@ -287,7 +448,7 @@ public class MerkleSortedTree implements Transactional {
 	 */
 	@DataContract(code = DataCodes.MERKLE_SORTED_TREE_DATA)
 	public static interface MerkleData extends MerkleEntry {
-		
+
 		@DataField(order = 0, primitiveType = PrimitiveType.INT64, numberEncoding = NumberEncoding.LONG)
 		long getId();
 
@@ -355,7 +516,9 @@ public class MerkleSortedTree implements Transactional {
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class MerkleDataNode implements MerkleData {
+	private class MerkleDataNode implements MerkleData {
+
+		private long id;
 
 		private HashDigest hash;
 
@@ -367,9 +530,16 @@ public class MerkleSortedTree implements Transactional {
 		 * @param hash  数据参数的哈希值；
 		 * @param bytes 数据；
 		 */
-		public MerkleDataNode(HashDigest hash, byte[] bytes) {
-			this.hash = hash;
+		public MerkleDataNode(long id, byte[] bytes) {
+			this.id = id;
 			this.bytes = bytes;
+
+			this.hash = hashFunc.hash(bytes);
+		}
+
+		@Override
+		public long getId() {
+			return id;
 		}
 
 		@Override
@@ -383,12 +553,9 @@ public class MerkleSortedTree implements Transactional {
 		}
 
 	}
-	
-	
-	
 
-	private MerklePath createLeafNode(long offset) {
-		return new MerklePath(null, offset, 1L, new HashDigest[TREE_DEGREE]);
+	private MerklePath createLeafPath(long offset) {
+		return new MerklePath(offset, 1L);
 	}
 
 	/**
@@ -416,10 +583,17 @@ public class MerkleSortedTree implements Transactional {
 
 		private MerkleEntry[] children;
 
+		protected MerklePath(long offset, long step) {
+			this(null, offset, step, new HashDigest[TREE_DEGREE]);
+		}
+
+		protected MerklePath(HashDigest nodeHash, MerkleIndex index) {
+			this(nodeHash, index.getOffset(), index.getStep(), index.getChildHashs());
+		}
 
 		protected MerklePath(HashDigest nodeHash, long offset, long step, HashDigest[] childHashs) {
 			assert step > 0;
-			NEXT_OFFSET = offset + step * TREE_DEGREE;
+			NEXT_OFFSET = nextOffset(offset, step);
 
 			this.nodeHash = nodeHash;
 
@@ -427,11 +601,10 @@ public class MerkleSortedTree implements Transactional {
 			this.step = step;
 			this.childHashs = childHashs;
 			this.origChildHashs = childHashs.clone();
+			this.children = new MerkleEntry[TREE_DEGREE];
 
 			assert childHashs.length == TREE_DEGREE;
 		}
-
-
 
 		public boolean isModified() {
 			for (int i = 0; i < TREE_DEGREE; i++) {
@@ -471,16 +644,17 @@ public class MerkleSortedTree implements Transactional {
 			if (id < offset || id >= NEXT_OFFSET) {
 				return -1;
 			}
-			long m = (id - offset) % step;
-			return (int) ((id - offset - m) / step);
+			long p = id - offset;
+			long m = p % step;
+			return (int) ((p - m) / step);
 		}
 
 		/**
-		 * 返回子节点；
+		 * 返回指定 id 的数据所在的直接子节点；
 		 * 
 		 * @param id 子节点的id, 如果子节点不属于当前节点的存储空间。则抛出异常；
 		 */
-		public MerkleEntry getChild(long id) {
+		public MerkleEntry getChildPath(long id) {
 			int index = index(id);
 			assert index > -1;
 			MerkleEntry child = children[index];
@@ -492,6 +666,13 @@ public class MerkleSortedTree implements Transactional {
 				return null;
 			}
 
+			child = loadChild(id, childHash);
+			children[index] = child;
+			return child;
+		}
+
+		private MerkleEntry loadChild(long id, HashDigest childHash) {
+			MerkleEntry child;
 			if (step == 1) {
 				// 叶子节点；
 				child = loadData(id, childHash);
@@ -499,52 +680,95 @@ public class MerkleSortedTree implements Transactional {
 				// step > 1， 非叶子节点； 注：构造器对输入参数的处理保证 step > 0;
 				child = loadPathNode(childHash);
 			}
-			children[index] = child;
 			return child;
-		}
-		
-		
-		public void setData(long id, byte[] data) {
-			int index = index(id);
-			assert index > -1;
-			
-			HashDigest childHash = childHashs[index];
-			MerkleEntry child =  children[index];
-			if (childHash == null) {
-				if (child == null) {
-					long offset = getLeafOffset(id);
-					child = createLeafNode(offset);
-					
-					children[index] = child;
-				}else {
-					if (child instanceof MerkleData) {
-						MerkleData childData = (MerkleData) child;
-						if (childData.get) {
-							
-						}
-					}
-				}
-			}
 		}
 
 		/**
+		 * 设置数据；<br>
+		 * 
+		 * 如果指定编号的数据已经存在，则抛出 {@link MerkleProofException} 异常；
+		 * 
+		 * @param id   数据的唯一编号；
+		 * @param data 数据；
+		 * @return 返回该编号的数据写入的子树的位置; <br>
+		 *         如果指定编号不属于该子树，则返回值大于等于 0 且小于 {@value MerkleSortedTree#TREE_DEGREE};
+		 *         <br>
+		 *         如果指定编号不属于该子树，则返回 -1；
+		 */
+		public int setData(long id, byte[] data) {
+			int index = index(id);
+			if (index < 0) {
+				return index;
+			}
+
+			MerkleData dataNode = new MerkleDataNode(id, data);
+
+			HashDigest childHash = childHashs[index];
+			MerkleEntry child = children[index];
+
+			if (child == null) {
+				if (childHash == null) {
+					// 完全没有子树时，直接附加数据节点；
+					// 当新节点在此子树中没有其它兄弟节点时，不建立从当前节点到叶子节点之间完整的路径节点，目的是缩减空间，优化处理少量数据节点的情形；
+					setChild(index, null, dataNode);
+					return index;
+				}
+
+				child = loadChild(id, childHash);
+			}
+
+			if (child instanceof MerkleData) {
+				// 已经有子节点存在，检查 id 是否冲突，如果不冲突，则合并两个数据节点到同样一棵子树；
+				MerkleData childData = (MerkleData) child;
+				if (id == childData.getId()) {
+					// TODO: 出现 id 冲突；同一个 id 不能设置两次；
+					throw new MerkleProofException("The data entry with the same id[" + id + "] already exist!");
+				}
+
+				child = mergeChildren(dataNode, childData);
+			} else {
+				// 已经有子树存在，检查要加入的节点属于该子树，还是与其是兄弟子树，合并这两个节点；
+				MerkleIndex merkleIndex = (MerkleIndex) child;
+
+				child = mergeChildren(dataNode, childHash, merkleIndex);
+			}
+
+			setChild(index, null, child);
+			return index;
+		}
+
+		/**
+		 * 设置子节点；
+		 * 
+		 * @param id        子节点的编号；
+		 * @param childHash
 		 * @param child
 		 */
-		protected void setChild(long id, HashDigest childHash, MerkleEntry child) {
-			int index = index(id);
+		private void setChild(HashDigest childHash, MerkleData data) {
+			int index = index(data.getId());
 			assert index > -1;
+			setChild(index, childHash, data);
+		}
+
+		/**
+		 * 设置子节点；
+		 * 
+		 * @param index     子节点的位置；
+		 * @param childHash 子节点的哈希；如果为 null，则在 commit 时计算哈希；
+		 * @param child     子节点；
+		 */
+		private void setChild(int index, HashDigest childHash, MerkleEntry child) {
 			childHashs[index] = childHash;
 			children[index] = child;
 		}
 
-		
 		public HashDigest commit() {
-			if (!isModified()) {
-				return nodeHash;
-			}
 			// save the modified childNodes;
+			boolean modified = false;
 			for (int i = 0; i < TREE_DEGREE; i++) {
 				if (childHashs[i] == null && children[i] != null) {
+					modified = true;
+
 					MerkleEntry child = children[i];
 					// 需要先保存子节点，获得子节点的哈希；
 					if (step == 1) {
@@ -565,6 +789,10 @@ public class MerkleSortedTree implements Transactional {
 				}
 			}
 
+			if (!modified) {
+				return nodeHash;
+			}
+
 			// save;
 			byte[] nodeBytes = BinaryProtocol.encode(this, MerkleIndex.class);
 			HashDigest hash = hashFunc.hash(nodeBytes);
@@ -576,13 +804,17 @@ public class MerkleSortedTree implements Transactional {
 			return hash;
 		}
 
+		public void cancel() {
+
+		}
+
 		HashDigest saveData(long id, MerkleData data) {
 			byte[] dataNodeBytes = BinaryProtocol.encode(data, MerkleData.class);
-			
-			//以 id 建议存储key ，便于根据 id 直接快速查询检索，无需展开默克尔树；
+
+			// 以 id 建议存储key ，便于根据 id 直接快速查询检索，无需展开默克尔树；
 			Bytes storageKey = encodeStorageKey(BytesUtils.toBytes(id));
 			saveNodeBytes(storageKey, dataNodeBytes);
-			
+
 			HashDigest dataEntryHash = hashFunc.hash(dataNodeBytes);
 			return dataEntryHash;
 		}
