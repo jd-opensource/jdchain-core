@@ -1,5 +1,8 @@
 package com.jd.blockchain.ledger.proof;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContract;
 import com.jd.blockchain.binaryproto.DataField;
@@ -11,6 +14,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.core.HashPathProof;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
@@ -126,9 +130,24 @@ public class MerkleSortedTree implements Transactional {
 		return rootHash;
 	}
 
+	/**
+	 * 返回指定编码数据的默克尔证明；
+	 * 
+	 * @param id
+	 * @return
+	 */
 	public MerkleProof getProof(long id) {
-		// TODO Auto-generated method stub
-		return null;
+		LinkedList<HashDigest> paths = new LinkedList<HashDigest>();
+		MerkleData data = seekData(root, id, paths);
+		if (data == null) {
+			return null;
+		}
+		paths.add(data.getHash());
+		return new HashPathProof(paths);
+	}
+
+	private MerkleData seekData(MerkleIndex node, long id, List<HashDigest> paths) {
+		
 	}
 
 	@Override
