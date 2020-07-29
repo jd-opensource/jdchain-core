@@ -9,9 +9,13 @@ import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.ServiceProxy;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.sdk.converters.ClientResolveUtil;
+import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
 import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.transaction.SignatureUtils;
 import com.jd.blockchain.transaction.TxBuilder;
+import com.jd.blockchain.transaction.TxContentBlob;
+import com.jd.blockchain.transaction.TxRequestBuilder;
 import com.jd.blockchain.transaction.TxRequestMessage;
 import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.PropertiesUtils;
@@ -395,10 +399,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	 * @return
 	 */
 	@RequestMapping(path = "/delegate/activeparticipant", method = RequestMethod.POST)
-	public TransactionResponse activateParticipant(@RequestParam("ledgerHash") String base58LedgerHash, @RequestParam("consensusHost") String consensusIp, @RequestParam("consensusPort") String consensusPort) {
+	public TransactionResponse activateParticipant(@RequestParam("ledgerHash") String base58LedgerHash, @RequestParam("consensusHost") String consensusHost, @RequestParam("consensusPort") String consensusPort, @RequestParam("remoteManageHost") String remoteManageHost, @RequestParam("remoteManagePort") String remoteManagePort) {
 		HashDigest remoteNewBlockHash;
 		TransactionResponse transactionResponse = new TxResponseMessage();
-
+		
 		try {
 			HashDigest ledgerHash = new HashDigest(Base58Utils.decode(base58LedgerHash));
 
@@ -414,12 +418,15 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 				ParticipantNode[] participants = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()).getParticipants();
 
+				// 检查本地节点与远端节点在库上是否存在差异,有差异的话需要进行差异交易重放
+				checkLedgerDiff(ledgerRepo, remoteManageHost, remoteManagePort);
+
 				systemConfig = PropertiesUtils.createProperties(((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getSystemConfigs());
 
 				viewId = ((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getViewId();
 
 				// 由本节点准备交易
-				TransactionRequest txRequest = prepareTx(ledgerHash, participants, consensusIp, consensusPort);
+				TransactionRequest txRequest = prepareTx(ledgerHash, participants, consensusHost, consensusPort);
 
 				// 验证本参与方是否已经被注册，没有被注册的参与方不能进行状态更新
 				if (!verifyState(ledgerRepo)) {
@@ -465,12 +472,79 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			LOGGER.error("[ManagementController] start server exception!");
 		} catch (IllegalArgumentException e) {
 			LOGGER.error("[ManagementController] input ledgerhash not exist, check ledgerhash!");
+		} catch (IllegalStateException e) {
+			LOGGER.error("[ManagementController] local ledger database error, please copy again!!");
 		} catch (RuntimeException e) {
 			LOGGER.error("[ManagementController] not a base58 input, check ledgerhash!");
 		}
 
 		((TxResponseMessage) transactionResponse).setExecutionState(TransactionState.SYSTEM_ERROR);
 		return transactionResponse;
+	}
+
+	private void checkLedgerDiff(LedgerRepository ledgerRepository, String remoteManageHost, String remoteManagePort) {
+
+		List<String> providers = new ArrayList<String>();
+
+		long localLatestBlockHeight = ledgerRepository.getLatestBlockHeight();
+
+		long remoteLatestBlockHeight = -1; // 激活新节点时，远端管理节点最新区块高度
+
+		HashDigest ledgerHash = ledgerRepository.getHash();
+
+		TransactionBatchResultHandle handle = null;
+
+		OperationHandleRegisteration opReg = new DefaultOperationHandleRegisteration();
+
+
+		try {
+			providers.add(BFTSMART_PROVIDER);
+
+			PeerBlockchainServiceFactory blockchainServiceFactory = PeerBlockchainServiceFactory.connect(ledgerKeypairs.get(ledgerHash), new NetworkAddress(remoteManageHost, Integer.parseInt(remoteManagePort)), providers);
+
+			remoteLatestBlockHeight = blockchainServiceFactory.getBlockchainService().getLedger(ledgerHash).getLatestBlockHeight();
+
+			if (localLatestBlockHeight > remoteLatestBlockHeight) {
+				throw new IllegalStateException("[ManagementController] checkLedgerDiff, local latest block height > remote node latest block height!");
+			} else if (localLatestBlockHeight == remoteLatestBlockHeight) {
+				return;
+			} else {
+				for (int height = (int)localLatestBlockHeight + 1; height <= remoteLatestBlockHeight; height++) {
+
+					TransactionBatchProcessor txbatchProcessor = new TransactionBatchProcessor(ledgerRepository, opReg);
+					// transactions replay
+					try {
+						for (LedgerTransaction ledgerTransaction :blockchainServiceFactory.getBlockchainService().getTransactions(ledgerHash, height, 0, -1)) {
+
+							TxContentBlob txContentBlob = new TxContentBlob(ledgerHash);
+
+							txContentBlob.setTime(ledgerTransaction.getTransactionContent().getTimestamp());
+
+							txContentBlob.setHash(ledgerTransaction.getTransactionContent().getHash());
+
+							// convert operation, from json to object
+							for (Operation operation : ledgerTransaction.getTransactionContent().getOperations()) {
+								txContentBlob.addOperation(ClientResolveUtil.read(operation));
+							}
+
+							TxRequestBuilder txRequestBuilder = new TxRequestBuilder(txContentBlob);
+							txRequestBuilder.addNodeSignature(ledgerTransaction.getNodeSignatures());
+							txRequestBuilder.addEndpointSignature(ledgerTransaction.getEndpointSignatures());
+							TransactionRequest transactionRequest = txRequestBuilder.buildRequest();
+
+							txbatchProcessor.schedule(transactionRequest);
+						}
+						handle = txbatchProcessor.prepare();
+						handle.commit();
+
+					} catch (Exception e) {
+						throw new IllegalStateException("[ManagementController] checkLedgerDiff, transactions replay error!");
+					}
+				}
+			}
+		} catch (Exception e) {
+			throw new IllegalStateException("[ManagementController] checkLedgerDiff error!");
+		}
 	}
 
 	private static String keyOfNode(String pattern, int id) {
