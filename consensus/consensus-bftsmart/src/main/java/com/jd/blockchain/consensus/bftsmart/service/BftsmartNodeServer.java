@@ -240,8 +240,8 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         InetSocketAddress[] addresses = new InetSocketAddress[processes.length];
         for (int i = 0; i < processes.length; i++) {
             int pid = processes[i];
-            if (id == pid) {
-                addresses[i] = new InetSocketAddress(getTomConfig().getHost(id), getTomConfig().getPort(id));
+            if (serverId == pid) {
+                addresses[i] = new InetSocketAddress(getTomConfig().getHost(pid), getTomConfig().getPort(pid));
             } else {
                 addresses[i] = currView.getAddress(pid);
             }
@@ -250,7 +250,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
         for (int i = 0; i < returnView.getProcesses().length; i++) {
             LOGGER.info("[BftsmartNodeServer.getOuterTopology] PartiNode id = {}, host = {}, port = {}", returnView.getProcesses()[i],
-                    returnView.getAddress(i).getHostName(), returnView.getAddress(i).getPort());
+                    returnView.getAddress(returnView.getProcesses()[i]).getHostName(), returnView.getAddress(returnView.getProcesses()[i]).getPort());
         }
         this.outerTopology = new BftsmartTopology(returnView);
 
