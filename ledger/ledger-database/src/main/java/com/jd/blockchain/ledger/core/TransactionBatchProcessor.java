@@ -255,7 +255,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 		List<OperationResult> operationResults = new ArrayList<>();
 		try {
 			LedgerDataset dataset = txCtx.getDataset();
-			eventManager = new EventManager(txCtx);
+			eventManager = new EventManager(request, txCtx);
 
 			// 执行操作；
 			Operation[] ops = request.getTransactionContent().getOperations();
