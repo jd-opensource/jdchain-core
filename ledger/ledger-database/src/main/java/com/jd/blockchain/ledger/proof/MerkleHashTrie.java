@@ -60,8 +60,6 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 
 	private ExPolicyKVStorage storage;
 
-	private boolean readonly;
-
 	private HashDigest rootHash;
 
 	private PathNode root;
@@ -91,7 +89,6 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 		this.setting = setting;
 		this.keyPrefix = keyPrefix;
 		this.storage = kvStorage;
-		this.readonly = readonly;
 		this.hashFunc = Crypto.getHashFunction(setting.getHashAlgorithm());
 		if (rootHash == null) {
 			root = new PathNode(TREE_DEGREE);
