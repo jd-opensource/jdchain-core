@@ -19,6 +19,7 @@ import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 import com.jd.blockchain.utils.io.BytesUtils;
 
@@ -134,6 +135,7 @@ public class MerkleSortedTree implements Transactional {
 	public MerkleData get(long id) {
 		return seekData(root, id, NullSelector.INSTANCE);
 	}
+
 
 	/**
 	 * 返回指定编码数据的默克尔证明；
@@ -332,33 +334,6 @@ public class MerkleSortedTree implements Transactional {
 		return (int) ((p - m) / step);
 	}
 
-//	/**
-//	 * 返回指定 id 所在的直接的子节点；
-//	 * 
-//	 * @param parentNode 父节点；
-//	 * @param id         要查找的 id ；
-//	 * @return
-//	 */
-//	private MerkleEntry loadChild(MerkleIndex parentNode, long id) {
-//		int index = index(id, parentNode);
-//		assert index > -1;
-//		MerkleEntry child;
-//		HashDigest[] childHashs = parentNode.getChildHashs();
-//		HashDigest childHash = childHashs[index];
-//		if (childHash == null) {
-//			return null;
-//		}
-//
-//		if (parentNode.getStep() == 1) {
-//			// 叶子节点；
-//			child = loadMerkleData(id, childHash);
-//		} else {
-//			// step > 1， 非叶子节点； 注：构造器对输入参数的处理保证 step > 0;
-//			child = loadMerkleIndex(childHash);
-//		}
-//		return child;
-//	}
-
 	/**
 	 * 合并子节点，返回共同的父节点；
 	 * 
@@ -541,7 +516,7 @@ public class MerkleSortedTree implements Transactional {
 		}
 		// 合并；
 		HashDigest origChildHash = parent.getChildHashAtIndex(index);
-		MerkleEntry newChild;
+		MerkleIndex newChild;
 		if (origChild instanceof MerkleData) {
 			MerkleData data = (MerkleData) origChild;
 			if (child instanceof MerkleData) {
@@ -553,9 +528,12 @@ public class MerkleSortedTree implements Transactional {
 			MerkleIndex path = (MerkleIndex) origChild;
 			if (child instanceof MerkleData) {
 				newChild = mergeChildren(childHash, (MerkleData) child, origChildHash, path);
-			}else {
+			} else {
 				newChild = mergeChildren(childHash, (MerkleIndex) child, origChildHash, path);
 			}
+		}
+		if (newChild.getOffset() == parent.getOffset() && newChild.getStep() == parent.getStep()) {
+			throw new IllegalStateException("The new child conflict with the existing child in same index!!");
 		}
 		parent.setChildAtIndex(index, null, newChild);
 	}
@@ -905,16 +883,16 @@ public class MerkleSortedTree implements Transactional {
 			return (int) ((p - m) / step);
 		}
 
-		/**
-		 * 返回指定 id 的数据所在的直接子节点；
-		 * 
-		 * @param id 子节点的id, 如果子节点不属于当前节点的存储空间。则抛出异常；
-		 */
-		public MerkleEntry getChild(long id) {
-			int index = index(id);
-			assert index > -1;
-			return getChildAtIndex(index);
-		}
+//		/**
+//		 * 返回指定 id 的数据所在的直接子节点；
+//		 * 
+//		 * @param id 子节点的id, 如果子节点不属于当前节点的存储空间。则抛出异常；
+//		 */
+//		public MerkleEntry getChild(long id) {
+//			int index = index(id);
+//			assert index > -1;
+//			return getChildAtIndex(index);
+//		}
 
 		private MerkleEntry loadChild(long id, HashDigest childHash) {
 			MerkleEntry child;

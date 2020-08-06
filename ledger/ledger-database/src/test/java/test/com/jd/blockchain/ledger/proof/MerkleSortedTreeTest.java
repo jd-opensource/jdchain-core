@@ -5,6 +5,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.when;
 
+import java.security.SecureRandom;
+import java.util.HashSet;
 import java.util.Random;
 
 import org.junit.Test;
@@ -33,45 +35,94 @@ public class MerkleSortedTreeTest {
 	 */
 	@Test
 	public void testSequenceAdd() {
-		
 		int count = 1;
 		byte[][] datas = generateRandomData(count);
-		testSequenceDataEquals(datas, count);
+		testWithSequenceIDs(datas, count);
 		
 		count = MerkleSortedTree.TREE_DEGREE;
 		datas = generateRandomData(count);
-		testSequenceDataEquals(datas, count);
+		testWithSequenceIDs(datas, count);
 		
 		count = (int) power(MerkleSortedTree.TREE_DEGREE, 2);
 		datas = generateRandomData(count);
-		testSequenceDataEquals(datas, count);
+		testWithSequenceIDs(datas, count);
 		
 		count = (int) power(MerkleSortedTree.TREE_DEGREE, 3);
 		datas = generateRandomData(count);
-		testSequenceDataEquals(datas, count);
+		testWithSequenceIDs(datas, count);
 		
 		count = count+1;
 		datas = generateRandomData(count);
-		testSequenceDataEquals(datas, count);
+		testWithSequenceIDs(datas, count);
 		
 		count = count-2;
 		datas = generateRandomData(count);
-		testSequenceDataEquals(datas, count);
+		testWithSequenceIDs(datas, count);
 		
 		count = 10010;
 		datas = generateRandomData(count);
-		testSequenceDataEquals(datas, count);
+		testWithSequenceIDs(datas, count);
 	}
 	
-	private static void testSequenceDataEquals(byte[][] datas, int count) {
+	/**
+	 * 测试顺序加入数据，是否能够得到
+	 */
+	@Test
+	public void testRandomAdd() {
+		int count = 1;
+		byte[][] datas = generateRandomData(count);
+		testWithRandomIDs(datas, count);
+		
+		count = MerkleSortedTree.TREE_DEGREE;
+		datas = generateRandomData(count);
+		testWithRandomIDs(datas, count);
+		
+		count = (int) power(MerkleSortedTree.TREE_DEGREE, 2);
+		datas = generateRandomData(count);
+		testWithRandomIDs(datas, count);
+		
+		count = (int) power(MerkleSortedTree.TREE_DEGREE, 3);
+		datas = generateRandomData(count);
+		testWithRandomIDs(datas, count);
+		
+		count = count+1;
+		datas = generateRandomData(count);
+		testWithRandomIDs(datas, count);
+		
+		count = count-2;
+		datas = generateRandomData(count);
+		testWithRandomIDs(datas, count);
+		
+		count = 10010;
+		datas = generateRandomData(count);
+		testWithRandomIDs(datas, count);
+	}
+	
+	private static void testWithRandomIDs(byte[][] datas, int count) {
+		long[] ids = new long[count];
+		HashSet<Long> set =new HashSet<Long>();
+		SecureRandom random = new SecureRandom();
+		long id = -1;
+		set.add(Long.valueOf(id));
+		for (int i = 0; i < count; i++) {
+			while (id< 0 || id >= MerkleSortedTree.MAX_COUNT || set.contains(Long.valueOf(id))) {
+				id = random.nextLong();
+			}
+			set.add(Long.valueOf(id));
+			ids[i] = id;
+		}
+		testAddingAndAssertingEquals(ids, datas);
+	}
+	
+	private static void testWithSequenceIDs(byte[][] datas, int count) {
 		long[] ids = new long[count];
 		for (int i = 0; i < count; i++) {
 			ids[i] = i;
 		}
-		testSequenceDataEquals(datas, ids);
+		testAddingAndAssertingEquals(ids, datas);
 	}
 	
-	private static void testSequenceDataEquals(byte[][] datas, long[] ids) {
+	private static void testAddingAndAssertingEquals(long[] ids, byte[][] datas) {
 		CryptoSetting cryptoSetting = createCryptoSetting();
 		MemoryKVStorage storage = new MemoryKVStorage();
 		MerkleSortedTree mst = new MerkleSortedTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
