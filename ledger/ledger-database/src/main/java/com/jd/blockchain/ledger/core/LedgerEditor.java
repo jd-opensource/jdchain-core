@@ -39,6 +39,12 @@ public interface LedgerEditor {
 	 * @return
 	 */
 	LedgerDataset getLedgerDataset();
+	
+	/**
+	 * 最新的事件集合；
+	 * @return
+	 */
+	LedgerEventSet getLedgerEventSet();
 
 	/**
 	 * 最新的交易集合；

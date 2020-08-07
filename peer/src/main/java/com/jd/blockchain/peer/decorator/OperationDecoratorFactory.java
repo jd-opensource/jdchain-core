@@ -37,6 +37,10 @@ public class OperationDecoratorFactory {
             return decorateUserAuthorizeOperation((UserAuthorizeOperation) op);
         } else if (op instanceof UserRegisterOperation) {
             return decorateUserRegisterOperation((UserRegisterOperation) op);
+        } else if (op instanceof EventAccountRegisterOperation) {
+            return decorateEventAccountRegisterOperation((EventAccountRegisterOperation) op);
+        } else if (op instanceof EventPublishOperation) {
+            return decorateEventPublishOperation((EventPublishOperation) op);
         }
 
         return null;
@@ -51,7 +55,7 @@ public class OperationDecoratorFactory {
     public static Operation decorateContractCodeDeployOperation(ContractCodeDeployOperation op) {
         BlockchainIdentity contractId = decorateBlockchainIdentity(op.getContractID());
         return new ContractCodeDeployOpTemplate(contractId,
-                chainCodeSlash(op.getChainCode()));
+                chainCodeSlash(op.getChainCode()), op.getChainCodeVersion());
     }
 
     /**
@@ -135,9 +139,8 @@ public class OperationDecoratorFactory {
      * @return
      */
     public static Operation decorateParticipantRegisterOperation(ParticipantRegisterOperation op) {
-        BlockchainIdentity partId = decorateBlockchainIdentity(op.getParticipantRegisterIdentity());
-        return new ParticipantRegisterOpTemplate(op.getParticipantName(),
-                partId, op.getNetworkAddress());
+        BlockchainIdentity partId = decorateBlockchainIdentity(op.getParticipantID());
+        return new ParticipantRegisterOpTemplate(op.getParticipantName(), partId);
     }
 
     /**
@@ -147,9 +150,8 @@ public class OperationDecoratorFactory {
      * @return
      */
     public static Operation decorateParticipantStateUpdateOperation(ParticipantStateUpdateOperation op) {
-        BlockchainIdentity stateUpdateIdentity = decorateBlockchainIdentity(op.getStateUpdateIdentity());
-        return new ParticipantStateUpdateOpTemplate(stateUpdateIdentity,
-                op.getNetworkAddress(), op.getState());
+        BlockchainIdentity stateUpdateIdentity = decorateBlockchainIdentity(op.getParticipantID());
+        return new ParticipantStateUpdateOpTemplate(stateUpdateIdentity, op.getState());
     }
 
     /**
@@ -205,6 +207,34 @@ public class OperationDecoratorFactory {
      */
     public static BlockchainIdentity decorateBlockchainIdentity(BlockchainIdentity identity) {
         return new BlockchainIdentityData(identity.getAddress(), identity.getPubKey());
+    }
+
+    /**
+     * decorate EventAccountRegisterOperation object
+     *
+     * @param op
+     * @return
+     */
+    public static Operation decorateEventAccountRegisterOperation(EventAccountRegisterOperation op) {
+        BlockchainIdentity identity = decorateBlockchainIdentity(op.getEventAccountID());
+        return new EventAccountRegisterOpTemplate(identity);
+    }
+
+    /**
+     * decorate EventPublishOperation object
+     *
+     * @param op
+     * @return
+     */
+    public static Operation decorateEventPublishOperation(EventPublishOperation op) {
+        EventPublishOpTemplate opTemplate = new EventPublishOpTemplate(op.getEventAddress());
+        EventPublishOperation.EventEntry[] events = op.getEvents();
+        if (events != null && events.length > 0) {
+            for (EventPublishOperation.EventEntry entry : events) {
+                opTemplate.set(entry.getName(), decorateBytesValue(entry.getContent()), entry.getSequence());
+            }
+        }
+        return opTemplate;
     }
 
     /**

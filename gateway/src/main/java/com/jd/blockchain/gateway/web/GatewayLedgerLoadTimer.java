@@ -39,20 +39,43 @@ public class GatewayLedgerLoadTimer {
     @Autowired
     private PeerConnector peerConnector;
 
+    /**
+     * 账本加载许可，主要作用两个
+     *     1、防止启动时加载账本与当前定时器加载冲突
+     *     2、每次加载完成后释放许可，以便于下次定时任务加载，若不存在许可，则下次定时任务放弃执行
+     */
+    private Semaphore loadSemaphore = new Semaphore(0);
+
     //每1钟执行一次
     @Scheduled(cron = "0 */1 * * * * ")
     public void ledgerLoad(){
+        boolean acquire = false;
         lock.lock();
         try {
-            // 单线程重连
-            ledgerLoadExecutor.execute(() -> {
-                peerConnector.reconnect();
-            });
+            // 5秒内获取授权
+            acquire = loadSemaphore.tryAcquire(5, TimeUnit.SECONDS);
+            if (acquire) {
+                // 授权成功的情况下，进行单线程重连
+                ledgerLoadExecutor.execute(() -> {
+                    peerConnector.monitorAndReconnect();
+                });
+            }
         } catch (Exception e) {
             LOGGER.error(e.getMessage());
         } finally {
+            if (acquire) {
+                // 授权成功的情况下，释放该许可
+                release();
+            }
             lock.unlock();
         }
+    }
+
+    /**
+     * 释放许可
+     */
+    public void release() {
+        loadSemaphore.release();
     }
 
     private static ThreadPoolExecutor initLedgerLoadExecutor() {

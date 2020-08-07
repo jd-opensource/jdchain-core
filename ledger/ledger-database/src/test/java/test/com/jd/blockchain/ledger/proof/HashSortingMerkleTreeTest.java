@@ -124,7 +124,7 @@ public class HashSortingMerkleTreeTest {
 		assertEquals(expectedSize, dataBytes.length);
 
 		DataContractEncoder dataContractEncoder = DataContractContext.resolve(MerkleData.class);
-		DataSpecification dataSpec = dataContractEncoder.getSepcification();
+		DataSpecification dataSpec = dataContractEncoder.getSpecification();
 		assertEquals(4, dataSpec.getFields().size());
 		assertEquals(5, dataSpec.getSlices().size());
 
@@ -533,7 +533,7 @@ public class HashSortingMerkleTreeTest {
 		Random random = new Random();
 		byte[] bytes = new byte[200];
 		random.nextBytes(bytes);
-		String newDataKey = bytes.toString();
+		String newDataKey = Arrays.toString(bytes);
 
 		CryptoSetting cryptoSetting = createCryptoSetting();
 		MemoryKVStorage storage = new MemoryKVStorage();

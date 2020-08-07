@@ -14,7 +14,7 @@ import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
-import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.ledger.core.EventManager;
 
 public class DataAccountKVSetOperationHandle extends AbstractLedgerOperationHandle<DataAccountKVSetOperation> {
 
@@ -25,7 +25,7 @@ public class DataAccountKVSetOperationHandle extends AbstractLedgerOperationHand
 	@Override
 	protected void doProcess(DataAccountKVSetOperation kvWriteOp, LedgerDataset newBlockDataset,
 			TransactionRequestExtension requestContext, LedgerQuery ledger, 
-			OperationHandleContext handleContext) {
+			OperationHandleContext handleContext, EventManager manager) {
 		// 权限校验；
 		SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
 		securityPolicy.checkEndpointPermission(LedgerPermission.WRITE_DATA_ACCOUNT, MultiIDsPolicy.AT_LEAST_ONE);

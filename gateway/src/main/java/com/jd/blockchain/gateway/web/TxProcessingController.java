@@ -22,6 +22,8 @@ import com.jd.blockchain.transaction.TransactionService;
 import com.jd.blockchain.utils.BusinessException;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
 
+import javax.servlet.http.HttpServletRequest;
+
 /**
  * @author huanghaiquan
  *
@@ -30,6 +32,9 @@ import com.jd.blockchain.web.converters.BinaryMessageConverter;
 public class TxProcessingController implements TransactionService {
 
 	private Logger LOGGER = LoggerFactory.getLogger(TxProcessingController.class);
+
+	@Autowired
+	private HttpServletRequest request;
 
 	@Autowired
 	private PeerService peerService;
@@ -41,8 +46,7 @@ public class TxProcessingController implements TransactionService {
 	@Override
 	public @ResponseBody TransactionResponse process(@RequestBody TransactionRequest txRequest) {
 		// 拦截请求进行校验
-		interceptService.intercept(txRequest);
-
+		interceptService.intercept(request, txRequest);
 		// 检查交易请求的信息是否完整；
 		HashDigest ledgerHash = txRequest.getTransactionContent().getLedgerHash();
 		if (ledgerHash == null) {
@@ -59,7 +63,7 @@ public class TxProcessingController implements TransactionService {
 		DigitalSignature[] partiSigns = txRequest.getEndpointSignatures();
 		if (partiSigns == null || partiSigns.length == 0) {
 			// 缺少参与者签名，则采用检查托管账户并进行托管签名；如果请求未包含托管账户，或者托管账户认证失败，则返回401错误；
-			// TODO: 未实现！
+			// TODO: 未实现！LedgerRepositoryImpl
 			throw new IllegalStateException("Not implemented!");
 		} else {
 			// 验证签名；

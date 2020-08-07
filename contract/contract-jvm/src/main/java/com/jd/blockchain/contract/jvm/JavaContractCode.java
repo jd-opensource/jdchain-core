@@ -1,9 +1,7 @@
 package com.jd.blockchain.contract.jvm;
 
-import java.lang.reflect.UndeclaredThrowableException;
 import java.util.concurrent.Callable;
 
-import com.jd.blockchain.ledger.ContractExecuteException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,11 +101,7 @@ public class JavaContractCode extends AbstractContractCode {
 
 		@Override
 		public BytesValue call() {
-			try {
-				return JavaContractCode.super.processEvent(eventContext);
-			} catch (Exception e) {
-				throw new UndeclaredThrowableException(new ContractExecuteException());
-			}
+			return JavaContractCode.super.processEvent(eventContext);
 		}
 	}
 

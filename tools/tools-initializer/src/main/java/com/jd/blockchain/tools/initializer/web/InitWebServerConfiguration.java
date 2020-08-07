@@ -29,10 +29,10 @@ public class InitWebServerConfiguration extends WebMvcConfigurerAdapter {
 	public InitConsensusServiceFactory initCsServiceFactory() {
 		return new HttpInitConsensServiceFactory();
 	}
-	
+
 	@Bean
 	public LedgerManager getLedgerManager() {
 		return new LedgerManager();
 	}
-	
+
 }

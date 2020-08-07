@@ -14,6 +14,9 @@ public interface BftsmartConsensusSettings extends ConsensusSettings {
 	@DataField(order = 1, primitiveType = PrimitiveType.BYTES, list=true)
 	Property[] getSystemConfigs();
 
+	@DataField(order = 2, primitiveType = PrimitiveType.INT32)
+    int getViewId();
+
 //	@DataField(order = 2, refContract = true)
 //	BftsmartCommitBlockSettings getCommitBlockSettings();
 

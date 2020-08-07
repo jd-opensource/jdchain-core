@@ -42,16 +42,16 @@ public class PeerJsonResponseAdvice implements ResponseBodyAdvice<Object> {
 			ServerHttpResponse response) {
 		WebResponse result = null;
 		if (body == null) {
-			result = WebResponse.createSuccessResult(null);
-		}
-		if (body instanceof ResponseEntity) {
+			return JSONSerializeUtils.serializeToJSON("");
+		} else if (body instanceof ResponseEntity) {
+			return body;
+		} else if (body instanceof WebResponse) {
+			// 把返回结果自动转换为 WebResponse；
 			return body;
 		}
-		// 把返回结果自动转换为 WebResponse；
-		if (body instanceof WebResponse) {
-			return body;
+		if (result == null) {
+			result = WebResponse.createSuccessResult(body);
 		}
-		result = WebResponse.createSuccessResult(body);
 		if (String.class == returnType.getMethod().getReturnType()) {
 			return JSONSerializeUtils.serializeToJSON(result);
 		}

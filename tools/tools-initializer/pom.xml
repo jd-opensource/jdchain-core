@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>com.jd.blockchain</groupId>
 		<artifactId>tools-core</artifactId>
-		<version>1.2.1.RELEASE</version>
+		<version>1.3.0.RELEASE</version>
 	</parent>
 	<artifactId>tools-initializer</artifactId>
 
@@ -57,7 +57,7 @@
 			<version>${framework.version}</version>
 		</dependency>
 
-		<!-- <dependency> <groupId>com.jd.blockchain</groupId> <artifactId>consensus</artifactId> 
+		<!-- <dependency> <groupId>com.jd.blockchain</groupId> <artifactId>consensus</artifactId>
 			<version>${project.version}</version> </dependency> -->
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>

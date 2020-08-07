@@ -20,6 +20,7 @@ import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
+import com.jd.blockchain.ledger.core.EventManager;
 
 import java.util.stream.Collectors;
 
@@ -33,7 +34,7 @@ public abstract class AbtractContractEventSendOperationHandle implements Operati
 
 	@Override
 	public BytesValue process(Operation op, LedgerDataset newBlockDataset, TransactionRequestExtension requestContext,
-			LedgerQuery ledger, OperationHandleContext opHandleContext) {
+			LedgerQuery ledger, OperationHandleContext opHandleContext, EventManager manager) {
 		// 权限校验；
 		SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
 		securityPolicy.checkEndpointPermission(TransactionPermission.CONTRACT_OPERATION, MultiIDsPolicy.AT_LEAST_ONE);
@@ -41,11 +42,11 @@ public abstract class AbtractContractEventSendOperationHandle implements Operati
 		// 操作账本；
 		ContractEventSendOperation contractOP = (ContractEventSendOperation) op;
 
-		return doProcess(requestContext, contractOP, newBlockDataset, ledger, opHandleContext);
+		return doProcess(requestContext, contractOP, newBlockDataset, ledger, opHandleContext, manager);
 	}
 
 	private BytesValue doProcess(TransactionRequestExtension request, ContractEventSendOperation contractOP,
-			LedgerDataset newBlockDataset, LedgerQuery ledger, OperationHandleContext opHandleContext) {
+			LedgerDataset newBlockDataset, LedgerQuery ledger, OperationHandleContext opHandleContext, EventManager manager) {
 		// 先从账本校验合约的有效性；
 		// 注意：必须在前一个区块的数据集中进行校验，因为那是经过共识的数据；从当前新区块链数据集校验则会带来攻击风险：未经共识的合约得到执行；
 		ContractAccountQuery contractSet = ledger.getContractAccountset();
@@ -69,7 +70,7 @@ public abstract class AbtractContractEventSendOperationHandle implements Operati
 		LocalContractEventContext localContractEventContext = new LocalContractEventContext(
 				request.getTransactionContent().getLedgerHash(), contractOP.getEvent());
 		localContractEventContext.setArgs(contractOP.getArgs()).setTransactionRequest(request)
-				.setLedgerContext(ledgerContext);
+				.setLedgerContext(ledgerContext).setVersion(contract.getChainCodeVersion());
 
 		localContractEventContext.setTxSigners(
 				request.getEndpoints().stream().map( s -> s.getIdentity()).collect(Collectors.toSet()));

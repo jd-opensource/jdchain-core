@@ -8,6 +8,7 @@ import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.OperationHandle;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
+import com.jd.blockchain.ledger.core.EventManager;
 
 public class LedgerInitOperationHandle implements OperationHandle {
 
@@ -18,7 +19,7 @@ public class LedgerInitOperationHandle implements OperationHandle {
 
 	@Override
 	public BytesValue process(Operation op, LedgerDataset newBlockDataset, TransactionRequestExtension requestContext,
-			LedgerQuery ledger,OperationHandleContext handleContext) {
+							  LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager) {
 		// 对初始化操作不需要做任何处理；
 		return null;
 	}

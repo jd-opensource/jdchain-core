@@ -5,8 +5,12 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
+import com.jd.blockchain.ledger.DataAccountInfo;
 import com.jd.blockchain.ledger.DataAccountKVSetOperation;
 import com.jd.blockchain.ledger.DataAccountRegisterOperation;
+import com.jd.blockchain.ledger.Event;
+import com.jd.blockchain.ledger.EventAccountRegisterOperation;
+import com.jd.blockchain.ledger.EventPublishOperation;
 import com.jd.blockchain.ledger.KVInfoVO;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
 import com.jd.blockchain.ledger.LedgerBlock;
@@ -15,17 +19,23 @@ import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.PrivilegeSet;
 import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
+import com.jd.blockchain.ledger.UserPrivilegeSet;
 import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.transaction.DataAccountKVSetOperationBuilder;
 import com.jd.blockchain.transaction.DataAccountRegisterOperationBuilder;
 import com.jd.blockchain.transaction.DataAccountRegisterOperationBuilderImpl;
+import com.jd.blockchain.transaction.EventAccountRegisterOperationBuilder;
+import com.jd.blockchain.transaction.EventAccountRegisterOperationBuilderImpl;
+import com.jd.blockchain.transaction.EventData;
+import com.jd.blockchain.transaction.EventPublishOperationBuilder;
 import com.jd.blockchain.transaction.KVData;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilder;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilderImpl;
@@ -56,7 +66,7 @@ public class ContractLedgerContext implements LedgerContext {
 	public LedgerInfo getLedger(HashDigest ledgerHash) {
 		return innerQueryService.getLedger(ledgerHash);
 	}
-	
+
 	@Override
 	public LedgerAdminInfo getLedgerAdminInfo(HashDigest ledgerHash) {
 		return innerQueryService.getLedgerAdminInfo(ledgerHash);
@@ -168,7 +178,7 @@ public class ContractLedgerContext implements LedgerContext {
 	}
 
 	@Override
-	public BlockchainIdentity getDataAccount(HashDigest ledgerHash, String address) {
+	public DataAccountInfo getDataAccount(HashDigest ledgerHash, String address) {
 		return innerQueryService.getDataAccount(ledgerHash, address);
 	}
 
@@ -195,6 +205,76 @@ public class ContractLedgerContext implements LedgerContext {
 	@Override
 	public ContractInfo getContract(HashDigest ledgerHash, String address) {
 		return innerQueryService.getContract(ledgerHash, address);
+	}
+
+	@Override
+	public Event[] getSystemEvents(HashDigest ledgerHash, String eventName, long fromSequence, int maxCount) {
+		return innerQueryService.getSystemEvents(ledgerHash, eventName, fromSequence, maxCount);
+	}
+
+	@Override
+	public long getSystemEventNameTotalCount(HashDigest ledgerHash) {
+		return innerQueryService.getSystemEventNameTotalCount(ledgerHash);
+	}
+
+	@Override
+	public String[] getSystemEventNames(HashDigest ledgerHash, int fromIndex, int count) {
+		return innerQueryService.getSystemEventNames(ledgerHash, fromIndex, count);
+	}
+
+	@Override
+	public Event getLatestEvent(HashDigest ledgerHash, String eventName) {
+		return innerQueryService.getLatestEvent(ledgerHash, eventName);
+	}
+
+	@Override
+	public long getSystemEventsTotalCount(HashDigest ledgerHash, String eventName) {
+		return innerQueryService.getSystemEventsTotalCount(ledgerHash, eventName);
+	}
+
+	@Override
+	public BlockchainIdentity[] getUserEventAccounts(HashDigest ledgerHash, int fromIndex, int count) {
+		return innerQueryService.getUserEventAccounts(ledgerHash, fromIndex, count);
+	}
+
+	@Override
+	public BlockchainIdentity getUserEventAccount(HashDigest ledgerHash, String address) {
+		return innerQueryService.getUserEventAccount(ledgerHash, address);
+	}
+
+	@Override
+	public long getUserEventAccountTotalCount(HashDigest ledgerHash) {
+		return innerQueryService.getUserEventAccountTotalCount(ledgerHash);
+	}
+
+	@Override
+	public long getUserEventNameTotalCount(HashDigest ledgerHash, String address) {
+		return innerQueryService.getUserEventNameTotalCount(ledgerHash, address);
+	}
+
+	@Override
+	public String[] getUserEventNames(HashDigest ledgerHash, String address, int fromSequence, int count) {
+		return innerQueryService.getUserEventNames(ledgerHash, address, fromSequence, count);
+	}
+
+	@Override
+	public Event getLatestEvent(HashDigest ledgerHash, String address, String eventName) {
+		return innerQueryService.getLatestEvent(ledgerHash, address, eventName);
+	}
+
+	@Override
+	public long getUserEventsTotalCount(HashDigest ledgerHash, String address, String eventName) {
+		return innerQueryService.getUserEventsTotalCount(ledgerHash, address, eventName);
+	}
+
+	@Override
+	public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int count) {
+		return innerQueryService.getUserEvents(ledgerHash, address, eventName, fromSequence, count);
+	}
+
+	@Override
+	public ContractInfo getContract(HashDigest ledgerHash, String address, long version) {
+		return innerQueryService.getContract(ledgerHash, address, version);
 	}
 
 	// ---------------------------user()----------------------------
@@ -235,8 +315,28 @@ public class ContractLedgerContext implements LedgerContext {
 	}
 
 	@Override
-	public RoleSet getUserRoles(HashDigest ledgerHash, String userAddress){
-		return innerQueryService.getUserRoles(ledgerHash, userAddress);
+	public EventAccountRegisterOperationBuilder eventAccounts() {
+		return new EventAccountRegisterOperationBuilder1();
+	}
+
+	@Override
+	public EventPublishOperationBuilder eventAccount(String accountAddress) {
+		return new EventPublishOperationExecBuilder(Bytes.fromBase58(accountAddress));
+	}
+
+	@Override
+	public EventPublishOperationBuilder eventAccount(Bytes accountAddress) {
+		return new EventPublishOperationExecBuilder(accountAddress);
+	}
+
+	@Override
+	public PrivilegeSet getRolePrivileges(HashDigest ledgerHash, String roleName) {
+		return innerQueryService.getRolePrivileges(ledgerHash, roleName);
+	}
+
+	@Override
+	public UserPrivilegeSet getUserPrivileges(HashDigest ledgerHash, String userAddress) {
+		return innerQueryService.getUserPrivileges(ledgerHash, userAddress);
 	}
 
 	// ========end=============
@@ -258,6 +358,17 @@ public class ContractLedgerContext implements LedgerContext {
 		@Override
 		public UserRegisterOperation register(BlockchainIdentity userID) {
 			UserRegisterOperation op = USER_REG_OP_BUILDER.register(userID);
+			generatedOpList.add(op);
+			opHandleContext.handle(op);
+			return op;
+		}
+	}
+
+	private class EventAccountRegisterOperationBuilder1 implements EventAccountRegisterOperationBuilder {
+		@Override
+		public EventAccountRegisterOperation register(BlockchainIdentity accountID) {
+			final EventAccountRegisterOperationBuilderImpl EVENT_ACC_REG_OP_BUILDER = new EventAccountRegisterOperationBuilderImpl();
+			EventAccountRegisterOperation op = EVENT_ACC_REG_OP_BUILDER.register(accountID);
 			generatedOpList.add(op);
 			opHandleContext.handle(op);
 			return op;
@@ -312,7 +423,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 //		@Deprecated
 //		@Override
 //		public DataAccountKVSetOperationBuilder set(String key, String value, long expVersion) {
@@ -321,7 +432,7 @@ public class ContractLedgerContext implements LedgerContext {
 //			handle(op);
 //			return this;
 //		}
-		
+
 		@Override
 		public DataAccountKVSetOperationBuilder setJSON(String key, String value, long expVersion) {
 			BytesValue bytesValue = TypedValue.fromJSON(value);
@@ -329,7 +440,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 		@Override
 		public DataAccountKVSetOperationBuilder setXML(String key, String value, long expVersion) {
 			BytesValue bytesValue = TypedValue.fromXML(value);
@@ -337,7 +448,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 		@Override
 		public DataAccountKVSetOperationBuilder setBytes(String key, byte[] value, long expVersion) {
 			BytesValue bytesValue = TypedValue.fromBytes(value);
@@ -345,7 +456,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 		@Override
 		public DataAccountKVSetOperationBuilder setImage(String key, byte[] value, long expVersion) {
 			BytesValue bytesValue = TypedValue.fromImage(value);
@@ -353,7 +464,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 		@Override
 		public DataAccountKVSetOperationBuilder setTimestamp(String key, long value, long expVersion) {
 			BytesValue bytesValue = TypedValue.fromTimestamp(value);
@@ -361,7 +472,7 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-		
+
 		private void handle(Operation op) {
 			generatedOpList.add(op);
 			opHandleContext.handle(op);
@@ -369,7 +480,7 @@ public class ContractLedgerContext implements LedgerContext {
 
 		/**
 		 * 单个KV写入操作；
-		 * 
+		 *
 		 * @author huanghaiquan
 		 *
 		 */
@@ -391,6 +502,65 @@ public class ContractLedgerContext implements LedgerContext {
 				return writeset;
 			}
 
+		}
+	}
+
+	private class EventPublishOperationExecBuilder implements EventPublishOperationBuilder {
+
+		private Bytes eventAddress;
+
+		private SingleEventPublishOpTemplate op;
+
+		public EventPublishOperationExecBuilder(Bytes eventAddress) {
+			this.eventAddress = eventAddress;
+		}
+
+		private void handle(Operation op) {
+			generatedOpList.add(op);
+			opHandleContext.handle(op);
+		}
+
+		@Override
+		public EventPublishOperation getOperation() {
+			return op;
+		}
+
+		@Override
+		public EventPublishOperationBuilder publish(String name, String content, long sequence) {
+			BytesValue bytesValue = TypedValue.fromText(content);
+			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
+			handle(op);
+			return this;
+		}
+
+		@Override
+		public EventPublishOperationBuilder publish(String name, long content, long sequence) {
+			BytesValue bytesValue = TypedValue.fromInt64(content);
+			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
+			handle(op);
+			return this;
+		}
+
+		/**
+		 * 单个事件发布操作
+		 */
+		private class SingleEventPublishOpTemplate implements EventPublishOperation {
+
+			private EventEntry[] writeset = new EventEntry[1];
+
+			private SingleEventPublishOpTemplate(String key, BytesValue value, long expVersion) {
+				writeset[0] = new EventData(key, value, expVersion);
+			}
+
+			@Override
+			public Bytes getEventAddress() {
+				return eventAddress;
+			}
+
+			@Override
+			public EventEntry[] getEvents() {
+				return writeset;
+			}
 		}
 	}
 }
