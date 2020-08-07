@@ -58,8 +58,10 @@ public class MerkleSortedTree implements Transactional {
 
 	private ExPolicyKVStorage kvStorage;
 
+	private HashDigest origRootHash;
+	private MerkleIndex origRoot;
+	
 	private HashDigest rootHash;
-
 	private MerklePathNode root;
 
 	/**
@@ -108,12 +110,15 @@ public class MerkleSortedTree implements Transactional {
 
 		if (rootHash != null) {
 			MerkleIndex merkleIndex = loadMerkleIndex(rootHash);
-			root = new MerklePathNode(rootHash, merkleIndex);
+			this.origRootHash = rootHash;
+			this.origRoot = merkleIndex;
+			this.rootHash = rootHash;
+			this.root = new MerklePathNode(rootHash, merkleIndex);
 		}
 	}
 
 	public HashDigest getRootHash() {
-		return rootHash;
+		return rootHash == null ? origRootHash : rootHash;
 	}
 
 	public void set(long id, byte[] data) {
@@ -129,13 +134,18 @@ public class MerkleSortedTree implements Transactional {
 		}
 
 		MerkleData dataNode = new MerkleDataNode(id, data);
+
 		root = mergeChildren(null, dataNode, rootHash, root);
+		rootHash = null;
 	}
 
 	public MerkleData get(long id) {
 		return seekData(root, id, NullSelector.INSTANCE);
 	}
 
+	public SkippingIterator<MerkleData> iterator(long from) {
+		return new DataIterator(root, from);
+	}
 
 	/**
 	 * 返回指定编码数据的默克尔证明；
@@ -215,6 +225,10 @@ public class MerkleSortedTree implements Transactional {
 		}
 		if (root instanceof MerklePathNode) {
 			rootHash = ((MerklePathNode) root).commit();
+			
+			origRootHash = rootHash;
+			origRoot = new MerklePathNode(rootHash, root);
+			
 		}
 	}
 
@@ -226,6 +240,8 @@ public class MerkleSortedTree implements Transactional {
 		if (root instanceof MerklePathNode) {
 			((MerklePathNode) root).cancel();
 		}
+		this.root = new MerklePathNode(origRootHash, origRoot);
+		this.rootHash = origRootHash;
 	}
 
 	/**
@@ -562,6 +578,16 @@ public class MerkleSortedTree implements Transactional {
 		}
 		return merkleData;
 	}
+	
+	private HashDigest saveData(long id, MerkleData data) {
+		byte[] dataNodeBytes = BinaryProtocol.encode(data, MerkleData.class);
+
+		// 以 id 建议存储key ，便于根据 id 直接快速查询检索，无需展开默克尔树；
+		saveNodeBytes(BytesUtils.toBytes(id), dataNodeBytes);
+
+		HashDigest dataEntryHash = hashFunc.hash(dataNodeBytes);
+		return dataEntryHash;
+	}
 
 	/**
 	 * 生成存储节点数据的key；
@@ -607,7 +633,6 @@ public class MerkleSortedTree implements Transactional {
 		return nodeBytes;
 	}
 
-	@SuppressWarnings("unused")
 	private void saveNodeBytes(byte[] key, byte[] nodeBytes) {
 		Bytes storageKey = encodeStorageKey(key);
 		boolean success = kvStorage.set(storageKey, nodeBytes, ExPolicy.NOT_EXISTING);
@@ -883,17 +908,6 @@ public class MerkleSortedTree implements Transactional {
 			return (int) ((p - m) / step);
 		}
 
-//		/**
-//		 * 返回指定 id 的数据所在的直接子节点；
-//		 * 
-//		 * @param id 子节点的id, 如果子节点不属于当前节点的存储空间。则抛出异常；
-//		 */
-//		public MerkleEntry getChild(long id) {
-//			int index = index(id);
-//			assert index > -1;
-//			return getChildAtIndex(index);
-//		}
-
 		private MerkleEntry loadChild(long id, HashDigest childHash) {
 			MerkleEntry child;
 			if (step == 1) {
@@ -993,9 +1007,6 @@ public class MerkleSortedTree implements Transactional {
 		 * @param child     子节点；
 		 */
 		private void setChildAtIndex(int index, HashDigest childHash, MerkleEntry child) {
-//			if (children[index] != null) {
-//				throw new IllegalStateException("Conflict child node!");
-//			}
 			childHashs[index] = childHash;
 			children[index] = child;
 		}
@@ -1030,8 +1041,7 @@ public class MerkleSortedTree implements Transactional {
 			// save;
 			byte[] nodeBytes = BinaryProtocol.encode(this, MerkleIndex.class);
 			HashDigest hash = hashFunc.hash(nodeBytes);
-			Bytes storageKey = encodeStorageKey(hash);
-			saveNodeBytes(storageKey, nodeBytes);
+			saveNodeBytes(hash, nodeBytes);
 
 			// update hash;
 			for (int i = 0; i < TREE_DEGREE; i++) {
@@ -1058,15 +1068,47 @@ public class MerkleSortedTree implements Transactional {
 			// 注：不需要处理 nodeHash 的回滚，因为 nodeHash 是 commit 操作的最后确认标志；
 		}
 
-		HashDigest saveData(long id, MerkleData data) {
-			byte[] dataNodeBytes = BinaryProtocol.encode(data, MerkleData.class);
+	}
 
-			// 以 id 建议存储key ，便于根据 id 直接快速查询检索，无需展开默克尔树；
-			Bytes storageKey = encodeStorageKey(BytesUtils.toBytes(id));
-			saveNodeBytes(storageKey, dataNodeBytes);
+	private class DataIterator implements SkippingIterator<MerkleData> {
 
-			HashDigest dataEntryHash = hashFunc.hash(dataNodeBytes);
-			return dataEntryHash;
+		private MerklePathNode rootNode;
+
+		private long from;
+
+		public DataIterator(MerklePathNode root, long from) {
+			this.rootNode = root;
+			this.from = from;
+		}
+
+		@Override
+		public boolean hasNext() {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		@Override
+		public MerkleData next() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public long getCount() {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+
+		@Override
+		public long getCursor() {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+
+		@Override
+		public long skip(long skippingCount) {
+			// TODO Auto-generated method stub
+			return 0;
 		}
 
 	}

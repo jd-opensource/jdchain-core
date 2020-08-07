@@ -134,6 +134,14 @@ public class MerkleSortedTreeTest {
 		HashDigest rootHash = mst.getRootHash();
 		assertNotNull(rootHash);
 		
+		assertDataEquals(ids, datas, mst);
+		
+		// reload merkle tree from storage;
+		MerkleSortedTree mst1 = new MerkleSortedTree(rootHash, cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+		assertDataEquals(ids, datas, mst1);
+	}
+	
+	private static void assertDataEquals(long[] ids, byte[][] datas, MerkleSortedTree mst) {
 		int i ;
 		for (i = 0; i < ids.length; i++) {
 			long id = ids[i];
