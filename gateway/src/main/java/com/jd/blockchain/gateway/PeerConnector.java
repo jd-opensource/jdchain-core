@@ -4,11 +4,22 @@ import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.utils.net.NetworkAddress;
 
 import java.util.List;
+import java.util.Set;
 
 public interface PeerConnector {
-	
-	NetworkAddress getPeerAddress();
-	
+
+	/**
+	 * 获取Peer地址列表
+	 *
+	 * @return
+	 */
+	Set<NetworkAddress> getPeerAddresses();
+
+	/**
+	 * 是否连接成功
+	 *
+	 * @return
+	 */
 	boolean isConnected();
 
 	/**
@@ -29,6 +40,10 @@ public interface PeerConnector {
 	 *
 	 */
 	void monitorAndReconnect();
-	
+
+	/**
+	 * 关闭连接
+	 *
+	 */
 	void close();
 }

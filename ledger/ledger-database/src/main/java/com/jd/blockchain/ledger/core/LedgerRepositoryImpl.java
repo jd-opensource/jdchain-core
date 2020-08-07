@@ -471,6 +471,18 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	public LedgerEditor getNextBlockEditor() {
 		return nextBlockEditor;
 	}
+	
+	@Override
+	public LedgerSecurityManager getSecurityManager() {
+		LedgerBlock ledgerBlock = getLatestBlock();
+		
+		LedgerDataQuery ledgerDataQuery = getLedgerData(ledgerBlock);
+		LedgerAdminDataQuery previousAdminDataset = ledgerDataQuery.getAdminDataset();
+		LedgerSecurityManager securityManager = new LedgerSecurityManagerImpl(previousAdminDataset.getAdminInfo().getRolePrivileges(),
+				previousAdminDataset.getAdminInfo().getAuthorizations(), previousAdminDataset.getParticipantDataset(),
+				ledgerDataQuery.getUserAccountSet());
+		return securityManager;
+	}
 
 	@Override
 	public synchronized void close() {

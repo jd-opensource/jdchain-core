@@ -73,6 +73,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     private TOMConfiguration outerTomConfig;
 
     private HostsConfig hostsConfig;
+
     private Properties systemConfig;
 
     private MessageHandle messageHandle;
@@ -114,9 +115,9 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     protected int findServerId() {
         int serverId = 0;
 
-        for (int i = 0; i < hostsConfig.getNum(); i++) {
-            String host = ((BftsmartNodeSettings)serverSettings.getReplicaSettings()).getNetworkAddress().getHost();
-            int port = ((BftsmartNodeSettings)serverSettings.getReplicaSettings()).getNetworkAddress().getPort();
+        String host = ((BftsmartNodeSettings)serverSettings.getReplicaSettings()).getNetworkAddress().getHost();
+        int port = ((BftsmartNodeSettings)serverSettings.getReplicaSettings()).getNetworkAddress().getPort();
+        for (int i : hostsConfig.getHostsIds()) {
 
             if (hostsConfig.getHost(i).equals(host) && hostsConfig.getPort(i) == port) {
                 serverId = i;
@@ -176,6 +177,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         this.latestView = new View(setting.getViewId(), tomConfig.getInitialView(), tomConfig.getF(), consensusAddresses.toArray(new InetSocketAddress[consensusAddresses.size()]));
 
         this.outerTomConfig = new TOMConfiguration(id, sysConfClone, BinarySerializeUtils.deserialize(serialHostConf));
+
     }
 
     @Override
@@ -195,7 +197,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     // 由于节点动态入网的原因，共识的配置环境是随时可能变化的，需要每次get时从replica动态读取
     public TOMConfiguration getTomConfig() {
-        return this.replica.getReplicaContext().getStaticConfiguration();
+       return outerTomConfig;
     }
 
     public int getId() {
@@ -208,6 +210,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         }
         this.tomConfig.setProcessId(id);
         this.outerTomConfig.setProcessId(id);
+
     }
 
     // 注意：该方法获得的共识环境为节点启动时从账本里读取的共识环境，如果运行过程中发生了节点动态入网，该环境没有得到更新
@@ -223,6 +226,9 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 //    }
 
     public BftsmartTopology getTopology() {
+        if (!isRunning()) {
+            return null;
+        }
         return getOuterTopology();
     }
 
@@ -234,8 +240,8 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         InetSocketAddress[] addresses = new InetSocketAddress[processes.length];
         for (int i = 0; i < processes.length; i++) {
             int pid = processes[i];
-            if (id == pid) {
-                addresses[i] = new InetSocketAddress(getTomConfig().getHost(id), getTomConfig().getPort(id));
+            if (serverId == pid) {
+                addresses[i] = new InetSocketAddress(getTomConfig().getHost(pid), getTomConfig().getPort(pid));
             } else {
                 addresses[i] = currView.getAddress(pid);
             }
@@ -244,7 +250,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
         for (int i = 0; i < returnView.getProcesses().length; i++) {
             LOGGER.info("[BftsmartNodeServer.getOuterTopology] PartiNode id = {}, host = {}, port = {}", returnView.getProcesses()[i],
-                    returnView.getAddress(i).getHostName(), returnView.getAddress(i).getPort());
+                    returnView.getAddress(returnView.getProcesses()[i]).getHostName(), returnView.getAddress(returnView.getProcesses()[i]).getPort());
         }
         this.outerTopology = new BftsmartTopology(returnView);
 
@@ -622,7 +628,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         if (this.getId() < 0) {
             throw new IllegalStateException("Unset server node ID！");
         }
-        LOGGER.debug("=============================== Start replica ===================================");
+        LOGGER.info("=============================== Start replica ===================================");
 
         if (status != Status.STOPPED) {
             return;
@@ -634,14 +640,14 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             status = Status.STARTING;
 
             try {
-                LOGGER.debug("Start replica...[ID=" + getId() + "]");
+                LOGGER.info("Start replica...[ID=" + getId() + "]");
 //                this.replica = new ServiceReplica(tomConfig, this, this);
                 this.replica = new ServiceReplica(tomConfig, this, this, (int)latestStateId -1, latestView);
                 this.topology = new BftsmartTopology(replica.getReplicaContext().getCurrentView());
 //                initOutTopology();
                 status = Status.RUNNING;
 //                createProxyClient();
-                LOGGER.debug(
+                LOGGER.info(
                         "=============================== Replica started success! ===================================");
             } catch (RuntimeException e) {
                 status = Status.STOPPED;
@@ -688,7 +694,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         for (int i = 0; i < processes.length; i++) {
             int pid = processes[i];
             if (curProcessId == pid) {
-                addresses[i] = new InetSocketAddress(this.outerTomConfig.getHost(pid), this.outerTomConfig.getPort(pid));
+                addresses[i] = new InetSocketAddress(this.tomConfig.getHost(pid), this.tomConfig.getPort(pid));
             } else {
                 addresses[i] = currView.getAddress(pid);
             }

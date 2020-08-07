@@ -6,17 +6,18 @@ import com.jd.blockchain.ledger.DataVersionConflictException;
 import com.jd.blockchain.ledger.EventInfo;
 import com.jd.blockchain.ledger.EventPublishOperation;
 import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.Transactional;
 
 /**
  * 事件管理器
  * 处理事件账户注册，用户事件发布，系统事件发布，事件监听
  */
-public class EventManager implements EventOperationHandle, Transactional {
+public class EventManager implements EventOperationHandle {
 
+    private TransactionRequestExtension request;
     private LedgerTransactionContext txCtx;
 
-    public EventManager(LedgerTransactionContext txCtx) {
+    public EventManager(TransactionRequestExtension request, LedgerTransactionContext txCtx) {
+        this.request = request;
         this.txCtx = txCtx;
     }
 
@@ -29,7 +30,7 @@ public class EventManager implements EventOperationHandle, Transactional {
     public void publish(Bytes address, EventPublishOperation.EventEntry[] events) {
         EventPublishingAccount account = txCtx.getEventSet().getUserEvents().getAccount(address);
         for (EventPublishOperation.EventEntry event : events) {
-            long v = account.publish(new EventInfo(address, event.getName(), event.getSequence()+1, event.getContent(), txCtx.getTransactionSet().getRootHash(), txCtx.getBlockHeight()));
+            long v = account.publish(new EventInfo(address, event.getName(), event.getSequence()+1, event.getContent(), request.getTransactionContent().getHash(), txCtx.getBlockHeight()));
             if (v < 0) {
                 throw new DataVersionConflictException();
             }
@@ -38,7 +39,7 @@ public class EventManager implements EventOperationHandle, Transactional {
 
     @Override
     public long publish(String eventName, BytesValue content, long latestSequence) {
-        long v = txCtx.getEventSet().getSystemEvents().publish(new EventInfo(eventName, latestSequence+1, content, txCtx.getTransactionSet().getRootHash(), txCtx.getBlockHeight()));
+        long v = txCtx.getEventSet().getSystemEvents().publish(new EventInfo(eventName, latestSequence+1, content, request.getTransactionContent().getHash(), txCtx.getBlockHeight()));
         if (v < 0) {
             throw new DataVersionConflictException();
         }
@@ -46,18 +47,4 @@ public class EventManager implements EventOperationHandle, Transactional {
         return v;
     }
 
-    @Override
-    public boolean isUpdated() {
-        return txCtx.getEventSet().isUpdated();
-    }
-
-    @Override
-    public void commit() {
-        txCtx.getEventSet().commit();
-    }
-
-    @Override
-    public void cancel() {
-        txCtx.getEventSet().cancel();
-    }
 }
