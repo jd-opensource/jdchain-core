@@ -21,7 +21,6 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
-import com.jd.blockchain.utils.io.BytesUtils;
 
 /**
  * 默克尔树；
@@ -60,7 +59,7 @@ public class MerkleSortedTree implements Transactional {
 
 	private HashDigest origRootHash;
 	private MerkleIndex origRoot;
-	
+
 	private HashDigest rootHash;
 	private MerklePathNode root;
 
@@ -160,7 +159,7 @@ public class MerkleSortedTree implements Transactional {
 		if (data == null) {
 			return null;
 		}
-		proofSelector.addPath(data.getHash());
+//		proofSelector.addPath(data.getHash());
 		return proofSelector.getProof();
 	}
 
@@ -192,13 +191,14 @@ public class MerkleSortedTree implements Transactional {
 			if (childHash == null) {
 				return null;
 			}
-			if (merkleIndex.getStep() == 1) {
-				// 叶子节点；
-				child = loadMerkleData(id, childHash);
-			} else {
-				// step > 1， 非叶子节点； 注：构造器对输入参数的处理保证 step > 0;
-				child = loadMerkleIndex(childHash);
-			}
+//			if (merkleIndex.getStep() == 1) {
+//				// 叶子节点；
+//				child = loadMerkleData(id, childHash);
+//			} else {
+//				// step > 1， 非叶子节点； 注：构造器对输入参数的处理保证 step > 0;
+//				child = loadMerkleIndex(childHash);
+//			}
+			child = loadMerkleEntry(childHash);
 			pathSelector.accept(childHash, child);
 		}
 		if (child instanceof MerkleData) {
@@ -225,10 +225,10 @@ public class MerkleSortedTree implements Transactional {
 		}
 		if (root instanceof MerklePathNode) {
 			rootHash = ((MerklePathNode) root).commit();
-			
+
 			origRootHash = rootHash;
 			origRoot = new MerklePathNode(rootHash, root);
-			
+
 		}
 	}
 
@@ -349,6 +349,29 @@ public class MerkleSortedTree implements Transactional {
 		long m = p % step;
 		return (int) ((p - m) / step);
 	}
+
+//	/**
+//	 * 检查掩码表示的指定位置是否是数据项；
+//	 * 
+//	 * @param mask  掩码；
+//	 * @param index 子项的位置；
+//	 * @return 返回 true 指示该位置的子项是一个数据项({@link MerkleData})，false
+//	 *         表示该位置的子项是一个默克尔索引子项({@link MerkleIndex} )；
+//	 */
+//	private static boolean isDataMask(long mask, int index) {
+//		long m = 0x01 << index;
+//		return (mask & m) == m;
+//	}
+//
+//	private static long enableDataMask(long mask, int index) {
+//		long m = 0x01 << index;
+//		return mask | m;
+//	}
+//
+//	private static long disableDataMask(long mask, int index) {
+//		long m = ~(0x01 << index);
+//		return mask | m;
+//	}
 
 	/**
 	 * 合并子节点，返回共同的父节点；
@@ -553,39 +576,42 @@ public class MerkleSortedTree implements Transactional {
 		}
 		parent.setChildAtIndex(index, null, newChild);
 	}
-
-	private MerkleIndex loadMerkleIndex(HashDigest nodeHash) {
+	
+	private MerkleEntry loadMerkleEntry(HashDigest nodeHash) {
 		byte[] nodeBytes = loadNodeBytes(nodeHash);
-		MerkleIndex merkleIndex = BinaryProtocol.decode(nodeBytes, MerkleIndex.class);
+		MerkleEntry merkleEntry = BinaryProtocol.decode(nodeBytes);
 		if (setting.getAutoVerifyHash()) {
 			HashDigest hash = hashFunc.hash(nodeBytes);
 			if (!hash.equals(nodeHash)) {
 				throw new MerkleProofException("Merkle hash verification fail! -- NodeHash=" + nodeHash.toBase58());
 			}
 		}
-		return merkleIndex;
+		return merkleEntry;
 	}
 
-	private MerkleData loadMerkleData(long id, HashDigest nodeHash) {
-		byte[] nodeBytes = loadNodeBytes(BytesUtils.toBytes(id));
-		MerkleData merkleData = BinaryProtocol.decode(nodeBytes, MerkleData.class);
-		if (setting.getAutoVerifyHash()) {
-			HashDigest hash = hashFunc.hash(nodeBytes);
-			if (!hash.equals(nodeHash)) {
-				throw new MerkleProofException(
-						String.format("Merkle hash verification fail! --ID=%s; NodeHash=%s", id, nodeHash.toBase58()));
-			}
-		}
-		return merkleData;
+	private MerkleIndex loadMerkleIndex(HashDigest nodeHash) {
+		return (MerkleIndex) loadMerkleEntry(nodeHash);
 	}
-	
+
+//	private MerkleData loadMerkleData(long id, HashDigest nodeHash) {
+//		byte[] nodeBytes = loadNodeBytes(BytesUtils.toBytes(id));
+//		MerkleData merkleData = BinaryProtocol.decode(nodeBytes, MerkleData.class);
+//		if (setting.getAutoVerifyHash()) {
+//			HashDigest hash = hashFunc.hash(nodeBytes);
+//			if (!hash.equals(nodeHash)) {
+//				throw new MerkleProofException(
+//						String.format("Merkle hash verification fail! --ID=%s; NodeHash=%s", id, nodeHash.toBase58()));
+//			}
+//		}
+//		return merkleData;
+//	}
+
 	private HashDigest saveData(long id, MerkleData data) {
 		byte[] dataNodeBytes = BinaryProtocol.encode(data, MerkleData.class);
-
-		// 以 id 建议存储key ，便于根据 id 直接快速查询检索，无需展开默克尔树；
-		saveNodeBytes(BytesUtils.toBytes(id), dataNodeBytes);
-
 		HashDigest dataEntryHash = hashFunc.hash(dataNodeBytes);
+		
+		saveNodeBytes(dataEntryHash, dataNodeBytes);
+		
 		return dataEntryHash;
 	}
 
@@ -708,20 +734,20 @@ public class MerkleSortedTree implements Transactional {
 		@DataField(order = 0, primitiveType = PrimitiveType.INT64, numberEncoding = NumberEncoding.LONG)
 		long getId();
 
-		/**
-		 * 数据({@link #getBytes()})的哈希；
-		 * 
-		 * @return
-		 */
-		@DataField(order = 1, primitiveType = PrimitiveType.BYTES)
-		HashDigest getHash();
+//		/**
+//		 * 数据({@link #getBytes()})的哈希；
+//		 * 
+//		 * @return
+//		 */
+//		@DataField(order = 1, primitiveType = PrimitiveType.BYTES)
+//		HashDigest getHash();
 
 		/**
 		 * 数据字节；
 		 * 
 		 * @return
 		 */
-		@DataField(order = 2, primitiveType = PrimitiveType.BYTES)
+		@DataField(order = 1, primitiveType = PrimitiveType.BYTES)
 		byte[] getBytes();
 
 	}
@@ -758,6 +784,29 @@ public class MerkleSortedTree implements Transactional {
 		@DataField(order = 1, primitiveType = PrimitiveType.INT64, numberEncoding = NumberEncoding.LONG)
 		long getStep();
 
+//		/**
+//		 * 子项掩码；
+//		 * <p>
+//		 * 从最低位（靠右）按位标记子项的类型；<br>
+//		 * 例如，偏移位置 0 的子项，如果是路径节点则最低位标记为 0 ，如果是数据节点则标记为 1，<br>
+//		 * 相应的，通过判断掩码 (MASK & 0x01 == 0x01) 为 true 可以得知偏移位置 0 的子项是否为数据节点；
+//		 * 
+//		 * <p>
+//		 * 注意，实际使用的掩码长度等于默克尔树的度（子项个数），由于使用了数值编码（{@link NumberEncoding#LONG}）方式存储，最大支持61位，因此默克尔树的度不能超过该值；
+//		 * 
+//		 * @return
+//		 */
+//		@DataField(order = 2, primitiveType = PrimitiveType.INT64, numberEncoding = NumberEncoding.LONG)
+//		long getChildMask();
+
+		/**
+		 * 每个子项包含的数据项个数的列表；
+		 * 
+		 * @return
+		 */
+		@DataField(order = 2, primitiveType = PrimitiveType.INT64, numberEncoding = NumberEncoding.LONG, list = true)
+		long[] getChildCounts();
+
 		/**
 		 * 子项的哈希的列表； <br>
 		 * 
@@ -765,8 +814,23 @@ public class MerkleSortedTree implements Transactional {
 		 * 
 		 * @return
 		 */
-		@DataField(order = 2, primitiveType = PrimitiveType.BYTES, list = true)
+		@DataField(order = 3, primitiveType = PrimitiveType.BYTES, list = true)
 		HashDigest[] getChildHashs();
+
+		/**
+		 * 当前索引子树包含的数据项的个数；
+		 * 
+		 * @return
+		 */
+		default long getCount() {
+			long[] childCounts = getChildCounts();
+			// 使用此方法的上下文逻辑已经能够约束每一项的数字大小范围，不需要考虑溢出；
+			long sum = 0;
+			for (long c : childCounts) {
+				sum += c;
+			}
+			return sum;
+		}
 	}
 
 	/**
@@ -779,7 +843,7 @@ public class MerkleSortedTree implements Transactional {
 
 		private long id;
 
-		private HashDigest hash;
+//		private HashDigest hash;
 
 		private byte[] bytes;
 
@@ -792,8 +856,7 @@ public class MerkleSortedTree implements Transactional {
 		public MerkleDataNode(long id, byte[] bytes) {
 			this.id = id;
 			this.bytes = bytes;
-
-			this.hash = hashFunc.hash(bytes);
+//			this.hash = hashFunc.hash(bytes);
 		}
 
 		@Override
@@ -801,10 +864,10 @@ public class MerkleSortedTree implements Transactional {
 			return id;
 		}
 
-		@Override
-		public HashDigest getHash() {
-			return hash;
-		}
+//		@Override
+//		public HashDigest getHash() {
+//			return hash;
+//		}
 
 		@Override
 		public byte[] getBytes() {
@@ -835,6 +898,10 @@ public class MerkleSortedTree implements Transactional {
 		private long offset;
 
 		private long step;
+
+		private long childMask;
+
+		private long[] childCounts;
 
 		private HashDigest[] origChildHashs;
 
@@ -884,6 +951,16 @@ public class MerkleSortedTree implements Transactional {
 			return step;
 		}
 
+//		@Override
+//		public long getChildMask() {
+//			return childMask;
+//		}
+
+		@Override
+		public long[] getChildCounts() {
+			return childCounts;
+		}
+
 		@Override
 		public HashDigest[] getChildHashs() {
 			return childHashs;
@@ -908,18 +985,6 @@ public class MerkleSortedTree implements Transactional {
 			return (int) ((p - m) / step);
 		}
 
-		private MerkleEntry loadChild(long id, HashDigest childHash) {
-			MerkleEntry child;
-			if (step == 1) {
-				// 叶子节点；
-				child = loadMerkleData(id, childHash);
-			} else {
-				// step > 1， 非叶子节点； 注：构造器对输入参数的处理保证 step > 0;
-				child = loadMerkleIndex(childHash);
-			}
-			return child;
-		}
-
 		public HashDigest getChildHashAtIndex(int index) {
 			return childHashs[index];
 		}
@@ -933,14 +998,7 @@ public class MerkleSortedTree implements Transactional {
 			if (childHash == null) {
 				return null;
 			}
-			if (step == 1) {
-				// 叶子节点；
-				long id = offset + index;
-				child = loadMerkleData(id, childHash);
-			} else {
-				// step > 1， 非叶子节点； 注：构造器对输入参数的处理保证 step > 0;
-				child = loadMerkleIndex(childHash);
-			}
+			child = loadMerkleEntry(childHash);
 			children[index] = child;
 			return child;
 		}
@@ -976,7 +1034,7 @@ public class MerkleSortedTree implements Transactional {
 					return index;
 				}
 
-				child = loadChild(id, childHash);
+				child = loadMerkleEntry(childHash);
 			}
 
 			if (child instanceof MerkleData) {
@@ -1009,6 +1067,11 @@ public class MerkleSortedTree implements Transactional {
 		private void setChildAtIndex(int index, HashDigest childHash, MerkleEntry child) {
 			childHashs[index] = childHash;
 			children[index] = child;
+//			if (child instanceof MerkleData) {
+//				enableDataMask(childMask, index);
+//			}else {
+//				disableDataMask(childMask, index);
+//			}
 		}
 
 		public HashDigest commit() {

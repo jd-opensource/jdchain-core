@@ -150,7 +150,8 @@ public class MerkleSortedTreeTest {
 			assertEquals(id, mdata.getId());
 			
 			HashDigest dataHash = HASH_FUNCTION.hash(datas[i]);
-			assertEquals(dataHash, mdata.getHash());
+			HashDigest dataHash1 = HASH_FUNCTION.hash(mdata.getBytes());
+			assertEquals(dataHash, dataHash1);
 			assertArrayEquals(datas[i], mdata.getBytes());
 		}
 	}
