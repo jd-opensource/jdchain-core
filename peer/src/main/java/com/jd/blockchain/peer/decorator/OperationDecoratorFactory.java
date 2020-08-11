@@ -31,6 +31,8 @@ public class OperationDecoratorFactory {
             return decorateParticipantRegisterOperation((ParticipantRegisterOperation) op);
         } else if (op instanceof ParticipantStateUpdateOperation) {
             return decorateParticipantStateUpdateOperation((ParticipantStateUpdateOperation) op);
+        } else if (op instanceof ConsensusSettingsUpdateOperation) {
+            return decorateConsensusSettingsUpdateOperation((ConsensusSettingsUpdateOperation) op);
         } else if (op instanceof RolesConfigureOperation) {
             return decorateRolesConfigureOperation((RolesConfigureOperation) op);
         } else if (op instanceof UserAuthorizeOperation) {
@@ -152,6 +154,16 @@ public class OperationDecoratorFactory {
     public static Operation decorateParticipantStateUpdateOperation(ParticipantStateUpdateOperation op) {
         BlockchainIdentity stateUpdateIdentity = decorateBlockchainIdentity(op.getParticipantID());
         return new ParticipantStateUpdateOpTemplate(stateUpdateIdentity, op.getState());
+    }
+
+    /**
+     * decorate ConsensusSettingsUpdateOperation object
+     *
+     * @param op
+     * @return
+     */
+    public static Operation decorateConsensusSettingsUpdateOperation(ConsensusSettingsUpdateOperation op) {
+        return new ConsensusSettingsUpdateOpTemplate(op.getProperties());
     }
 
     /**

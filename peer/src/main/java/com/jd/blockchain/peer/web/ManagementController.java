@@ -19,7 +19,10 @@ import com.jd.blockchain.transaction.TxRequestBuilder;
 import com.jd.blockchain.transaction.TxRequestMessage;
 import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.PropertiesUtils;
+
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import com.jd.blockchain.crypto.CryptoAlgorithm;
@@ -107,6 +110,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	public static final  String  BFTSMART_PROVIDER = "com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider";
 
 	public static final String GATEWAY_PUB_EXT_NAME = ".gw.pub";
+
+	private static final String DEFAULT_HASH_ALGORITHM = "SHA256";
 
 	public static final int MIN_GATEWAY_ID = 10000;
 
@@ -416,10 +421,12 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			if (ledgerAdminInfo.getSettings().getConsensusProvider().equals(BFTSMART_PROVIDER)) {
 
-				ParticipantNode[] participants = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()).getParticipants();
-
 				// 检查本地节点与远端节点在库上是否存在差异,有差异的话需要进行差异交易重放
 				checkLedgerDiff(ledgerRepo, remoteManageHost, remoteManagePort);
+
+				ledgerAdminInfo = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock());
+
+				ParticipantNode[] participants = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()).getParticipants();
 
 				systemConfig = PropertiesUtils.createProperties(((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getSystemConfigs());
 
@@ -465,16 +472,20 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				//mq or others
 				return null;
 			}
-
 		} catch (ViewUpdateException e) {
+			e.printStackTrace();
 			LOGGER.error("[ManagementController] view update exception!");
 		} catch (StartServerException e) {
+			e.printStackTrace();
 			LOGGER.error("[ManagementController] start server exception!");
 		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
 			LOGGER.error("[ManagementController] input ledgerhash not exist, check ledgerhash!");
 		} catch (IllegalStateException e) {
+			e.printStackTrace();
 			LOGGER.error("[ManagementController] local ledger database error, please copy again!!");
 		} catch (RuntimeException e) {
+			e.printStackTrace();
 			LOGGER.error("[ManagementController] not a base58 input, check ledgerhash!");
 		}
 
@@ -514,37 +525,83 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					TransactionBatchProcessor txbatchProcessor = new TransactionBatchProcessor(ledgerRepository, opReg);
 					// transactions replay
 					try {
-						for (LedgerTransaction ledgerTransaction :blockchainServiceFactory.getBlockchainService().getTransactions(ledgerHash, height, 0, -1)) {
+//						for (LedgerTransaction ledgerTransaction :blockchainServiceFactory.getBlockchainService().getTransactions(ledgerHash, height, 0, -1)) {
+
+						LedgerTransaction[] transactions = blockchainServiceFactory.getBlockchainService().getTransactions(ledgerHash, height, 0, -1);
+
+						LedgerTransaction[] orderTxs = orderTransactions(transactions);
+
+						System.out.println("block height = " + height);
+						for (LedgerTransaction ledgerTransaction : orderTxs) {
 
 							TxContentBlob txContentBlob = new TxContentBlob(ledgerHash);
 
 							txContentBlob.setTime(ledgerTransaction.getTransactionContent().getTimestamp());
 
-							txContentBlob.setHash(ledgerTransaction.getTransactionContent().getHash());
+							LOGGER.info("ledger transaction replay, tx timestmap = {}", ledgerTransaction.getTransactionContent().getTimestamp());
 
 							// convert operation, from json to object
 							for (Operation operation : ledgerTransaction.getTransactionContent().getOperations()) {
 								txContentBlob.addOperation(ClientResolveUtil.read(operation));
 							}
 
+							txContentBlob.setHash(TxBuilder.computeTxContentHash(txContentBlob));
+
 							TxRequestBuilder txRequestBuilder = new TxRequestBuilder(txContentBlob);
-							txRequestBuilder.addNodeSignature(ledgerTransaction.getNodeSignatures());
+//							txRequestBuilder.addNodeSignature(ledgerTransaction.getNodeSignatures());
 							txRequestBuilder.addEndpointSignature(ledgerTransaction.getEndpointSignatures());
 							TransactionRequest transactionRequest = txRequestBuilder.buildRequest();
+							TxRequestMessage txMessage = new TxRequestMessage(transactionRequest);
+							txMessage.addNodeSignatures(ledgerTransaction.getNodeSignatures());
 
-							txbatchProcessor.schedule(transactionRequest);
+							byte[] nodeRequestBytes = BinaryProtocol.encode(txMessage, TransactionRequest.class);
+
+							HashDigest txHash = Crypto.getHashFunction(DEFAULT_HASH_ALGORITHM).hash(nodeRequestBytes);
+
+							txMessage.setHash(txHash);
+
+//							System.out.println("diff tx content = " + Arrays.toString(BinaryProtocol.encode(txContentBlob, TransactionContent.class)));
+//							for (DigitalSignature digitalSignature : transactionRequest.getEndpointSignatures()) {
+//								System.out.println("diff end pubkey = " + digitalSignature.getPubKey().toBase58());
+//								System.out.println("diff end signature = " + digitalSignature.getDigest().toBase58());
+//							}
+//
+//							for (DigitalSignature digitalSignature : transactionRequest.getNodeSignatures()) {
+//								System.out.println("diff node pubkey = " + digitalSignature.getPubKey().toBase58());
+//								System.out.println("diff node signature = " + digitalSignature.getDigest().toBase58());
+//							}
+
+							System.out.println("diff tx request hash = " + txMessage.getHash());
+
+							txbatchProcessor.schedule(txMessage);
 						}
+
 						handle = txbatchProcessor.prepare();
 						handle.commit();
 
 					} catch (Exception e) {
+						e.printStackTrace();
+						handle.cancel(LEDGER_ERROR);
 						throw new IllegalStateException("[ManagementController] checkLedgerDiff, transactions replay error!");
 					}
 				}
 			}
 		} catch (Exception e) {
+			e.printStackTrace();
 			throw new IllegalStateException("[ManagementController] checkLedgerDiff error!");
 		}
+	}
+
+	// order transactions by timestamp in block
+	private LedgerTransaction[] orderTransactions(LedgerTransaction[] transactions) {
+		List<LedgerTransaction> transactionList = Arrays.asList(transactions);
+		transactionList.sort(new Comparator<LedgerTransaction>() {
+			@Override
+			public int compare(LedgerTransaction t1, LedgerTransaction t2) {
+				return (int)(t1.getTransactionContent().getTimestamp() - t2.getTransactionContent().getTimestamp());
+			}
+		});
+		return transactionList.toArray(new LedgerTransaction[transactions.length]);
 	}
 
 	private static String keyOfNode(String pattern, int id) {
