@@ -804,7 +804,7 @@ public class MerkleHashTrieTest {
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
 		// max boundary skip test
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped = diffIterator.skip(newAddCount);
@@ -814,7 +814,7 @@ public class MerkleHashTrieTest {
 		// re-interator and random skip test
 		int skipNum = 20;
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped1 = diffIterator.skip(skipNum);
@@ -833,7 +833,7 @@ public class MerkleHashTrieTest {
 		// re-interator and next test
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		int diffNum1 = 0;
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		while (diffIterator.hasNext()) {
 			MerkleTrieData data = diffIterator.next();
 			assertNotNull(data);
@@ -841,8 +841,8 @@ public class MerkleHashTrieTest {
 		}
 		assertFalse(diffIterator.hasNext());
 		assertEquals(newAddCount - 1, diffIterator.getCursor());
-		assertEquals(newAddCount, diffIterator.getCount());
-		assertEquals(diffNum1, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
+		assertEquals(diffNum1, diffIterator.getTotalCount());
 
 		// re-interator and test next key consistency
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
@@ -904,7 +904,7 @@ public class MerkleHashTrieTest {
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
 		// max boundary skip test
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped = diffIterator.skip(newAddCount);
@@ -914,7 +914,7 @@ public class MerkleHashTrieTest {
 		// re-interator and random skip test
 		int skipNum = 5;
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped1 = diffIterator.skip(skipNum);
@@ -933,15 +933,15 @@ public class MerkleHashTrieTest {
 		// re-interator and next test
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		int diffNum1 = 0;
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		while (diffIterator.hasNext()) {
 			MerkleTrieData data = diffIterator.next();
 			diffNum1++;
 		}
 		assertFalse(diffIterator.hasNext());
 		assertEquals(newAddCount - 1, diffIterator.getCursor());
-		assertEquals(newAddCount, diffIterator.getCount());
-		assertEquals(diffNum1, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
+		assertEquals(diffNum1, diffIterator.getTotalCount());
 
 		// re-interator and test next key consistency
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
@@ -1000,7 +1000,7 @@ public class MerkleHashTrieTest {
 		SkippingIterator<MerkleTrieData> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
 		// max boundary skip test
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped = diffIterator.skip(newAddCount);
@@ -1010,7 +1010,7 @@ public class MerkleHashTrieTest {
 		// re-interator and random skip test
 		int skipNum = 200;
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped1 = diffIterator.skip(skipNum);
@@ -1030,7 +1030,7 @@ public class MerkleHashTrieTest {
 		// re-interator and next test
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		int diffNum1 = 0;
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		while (diffIterator.hasNext()) {
 			MerkleTrieData data = diffIterator.next();
 			assertNotNull(data);
@@ -1038,8 +1038,8 @@ public class MerkleHashTrieTest {
 		}
 		assertFalse(diffIterator.hasNext());
 		assertEquals(newAddCount - 1, diffIterator.getCursor());
-		assertEquals(newAddCount, diffIterator.getCount());
-		assertEquals(diffNum1, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
+		assertEquals(diffNum1, diffIterator.getTotalCount());
 
 		// re-interator and test next key consistency
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
@@ -1119,7 +1119,7 @@ public class MerkleHashTrieTest {
 		SkippingIterator<MerkleTrieData> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
 		// max boundary skip test
-		assertEquals(newAddCount + newAddCount1, diffIterator.getCount());
+		assertEquals(newAddCount + newAddCount1, diffIterator.getTotalCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped = diffIterator.skip(newAddCount + newAddCount1);
@@ -1129,7 +1129,7 @@ public class MerkleHashTrieTest {
 		// re-interator and random skip test
 		int skipNum = 200;
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
-		assertEquals(newAddCount + newAddCount1, diffIterator.getCount());
+		assertEquals(newAddCount + newAddCount1, diffIterator.getTotalCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped1 = diffIterator.skip(skipNum);
@@ -1157,8 +1157,8 @@ public class MerkleHashTrieTest {
 		}
 		assertFalse(diffIterator.hasNext());
 		assertEquals(newAddCount + newAddCount1 - 1, diffIterator.getCursor());
-		assertEquals(newAddCount + newAddCount1, diffIterator.getCount());
-		assertEquals(diffNum1, diffIterator.getCount());
+		assertEquals(newAddCount + newAddCount1, diffIterator.getTotalCount());
+		assertEquals(diffNum1, diffIterator.getTotalCount());
 
 		// re-interator and test next key consistency
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
@@ -1278,7 +1278,7 @@ public class MerkleHashTrieTest {
 		SkippingIterator<MerkleTrieData> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
 		// max boundary skip test
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped = diffIterator.skip(newAddCount);
@@ -1288,7 +1288,7 @@ public class MerkleHashTrieTest {
 		// re-interator and random skip test
 		int skipNum = 4;
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped1 = diffIterator.skip(skipNum);
@@ -1308,7 +1308,7 @@ public class MerkleHashTrieTest {
 		// re-interator and next test
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		int diffNum1 = 0;
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		while (diffIterator.hasNext()) {
 			MerkleTrieData data = diffIterator.next();
 			assertNotNull(data);
@@ -1316,8 +1316,8 @@ public class MerkleHashTrieTest {
 		}
 		assertFalse(diffIterator.hasNext());
 		assertEquals(newAddCount - 1, diffIterator.getCursor());
-		assertEquals(newAddCount, diffIterator.getCount());
-		assertEquals(diffNum1, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
+		assertEquals(diffNum1, diffIterator.getTotalCount());
 
 		// re-interator and test next key consistency
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
@@ -1381,7 +1381,7 @@ public class MerkleHashTrieTest {
 		SkippingIterator<MerkleTrieData> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
 		// max boundary skip test
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped = diffIterator.skip(newAddCount);
@@ -1391,7 +1391,7 @@ public class MerkleHashTrieTest {
 		// re-interator and random skip test
 		int skipNum = 0;
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped1 = diffIterator.skip(skipNum);
@@ -1411,7 +1411,7 @@ public class MerkleHashTrieTest {
 		// re-interator and next test
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		int diffNum1 = 0;
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		while (diffIterator.hasNext()) {
 			MerkleTrieData data = diffIterator.next();
 			assertNotNull(data);
@@ -1419,8 +1419,8 @@ public class MerkleHashTrieTest {
 		}
 		assertFalse(diffIterator.hasNext());
 		assertEquals(newAddCount - 1, diffIterator.getCursor());
-		assertEquals(newAddCount, diffIterator.getCount());
-		assertEquals(diffNum1, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
+		assertEquals(diffNum1, diffIterator.getTotalCount());
 
 		// re-interator and test next key consistency
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
@@ -1505,7 +1505,7 @@ public class MerkleHashTrieTest {
 		SkippingIterator<MerkleTrieData> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
 		// max boundary skip test
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped = diffIterator.skip(newAddCount);
@@ -1515,7 +1515,7 @@ public class MerkleHashTrieTest {
 		// re-interator and random skip test
 		int skipNum = 4;
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped1 = diffIterator.skip(skipNum);
@@ -1535,7 +1535,7 @@ public class MerkleHashTrieTest {
 		// re-interator and next test
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		int diffNum1 = 0;
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		while (diffIterator.hasNext()) {
 			MerkleTrieData data = diffIterator.next();
 			assertNotNull(data);
@@ -1543,8 +1543,8 @@ public class MerkleHashTrieTest {
 		}
 		assertFalse(diffIterator.hasNext());
 		assertEquals(newAddCount - 1, diffIterator.getCursor());
-		assertEquals(newAddCount, diffIterator.getCount());
-		assertEquals(diffNum1, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
+		assertEquals(diffNum1, diffIterator.getTotalCount());
 
 		// re-interator and test next key consistency
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
@@ -1621,7 +1621,7 @@ public class MerkleHashTrieTest {
 		SkippingIterator<MerkleTrieData> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
 		// max boundary skip test
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped = diffIterator.skip(newAddCount);
@@ -1631,7 +1631,7 @@ public class MerkleHashTrieTest {
 		// re-interator and random skip test
 		int skipNum = 4;
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		assertEquals(-1, diffIterator.getCursor());
 		assertTrue(diffIterator.hasNext());
 		long skipped1 = diffIterator.skip(skipNum);
@@ -1650,7 +1650,7 @@ public class MerkleHashTrieTest {
 		// re-interator and next test
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		int diffNum1 = 0;
-		assertEquals(newAddCount, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
 		while (diffIterator.hasNext()) {
 			MerkleTrieData data = diffIterator.next();
 			assertNotNull(data);
@@ -1658,8 +1658,8 @@ public class MerkleHashTrieTest {
 		}
 		assertFalse(diffIterator.hasNext());
 		assertEquals(newAddCount - 1, diffIterator.getCursor());
-		assertEquals(newAddCount, diffIterator.getCount());
-		assertEquals(diffNum1, diffIterator.getCount());
+		assertEquals(newAddCount, diffIterator.getTotalCount());
+		assertEquals(diffNum1, diffIterator.getTotalCount());
 
 		// re-interator and test next key consistency
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
@@ -2027,8 +2027,8 @@ public class MerkleHashTrieTest {
 		SkippingIterator<MerkleTrieData> iterator1 = merkleTree1.iterator();
 		MerkleTrieData dt;
 		MerkleTrieData dt1;
-		assertEquals(iterator.getCount(), iterator1.getCount());
-		for (int i = 0; i < iterator.getCount(); i++) {
+		assertEquals(iterator.getTotalCount(), iterator1.getTotalCount());
+		for (int i = 0; i < iterator.getTotalCount(); i++) {
 			assertTrue(iterator.hasNext());
 			assertTrue(iterator1.hasNext());
 			dt = iterator.next();

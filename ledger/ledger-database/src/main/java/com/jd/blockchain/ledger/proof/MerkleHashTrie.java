@@ -518,13 +518,13 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 	public void printDatas() {
 		SkippingIterator<MerkleTrieData> iterator = iterator();
 		System.out.println("\r\n\rn-------- HASH-SORTING-MERKLE-TREE -------");
-		System.out.printf("total-size=%s\r\n", iterator.getCount());
+		System.out.printf("total-size=%s\r\n", iterator.getTotalCount());
 		int i = 0;
 		while (iterator.hasNext()) {
 			MerkleTrieData data = iterator.next();
 			System.out.printf("[%s] - KEY=%s; VERSION=%s;\r\n", i, data.getKey().toBase58(), data.getVersion());
 		}
-		System.out.printf("\r\n------------------\r\n", iterator.getCount());
+		System.out.printf("\r\n------------------\r\n", iterator.getTotalCount());
 	}
 
 	private void collectNodes(PathNode node, int level, Map<Integer, List<String>> nodes) {
@@ -782,7 +782,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 		
 
 		@Override
-		public long getCount() {
+		public long getTotalCount() {
 			// TODO Auto-generated method stub
 			return key.getVersion()+1;
 		}
@@ -813,7 +813,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 			totalSize = Arrays.stream(root.getChildKeys()).sum();
 		}
 
-		public long getCount() {
+		public long getTotalCount() {
 			return totalSize;
 		}
 
@@ -913,7 +913,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 			return cursor;
 		}
 
-		public long getCount() {
+		public long getTotalCount() {
 			return keys.length;
 		}
 
@@ -990,7 +990,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 		}
 
 		@Override
-		public long getCount() {
+		public long getTotalCount() {
 			return getDiffCount(root1, root2);
 		}
 
@@ -1035,7 +1035,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 			this.tree2 = tree2;
 		}
 
-		public long getCount() {
+		public long getTotalCount() {
 			return getDiffCount(root1, root2);
 		}
 
@@ -1233,7 +1233,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 		}
 
 		@Override
-		public long getCount() {
+		public long getTotalCount() {
 			return diffDataEntries.length;
 		}
 
@@ -1446,8 +1446,8 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 		}
 
 		@Override
-		public long getCount() {
-			return iterator1.getCount() - origKeys.length;
+		public long getTotalCount() {
+			return iterator1.getTotalCount() - origKeys.length;
 		}
 
 		@Override

@@ -18,6 +18,8 @@ import com.jd.blockchain.ledger.core.HashPathProof;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
+import com.jd.blockchain.utils.AbstractSkippingIterator;
+import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
@@ -129,9 +131,6 @@ public class MerkleSortedTree implements Transactional {
 	}
 
 	public long getCount() {
-		if (root == null) {
-			return 0;
-		}
 		return count(root);
 	}
 
@@ -142,13 +141,6 @@ public class MerkleSortedTree implements Transactional {
 		if (id >= MAX_COUNT) {
 			throw new IllegalArgumentException("'id' is greater than or equal to the MAX_COUNT[" + MAX_COUNT + "]!");
 		}
-//		if (root == null) {
-//			long offset = calculateLeafOffset(id);
-//			MerklePathNode leaf = createLeafPath(offset);
-//			leaf.setData(id, data);
-//			root = leaf;
-//			return;
-//		}
 
 		MerkleData dataNode = new MerkleDataNode(id, data);
 
@@ -159,8 +151,8 @@ public class MerkleSortedTree implements Transactional {
 		return seekData(root, id, NullSelector.INSTANCE);
 	}
 
-	public SkippingIterator<MerkleData> iterator(long from) {
-		return new DataIterator(root, from);
+	public SkippingIterator<MerkleData> iterator() {
+		return new MerklePathIterator(root);
 	}
 
 	/**
@@ -208,13 +200,6 @@ public class MerkleSortedTree implements Transactional {
 			if (childHash == null) {
 				return null;
 			}
-//			if (merkleIndex.getStep() == 1) {
-//				// 叶子节点；
-//				child = loadMerkleData(id, childHash);
-//			} else {
-//				// step > 1， 非叶子节点； 注：构造器对输入参数的处理保证 step > 0;
-//				child = loadMerkleIndex(childHash);
-//			}
 			child = loadMerkleEntry(childHash);
 			pathSelector.accept(childHash, child);
 		}
@@ -223,6 +208,40 @@ public class MerkleSortedTree implements Transactional {
 		}
 		return seekData((MerkleIndex) child, id, pathSelector);
 	}
+
+//	public MerkleData seekData(MerkleIndex merkleIndex, int index, Stack<MerkleIndex> parents) {
+//		
+//		HashDigest childHash;
+//		MerkleEntry child;
+//		for (int idx = index; idx < TREE_DEGREE; idx++) {
+//			if (merkleIndex instanceof MerklePathNode) {
+//				MerklePathNode path = (MerklePathNode) merkleIndex;
+//				child = path.getChildAtIndex(idx);
+//				if (child == null) {
+//					continue;
+//				}
+//				childHash = path.getChildHashs()[idx];
+//			} else {
+//				HashDigest[] childHashs = merkleIndex.getChildHashs();
+//				childHash = childHashs[idx];
+//				if (childHash == null) {
+//					continue;
+//				}
+//				child = loadMerkleEntry(childHash);
+//			}
+//		}
+//		
+//		
+//		
+//		if (child == null) {
+//			
+//		}
+//		
+//		if (child instanceof MerkleData) {
+//			return (MerkleData) child;
+//		}
+//		return seekData((MerkleIndex) child, id, pathSelector);
+//	}
 
 	@Override
 	public boolean isUpdated() {
@@ -343,11 +362,7 @@ public class MerkleSortedTree implements Transactional {
 	private static long count(MerkleIndex merkleIndex) {
 		long[] childCounts = merkleIndex.getChildCounts();
 		// 使用此方法的上下文逻辑已经能够约束每一项的数字大小范围，不需要考虑溢出；
-		long sum = 0;
-		for (long c : childCounts) {
-			sum += c;
-		}
-		return sum;
+		return ArrayUtils.sum(childCounts);
 	}
 
 	/**
@@ -618,6 +633,7 @@ public class MerkleSortedTree implements Transactional {
 	 * @param nodeHash
 	 * @return
 	 */
+	@SuppressWarnings("unused")
 	private byte[] loadNodeBytes(byte[] key) {
 		Bytes storageKey = encodeStorageKey(key);
 		byte[] nodeBytes = kvStorage.get(storageKey);
@@ -636,6 +652,7 @@ public class MerkleSortedTree implements Transactional {
 		return nodeBytes;
 	}
 
+	@SuppressWarnings("unused")
 	private void saveNodeBytes(byte[] key, byte[] nodeBytes) {
 		Bytes storageKey = encodeStorageKey(key);
 		boolean success = kvStorage.set(storageKey, nodeBytes, ExPolicy.NOT_EXISTING);
@@ -815,10 +832,6 @@ public class MerkleSortedTree implements Transactional {
 
 	}
 
-	private MerklePathNode createLeafPath(long offset) {
-		return new MerklePathNode(offset, 1L);
-	}
-
 	/**
 	 * 默克尔路径的抽象实现；
 	 * 
@@ -951,6 +964,7 @@ public class MerkleSortedTree implements Transactional {
 		 *         <br>
 		 *         如果指定编号不属于该子树，则返回 -1；
 		 */
+		@SuppressWarnings("unused")
 		public int setData(long id, byte[] dataBytes) {
 			int index = index(id);
 			if (index < 0) {
@@ -1075,47 +1089,160 @@ public class MerkleSortedTree implements Transactional {
 
 	}
 
-	private class DataIterator implements SkippingIterator<MerkleData> {
+	/**
+	 * 数据迭代器；
+	 * <p>
+	 * 注：未考虑迭代过程中新写入数据引起的变化；
+	 * 
+	 * @author huanghaiquan
+	 *
+	 */
+	private class MerklePathIterator implements SkippingIterator<MerkleData> {
 
-		private MerklePathNode rootNode;
 
-		private long from;
+		private final long totalCount;
 
-		public DataIterator(MerklePathNode root, long from) {
-			this.rootNode = root;
-			this.from = from;
+		@SuppressWarnings("unused")
+		private final long step;
+
+		// 子节点的游标边界；
+		private long[] childCounts;
+
+		private HashDigest[] childHashs;
+		
+		private int childIndex;
+
+		private long cursor = -1;
+
+		private SkippingIterator<MerkleData> childIterator;
+
+		public MerklePathIterator(MerkleIndex path) {
+			this.step = path.getStep();
+			this.childHashs = path.getChildHashs();
+			this.childCounts = path.getChildCounts();
+			// 使用此方法的上下文逻辑已经能够约束每一项的数字大小范围，不需要考虑溢出；
+			this.totalCount = ArrayUtils.sum(childCounts);
+		}
+
+		@Override
+		public long getTotalCount() {
+			return totalCount;
 		}
 
 		@Override
 		public boolean hasNext() {
-			// TODO Auto-generated method stub
-			return false;
+			return cursor + 1 < totalCount;
+		}
+
+		@Override
+		public long skip(long count) {
+			if (count < 0) {
+				throw new IllegalArgumentException("The specified count is out of bound!");
+			}
+			if (count == 0) {
+				return 0;
+			}
+			if (childIndex >= TREE_DEGREE) {
+				return 0;
+			}
+
+			long s = ArrayUtils.sum(childCounts, 0, childIndex + 1);
+			long skipped;// 实际可略过的数量；
+			long currLeft = s - cursor - 1;
+			if (count < currLeft) {
+				// 实际略过的数量在 index 指示的当前子节点的范围内；
+				if (childIterator == null) {
+					childIterator = createChildIterator(childIndex);
+				}
+				skipped = count;
+				long sk = childIterator.skip(skipped);
+				assert sk == skipped;
+			} else {
+				// 已经超过 index 指示的当前子节点的剩余数量，直接忽略当前子节点；
+				childIterator = null;
+				skipped = currLeft;
+				childIndex++;
+				while (childIndex < TREE_DEGREE && skipped + childCounts[childIndex] <= count) {
+					skipped += childCounts[childIndex];
+					childIndex++;
+				}
+				if (childIndex < TREE_DEGREE) {
+					// 未超出子节点的范围；
+					long c = count - skipped;
+					childIterator = createChildIterator(childIndex);
+					long sk = childIterator.skip(c);
+					assert sk == skipped;
+
+					skipped = count;
+				}
+			}
+			cursor = cursor + skipped;
+			return skipped;
+		}
+
+		private SkippingIterator<MerkleData> createChildIterator(int idx) {
+			HashDigest childHash = childHashs[idx];
+			if (childHash == null) {
+				// 正常情况下不应该进入此逻辑分支，因为空的子节点的数量表为 0，迭代器的迭代处理逻辑理应过滤掉此位置的子节点；
+				throw new IllegalStateException();
+			}
+			MerkleEntry child = loadMerkleEntry(childHash);
+			
+			if (child instanceof MerkleData) {
+				return new MerkleDataIteratorWrapper((MerkleData) child);
+			}
+			return new MerklePathIterator((MerkleIndex) child);
 		}
 
 		@Override
 		public MerkleData next() {
-			// TODO Auto-generated method stub
-			return null;
-		}
+			if (!hasNext()) {
+				return null;
+			}
 
-		@Override
-		public long getCount() {
-			// TODO Auto-generated method stub
-			return 0;
+			long s = ArrayUtils.sum(childCounts, 0, childIndex + 1);
+
+			while (cursor + 1 >= s && childIndex < TREE_DEGREE - 1) {
+				childIndex++;
+				childIterator = null;
+				s += childCounts[childIndex];
+			}
+
+			if (childIterator == null) {
+				childIterator = createChildIterator(childIndex);
+			}
+			cursor++;
+			return childIterator.next();
 		}
 
 		@Override
 		public long getCursor() {
-			// TODO Auto-generated method stub
-			return 0;
-		}
-
-		@Override
-		public long skip(long skippingCount) {
-			// TODO Auto-generated method stub
-			return 0;
+			return cursor;
 		}
 
 	}
 
+	private static class MerkleDataIteratorWrapper extends AbstractSkippingIterator<MerkleData> {
+
+		private MerkleData data;
+
+		public MerkleDataIteratorWrapper(MerkleData data) {
+			this.data = data;
+		}
+
+		@Override
+		public long getTotalCount() {
+			return 1;
+		}
+
+		@Override
+		public MerkleData next() {
+			if (hasNext()) {
+				cursor++;
+				return data;
+			}
+			return null;
+		}
+
+	}
 }

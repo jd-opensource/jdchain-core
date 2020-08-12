@@ -2,9 +2,11 @@ package test.com.jd.blockchain.ledger.proof;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Array;
@@ -26,6 +28,7 @@ import com.jd.blockchain.ledger.proof.MerkleSortedTree;
 import com.jd.blockchain.ledger.proof.MerkleSortedTree.MerkleData;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.ArrayUtils;
+import com.jd.blockchain.utils.SkippingIterator;
 
 public class MerkleSortedTreeTest {
 
@@ -101,6 +104,69 @@ public class MerkleSortedTreeTest {
 		count = 10010;
 		datas = generateRandomData(count);
 		testWithRandomIDs(datas, count);
+	}
+	
+	@Test
+	public void testIterator() {
+		CryptoSetting cryptoSetting = createCryptoSetting();
+		MemoryKVStorage storage = new MemoryKVStorage();
+		MerkleSortedTree mst = new MerkleSortedTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+		
+		//验证空的迭代器；
+		SkippingIterator<MerkleData> iter = mst.iterator();
+		
+		assertEquals(0, iter.getTotalCount());
+		assertEquals(-1, iter.getCursor());
+		assertFalse(iter.hasNext());
+		assertNull(iter.next());
+		
+		//加入数据，验证顺序数据插入的生成的迭代器；
+		int count1 = 10;
+		byte[][] datas1 = generateRandomData(count1);
+		long[] ids1 = generateSeqenceIDs(0, count1);
+		addDatas(ids1, datas1, mst);
+		
+		iter = mst.iterator();
+		assertEquals(count1, iter.getTotalCount());
+		assertEquals(-1, iter.getCursor());
+		assertTrue(iter.hasNext());
+		int i = 0;
+		while (iter.hasNext()) {
+			MerkleData merkleData = iter.next();
+			assertNotNull(merkleData);
+			assertEquals(ids1[i], merkleData.getId());
+			i++;
+		}
+		assertEquals(count1, i);
+		
+		// 随机加入；验证迭代器返回有序的序列；
+		HashSet<Long> excludingIDs = new HashSet<Long>();
+		for (long l : ids1) {
+			excludingIDs.add(l);
+		}
+		int count2 = (int) power(MerkleSortedTree.TREE_DEGREE, 6);
+		byte[][] datas2 = generateRandomData(count2);
+		long[] ids2 = generateRandomIDs(count2, excludingIDs, true);
+		addDatas(ids2, datas2, mst);
+		
+		long[] totalIds = ArrayUtils.concat(ids1, ids2);
+		Arrays.sort(totalIds);
+		
+		iter = mst.iterator();
+		assertEquals(count1 + count2, iter.getTotalCount());
+		assertEquals(-1, iter.getCursor());
+		assertTrue(iter.hasNext());
+		i = 0;
+		while (iter.hasNext()) {
+			MerkleData merkleData = iter.next();
+			assertNotNull(merkleData);
+			assertEquals(totalIds[i], merkleData.getId());
+			i++;
+		}
+		assertEquals(count1 + count2, i);
+		
+		//TODO: 验证有跳跃的情形；
+		
 	}
 
 	@Test
