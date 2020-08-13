@@ -9,7 +9,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Array;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -47,15 +46,15 @@ public class MerkleSortedTreeTest {
 		byte[][] datas = generateRandomData(count);
 		testWithSequenceIDs(datas, count);
 
-		count = MerkleSortedTree.TREE_DEGREE;
+		count = MerkleSortedTree.DEFAULT_DEGREE;
 		datas = generateRandomData(count);
 		testWithSequenceIDs(datas, count);
 
-		count = (int) power(MerkleSortedTree.TREE_DEGREE, 2);
+		count = (int) power(MerkleSortedTree.DEFAULT_DEGREE, 2);
 		datas = generateRandomData(count);
 		testWithSequenceIDs(datas, count);
 
-		count = (int) power(MerkleSortedTree.TREE_DEGREE, 3);
+		count = (int) power(MerkleSortedTree.DEFAULT_DEGREE, 3);
 		datas = generateRandomData(count);
 		testWithSequenceIDs(datas, count);
 
@@ -81,15 +80,15 @@ public class MerkleSortedTreeTest {
 		byte[][] datas = generateRandomData(count);
 		testWithRandomIDs(datas, count);
 
-		count = MerkleSortedTree.TREE_DEGREE;
+		count = MerkleSortedTree.DEFAULT_DEGREE;
 		datas = generateRandomData(count);
 		testWithRandomIDs(datas, count);
 
-		count = (int) power(MerkleSortedTree.TREE_DEGREE, 2);
+		count = (int) power(MerkleSortedTree.DEFAULT_DEGREE, 2);
 		datas = generateRandomData(count);
 		testWithRandomIDs(datas, count);
 
-		count = (int) power(MerkleSortedTree.TREE_DEGREE, 3);
+		count = (int) power(MerkleSortedTree.DEFAULT_DEGREE, 3);
 		datas = generateRandomData(count);
 		testWithRandomIDs(datas, count);
 
@@ -144,7 +143,7 @@ public class MerkleSortedTreeTest {
 		for (long l : ids1) {
 			excludingIDs.add(l);
 		}
-		int count2 = (int) power(MerkleSortedTree.TREE_DEGREE, 8) + 1;
+		int count2 = (int) power(4, 8) + 1;
 		byte[][] datas2 = generateRandomData(count2);
 		long[] ids2 = generateRandomIDs(count2, excludingIDs, true);
 		addDatas(ids2, datas2, mst);
@@ -254,12 +253,12 @@ public class MerkleSortedTreeTest {
 
 		HashSet<Long> excludingIDs = new HashSet<Long>();
 
-		int count1 = (int) power(MerkleSortedTree.TREE_DEGREE, 2);
+		int count1 = (int) power(MerkleSortedTree.DEFAULT_DEGREE, 2);
 		byte[][] datas1 = generateRandomData(count1);
 		long[] ids1 = generateRandomIDs(count1, excludingIDs, true);
 		addDatas(ids1, datas1, mst);
 
-		int count2 = (int) power(MerkleSortedTree.TREE_DEGREE, 3);
+		int count2 = (int) power(MerkleSortedTree.DEFAULT_DEGREE, 3);
 		byte[][] datas2 = generateRandomData(count2);
 		long[] ids2 = generateRandomIDs(count2, excludingIDs, true);
 		addDatas(ids2, datas2, mst);
@@ -390,7 +389,7 @@ public class MerkleSortedTreeTest {
 		SecureRandom random = new SecureRandom();
 		long id = -1;
 		for (int i = 0; i < count; i++) {
-			while (id < 0 || id >= MerkleSortedTree.MAX_COUNT || excludingIDs.contains(Long.valueOf(id))) {
+			while (id < 0 || id >= MerkleSortedTree.DEFAULT_MAX_COUNT || excludingIDs.contains(Long.valueOf(id))) {
 				id = random.nextLong();
 			}
 			if (noRepeatly) {

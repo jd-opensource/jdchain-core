@@ -21,6 +21,7 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.AbstractSkippingIterator;
 import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.MathUtils;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 
@@ -44,14 +45,21 @@ import com.jd.blockchain.utils.Transactional;
  */
 public class MerkleSortedTree implements Transactional {
 
-	public static final int TREE_DEGREE = 4;
+	public static final int DEFAULT_DEGREE = TreeMode.D3.DEGREEE;
 
-	public static final int MAX_LEVEL = 30;
+	public static final int DEFAULT_MAX_LEVEL = TreeMode.D3.MAX_LEVEL;
+
+	public static final long DEFAULT_MAX_COUNT = TreeMode.D3.MAX_COUNT;
+	
+
+	private final int DEGREE;
+
+	private final int MAX_LEVEL;
 
 	// 正好是 2 的 60 次方，足以覆盖 long 类型的正整数，且为避免溢出预留了区间；
-	public static final long MAX_COUNT = power(TREE_DEGREE, MAX_LEVEL);
+	private final long MAX_COUNT;
 
-	private final Bytes keyPrefix;
+	private final Bytes KEY_PREFIX;
 
 	private CryptoSetting setting;
 
@@ -59,10 +67,6 @@ public class MerkleSortedTree implements Transactional {
 
 	private ExPolicyKVStorage kvStorage;
 
-//	private HashDigest origRootHash;
-//	private MerkleIndex origRoot;
-
-//	private HashDigest rootHash;
 	private MerklePathNode root;
 
 	/**
@@ -104,8 +108,25 @@ public class MerkleSortedTree implements Transactional {
 	 * @param readonly     是否只读；
 	 */
 	public MerkleSortedTree(HashDigest rootHash, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
+		this(TreeMode.D3, rootHash, setting, keyPrefix, kvStorage);
+	}
+
+	/**
+	 * 创建 Merkle 树；
+	 * 
+	 * @param rootHash     节点的根Hash; 如果指定为 null，则实际上创建一个空的 Merkle Tree；
+	 * @param verifyOnLoad 从外部存储加载节点时是否校验节点的哈希；
+	 * @param kvStorage    保存 Merkle 节点的存储服务；
+	 * @param readonly     是否只读；
+	 */
+	public MerkleSortedTree(TreeMode degree, HashDigest rootHash, CryptoSetting setting, Bytes keyPrefix,
+			ExPolicyKVStorage kvStorage) {
+		this.DEGREE = degree.DEGREEE;
+		this.MAX_LEVEL = degree.MAX_LEVEL;
+		this.MAX_COUNT = MathUtils.power(DEGREE, MAX_LEVEL);
+
 		this.setting = setting;
-		this.keyPrefix = keyPrefix;
+		this.KEY_PREFIX = keyPrefix;
 		this.kvStorage = kvStorage;
 		this.hashFunc = Crypto.getHashFunction(setting.getHashAlgorithm());
 
@@ -121,7 +142,7 @@ public class MerkleSortedTree implements Transactional {
 	}
 
 	private MerklePathNode initRoot() {
-		long step = MAX_COUNT / TREE_DEGREE;
+		long step = MAX_COUNT / DEGREE;
 		return new MerklePathNode(0, step);
 	}
 
@@ -152,7 +173,7 @@ public class MerkleSortedTree implements Transactional {
 	}
 
 	public SkippingIterator<MerkleData> iterator() {
-		//克隆根节点的数据，避免根节点的更新影响了迭代器；
+		// 克隆根节点的数据，避免根节点的更新影响了迭代器；
 		return new MerklePathIterator(root.getOffset(), root.getStep(), root.getChildHashs().clone(),
 				root.getChildCounts().clone());
 	}
@@ -267,38 +288,18 @@ public class MerkleSortedTree implements Transactional {
 	}
 
 	/**
-	 * 计算 value 的 x 次方；
-	 * <p>
-	 * 注：此方法不处理溢出；调用者需要自行规避；
-	 * 
-	 * @param value
-	 * @param x     大于等于 0 的整数；
-	 * @return
-	 */
-	private static long power(long value, int x) {
-		if (x == 0) {
-			return 1;
-		}
-		long r = value;
-		for (int i = 1; i < x; i++) {
-			r *= value;
-		}
-		return r;
-	}
-
-	/**
 	 * 计算指定 id 在指定 level 的子树根节点的偏移量； <br>
 	 * level 大于等于 0 ，直接包含数据项的叶子节点的 level 为 0； <br>
-	 * 默克尔索引节点的步长 {@link MerkleIndex#getStep()} step 等于 {@link #TREE_DEGREE} 的 level
+	 * 默克尔索引节点的步长 {@link MerkleIndex#getStep()} step 等于 {@link #DEGREE} 的 level
 	 * 次方；
 	 * 
 	 * @param id    要计算的编号；
 	 * @param level
 	 * @return
 	 */
-	private static long calculateOffset(long id, int level) {
+	private long calculateOffset(long id, int level) {
 		// 该层节点数；
-		long step = power(TREE_DEGREE, level);
+		long step = MathUtils.power(DEGREE, level);
 		return calculateOffset(id, step);
 	}
 
@@ -309,8 +310,8 @@ public class MerkleSortedTree implements Transactional {
 	 * @param step
 	 * @return
 	 */
-	private static long calculateOffset(long id, long step) {
-		long count = step * TREE_DEGREE;
+	private long calculateOffset(long id, long step) {
+		long count = step * DEGREE;
 		return id - id % count;
 	}
 
@@ -320,12 +321,12 @@ public class MerkleSortedTree implements Transactional {
 	 * @param step
 	 * @return
 	 */
-	private static long upStep(long step) {
-		return step * TREE_DEGREE;
+	private long upStep(long step) {
+		return step * DEGREE;
 	}
 
-	private static long nextOffset(long offset, long step) {
-		return offset + step * TREE_DEGREE;
+	private long nextOffset(long offset, long step) {
+		return offset + step * DEGREE;
 	}
 
 	/**
@@ -336,7 +337,7 @@ public class MerkleSortedTree implements Transactional {
 	 * @param merkleIndex 默克尔索引，表示1个特定的位置区间；
 	 * @return
 	 */
-	private static int index(long id, MerkleIndex merkleIndex) {
+	private int index(long id, MerkleIndex merkleIndex) {
 		return index(id, merkleIndex.getOffset(), merkleIndex.getStep());
 	}
 
@@ -345,10 +346,10 @@ public class MerkleSortedTree implements Transactional {
 	 * 
 	 * @param id     编号；
 	 * @param offset 初始偏移位置；
-	 * @param step   步长，1个位置包含的节点数；由“步长 * {@link #TREE_DEGREE} ”构成参与计算的位置区间范围；
+	 * @param step   步长，1个位置包含的节点数；由“步长 * {@link #DEGREE} ”构成参与计算的位置区间范围；
 	 * @return
 	 */
-	private static int index(long id, long offset, long step) {
+	private int index(long id, long offset, long step) {
 		if (id < offset) {
 			return -1;
 		}
@@ -518,8 +519,8 @@ public class MerkleSortedTree implements Transactional {
 
 		// 查找共同的父节点；
 		for (level = 0; level < MAX_LEVEL; level++) {
-			offset1 = MerkleSortedTree.calculateOffset(id1, level);
-			offset2 = MerkleSortedTree.calculateOffset(id2, level);
+			offset1 = calculateOffset(id1, level);
+			offset2 = calculateOffset(id2, level);
 			if (offset1 == offset2) {
 				break;
 			}
@@ -529,7 +530,7 @@ public class MerkleSortedTree implements Transactional {
 			throw new IllegalStateException(
 					String.format("Cann't find the \"offset\" of common parent node!  -- id1=%s, id2=!", id1, id2));
 		}
-		long step = power(TREE_DEGREE, level);
+		long step = MathUtils.power(DEGREE, level);
 		MerklePathNode path = new MerklePathNode(offset1, step);
 
 		int childIndex1 = index(id1, offset1, step);
@@ -616,7 +617,7 @@ public class MerkleSortedTree implements Transactional {
 	 * @return 节点的存储key；
 	 */
 	private Bytes encodeStorageKey(byte[] key) {
-		return keyPrefix.concat(key);
+		return KEY_PREFIX.concat(key);
 	}
 
 	/**
@@ -626,7 +627,7 @@ public class MerkleSortedTree implements Transactional {
 	 * @return 节点的存储key；
 	 */
 	private Bytes encodeStorageKey(Bytes key) {
-		return keyPrefix.concat(key);
+		return KEY_PREFIX.concat(key);
 	}
 
 	/**
@@ -692,7 +693,7 @@ public class MerkleSortedTree implements Transactional {
 
 	public static class MerkleProofSelector implements MerkleEntrySelector {
 
-		private List<HashDigest> paths = new ArrayList<HashDigest>(MAX_LEVEL / 2);
+		private List<HashDigest> paths = new ArrayList<HashDigest>();
 
 		public MerkleProof getProof() {
 			return new HashPathProof(paths);
@@ -783,7 +784,7 @@ public class MerkleSortedTree implements Transactional {
 		/**
 		 * 子项的哈希的列表； <br>
 		 * 
-		 * 子项的个数总是固定的 {@value MerkleSortedTree#TREE_DEGREE} ;
+		 * 子项的个数总是固定的 {@value MerkleSortedTree#DEGREE} ;
 		 * 
 		 * @return
 		 */
@@ -864,7 +865,7 @@ public class MerkleSortedTree implements Transactional {
 		private boolean modified;
 
 		protected MerklePathNode(long offset, long step) {
-			this(null, offset, step, new long[TREE_DEGREE], new HashDigest[TREE_DEGREE]);
+			this(null, offset, step, new long[DEGREE], new HashDigest[DEGREE]);
 		}
 
 		protected MerklePathNode(HashDigest nodeHash, MerkleIndex index) {
@@ -884,9 +885,9 @@ public class MerkleSortedTree implements Transactional {
 			this.childCounts = childCounts;
 			this.childHashs = childHashs;
 			this.origChildHashs = childHashs.clone();
-			this.children = new MerkleEntry[TREE_DEGREE];
+			this.children = new MerkleEntry[DEGREE];
 
-			assert childHashs.length == TREE_DEGREE;
+			assert childHashs.length == DEGREE;
 		}
 
 		public HashDigest getNodeHash() {
@@ -962,7 +963,7 @@ public class MerkleSortedTree implements Transactional {
 		 * @param id        数据的唯一编号；
 		 * @param dataBytes 数据；
 		 * @return 返回该编号的数据写入的子树的位置; <br>
-		 *         如果指定编号不属于该子树，则返回值大于等于 0 且小于 {@value MerkleSortedTree#TREE_DEGREE};
+		 *         如果指定编号不属于该子树，则返回值大于等于 0 且小于 {@value MerkleSortedTree#DEGREE};
 		 *         <br>
 		 *         如果指定编号不属于该子树，则返回 -1；
 		 */
@@ -1033,7 +1034,7 @@ public class MerkleSortedTree implements Transactional {
 			}
 
 			// save the modified childNodes;
-			for (int i = 0; i < TREE_DEGREE; i++) {
+			for (int i = 0; i < DEGREE; i++) {
 				if (children[i] != null) {
 					MerkleEntry child = children[i];
 					// 需要先保存子节点，获得子节点的哈希；
@@ -1064,7 +1065,7 @@ public class MerkleSortedTree implements Transactional {
 			saveNodeBytes(hash, nodeBytes);
 
 			// update hash;
-			for (int i = 0; i < TREE_DEGREE; i++) {
+			for (int i = 0; i < DEGREE; i++) {
 				origChildHashs[i] = childHashs[i];
 			}
 			this.nodeHash = hash;
@@ -1075,7 +1076,7 @@ public class MerkleSortedTree implements Transactional {
 
 		public void cancel() {
 			MerkleEntry child;
-			for (int i = 0; i < TREE_DEGREE; i++) {
+			for (int i = 0; i < DEGREE; i++) {
 				if (childHashs[i] == null || origChildHashs[i] == null || (!childHashs[i].equals(origChildHashs[i]))) {
 					child = children[i];
 					children[i] = null;
@@ -1147,7 +1148,7 @@ public class MerkleSortedTree implements Transactional {
 			if (count == 0) {
 				return 0;
 			}
-			if (childIndex >= TREE_DEGREE) {
+			if (childIndex >= DEGREE) {
 				return 0;
 			}
 
@@ -1167,11 +1168,11 @@ public class MerkleSortedTree implements Transactional {
 				childIterator = null;
 				skipped = currLeft;
 				childIndex++;
-				while (childIndex < TREE_DEGREE && skipped + childCounts[childIndex] <= count) {
+				while (childIndex < DEGREE && skipped + childCounts[childIndex] <= count) {
 					skipped += childCounts[childIndex];
 					childIndex++;
 				}
-				if (childIndex < TREE_DEGREE) {
+				if (childIndex < DEGREE) {
 					// 未超出子节点的范围；
 					long c = count - skipped;
 					childIterator = createChildIterator(childIndex);
@@ -1209,7 +1210,7 @@ public class MerkleSortedTree implements Transactional {
 
 			long s = ArrayUtils.sum(childCounts, 0, childIndex + 1);
 
-			while (cursor + 1 >= s && childIndex < TREE_DEGREE - 1) {
+			while (cursor + 1 >= s && childIndex < DEGREE - 1) {
 				childIndex++;
 				childIterator = null;
 				s += childCounts[childIndex];
