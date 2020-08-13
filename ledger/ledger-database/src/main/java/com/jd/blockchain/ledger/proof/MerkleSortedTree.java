@@ -152,7 +152,9 @@ public class MerkleSortedTree implements Transactional {
 	}
 
 	public SkippingIterator<MerkleData> iterator() {
-		return new MerklePathIterator(root);
+		//克隆根节点的数据，避免根节点的更新影响了迭代器；
+		return new MerklePathIterator(root.getOffset(), root.getStep(), root.getChildHashs().clone(),
+				root.getChildCounts().clone());
 	}
 
 	/**
@@ -1099,8 +1101,10 @@ public class MerkleSortedTree implements Transactional {
 	 */
 	private class MerklePathIterator implements SkippingIterator<MerkleData> {
 
-
 		private final long totalCount;
+
+		@SuppressWarnings("unused")
+		private final long offset;
 
 		@SuppressWarnings("unused")
 		private final long step;
@@ -1109,17 +1113,18 @@ public class MerkleSortedTree implements Transactional {
 		private long[] childCounts;
 
 		private HashDigest[] childHashs;
-		
+
 		private int childIndex;
 
 		private long cursor = -1;
 
 		private SkippingIterator<MerkleData> childIterator;
 
-		public MerklePathIterator(MerkleIndex path) {
-			this.step = path.getStep();
-			this.childHashs = path.getChildHashs();
-			this.childCounts = path.getChildCounts();
+		public MerklePathIterator(long offset, long step, HashDigest[] childHashs, long[] childCounts) {
+			this.offset = offset;
+			this.step = step;
+			this.childHashs = childHashs;
+			this.childCounts = childCounts;
 			// 使用此方法的上下文逻辑已经能够约束每一项的数字大小范围，不需要考虑溢出；
 			this.totalCount = ArrayUtils.sum(childCounts);
 		}
@@ -1171,7 +1176,7 @@ public class MerkleSortedTree implements Transactional {
 					long c = count - skipped;
 					childIterator = createChildIterator(childIndex);
 					long sk = childIterator.skip(c);
-					assert sk == skipped;
+					assert sk == c;
 
 					skipped = count;
 				}
@@ -1180,18 +1185,20 @@ public class MerkleSortedTree implements Transactional {
 			return skipped;
 		}
 
-		private SkippingIterator<MerkleData> createChildIterator(int idx) {
-			HashDigest childHash = childHashs[idx];
+		private SkippingIterator<MerkleData> createChildIterator(int childIndex) {
+			HashDigest childHash = childHashs[childIndex];
 			if (childHash == null) {
 				// 正常情况下不应该进入此逻辑分支，因为空的子节点的数量表为 0，迭代器的迭代处理逻辑理应过滤掉此位置的子节点；
 				throw new IllegalStateException();
 			}
 			MerkleEntry child = loadMerkleEntry(childHash);
-			
+
 			if (child instanceof MerkleData) {
 				return new MerkleDataIteratorWrapper((MerkleData) child);
 			}
-			return new MerklePathIterator((MerkleIndex) child);
+			MerkleIndex indexNode = (MerkleIndex) child;
+			return new MerklePathIterator(indexNode.getOffset(), indexNode.getStep(), indexNode.getChildHashs(),
+					indexNode.getChildCounts());
 		}
 
 		@Override

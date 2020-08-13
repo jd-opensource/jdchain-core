@@ -105,27 +105,27 @@ public class MerkleSortedTreeTest {
 		datas = generateRandomData(count);
 		testWithRandomIDs(datas, count);
 	}
-	
+
 	@Test
 	public void testIterator() {
 		CryptoSetting cryptoSetting = createCryptoSetting();
 		MemoryKVStorage storage = new MemoryKVStorage();
 		MerkleSortedTree mst = new MerkleSortedTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
-		
-		//验证空的迭代器；
+
+		// 验证空的迭代器；
 		SkippingIterator<MerkleData> iter = mst.iterator();
-		
+
 		assertEquals(0, iter.getTotalCount());
 		assertEquals(-1, iter.getCursor());
 		assertFalse(iter.hasNext());
 		assertNull(iter.next());
-		
-		//加入数据，验证顺序数据插入的生成的迭代器；
+
+		// 加入数据，验证顺序数据插入的生成的迭代器；
 		int count1 = 10;
 		byte[][] datas1 = generateRandomData(count1);
 		long[] ids1 = generateSeqenceIDs(0, count1);
 		addDatas(ids1, datas1, mst);
-		
+
 		iter = mst.iterator();
 		assertEquals(count1, iter.getTotalCount());
 		assertEquals(-1, iter.getCursor());
@@ -138,22 +138,23 @@ public class MerkleSortedTreeTest {
 			i++;
 		}
 		assertEquals(count1, i);
-		
+
 		// 随机加入；验证迭代器返回有序的序列；
 		HashSet<Long> excludingIDs = new HashSet<Long>();
 		for (long l : ids1) {
 			excludingIDs.add(l);
 		}
-		int count2 = (int) power(MerkleSortedTree.TREE_DEGREE, 6);
+		int count2 = (int) power(MerkleSortedTree.TREE_DEGREE, 8) + 1;
 		byte[][] datas2 = generateRandomData(count2);
 		long[] ids2 = generateRandomIDs(count2, excludingIDs, true);
 		addDatas(ids2, datas2, mst);
-		
+
 		long[] totalIds = ArrayUtils.concat(ids1, ids2);
 		Arrays.sort(totalIds);
-		
+
+		long totalCount = count1 + count2;
 		iter = mst.iterator();
-		assertEquals(count1 + count2, iter.getTotalCount());
+		assertEquals(totalCount, iter.getTotalCount());
 		assertEquals(-1, iter.getCursor());
 		assertTrue(iter.hasNext());
 		i = 0;
@@ -163,10 +164,86 @@ public class MerkleSortedTreeTest {
 			assertEquals(totalIds[i], merkleData.getId());
 			i++;
 		}
-		assertEquals(count1 + count2, i);
+		assertEquals(totalCount, i);
+
+		// 验证有跳跃的情形；
+		iter = mst.iterator();
+		assertEquals(-1, iter.getCursor());
+
+		int index = -1;
+		long skipped = 1;
+
+		iter.skip(skipped);
+		index += skipped;
+		assertEquals(index, iter.getCursor());
+
+		MerkleData merkleData = iter.next();
+		index++;
+		assertEquals(index, iter.getCursor());
+		assertNotNull(merkleData);
+		assertEquals(totalIds[index], merkleData.getId());
+
+		skipped = 2;
+		iter.skip(skipped);
+		index += skipped;
+		assertEquals(index, iter.getCursor());
+
+		merkleData = iter.next();
+		index++;
+		assertEquals(index, iter.getCursor());
+		assertNotNull(merkleData);
+		assertEquals(totalIds[index], merkleData.getId());
+
+		skipped = 3;
+		iter.skip(skipped);
+		index += skipped;
+		assertEquals(index, iter.getCursor());
+
+		merkleData = iter.next();
+		index++;
+		assertEquals(index, iter.getCursor());
+		assertNotNull(merkleData);
+		assertEquals(totalIds[index], merkleData.getId());
+
+		SecureRandom random = new SecureRandom();
+		for (int j = 0; j < 100; j++) {
+			skipped = random.nextInt(100);
+			iter.skip(skipped);
+			index += skipped;
+			assertEquals(index, iter.getCursor());
+
+			merkleData = iter.next();
+			index++;
+			assertEquals(index, iter.getCursor());
+			assertNotNull(merkleData);
+			assertEquals(totalIds[index], merkleData.getId());
+		}
 		
-		//TODO: 验证有跳跃的情形；
+		//验证直接跳跃到倒数第 1 条的情形；
+		long left = iter.getCount();
+		iter.skip(left - 1);
+
+		assertTrue(iter.hasNext());
+		assertEquals(1, iter.getCount());
+
+		merkleData = iter.next();
+		assertEquals(totalCount-1, iter.getCursor());
+		assertNotNull(merkleData);
+		assertEquals(totalIds[(int)totalCount-1], merkleData.getId());
 		
+		assertFalse(iter.hasNext());
+		merkleData = iter.next();
+		assertNull(merkleData);
+		
+		//验证直接跳跃到末尾的情形；
+		iter = mst.iterator();
+		assertTrue(iter.hasNext());
+		
+		long c = iter.skip(totalCount);
+		assertEquals(totalCount, c);
+		assertFalse(iter.hasNext());
+		merkleData = iter.next();
+		assertNull(merkleData);
 	}
 
 	@Test
@@ -242,7 +319,7 @@ public class MerkleSortedTreeTest {
 		byte[][] datas4 = datas1.clone();
 		long[] ids4 = ids1.clone();
 		resortRandomly(ids4, datas4);
-		
+
 		MerkleSortedTree mst4 = newMerkleSortedTree();
 		assertNull(mst4.getRootHash());
 
@@ -253,7 +330,6 @@ public class MerkleSortedTreeTest {
 		HashDigest rootHash4_1 = mst4.getRootHash();
 		assertNotNull(rootHash4_1);
 		assertEquals(count4_1, mst4.getCount());
-		
 
 		int count4_2 = 1203;
 		byte[][] datas4_2 = Arrays.copyOfRange(datas4, count4_1, count4_1 + count4_2);
@@ -262,7 +338,7 @@ public class MerkleSortedTreeTest {
 		HashDigest rootHash4_2 = mst4.getRootHash();
 		assertNotNull(rootHash4_2);
 		assertNotEquals(rootHash4_1, rootHash4_2);
-		assertEquals(count4_1+count4_2, mst4.getCount());
+		assertEquals(count4_1 + count4_2, mst4.getCount());
 
 		byte[][] datas4_3 = Arrays.copyOfRange(datas4, count4_1 + count4_2, count);
 		long[] ids4_3 = Arrays.copyOfRange(ids4, count4_1 + count4_2, count);
@@ -271,7 +347,7 @@ public class MerkleSortedTreeTest {
 		assertNotNull(rootHash4_3);
 		assertNotEquals(rootHash4_2, rootHash4_3);
 		assertEquals(count, mst4.getCount());
-		
+
 		assertEquals(mst1.getRootHash(), rootHash4_3);
 	}
 
