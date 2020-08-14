@@ -50,7 +50,6 @@ public class MerkleSortedTree implements Transactional {
 	public static final int DEFAULT_MAX_LEVEL = TreeMode.D3.MAX_LEVEL;
 
 	public static final long DEFAULT_MAX_COUNT = TreeMode.D3.MAX_COUNT;
-	
 
 	private final int DEGREE;
 
@@ -75,7 +74,16 @@ public class MerkleSortedTree implements Transactional {
 	 * @param kvStorage
 	 */
 	public MerkleSortedTree(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage) {
-		this(null, setting, Bytes.fromString(keyPrefix), kvStorage);
+		this(TreeMode.D3, setting, Bytes.fromString(keyPrefix), kvStorage);
+	}
+
+	/**
+	 * 构建空的树；
+	 * 
+	 * @param kvStorage
+	 */
+	public MerkleSortedTree(TreeMode mode, CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage) {
+		this(mode, setting, Bytes.fromString(keyPrefix), kvStorage);
 	}
 
 	/**
@@ -84,7 +92,25 @@ public class MerkleSortedTree implements Transactional {
 	 * @param kvStorage
 	 */
 	public MerkleSortedTree(CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
-		this(null, setting, keyPrefix, kvStorage);
+		this(TreeMode.D3, setting, keyPrefix, kvStorage);
+	}
+
+	/**
+	 * 构建空的树；
+	 * 
+	 * @param kvStorage
+	 */
+	public MerkleSortedTree(TreeMode mode, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
+		this.DEGREE = mode.DEGREEE;
+		this.MAX_LEVEL = mode.MAX_LEVEL;
+		this.MAX_COUNT = MathUtils.power(DEGREE, MAX_LEVEL);
+
+		this.setting = setting;
+		this.KEY_PREFIX = keyPrefix;
+		this.kvStorage = kvStorage;
+		this.hashFunc = Crypto.getHashFunction(setting.getHashAlgorithm());
+
+		this.root = initRoot();
 	}
 
 	/**
@@ -108,37 +134,28 @@ public class MerkleSortedTree implements Transactional {
 	 * @param readonly     是否只读；
 	 */
 	public MerkleSortedTree(HashDigest rootHash, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
-		this(TreeMode.D3, rootHash, setting, keyPrefix, kvStorage);
-	}
-
-	/**
-	 * 创建 Merkle 树；
-	 * 
-	 * @param rootHash     节点的根Hash; 如果指定为 null，则实际上创建一个空的 Merkle Tree；
-	 * @param verifyOnLoad 从外部存储加载节点时是否校验节点的哈希；
-	 * @param kvStorage    保存 Merkle 节点的存储服务；
-	 * @param readonly     是否只读；
-	 */
-	public MerkleSortedTree(TreeMode degree, HashDigest rootHash, CryptoSetting setting, Bytes keyPrefix,
-			ExPolicyKVStorage kvStorage) {
-		this.DEGREE = degree.DEGREEE;
-		this.MAX_LEVEL = degree.MAX_LEVEL;
-		this.MAX_COUNT = MathUtils.power(DEGREE, MAX_LEVEL);
-
-		this.setting = setting;
 		this.KEY_PREFIX = keyPrefix;
+		this.setting = setting;
 		this.kvStorage = kvStorage;
 		this.hashFunc = Crypto.getHashFunction(setting.getHashAlgorithm());
 
-		if (rootHash == null) {
-			this.root = initRoot();
-		} else {
-			MerkleIndex merkleIndex = loadMerkleIndex(rootHash);
-//			this.origRootHash = rootHash;
-//			this.origRoot = merkleIndex;
-//			this.rootHash = rootHash;
-			this.root = new MerklePathNode(rootHash, merkleIndex);
+		MerkleIndex merkleIndex = loadMerkleIndex(rootHash);
+		int degree = merkleIndex.getChildCounts().length;
+		TreeMode mode = null;
+		for (TreeMode m : TreeMode.values()) {
+			if (m.DEGREEE == degree) {
+				mode = m;
+			}
 		}
+		if (mode == null) {
+			throw new MerkleProofException("The root node with hash[" + rootHash.toBase58() + "] has wrong degree!");
+		}
+
+		this.DEGREE = mode.DEGREEE;
+		this.MAX_LEVEL = mode.MAX_LEVEL;
+		this.MAX_COUNT = MathUtils.power(DEGREE, MAX_LEVEL);
+
+		this.root = new MerklePathNode(rootHash, merkleIndex);
 	}
 
 	private MerklePathNode initRoot() {
@@ -147,7 +164,6 @@ public class MerkleSortedTree implements Transactional {
 	}
 
 	public HashDigest getRootHash() {
-//		return rootHash == null ? origRootHash : rootHash;
 		return root.getNodeHash();
 	}
 
@@ -290,8 +306,7 @@ public class MerkleSortedTree implements Transactional {
 	/**
 	 * 计算指定 id 在指定 level 的子树根节点的偏移量； <br>
 	 * level 大于等于 0 ，直接包含数据项的叶子节点的 level 为 0； <br>
-	 * 默克尔索引节点的步长 {@link MerkleIndex#getStep()} step 等于 {@link #DEGREE} 的 level
-	 * 次方；
+	 * 默克尔索引节点的步长 {@link MerkleIndex#getStep()} step 等于 {@link #DEGREE} 的 level 次方；
 	 * 
 	 * @param id    要计算的编号；
 	 * @param level
@@ -587,19 +602,6 @@ public class MerkleSortedTree implements Transactional {
 	private MerkleIndex loadMerkleIndex(HashDigest nodeHash) {
 		return (MerkleIndex) loadMerkleEntry(nodeHash);
 	}
-
-//	private MerkleData loadMerkleData(long id, HashDigest nodeHash) {
-//		byte[] nodeBytes = loadNodeBytes(BytesUtils.toBytes(id));
-//		MerkleData merkleData = BinaryProtocol.decode(nodeBytes, MerkleData.class);
-//		if (setting.getAutoVerifyHash()) {
-//			HashDigest hash = hashFunc.hash(nodeBytes);
-//			if (!hash.equals(nodeHash)) {
-//				throw new MerkleProofException(
-//						String.format("Merkle hash verification fail! --ID=%s; NodeHash=%s", id, nodeHash.toBase58()));
-//			}
-//		}
-//		return merkleData;
-//	}
 
 	private HashDigest saveData(MerkleData data) {
 		byte[] dataNodeBytes = BinaryProtocol.encode(data, MerkleData.class);
@@ -963,8 +965,7 @@ public class MerkleSortedTree implements Transactional {
 		 * @param id        数据的唯一编号；
 		 * @param dataBytes 数据；
 		 * @return 返回该编号的数据写入的子树的位置; <br>
-		 *         如果指定编号不属于该子树，则返回值大于等于 0 且小于 {@value MerkleSortedTree#DEGREE};
-		 *         <br>
+		 *         如果指定编号不属于该子树，则返回值大于等于 0 且小于 {@value MerkleSortedTree#DEGREE}; <br>
 		 *         如果指定编号不属于该子树，则返回 -1；
 		 */
 		@SuppressWarnings("unused")
