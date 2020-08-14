@@ -426,7 +426,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			if (ledgerAdminInfo.getSettings().getConsensusProvider().equals(BFTSMART_PROVIDER)) {
 
 				// 检查本地节点与远端节点在库上是否存在差异,有差异的话需要进行差异交易重放
-				webResponse = checkLedgerDiff(ledgerRepo, remoteManageHost, remoteManagePort);
+				webResponse = checkLedgerDiff(ledgerRepo, ledgerKeypairs.get(ledgerHash), remoteManageHost, remoteManagePort);
 
 				if (!webResponse.isSuccess()) {
 					return webResponse;
@@ -474,7 +474,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					}
 				} else {
 					handle.cancel(LEDGER_ERROR);
-					return WebResponse.createFailureResult(-1, "[ManagementController] commit tx to orig consensus, tx execute failed!");
+					return WebResponse.createFailureResult(-1, "[ManagementController] commit tx to orig consensus, tx execute failed, please retry activate participant!");
 				}
 
 				if (handle.getBlock().getHash().toBase58().equals(remoteTxResponse.getBlockHash().toBase58())) {
@@ -499,7 +499,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		}
 	}
 
-	private WebResponse checkLedgerDiff(LedgerRepository ledgerRepository, String remoteManageHost, String remoteManagePort) {
+	private WebResponse checkLedgerDiff(LedgerRepository ledgerRepository, AsymmetricKeypair localKeyPair, String remoteManageHost, String remoteManagePort) {
 
 		List<String> providers = new ArrayList<String>();
 
@@ -520,7 +520,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		try {
 			providers.add(BFTSMART_PROVIDER);
 
-			PeerBlockchainServiceFactory blockchainServiceFactory = PeerBlockchainServiceFactory.connect(ledgerKeypairs.get(ledgerHash), new NetworkAddress(remoteManageHost, Integer.parseInt(remoteManagePort)), providers);
+			PeerBlockchainServiceFactory blockchainServiceFactory = PeerBlockchainServiceFactory.connect(localKeyPair, new NetworkAddress(remoteManageHost, Integer.parseInt(remoteManagePort)), providers);
 
 			remoteLatestBlockHeight = blockchainServiceFactory.getBlockchainService().getLedger(ledgerHash).getLatestBlockHeight();
 
@@ -620,7 +620,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	}
 
 	// organize system config properties
-	Property[] createActiveProperties(String host, String port, PubKey activePubKey, int activeID) {
+	private Property[] createActiveProperties(String host, String port, PubKey activePubKey, int activeID) {
 		int oldServerNum = Integer.parseInt(systemConfig.getProperty(SERVER_NUM_KEY));
 		int oldFNum = Integer.parseInt(systemConfig.getProperty(F_NUM_KEY));
 		String oldView = systemConfig.getProperty(SERVER_VIEW_KEY);
