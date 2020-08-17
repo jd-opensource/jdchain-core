@@ -410,7 +410,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		WebResponse webResponse;
 		TransactionBatchResultHandle handle = null;
 		OperationHandleRegisteration opReg = new DefaultOperationHandleRegisteration();
-		int RETRY_TIME = 5;
+//		int RETRY_TIME = 5;
 
 		try {
 			HashDigest ledgerHash = new HashDigest(Base58Utils.decode(base58LedgerHash));
@@ -465,13 +465,21 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 				// 保证原有共识网络账本状态与共识协议的视图更新信息一致
 				if (remoteTxResponse.isSuccess()) {
-					for (int i = 0; i < RETRY_TIME; i ++) {
+
+					try {
 						View newView = updateView(ledgerRepo, consensusHost, Integer.parseInt(consensusPort));
 						if (newView != null && newView.isMember(ledgerCurrNodes.get(ledgerRepo.getHash()).getId())) {
 							LOGGER.info("[ManagementController] updateView SUCC!");
-							break;
+						} else if (newView == null) {
+							throw new IllegalStateException("[ManagementController] client recv response timeout, consensus may be stalemate, please restart all nodes!");
+						} else {
+							throw new IllegalStateException("[ManagementController] consensus result to view update is inconsistent, please restart all nodes!");
 						}
+					} catch (Exception e) {
+						handle.cancel(LEDGER_ERROR);
+						return WebResponse.createFailureResult(-1, "[ManagementController] commit tx to orig consensus, tx execute succ but view update failed, please restart all nodes and copy database for new participant node!");
 					}
+
 				} else {
 					handle.cancel(LEDGER_ERROR);
 					return WebResponse.createFailureResult(-1, "[ManagementController] commit tx to orig consensus, tx execute failed, please retry activate participant!");
