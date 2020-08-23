@@ -45,11 +45,11 @@ import com.jd.blockchain.utils.Transactional;
  */
 public class MerkleSortedTree implements Transactional {
 
-	public static final int DEFAULT_DEGREE = TreeMode.D3.DEGREEE;
+	public static final int DEFAULT_DEGREE = TreeDegree.D3.DEGREEE;
 
-	public static final int DEFAULT_MAX_LEVEL = TreeMode.D3.MAX_LEVEL;
+	public static final int DEFAULT_MAX_LEVEL = TreeDegree.D3.MAX_LEVEL;
 
-	public static final long DEFAULT_MAX_COUNT = TreeMode.D3.MAX_COUNT;
+	public static final long DEFAULT_MAX_COUNT = TreeDegree.D3.MAX_COUNT;
 
 	private final int DEGREE;
 
@@ -74,7 +74,7 @@ public class MerkleSortedTree implements Transactional {
 	 * @param kvStorage
 	 */
 	public MerkleSortedTree(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage) {
-		this(TreeMode.D3, setting, Bytes.fromString(keyPrefix), kvStorage);
+		this(TreeDegree.D3, setting, Bytes.fromString(keyPrefix), kvStorage);
 	}
 
 	/**
@@ -82,7 +82,7 @@ public class MerkleSortedTree implements Transactional {
 	 * 
 	 * @param kvStorage
 	 */
-	public MerkleSortedTree(TreeMode mode, CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage) {
+	public MerkleSortedTree(TreeDegree mode, CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage) {
 		this(mode, setting, Bytes.fromString(keyPrefix), kvStorage);
 	}
 
@@ -92,7 +92,7 @@ public class MerkleSortedTree implements Transactional {
 	 * @param kvStorage
 	 */
 	public MerkleSortedTree(CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
-		this(TreeMode.D3, setting, keyPrefix, kvStorage);
+		this(TreeDegree.D3, setting, keyPrefix, kvStorage);
 	}
 
 	/**
@@ -100,7 +100,7 @@ public class MerkleSortedTree implements Transactional {
 	 * 
 	 * @param kvStorage
 	 */
-	public MerkleSortedTree(TreeMode mode, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
+	public MerkleSortedTree(TreeDegree mode, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
 		this.DEGREE = mode.DEGREEE;
 		this.MAX_LEVEL = mode.MAX_LEVEL;
 		this.MAX_COUNT = MathUtils.power(DEGREE, MAX_LEVEL);
@@ -141,8 +141,8 @@ public class MerkleSortedTree implements Transactional {
 
 		MerkleIndex merkleIndex = loadMerkleIndex(rootHash);
 		int degree = merkleIndex.getChildCounts().length;
-		TreeMode mode = null;
-		for (TreeMode m : TreeMode.values()) {
+		TreeDegree mode = null;
+		for (TreeDegree m : TreeDegree.values()) {
 			if (m.DEGREEE == degree) {
 				mode = m;
 			}
@@ -247,40 +247,6 @@ public class MerkleSortedTree implements Transactional {
 		}
 		return seekData((MerkleIndex) child, id, pathSelector);
 	}
-
-//	public MerkleData seekData(MerkleIndex merkleIndex, int index, Stack<MerkleIndex> parents) {
-//		
-//		HashDigest childHash;
-//		MerkleEntry child;
-//		for (int idx = index; idx < TREE_DEGREE; idx++) {
-//			if (merkleIndex instanceof MerklePathNode) {
-//				MerklePathNode path = (MerklePathNode) merkleIndex;
-//				child = path.getChildAtIndex(idx);
-//				if (child == null) {
-//					continue;
-//				}
-//				childHash = path.getChildHashs()[idx];
-//			} else {
-//				HashDigest[] childHashs = merkleIndex.getChildHashs();
-//				childHash = childHashs[idx];
-//				if (childHash == null) {
-//					continue;
-//				}
-//				child = loadMerkleEntry(childHash);
-//			}
-//		}
-//		
-//		
-//		
-//		if (child == null) {
-//			
-//		}
-//		
-//		if (child instanceof MerkleData) {
-//			return (MerkleData) child;
-//		}
-//		return seekData((MerkleIndex) child, id, pathSelector);
-//	}
 
 	@Override
 	public boolean isUpdated() {
@@ -528,6 +494,9 @@ public class MerkleSortedTree implements Transactional {
 			MerkleData dataNode2) {
 		long id1 = dataNode1.getId();
 		long id2 = dataNode2.getId();
+		if (id1 == id2) {
+			throw new IllegalArgumentException("Cannot merge two merke data nodes with the same id!");
+		}
 		long offset1 = -1;
 		long offset2 = -1;
 		int level;
@@ -565,26 +534,43 @@ public class MerkleSortedTree implements Transactional {
 		}
 		// 合并；
 		HashDigest origChildHash = parent.getChildHashAtIndex(index);
-		MerkleIndex newChild;
+		MerkleEntry newChild;
 		if (origChild instanceof MerkleData) {
-			MerkleData data = (MerkleData) origChild;
+			MerkleData origData = (MerkleData) origChild;
 			if (child instanceof MerkleData) {
-				newChild = mergeChildren(origChildHash, data, childHash, (MerkleData) child);
+				MerkleData newData = (MerkleData) child;
+				if (origData.getId() == newData.getId()) {
+					newChild = updateData(origData, newData);
+				} else {
+					newChild = mergeChildren(origChildHash, origData, childHash, (MerkleData) child);
+				}
 			} else {
-				newChild = mergeChildren(origChildHash, data, childHash, (MerkleIndex) child);
+				newChild = mergeChildren(origChildHash, origData, childHash, (MerkleIndex) child);
 			}
 		} else {
-			MerkleIndex path = (MerkleIndex) origChild;
+			MerkleIndex origPath = (MerkleIndex) origChild;
 			if (child instanceof MerkleData) {
-				newChild = mergeChildren(childHash, (MerkleData) child, origChildHash, path);
+				newChild = mergeChildren(childHash, (MerkleData) child, origChildHash, origPath);
 			} else {
-				newChild = mergeChildren(childHash, (MerkleIndex) child, origChildHash, path);
+				newChild = mergeChildren(childHash, (MerkleIndex) child, origChildHash, origPath);
 			}
 		}
-		if (newChild.getOffset() == parent.getOffset() && newChild.getStep() == parent.getStep()) {
-			throw new IllegalStateException("The new child conflict with the existing child in same index!!");
-		}
+
 		parent.setChildAtIndex(index, null, newChild);
+	}
+
+	/**
+	 * 更新同一个 id 的数据节点；
+	 * 
+	 * <p>
+	 * 这是模板方法，默认实现并不允许更新相同 id 的数据，并抛出 {@link MerkleProofException} 异常;
+	 * 
+	 * @param origData 原来的数据；
+	 * @param newData  具有相同 id 的新数据；
+	 * @return 更新后的新节点的数据；
+	 */
+	protected MerkleData updateData(MerkleData origData, MerkleData newData) {
+		throw new MerkleTreeKeyExistException("Unsupport updating datas with the same id!");
 	}
 
 	private MerkleEntry loadMerkleEntry(HashDigest nodeHash) {
@@ -991,6 +977,7 @@ public class MerkleSortedTree implements Transactional {
 				child = loadMerkleEntry(childHash);
 			}
 
+			MerkleIndex newChild;
 			if (child instanceof MerkleData) {
 				// 已经有子节点存在，检查 id 是否冲突，如果不冲突，则合并两个数据节点到同样一棵子树；
 				MerkleData childData = (MerkleData) child;
@@ -999,15 +986,15 @@ public class MerkleSortedTree implements Transactional {
 					throw new MerkleProofException("The data entry with the same id[" + id + "] already exist!");
 				}
 
-				child = mergeChildren(null, newData, childHash, childData);
+				newChild = mergeChildren(null, newData, childHash, childData);
 			} else {
 				// 已经有子树存在，检查要加入的节点属于该子树，还是与其是兄弟子树，合并这两个节点；
 				MerkleIndex merkleIndex = (MerkleIndex) child;
 
-				child = mergeChildren(null, newData, childHash, merkleIndex);
+				newChild = mergeChildren(null, newData, childHash, merkleIndex);
 			}
 
-			setChildAtIndex(index, null, child);
+			setChildAtIndex(index, null, newChild);
 			return index;
 		}
 
@@ -1019,15 +1006,18 @@ public class MerkleSortedTree implements Transactional {
 		 * @param child     子节点；
 		 */
 		private void setChildAtIndex(int index, HashDigest childHash, MerkleEntry child) {
+			if (child instanceof MerkleIndex) {
+				MerkleIndex childPath = (MerkleIndex) child;
+				if (childPath.getStep() >= step || childPath.getOffset() < offset  || childPath.getOffset() >= NEXT_OFFSET) {
+					throw new IllegalArgumentException("The specified child not belong to this node!");
+				}
+			}
+
 			childHashs[index] = childHash;
 			children[index] = child;
-//			if (child instanceof MerkleData) {
-//				childCounts[index] = 1;
-//			} else {
-//				childCounts[index] = ((MerkleIndex) child).getCount();
-//			}
 			modified = true;
 		}
+
 
 		public HashDigest commit() {
 			if (!modified) {

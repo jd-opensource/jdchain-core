@@ -2,7 +2,12 @@ package com.jd.blockchain.ledger.proof;
 
 import com.jd.blockchain.utils.MathUtils;
 
-public enum TreeMode {
+/**
+ * Degree Of Tree；
+ * @author huanghaiquan
+ *
+ */
+public enum TreeDegree {
 
 	D1(2, 60),
 
@@ -18,7 +23,7 @@ public enum TreeMode {
 	public final int MAX_LEVEL;
 	public final long MAX_COUNT;
 
-	private TreeMode(int degreee, int maxLevel) {
+	private TreeDegree(int degreee, int maxLevel) {
 		this.DEGREEE = degreee;
 		this.MAX_LEVEL = maxLevel;
 		this.MAX_COUNT = MathUtils.power(degreee, maxLevel);

@@ -25,6 +25,7 @@ import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.proof.MerkleSortedTree;
 import com.jd.blockchain.ledger.proof.MerkleSortedTree.MerkleData;
+import com.jd.blockchain.ledger.proof.MerkleTreeKeyExistException;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.SkippingIterator;
@@ -244,7 +245,7 @@ public class MerkleSortedTreeTest {
 		merkleData = iter.next();
 		assertNull(merkleData);
 	}
-
+	
 	@Test
 	public void testCounts() {
 		CryptoSetting cryptoSetting = createCryptoSetting();
@@ -350,6 +351,40 @@ public class MerkleSortedTreeTest {
 		assertEquals(mst1.getRootHash(), rootHash4_3);
 	}
 
+	/**
+	 * 测试插入同一个 ID 的冲突表现是否符合预期；
+	 */
+	@Test
+	public void testIdConfliction() {
+		CryptoSetting cryptoSetting = createCryptoSetting();
+		MemoryKVStorage storage = new MemoryKVStorage();
+		MerkleSortedTree mst = new MerkleSortedTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+
+		// 验证空的迭代器；
+		SkippingIterator<MerkleData> iter = mst.iterator();
+
+		assertEquals(0, iter.getTotalCount());
+		assertEquals(-1, iter.getCursor());
+		assertFalse(iter.hasNext());
+		assertNull(iter.next());
+
+		// 加入数据，验证顺序数据插入的生成的迭代器；
+		int count = 10;
+		byte[][] datas = generateRandomData(count);
+		long[] ids = generateSeqenceIDs(0, count);
+		
+		addDatas(ids, datas, mst);;
+		
+		//预期默认的 MerkleSortedTree 实现下，写入相同 id 的数据会引发移除；
+		MerkleTreeKeyExistException keyExistException = null;
+		try {
+			mst.set(8, datas[0]);
+		} catch (MerkleTreeKeyExistException e) {
+			keyExistException = e;
+		}
+		assertNotNull(keyExistException);
+	}
+	
 	/**
 	 * 随机地对 id 和数据两个数组重排序；
 	 * 
