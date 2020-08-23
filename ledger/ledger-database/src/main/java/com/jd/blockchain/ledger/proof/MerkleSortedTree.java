@@ -51,12 +51,12 @@ public class MerkleSortedTree implements Transactional {
 
 	public static final long DEFAULT_MAX_COUNT = TreeDegree.D3.MAX_COUNT;
 
-	private final int DEGREE;
+	protected final int DEGREE;
 
-	private final int MAX_LEVEL;
+	protected final int MAX_LEVEL;
 
 	// 正好是 2 的 60 次方，足以覆盖 long 类型的正整数，且为避免溢出预留了区间；
-	private final long MAX_COUNT;
+	protected final long MAX_COUNT;
 
 	private final Bytes KEY_PREFIX;
 
@@ -110,7 +110,7 @@ public class MerkleSortedTree implements Transactional {
 		this.kvStorage = kvStorage;
 		this.hashFunc = Crypto.getHashFunction(setting.getHashAlgorithm());
 
-		this.root = initRoot();
+		this.root = createTopRoot();
 	}
 
 	/**
@@ -140,25 +140,30 @@ public class MerkleSortedTree implements Transactional {
 		this.hashFunc = Crypto.getHashFunction(setting.getHashAlgorithm());
 
 		MerkleIndex merkleIndex = loadMerkleIndex(rootHash);
-		int degree = merkleIndex.getChildCounts().length;
-		TreeDegree mode = null;
-		for (TreeDegree m : TreeDegree.values()) {
-			if (m.DEGREEE == degree) {
-				mode = m;
+		int subtreeCount = merkleIndex.getChildCounts().length;
+		TreeDegree degree = null;
+		for (TreeDegree td : TreeDegree.values()) {
+			if (td.DEGREEE == subtreeCount) {
+				degree = td;
 			}
 		}
-		if (mode == null) {
+		if (degree == null) {
 			throw new MerkleProofException("The root node with hash[" + rootHash.toBase58() + "] has wrong degree!");
 		}
 
-		this.DEGREE = mode.DEGREEE;
-		this.MAX_LEVEL = mode.MAX_LEVEL;
+		this.DEGREE = degree.DEGREEE;
+		this.MAX_LEVEL = degree.MAX_LEVEL;
 		this.MAX_COUNT = MathUtils.power(DEGREE, MAX_LEVEL);
 
 		this.root = new MerklePathNode(rootHash, merkleIndex);
 	}
 
-	private MerklePathNode initRoot() {
+	/**
+	 * 创建顶级根节点；
+	 * 
+	 * @return
+	 */
+	protected MerklePathNode createTopRoot() {
 		long step = MAX_COUNT / DEGREE;
 		return new MerklePathNode(0, step);
 	}
@@ -1008,7 +1013,8 @@ public class MerkleSortedTree implements Transactional {
 		private void setChildAtIndex(int index, HashDigest childHash, MerkleEntry child) {
 			if (child instanceof MerkleIndex) {
 				MerkleIndex childPath = (MerkleIndex) child;
-				if (childPath.getStep() >= step || childPath.getOffset() < offset  || childPath.getOffset() >= NEXT_OFFSET) {
+				if (childPath.getStep() >= step || childPath.getOffset() < offset
+						|| childPath.getOffset() >= NEXT_OFFSET) {
 					throw new IllegalArgumentException("The specified child not belong to this node!");
 				}
 			}
@@ -1017,7 +1023,6 @@ public class MerkleSortedTree implements Transactional {
 			children[index] = child;
 			modified = true;
 		}
-
 
 		public HashDigest commit() {
 			if (!modified) {
