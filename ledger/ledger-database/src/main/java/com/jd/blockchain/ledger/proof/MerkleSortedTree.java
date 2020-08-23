@@ -47,7 +47,7 @@ public class MerkleSortedTree implements Transactional {
 
 	public static final int DEFAULT_DEGREE = TreeDegree.D3.DEGREEE;
 
-	public static final int DEFAULT_MAX_LEVEL = TreeDegree.D3.MAX_LEVEL;
+	public static final int DEFAULT_MAX_LEVEL = TreeDegree.D3.MAX_DEPTH;
 
 	public static final long DEFAULT_MAX_COUNT = TreeDegree.D3.MAX_COUNT;
 
@@ -102,7 +102,7 @@ public class MerkleSortedTree implements Transactional {
 	 */
 	public MerkleSortedTree(TreeDegree mode, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
 		this.DEGREE = mode.DEGREEE;
-		this.MAX_LEVEL = mode.MAX_LEVEL;
+		this.MAX_LEVEL = mode.MAX_DEPTH;
 		this.MAX_COUNT = MathUtils.power(DEGREE, MAX_LEVEL);
 
 		this.setting = setting;
@@ -152,7 +152,7 @@ public class MerkleSortedTree implements Transactional {
 		}
 
 		this.DEGREE = degree.DEGREEE;
-		this.MAX_LEVEL = degree.MAX_LEVEL;
+		this.MAX_LEVEL = degree.MAX_DEPTH;
 		this.MAX_COUNT = MathUtils.power(DEGREE, MAX_LEVEL);
 
 		this.root = new MerklePathNode(rootHash, merkleIndex);
@@ -795,8 +795,6 @@ public class MerkleSortedTree implements Transactional {
 
 		private long id;
 
-//		private HashDigest hash;
-
 		private byte[] bytes;
 
 		/**
@@ -808,18 +806,12 @@ public class MerkleSortedTree implements Transactional {
 		public MerkleDataNode(long id, byte[] bytes) {
 			this.id = id;
 			this.bytes = bytes;
-//			this.hash = hashFunc.hash(bytes);
 		}
 
 		@Override
 		public long getId() {
 			return id;
 		}
-
-//		@Override
-//		public HashDigest getHash() {
-//			return hash;
-//		}
 
 		@Override
 		public byte[] getBytes() {

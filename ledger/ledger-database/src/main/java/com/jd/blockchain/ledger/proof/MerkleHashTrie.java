@@ -42,7 +42,7 @@ import com.jd.blockchain.utils.io.BytesUtils;
  * @author huanghaiquan
  *
  */
-public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
+public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 
 	private static final SkippingIterator<MerkleTrieData> NULL_DATA_ITERATOR = SkippingIterator.empty();
 
@@ -107,6 +107,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 		return (PathNode) loadMerkleNode(rootHash);
 	}
 
+	@Override
 	public HashDigest getRootHash() {
 		return rootHash;
 	}
@@ -116,10 +117,12 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 		return getTotalKeys();
 	}
 
+	@Override
 	public long getTotalKeys() {
 		return root.getTotalKeys();
 	}
 
+	@Override
 	public long getTotalRecords() {
 		return root.getTotalRecords();
 	}
@@ -137,6 +140,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 	 * @param key
 	 * @return 默克尔证明
 	 */
+	@Override
 	public MerkleProof getProof(String key) {
 		return seekProof(BytesUtils.toBytes(key));
 	}
@@ -154,6 +158,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 	 * @param key
 	 * @return 默克尔证明
 	 */
+	@Override
 	public MerkleProof getProof(String key, long version) {
 		return seekProof(BytesUtils.toBytes(key), version);
 	}
@@ -171,6 +176,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 	 * @param key
 	 * @return 默克尔证明
 	 */
+	@Override
 	public MerkleProof getProof(Bytes key) {
 		return seekProof(key.toBytes());
 	}
@@ -188,6 +194,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 	 * @param key
 	 * @return 默克尔证明
 	 */
+	@Override
 	public MerkleProof getProof(byte[] key) {
 		return seekProof(key);
 	}
@@ -205,6 +212,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 	 * @param key
 	 * @return 默克尔证明
 	 */
+	@Override
 	public MerkleProof getProof(byte[] key, long version) {
 		return seekProof(key, version);
 	}
@@ -230,26 +238,32 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 		return selector.createProof();
 	}
 
+	@Override
 	public MerkleTrieData getData(String key) {
 		return getData(key, -1);
 	}
 
+	@Override
 	public MerkleTrieData getData(String key, long version) {
 		return getData(Bytes.fromString(key), version);
 	}
 
+	@Override
 	public MerkleTrieData getData(byte[] key) {
 		return getData(new Bytes(key));
 	}
 
+	@Override
 	public MerkleTrieData getData(byte[] key, long version) {
 		return getData(new Bytes(key), version);
 	}
 
+	@Override
 	public MerkleTrieData getData(Bytes key) {
 		return getData(key, -1);
 	}
 
+	@Override
 	public MerkleTrieData getData(Bytes key, long version) {
 		long keyHash = KeyIndexer.hash(key);
 		MerkleTrieData dataEntry = seekDataEntry(key, version, keyHash, root, 0, NULL_SELECTOR);
@@ -270,6 +284,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 	 * @param key
 	 * @return
 	 */
+	@Override
 	public SkippingIterator<MerkleTrieData> iterator(byte[] key) {
 		return iterator(key, -1);
 	}
@@ -281,6 +296,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 	 * @param version
 	 * @return
 	 */
+	@Override
 	public SkippingIterator<MerkleTrieData> iterator(byte[] key, long version) {
 		//TODO;
 		return null;
@@ -290,6 +306,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 	/**
 	 * 迭代器包含所有基准树与原始树之间差异的数据项
 	 */
+	@Override
 	public SkippingIterator<MerkleTrieData> getKeyDiffIterator(MerkleHashTrie origTree) {
 		return new PathKeysDiffIterator(root, this, origTree.root, origTree, 0);
 	}
@@ -585,29 +602,35 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 		lnodes.add(nodeInfo.toString());
 	}
 
+	@Override
 	public void setData(String key, long version, byte[] data) {
 		HashDigest dataHash = hashFunc.hash(data);
 		setData(key, version, dataHash);
 	}
 
+	@Override
 	public void setData(Bytes key, long version, byte[] data) {
 		HashDigest dataHash = hashFunc.hash(data);
 		setData(key, version, dataHash);
 	}
 
+	@Override
 	public void setData(String key, long version, HashDigest dataHash) {
 		setData(BytesUtils.toBytes(key), version, dataHash);
 	}
 
+	@Override
 	public void setData(Bytes key, long version, HashDigest dataHash) {
 		setData(key.toBytes(), version, dataHash);
 	}
 
+	@Override
 	public void setData(byte[] key, long version, byte[] data) {
 		HashDigest dataHash = hashFunc.hash(data);
 		setData(key, version, dataHash);
 	}
 
+	@Override
 	public void setData(byte[] key, long version, HashDigest dataHash) {
 		MerkleDataEntry data = new MerkleDataEntry(key, version, dataHash);
 		long keyHash = KeyIndexer.hash(data.getKey());
@@ -776,7 +799,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 	
 	public static class MerkleKeyVersionIterator extends AbstractSkippingIterator<MerkleTrieData>{
 		
-		private MerkleHashTrie tree;
+		private MerkleTree tree;
 		
 		private MerkleKey key;
 		
@@ -1354,7 +1377,7 @@ public class MerkleHashTrie implements Transactional, Iterable<MerkleTrieData> {
 
 		private MerkleDataIterator iterator1;
 
-		public NewPathKeysDiffIterator(PathNode node1, MerkleHashTrie tree1, LeafNode origNode, MerkleHashTrie origTree,
+		public NewPathKeysDiffIterator(PathNode node1, MerkleHashTrie tree1, LeafNode origNode, MerkleTree origTree,
 				int level) {
 			super(node1, origNode);
 			this.tree1 = tree1;

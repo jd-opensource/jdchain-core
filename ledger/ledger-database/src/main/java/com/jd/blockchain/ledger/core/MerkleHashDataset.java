@@ -3,8 +3,9 @@ package com.jd.blockchain.ledger.core;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.ledger.proof.MerkleHashTrie;
+import com.jd.blockchain.ledger.proof.MerkleTree;
+import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
@@ -46,7 +47,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 
 	private VersioningKVStorage valueStorage;
 
-	private MerkleHashTrie merkleTree;
+	private MerkleTree merkleTree;
 
 	private boolean readonly;
 
@@ -246,9 +247,9 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 //		return values;
 //	}
 
-	public SkippingIterator<MerkleTrieData> getDiffMerkleKeys(MerkleHashDataset origMerkleDataSet) {
-		return merkleTree.getKeyDiffIterator(origMerkleDataSet.merkleTree);
-	}
+//	public SkippingIterator<MerkleTrieData> getDiffMerkleKeys(MerkleHashDataset origMerkleDataSet) {
+//		return merkleTree.getKeyDiffIterator(origMerkleDataSet.merkleTree);
+//	}
 
 	/**
 	 * Create or update the value associated the specified key if the version
@@ -603,10 +604,6 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 			return cursor < total;
 		}
 
-	}
-
-	public void print() {
-		merkleTree.print();
 	}
 
 }
