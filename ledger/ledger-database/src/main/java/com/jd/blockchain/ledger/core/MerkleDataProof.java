@@ -4,7 +4,7 @@ import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.DataEntry;
 
-public interface MerkleDataEntry {
+public interface MerkleDataProof {
 	
 	DataEntry<Bytes, byte[]> getData();
 	

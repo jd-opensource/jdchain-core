@@ -414,7 +414,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		return new DescDataInterator(getDataCount());
 	}
 
-	public MerkleDataEntry getMerkleEntry(Bytes key, long version) {
+	public MerkleDataProof getMerkleEntry(Bytes key, long version) {
 		DataEntry<Bytes, byte[]> dataEntry = getDataEntry(key, version);
 		if (dataEntry == null) {
 			return null;
@@ -423,7 +423,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		return new MerkleDataEntryWrapper(dataEntry, proof);
 	}
 
-	public MerkleDataEntry getMerkleEntry(Bytes key) {
+	public MerkleDataProof getMerkleEntry(Bytes key) {
 		DataEntry<Bytes, byte[]> dataEntry = getDataEntry(key);
 		if (dataEntry == null) {
 			return null;
@@ -452,7 +452,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class MerkleDataEntryWrapper implements MerkleDataEntry {
+	private static class MerkleDataEntryWrapper implements MerkleDataProof {
 
 		private DataEntry<Bytes, byte[]> data;
 		private MerkleProof proof;
