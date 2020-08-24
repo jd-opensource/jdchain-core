@@ -22,7 +22,6 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.AbstractSkippingIterator;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.SkippingIterator;
-import com.jd.blockchain.utils.Transactional;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.BytesUtils;
 
@@ -42,9 +41,9 @@ import com.jd.blockchain.utils.io.BytesUtils;
  * @author huanghaiquan
  *
  */
-public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
+public class MerkleHashTrie implements Iterable<MerkleDataEntry>, MerkleTree {
 
-	private static final SkippingIterator<MerkleTrieData> NULL_DATA_ITERATOR = SkippingIterator.empty();
+	private static final SkippingIterator<MerkleDataEntry> NULL_DATA_ITERATOR = SkippingIterator.empty();
 
 	public static final int TREE_DEGREE = 16;
 
@@ -274,7 +273,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 	 * 返回所有键的最新版本数据；
 	 */
 	@Override
-	public SkippingIterator<MerkleTrieData> iterator() {
+	public SkippingIterator<MerkleDataEntry> iterator() {
 		return new MerkleDataIterator(root, this);
 	}
 
@@ -285,7 +284,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 	 * @return
 	 */
 	@Override
-	public SkippingIterator<MerkleTrieData> iterator(byte[] key) {
+	public SkippingIterator<MerkleDataEntry> iterator(byte[] key) {
 		return iterator(key, -1);
 	}
 
@@ -297,7 +296,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 	 * @return
 	 */
 	@Override
-	public SkippingIterator<MerkleTrieData> iterator(byte[] key, long version) {
+	public SkippingIterator<MerkleDataEntry> iterator(byte[] key, long version) {
 		//TODO;
 		return null;
 	}
@@ -307,7 +306,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 	 * 迭代器包含所有基准树与原始树之间差异的数据项
 	 */
 	@Override
-	public SkippingIterator<MerkleTrieData> getKeyDiffIterator(MerkleHashTrie origTree) {
+	public SkippingIterator<MerkleDataEntry> getKeyDiffIterator(MerkleHashTrie origTree) {
 		return new PathKeysDiffIterator(root, this, origTree.root, origTree, 0);
 	}
 
@@ -533,12 +532,12 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 	}
 
 	public void printDatas() {
-		SkippingIterator<MerkleTrieData> iterator = iterator();
+		SkippingIterator<MerkleDataEntry> iterator = iterator();
 		System.out.println("\r\n\rn-------- HASH-SORTING-MERKLE-TREE -------");
 		System.out.printf("total-size=%s\r\n", iterator.getTotalCount());
 		int i = 0;
 		while (iterator.hasNext()) {
-			MerkleTrieData data = iterator.next();
+			MerkleDataEntry data = iterator.next();
 			System.out.printf("[%s] - KEY=%s; VERSION=%s;\r\n", i, data.getKey().toBase58(), data.getVersion());
 		}
 		System.out.printf("\r\n------------------\r\n", iterator.getTotalCount());
@@ -818,7 +817,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 		
 	}
 
-	public static class MerkleDataIterator extends AbstractSkippingIterator<MerkleTrieData> {
+	public static class MerkleDataIterator extends AbstractSkippingIterator<MerkleDataEntry> {
 
 		private MerkleHashTrie tree;
 
@@ -828,7 +827,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 
 		private PathNode root;
 
-		private SkippingIterator<MerkleTrieData> childIterator;
+		private SkippingIterator<MerkleDataEntry> childIterator;
 
 		public MerkleDataIterator(PathNode rootNode, MerkleHashTrie tree) {
 			this.root = rootNode;
@@ -841,7 +840,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 		}
 
 		@Override
-		public MerkleTrieData next() {
+		public MerkleDataEntry next() {
 			if (!hasNext()) {
 				return null;
 			}
@@ -858,7 +857,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 			long childDiffOffset = cursor - getChildCount(0, childCursor);
 			MerkleTreeNode childNode = getChildNode(root, (byte) childCursor);
 
-			SkippingIterator<MerkleTrieData> childIterator = getOrCreateDiffIterator(childNode);
+			SkippingIterator<MerkleDataEntry> childIterator = getOrCreateDiffIterator(childNode);
 			long nextChildCursor = childIterator.getCursor() + 1;
 
 			childIterator.skip(childDiffOffset - nextChildCursor);
@@ -866,14 +865,14 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 			return childIterator.next();
 		}
 
-		private SkippingIterator<MerkleTrieData> getOrCreateDiffIterator(MerkleTreeNode childNode) {
+		private SkippingIterator<MerkleDataEntry> getOrCreateDiffIterator(MerkleTreeNode childNode) {
 			if (childIterator == null) {
 				childIterator = createDiffIterator(childNode);
 			}
 			return childIterator;
 		}
 
-		private SkippingIterator<MerkleTrieData> createDiffIterator(MerkleTreeNode childNode) {
+		private SkippingIterator<MerkleDataEntry> createDiffIterator(MerkleTreeNode childNode) {
 			if (childNode == null) {
 				return NULL_DATA_ITERATOR;
 			}
@@ -913,7 +912,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class MerkleLeafDataIterator implements SkippingIterator<MerkleTrieData> {
+	private static class MerkleLeafDataIterator implements SkippingIterator<MerkleDataEntry> {
 
 		private MerkleHashTrie tree;
 
@@ -991,7 +990,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 	 * @author huanghaiquan
 	 *
 	 */
-	public static abstract class DiffDataIterator extends AbstractSkippingIterator<MerkleTrieData> {
+	public static abstract class DiffDataIterator extends AbstractSkippingIterator<MerkleDataEntry> {
 
 		/**
 		 * 新增
@@ -1043,7 +1042,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 
 		private byte childCursor = 0;
 
-		private SkippingIterator<MerkleTrieData> childDiffIterator;
+		private SkippingIterator<MerkleDataEntry> childDiffIterator;
 
 		/**
 		 * 创建一个差异遍历器；
@@ -1063,7 +1062,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 		}
 
 		@Override
-		public MerkleTrieData next() {
+		public MerkleDataEntry next() {
 			if (!hasNext()) {
 				return null;
 			}
@@ -1081,7 +1080,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 			MerkleTreeNode childNode1 = getChildNode(tree1, (PathNode) root1, childCursor);
 			MerkleTreeNode childNode2 = getChildNode(tree2, (PathNode) root2, childCursor);
 
-			SkippingIterator<MerkleTrieData> childDiffIterator = getOrCreateDiffIterator(childNode1, childNode2);
+			SkippingIterator<MerkleDataEntry> childDiffIterator = getOrCreateDiffIterator(childNode1, childNode2);
 			long nextChildDiffCursor = childDiffIterator.getCursor() + 1;
 
 			childDiffIterator.skip(childDiffOffset - nextChildDiffCursor);
@@ -1145,7 +1144,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 			return s1;
 		}
 
-		protected SkippingIterator<MerkleTrieData> getOrCreateDiffIterator(MerkleTreeNode rootNode1,
+		protected SkippingIterator<MerkleDataEntry> getOrCreateDiffIterator(MerkleTreeNode rootNode1,
 				MerkleTreeNode rootNode2) {
 			if (childDiffIterator == null) {
 				childDiffIterator = createDiffIterator(rootNode1, rootNode2);
@@ -1157,7 +1156,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 
 		protected abstract long getChildCount(MerkleTreeNode node, int childIndex);
 
-		protected abstract SkippingIterator<MerkleTrieData> createDiffIterator(MerkleTreeNode rootNode1,
+		protected abstract SkippingIterator<MerkleDataEntry> createDiffIterator(MerkleTreeNode rootNode1,
 				MerkleTreeNode rootNode2);
 
 	}
@@ -1189,7 +1188,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 		}
 
 		@Override
-		protected SkippingIterator<MerkleTrieData> createDiffIterator(MerkleTreeNode node1, MerkleTreeNode node2) {
+		protected SkippingIterator<MerkleDataEntry> createDiffIterator(MerkleTreeNode node1, MerkleTreeNode node2) {
 			if (node2 == null && node1 instanceof LeafNode) {
 				return new MerkleLeafDataIterator((LeafNode) node1, tree1);
 			}
@@ -1246,7 +1245,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class LeafKeysDiffIterator extends AbstractSkippingIterator<MerkleTrieData> {
+	private static class LeafKeysDiffIterator extends AbstractSkippingIterator<MerkleDataEntry> {
 		private MerkleTrieData[] diffDataEntries;
 
 		public LeafKeysDiffIterator(LeafNode leaf1, MerkleHashTrie tree1, LeafNode leaf2, MerkleHashTrie tree2) {
@@ -1505,8 +1504,8 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 		}
 
 		@Override
-		public MerkleTrieData next() {
-			MerkleTrieData nextKey = null;
+		public MerkleDataEntry next() {
+			MerkleDataEntry nextKey = null;
 
 			while (iterator1.hasNext()) {
 				nextKey = iterator1.next();

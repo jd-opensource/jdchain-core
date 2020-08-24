@@ -104,22 +104,22 @@ public interface MerkleTree extends Transactional {
 	 */
 	MerkleProof getProof(byte[] key, long version);
 
-	MerkleTrieData getData(String key);
+	MerkleDataEntry getData(String key);
 
-	MerkleTrieData getData(String key, long version);
+	MerkleDataEntry getData(String key, long version);
 
-	MerkleTrieData getData(byte[] key);
+	MerkleDataEntry getData(byte[] key);
 
-	MerkleTrieData getData(byte[] key, long version);
+	MerkleDataEntry getData(byte[] key, long version);
 
-	MerkleTrieData getData(Bytes key);
+	MerkleDataEntry getData(Bytes key);
 
-	MerkleTrieData getData(Bytes key, long version);
+	MerkleDataEntry getData(Bytes key, long version);
 
 	/**
 	 * 返回所有键的最新版本数据；
 	 */
-	SkippingIterator<MerkleTrieData> iterator();
+	SkippingIterator<MerkleDataEntry> iterator();
 
 	/**
 	 * 返回指定键的所有版本数据；
@@ -127,7 +127,7 @@ public interface MerkleTree extends Transactional {
 	 * @param key
 	 * @return
 	 */
-	SkippingIterator<MerkleTrieData> iterator(byte[] key);
+	SkippingIterator<MerkleDataEntry> iterator(byte[] key);
 
 	/**
 	 * 返回指定键的指定版本之前的所有数据（含指定版本）；
@@ -136,12 +136,12 @@ public interface MerkleTree extends Transactional {
 	 * @param version
 	 * @return
 	 */
-	SkippingIterator<MerkleTrieData> iterator(byte[] key, long version);
+	SkippingIterator<MerkleDataEntry> iterator(byte[] key, long version);
 
 	/**
 	 * 迭代器包含所有基准树与原始树之间差异的数据项
 	 */
-	SkippingIterator<MerkleTrieData> getKeyDiffIterator(MerkleHashTrie origTree);
+	SkippingIterator<MerkleDataEntry> getKeyDiffIterator(MerkleHashTrie origTree);
 
 	void setData(String key, long version, byte[] data);
 

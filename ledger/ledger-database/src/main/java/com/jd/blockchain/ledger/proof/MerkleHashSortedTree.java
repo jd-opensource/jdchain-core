@@ -76,61 +76,61 @@ public class MerkleHashSortedTree implements MerkleTree {
 	}
 
 	@Override
-	public MerkleTrieData getData(String key) {
+	public MerkleDataEntry getData(String key) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public MerkleTrieData getData(String key, long version) {
+	public MerkleDataEntry getData(String key, long version) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public MerkleTrieData getData(byte[] key) {
+	public MerkleDataEntry getData(byte[] key) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public MerkleTrieData getData(byte[] key, long version) {
+	public MerkleDataEntry getData(byte[] key, long version) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public MerkleTrieData getData(Bytes key) {
+	public MerkleDataEntry getData(Bytes key) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public MerkleTrieData getData(Bytes key, long version) {
+	public MerkleDataEntry getData(Bytes key, long version) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public SkippingIterator<MerkleTrieData> iterator() {
+	public SkippingIterator<MerkleDataEntry> iterator() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public SkippingIterator<MerkleTrieData> iterator(byte[] key) {
+	public SkippingIterator<MerkleDataEntry> iterator(byte[] key) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public SkippingIterator<MerkleTrieData> iterator(byte[] key, long version) {
+	public SkippingIterator<MerkleDataEntry> iterator(byte[] key, long version) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public SkippingIterator<MerkleTrieData> getKeyDiffIterator(MerkleHashTrie origTree) {
+	public SkippingIterator<MerkleDataEntry> getKeyDiffIterator(MerkleHashTrie origTree) {
 		// TODO Auto-generated method stub
 		return null;
 	}
