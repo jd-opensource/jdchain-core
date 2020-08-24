@@ -234,7 +234,7 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 		if (dataEntry == null) {
 			return null;
 		}
-		selector.addProof(dataEntry.getValueHash());
+		selector.addProof(dataEntry.getValue());
 		return selector.createProof();
 	}
 
@@ -438,9 +438,9 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 		HashDigest previousHash = data.getPreviousEntryHash();
 
 		MerkleTrieData previousEntry = null;
-		if (data instanceof MerkleDataEntry) {
+		if (data instanceof MerkleTrieDataEntry) {
 			// 从内存中加载；
-			previousEntry = ((MerkleDataEntry) data).getPreviousEntry();
+			previousEntry = ((MerkleTrieDataEntry) data).getPreviousEntry();
 		}
 		if (previousEntry == null) {
 			if (previousHash == null) {
@@ -632,16 +632,16 @@ public class MerkleHashTrie implements Iterable<MerkleTrieData>, MerkleTree {
 
 	@Override
 	public void setData(byte[] key, long version, HashDigest dataHash) {
-		MerkleDataEntry data = new MerkleDataEntry(key, version, dataHash);
+		MerkleTrieDataEntry data = new MerkleTrieDataEntry(key, version, dataHash);
 		long keyHash = KeyIndexer.hash(data.getKey());
 		setDataEntry(keyHash, data);
 	}
 
-	private void setDataEntry(long keyHash, MerkleDataEntry dataEntry) {
+	private void setDataEntry(long keyHash, MerkleTrieDataEntry dataEntry) {
 		setDataEntry(keyHash, dataEntry, root, 0);
 	}
 
-	private void setDataEntry(long keyHash, MerkleDataEntry dataEntry, PathNode parentNode, int level) {
+	private void setDataEntry(long keyHash, MerkleTrieDataEntry dataEntry, PathNode parentNode, int level) {
 		byte index = KeyIndexer.index(keyHash, level);
 
 		boolean hasChild = parentNode.containChild(index);

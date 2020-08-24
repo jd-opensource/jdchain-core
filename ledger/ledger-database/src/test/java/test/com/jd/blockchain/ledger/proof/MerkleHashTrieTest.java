@@ -34,7 +34,7 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.proof.KeyIndexer;
 import com.jd.blockchain.ledger.proof.MerkleTrieData;
-import com.jd.blockchain.ledger.proof.MerkleDataEntry;
+import com.jd.blockchain.ledger.proof.MerkleTrieDataEntry;
 import com.jd.blockchain.ledger.proof.MerkleHashTrie;
 import com.jd.blockchain.ledger.proof.MerklePath;
 import com.jd.blockchain.ledger.proof.MerkleTree;
@@ -146,11 +146,11 @@ public class MerkleHashTrieTest {
 	public void testDataSerialize() {
 		byte[] key = BytesUtils.toBytes("KEY-1");
 		HashDigest hashDigest = SHA256_HASH_FUNC.hash(key);
-		MerkleTrieData merkleData = new MerkleDataEntry(key, 0, hashDigest);
+		MerkleTrieData merkleData = new MerkleTrieDataEntry(key, 0, hashDigest);
 		testMerkleDataSerialize(merkleData);
-		merkleData = new MerkleDataEntry(key, 1024, hashDigest);
+		merkleData = new MerkleTrieDataEntry(key, 1024, hashDigest);
 		testMerkleDataSerialize(merkleData);
-		merkleData = new MerkleDataEntry(key, NumberMask.LONG.MAX_BOUNDARY_SIZE - 1, hashDigest);
+		merkleData = new MerkleTrieDataEntry(key, NumberMask.LONG.MAX_BOUNDARY_SIZE - 1, hashDigest);
 		testMerkleDataSerialize(merkleData);
 
 		// 数据大小；
@@ -186,7 +186,7 @@ public class MerkleHashTrieTest {
 		offset += 12;
 		assertEquals(DataCodes.MERKLE_TRIE_DATA, code);
 
-		byte[] valueHashBytes = data.getValueHash().toBytes();
+		byte[] valueHashBytes = data.getValue().toBytes();
 
 		int expectedSize = 12 + NumberMask.NORMAL.getMaskLength(data.getKey().size()) + data.getKey().size()
 				+ NumberMask.LONG.getMaskLength(data.getVersion())
@@ -206,7 +206,7 @@ public class MerkleHashTrieTest {
 
 		assertTrue(data.getKey().equals(dataDes.getKey()));
 		assertEquals(data.getVersion(), dataDes.getVersion());
-		assertEquals(data.getValueHash(), dataDes.getValueHash());
+		assertEquals(data.getValue(), dataDes.getValue());
 		assertEquals(data.getPreviousEntryHash(), dataDes.getPreviousEntryHash());
 	}
 
@@ -1741,14 +1741,14 @@ public class MerkleHashTrieTest {
 		assertNull(data28_reload_0.getPreviousEntryHash());
 		assertEquals(data28.getKey(), data28_reload_0.getKey().toUTF8String());
 		assertEquals(datas[28].getVersion(), data28_reload_0.getVersion());
-		assertEquals(SHA256_HASH_FUNC.hash(datas[28].getValue()), data28_reload_0.getValueHash());
+		assertEquals(SHA256_HASH_FUNC.hash(datas[28].getValue()), data28_reload_0.getValue());
 
 		MerkleTrieData data28_reload_1 = merkleTree_reload.getData(data28.getKey(), 1);
 		assertNotNull(data28_reload_1);
 		assertNotNull(data28_reload_1.getPreviousEntryHash());
 		assertEquals(data28.getKey(), data28_reload_1.getKey().toUTF8String());
 		assertEquals(data28.getVersion(), data28_reload_1.getVersion());
-		assertEquals(SHA256_HASH_FUNC.hash(data28.getValue()), data28_reload_1.getValueHash());
+		assertEquals(SHA256_HASH_FUNC.hash(data28.getValue()), data28_reload_1.getValue());
 
 //		merkleTree_reload.print();
 
@@ -1919,7 +1919,7 @@ public class MerkleHashTrieTest {
 		HashDigest entryHash = hashFunc.hash(nodeBytes);
 
 		assertEquals(entryHash, path[path.length - 2]);
-		assertEquals(data.getValueHash(), path[path.length - 1]);
+		assertEquals(data.getValue(), path[path.length - 1]);
 	}
 
 	/**
@@ -2035,7 +2035,7 @@ public class MerkleHashTrieTest {
 			dt = iterator.next();
 			dt1 = iterator1.next();
 			assertTrue(dt.getKey().equals(dt1.getKey()));
-			assertEquals(dt.getValueHash(), dt1.getValueHash());
+			assertEquals(dt.getValue(), dt1.getValue());
 			assertEquals(dt.getVersion(), dt1.getVersion());
 
 			MerkleProof proof = merkleTree.getProof(dt.getKey());
@@ -2060,8 +2060,8 @@ public class MerkleHashTrieTest {
 		assertEquals(entryHash, path[path.length - 2]);
 		assertEquals(entryHash, path1[path1.length - 2]);
 
-		assertEquals(data.getValueHash(), proof.getDataHash());
-		assertEquals(data.getValueHash(), proof1.getDataHash());
+		assertEquals(data.getValue(), proof.getDataHash());
+		assertEquals(data.getValue(), proof1.getDataHash());
 	}
 
 	private List<VersioningKVData<String, byte[]>> generateRandomKeyDatas(int count) {

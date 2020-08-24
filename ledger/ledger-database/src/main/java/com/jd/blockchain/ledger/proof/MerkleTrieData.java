@@ -15,7 +15,7 @@ import com.jd.blockchain.utils.Bytes;
  *
  */
 @DataContract(code = DataCodes.MERKLE_TRIE_DATA)
-public interface MerkleTrieData extends MerkleTrieEntry {
+public interface MerkleTrieData extends MerkleTrieEntry, MerkleDataEntry{
 
 	/**
 	 * 键；
@@ -33,7 +33,7 @@ public interface MerkleTrieData extends MerkleTrieEntry {
 	 * 值的哈希；
 	 */
 	@DataField(order = 3, primitiveType = PrimitiveType.BYTES)
-	HashDigest getValueHash();
+	HashDigest getValue();
 	
 	/**
 	 * 前一版本的数据节点哈希；

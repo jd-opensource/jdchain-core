@@ -1,12 +1,10 @@
 package com.jd.blockchain.ledger.proof;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.utils.Bytes;
 
-public class MerkleDataEntry implements MerkleTrieData {
+public class MerkleTrieDataEntry implements MerkleTrieData {
 
 	/**
 	 * 键；
@@ -21,7 +19,7 @@ public class MerkleDataEntry implements MerkleTrieData {
 	/**
 	 * 值的哈希；
 	 */
-	private HashDigest valueHash;
+	private HashDigest value;
 
 	/**
 	 * 前一版本的数据节点哈希；
@@ -39,20 +37,20 @@ public class MerkleDataEntry implements MerkleTrieData {
 	 * @param valueHash 值的哈希；
 	 * @param ts        记录数据的逻辑时间戳；
 	 */
-	public MerkleDataEntry(byte[] key, long version, HashDigest valueHash) {
+	public MerkleTrieDataEntry(byte[] key, long version, HashDigest valueHash) {
 		this(new Bytes(key), version, valueHash);
 	}
 
 	/**
 	 * @param key       键；
 	 * @param version   键的版本；
-	 * @param valueHash 值的哈希；
+	 * @param value 值的哈希；
 	 * @param ts        记录数据的逻辑时间戳；
 	 */
-	public MerkleDataEntry(Bytes key, long version, HashDigest valueHash) {
+	public MerkleTrieDataEntry(Bytes key, long version, HashDigest value) {
 		this.key = key;
 		this.version = version;
-		this.valueHash = valueHash;
+		this.value = value;
 	}
 
 	@Override
@@ -66,8 +64,8 @@ public class MerkleDataEntry implements MerkleTrieData {
 	}
 
 	@Override
-	public HashDigest getValueHash() {
-		return valueHash;
+	public HashDigest getValue() {
+		return value;
 	}
 
 	@Override

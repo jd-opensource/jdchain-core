@@ -63,7 +63,7 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 	 * @param index
 	 * @param dataEntry
 	 */
-	private void insertDataEntry(int index, MerkleDataEntry dataEntry) {
+	private void insertDataEntry(int index, MerkleTrieDataEntry dataEntry) {
 		if (index < 0 || index > keys.length) {
 			throw new IndexOutOfBoundsException("index of data entry is out of bounds!");
 		}
@@ -95,7 +95,7 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 	 * @param index
 	 * @param dataEntry
 	 */
-	private void setDataEntry(int index, MerkleDataEntry dataEntry) {
+	private void setDataEntry(int index, MerkleTrieDataEntry dataEntry) {
 		if (index < 0 || index >= keys.length) {
 			throw new IndexOutOfBoundsException("index of data entry is out of bounds!");
 		}
@@ -109,7 +109,7 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 		this.dataEntries[index] = dataEntry;
 	}
 
-	public void addKeyNode(MerkleDataEntry dataEntry) {
+	public void addKeyNode(MerkleTrieDataEntry dataEntry) {
 		// 在升序序列中查找合适的插入位置；
 		// 如果 key 已存在，则更新数据值；否则插入数据值到匹配的位置上，把该位置之后的数据项都后移 1 位；
 
@@ -179,7 +179,7 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 
 		for (int i = 0; i < keys.length; i++) {
 			if (keys[i].getDataEntryHash() == null) {
-				MerkleDataEntry entry = (MerkleDataEntry) dataEntries[i];
+				MerkleTrieDataEntry entry = (MerkleTrieDataEntry) dataEntries[i];
 				HashDigest entryHash = updateDataEntry(entry, hashFunc, updatedListener);
 				((MerkleKeyEntry) keys[i]).setDataEntryHash(entryHash);
 			}
@@ -204,8 +204,8 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 	 */
 	private HashDigest updateDataEntry(MerkleTrieData data, HashFunction hashFunc, NodeUpdatedListener updatedListener) {
 		//检查指定的数据节点是否存在未更新的前版本数据节点；
-		if (data instanceof MerkleDataEntry) {
-			MerkleDataEntry entry = (MerkleDataEntry) data;
+		if (data instanceof MerkleTrieDataEntry) {
+			MerkleTrieDataEntry entry = (MerkleTrieDataEntry) data;
 			MerkleTrieData previousDataEntry = entry.getPreviousEntry();
 			if (entry.getPreviousEntryHash() == null && previousDataEntry != null) {
 				//保存前版本数据节点；

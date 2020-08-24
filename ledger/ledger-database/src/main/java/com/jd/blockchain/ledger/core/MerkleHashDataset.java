@@ -414,7 +414,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		return new DescDataInterator(getDataCount());
 	}
 
-	public MerkleDataProof getMerkleEntry(Bytes key, long version) {
+	public MerkleDataProof getDataProof(Bytes key, long version) {
 		DataEntry<Bytes, byte[]> dataEntry = getDataEntry(key, version);
 		if (dataEntry == null) {
 			return null;
@@ -423,7 +423,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		return new MerkleDataEntryWrapper(dataEntry, proof);
 	}
 
-	public MerkleDataProof getMerkleEntry(Bytes key) {
+	public MerkleDataProof getDataProof(Bytes key) {
 		DataEntry<Bytes, byte[]> dataEntry = getDataEntry(key);
 		if (dataEntry == null) {
 			return null;
