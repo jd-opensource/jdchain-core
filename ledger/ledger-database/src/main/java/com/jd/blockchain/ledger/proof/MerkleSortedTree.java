@@ -55,10 +55,10 @@ public class MerkleSortedTree implements Transactional {
 
 	// 正好是 2 的 60 次方，足以覆盖 long 类型的正整数，且为避免溢出预留了区间；
 	protected final long MAX_COUNT;
+	
+	protected final HashFunction DEFAULT_HASH_FUNCTION;
 
 	protected final CryptoSetting setting;
-
-	protected final HashFunction hashFunc;
 	
 	private final Bytes KEY_PREFIX;
 
@@ -106,7 +106,7 @@ public class MerkleSortedTree implements Transactional {
 		this.setting = setting;
 		this.KEY_PREFIX = keyPrefix;
 		this.kvStorage = kvStorage;
-		this.hashFunc = Crypto.getHashFunction(setting.getHashAlgorithm());
+		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
 
 		this.root = createTopRoot();
 	}
@@ -135,7 +135,7 @@ public class MerkleSortedTree implements Transactional {
 		this.KEY_PREFIX = keyPrefix;
 		this.setting = setting;
 		this.kvStorage = kvStorage;
-		this.hashFunc = Crypto.getHashFunction(setting.getHashAlgorithm());
+		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
 
 		IndexEntry merkleIndex = loadMerkleIndex(rootHash);
 		int subtreeCount = merkleIndex.getChildCounts().length;
@@ -590,12 +590,16 @@ public class MerkleSortedTree implements Transactional {
 		byte[] nodeBytes = loadNodeBytes(nodeHash);
 		MerkleEntry merkleEntry = BinaryProtocol.decode(nodeBytes);
 		if (setting.getAutoVerifyHash()) {
-			HashDigest hash = hashFunc.hash(nodeBytes);
-			if (!hash.equals(nodeHash)) {
-				throw new MerkleProofException("Merkle hash verification fail! -- NodeHash=" + nodeHash.toBase58());
-			}
+			verifyHash(nodeHash, nodeBytes, "Merkle hash verification fail! -- NodeHash=" + nodeHash.toBase58());
 		}
 		return merkleEntry;
+	}
+	
+	
+	private void verifyHash(HashDigest hash, byte[] bytes, String errMessage, Object...errorArgs) {
+		if (!Crypto.getHashFunction(hash.getAlgorithm()).verify(hash, bytes)) {
+			throw new MerkleProofException(String.format(errMessage, errorArgs));
+		}
 	}
 
 	private IndexEntry loadMerkleIndex(HashDigest nodeHash) {
@@ -604,7 +608,7 @@ public class MerkleSortedTree implements Transactional {
 
 	private HashDigest saveData(ValueEntry data) {
 		byte[] dataNodeBytes = BinaryProtocol.encode(data, ValueEntry.class);
-		HashDigest dataEntryHash = hashFunc.hash(dataNodeBytes);
+		HashDigest dataEntryHash = DEFAULT_HASH_FUNCTION.hash(dataNodeBytes);
 
 		saveNodeBytes(dataEntryHash, dataNodeBytes);
 
@@ -1066,7 +1070,7 @@ public class MerkleSortedTree implements Transactional {
 
 			// save;
 			byte[] nodeBytes = BinaryProtocol.encode(this, IndexEntry.class);
-			HashDigest hash = tree.hashFunc.hash(nodeBytes);
+			HashDigest hash = tree.DEFAULT_HASH_FUNCTION.hash(nodeBytes);
 			tree.saveNodeBytes(hash, nodeBytes);
 
 			// update hash;

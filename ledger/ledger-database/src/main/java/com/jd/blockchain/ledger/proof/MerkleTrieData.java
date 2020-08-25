@@ -33,7 +33,7 @@ public interface MerkleTrieData extends MerkleTrieEntry, MerkleDataEntry{
 	 * 值的哈希；
 	 */
 	@DataField(order = 3, primitiveType = PrimitiveType.BYTES)
-	HashDigest getValue();
+	Bytes getValue();
 	
 	/**
 	 * 前一版本的数据节点哈希；

@@ -136,16 +136,22 @@ public interface MerkleTree extends Transactional {
 	 */
 	SkippingIterator<MerkleDataEntry> getKeyDiffIterator(MerkleHashTrie origTree);
 
-	void setData(String key, long version, byte[] data);
+//	void setData(String key, long version, byte[] data);
+//
+//	void setData(Bytes key, long version, byte[] data);
+//
+//	void setData(byte[] key, long version, byte[] data);
+	
+	void setData(String key, long version, byte[] dataHash);
 
-	void setData(Bytes key, long version, byte[] data);
+	void setData(Bytes key, long version, byte[] dataHash);
 
-	void setData(String key, long version, HashDigest dataHash);
-
-	void setData(Bytes key, long version, HashDigest dataHash);
-
-	void setData(byte[] key, long version, byte[] data);
-
-	void setData(byte[] key, long version, HashDigest dataHash);
+	void setData(byte[] key, long version, byte[] dataHash);
+	
+	void setData(String key, long version, Bytes dataHash);
+	
+	void setData(Bytes key, long version, Bytes dataHash);
+	
+	void setData(byte[] key, long version, Bytes dataHash);
 
 }

@@ -21,17 +21,17 @@ public class MerkleTreePerformanceTest {
 		testPerformace1(100, 10);
 		testPerformace1(100, 100);
 		testPerformace1(100, 1000);
-		
+
 		System.out.println("=========================================");
 		testPerformace1(1000, 1);
 		testPerformace1(1000, 10);
 		testPerformace1(1000, 100);
 		testPerformace1(1000, 1000);
-		
+
 		System.out.println("=========================================");
 		testPerformace1(10000, 5);
 		testPerformace1(10000, 10);
-		
+
 //		//--------------------
 //		testPerformace1(100, 1);
 //		testPerformace1(25, 4000);
@@ -42,9 +42,7 @@ public class MerkleTreePerformanceTest {
 //		testPerformace1(200, 1000);
 //		testPerformace1(200, 500);
 //		testPerformace1(400, 500);
-		
-		
-		
+
 	}
 
 	private void testPerformace1(int round, int count) {
@@ -57,7 +55,7 @@ public class MerkleTreePerformanceTest {
 		Random rand = new Random();
 		byte[] value = new byte[128];
 		rand.nextBytes(value);
-				
+
 		long startTs = System.currentTimeMillis();
 
 		MerkleHashTrie merkleTree = new MerkleHashTrie(setting, prefix, storage);
@@ -75,8 +73,7 @@ public class MerkleTreePerformanceTest {
 		long totalCount = count * round;
 		double tps = round * 1000.0D / elapsedTs;
 		double kps = round * count * 1000.0D / elapsedTs;
-		System.out.printf(
-				"--[Performance]:: TotalKeys=%s; Round=%s; Count=%s; Times=%sms; TPS=%.2f; KPS=%.2f\r\n\r\n",
+		System.out.printf("--[Performance]:: TotalKeys=%s; Round=%s; Count=%s; Times=%sms; TPS=%.2f; KPS=%.2f\r\n\r\n",
 				totalCount, round, count, elapsedTs, tps, kps);
 	}
 

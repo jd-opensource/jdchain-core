@@ -1,6 +1,8 @@
 package com.jd.blockchain.ledger.core;
 
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.proof.MerkleDataEntry;
@@ -39,6 +41,9 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 
 	@SuppressWarnings("unchecked")
 	private static final DataEntry<Bytes, byte[]>[] EMPTY_ENTRIES = new DataEntry[0];
+	
+	
+	private final HashFunction DEFAULT_HASH_FUNCTION;
 
 	private final Bytes dataKeyPrefix;
 	private final Bytes merkleKeyPrefix;
@@ -88,6 +93,8 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		// 把存储数据值、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
 		dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
 		this.valueStorage = bufferedStorage;
+		
+		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
 
 		// MerkleTree 本身是可缓冲的；
 		merkleKeyPrefix = keyPrefix.concat(MERKLE_TREE_PREFIX);
@@ -126,6 +133,8 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		// 把存储数据值、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
 		dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
 		this.valueStorage = bufferedStorage;
+		
+		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
 
 		// MerkleTree 本身是可缓冲的；
 		merkleKeyPrefix = keyPrefix.concat(MERKLE_TREE_PREFIX);
@@ -308,7 +317,8 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		// TODO: 未在当前实例的层面，实现对输入键-值的缓冲，而直接写入了存储，而 MerkleTree 在未调用 commit
 		// 之前是缓冲的，这使得在存储层面的数据会不一致，而未来需要优化；
 		// update merkle tree;
-		merkleTree.setData(key, newVersion, value);
+		HashDigest valueHash = DEFAULT_HASH_FUNCTION.hash(value);
+		merkleTree.setData(key, newVersion, valueHash);
 
 		return newVersion;
 	}

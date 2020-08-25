@@ -51,7 +51,7 @@ public class MerkleHashTrie implements Iterable<MerkleDataEntry>, MerkleTree {
 
 	private static final SeekingSelector NULL_SELECTOR = new FullSelector();
 
-	private HashFunction hashFunc;
+	private final HashFunction DEFAULT_HASH_FUNCTION;
 
 	private final Bytes keyPrefix;
 
@@ -88,7 +88,7 @@ public class MerkleHashTrie implements Iterable<MerkleDataEntry>, MerkleTree {
 		this.setting = setting;
 		this.keyPrefix = keyPrefix;
 		this.storage = kvStorage;
-		this.hashFunc = Crypto.getHashFunction(setting.getHashAlgorithm());
+		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
 		if (rootHash == null) {
 			root = new PathNode(TREE_DEGREE);
 		} else {
@@ -232,7 +232,11 @@ public class MerkleHashTrie implements Iterable<MerkleDataEntry>, MerkleTree {
 		if (dataEntry == null) {
 			return null;
 		}
-		selector.addProof(dataEntry.getValue());
+		
+		//TODO:
+//		selector.addProof(new HashDigest(dataEntry.getValue().toBytes()));
+		
+		selector.addProof(DEFAULT_HASH_FUNCTION.hash(dataEntry.getValue().toBytes()));
 		return selector.createProof();
 	}
 
@@ -600,37 +604,54 @@ public class MerkleHashTrie implements Iterable<MerkleDataEntry>, MerkleTree {
 		lnodes.add(nodeInfo.toString());
 	}
 
+//	@Override
+//	public void setData(String key, long version, byte[] data) {
+//		HashDigest dataHash = hashFunc.hash(data);
+//		setData(key, version, dataHash);
+//	}
+//
+//	@Override
+//	public void setData(Bytes key, long version, byte[] data) {
+//		HashDigest dataHash = hashFunc.hash(data);
+//		setData(key, version, dataHash);
+//	}
+//
+//	@Override
+//	public void setData(byte[] key, long version, byte[] data) {
+//		HashDigest dataHash = hashFunc.hash(data);
+//		setData(key, version, dataHash);
+//	}
+	
 	@Override
-	public void setData(String key, long version, byte[] data) {
-		HashDigest dataHash = hashFunc.hash(data);
-		setData(key, version, dataHash);
-	}
-
-	@Override
-	public void setData(Bytes key, long version, byte[] data) {
-		HashDigest dataHash = hashFunc.hash(data);
-		setData(key, version, dataHash);
-	}
-
-	@Override
-	public void setData(String key, long version, HashDigest dataHash) {
-		setData(BytesUtils.toBytes(key), version, dataHash);
-	}
-
-	@Override
-	public void setData(Bytes key, long version, HashDigest dataHash) {
+	public void setData(Bytes key, long version, byte[] dataHash) {
 		setData(key.toBytes(), version, dataHash);
 	}
 
 	@Override
-	public void setData(byte[] key, long version, byte[] data) {
-		HashDigest dataHash = hashFunc.hash(data);
-		setData(key, version, dataHash);
+	public void setData(String key, long version, byte[] dataHash) {
+		setData(BytesUtils.toBytes(key), version, dataHash);
 	}
-
+	
 	@Override
-	public void setData(byte[] key, long version, HashDigest dataHash) {
+	public void setData(byte[] key, long version, byte[] dataHash) {
 		MerkleTrieDataEntry data = new MerkleTrieDataEntry(key, version, dataHash);
+		long keyHash = KeyIndexer.hash(data.getKey());
+		setDataEntry(keyHash, data);
+	}
+	
+	@Override
+	public void setData(Bytes key, long version, Bytes dataHash) {
+		setData(key.toBytes(), version, dataHash);
+	}
+	
+	@Override
+	public void setData(String key, long version, Bytes dataHash) {
+		setData(BytesUtils.toBytes(key), version, dataHash);
+	}
+	
+	@Override
+	public void setData(byte[] key, long version, Bytes dataHash) {
+		MerkleTrieDataEntry data = new MerkleTrieDataEntry(new Bytes(key), version, dataHash);
 		long keyHash = KeyIndexer.hash(data.getKey());
 		setDataEntry(keyHash, data);
 	}
@@ -713,7 +734,7 @@ public class MerkleHashTrie implements Iterable<MerkleDataEntry>, MerkleTree {
 			return;
 		}
 
-		pathNode.update(hashFunc, new NodeUpdatedListener() {
+		pathNode.update(DEFAULT_HASH_FUNCTION, new NodeUpdatedListener() {
 
 			@Override
 			public void onUpdated(HashDigest nodeHash, MerkleTrieEntry nodeEntry, byte[] nodeBytes) {

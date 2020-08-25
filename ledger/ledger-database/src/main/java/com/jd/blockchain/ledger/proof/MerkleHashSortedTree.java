@@ -133,40 +133,57 @@ public class MerkleHashSortedTree implements MerkleTree {
 		return null;
 	}
 
+//	@Override
+//	public void setData(String key, long version, byte[] data) {
+////		DataEntry
+//	}
+//
+//	@Override
+//	public void setData(Bytes key, long version, byte[] data) {
+//		// TODO Auto-generated method stub
+//
+//	}
+//	
+//	@Override
+//	public void setData(byte[] key, long version, byte[] data) {
+//		// TODO Auto-generated method stub
+//
+//	}
+
 	@Override
-	public void setData(String key, long version, byte[] data) {
+	public void setData(String key, long version, Bytes dataHash) {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public void setData(Bytes key, long version, byte[] data) {
+	public void setData(Bytes key, long version, Bytes dataHash) {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public void setData(String key, long version, HashDigest dataHash) {
+	public void setData(byte[] key, long version, Bytes dataHash) {
 		// TODO Auto-generated method stub
 
 	}
-
+	
 	@Override
-	public void setData(Bytes key, long version, HashDigest dataHash) {
+	public void setData(String key, long version, byte[] dataHash) {
 		// TODO Auto-generated method stub
-
+		
 	}
-
+	
 	@Override
-	public void setData(byte[] key, long version, byte[] data) {
+	public void setData(Bytes key, long version, byte[] dataHash) {
 		// TODO Auto-generated method stub
-
+		
 	}
-
+	
 	@Override
-	public void setData(byte[] key, long version, HashDigest dataHash) {
+	public void setData(byte[] key, long version, byte[] dataHash) {
 		// TODO Auto-generated method stub
-
+		
 	}
 
 	// ------------------- inner types ---------------------

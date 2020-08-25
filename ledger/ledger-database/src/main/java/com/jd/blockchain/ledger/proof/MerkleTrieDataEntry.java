@@ -19,7 +19,7 @@ public class MerkleTrieDataEntry implements MerkleTrieData {
 	/**
 	 * 值的哈希；
 	 */
-	private HashDigest value;
+	private Bytes value;
 
 	/**
 	 * 前一版本的数据节点哈希；
@@ -37,7 +37,17 @@ public class MerkleTrieDataEntry implements MerkleTrieData {
 	 * @param valueHash 值的哈希；
 	 * @param ts        记录数据的逻辑时间戳；
 	 */
-	public MerkleTrieDataEntry(byte[] key, long version, HashDigest valueHash) {
+	public MerkleTrieDataEntry(byte[] key, long version, byte[] valueHash) {
+		this(new Bytes(key), version, new Bytes(valueHash));
+	}
+	
+	/**
+	 * @param key       键；
+	 * @param version   键的版本；
+	 * @param valueHash 值的哈希；
+	 * @param ts        记录数据的逻辑时间戳；
+	 */
+	public MerkleTrieDataEntry(byte[] key, long version, Bytes valueHash) {
 		this(new Bytes(key), version, valueHash);
 	}
 
@@ -47,7 +57,7 @@ public class MerkleTrieDataEntry implements MerkleTrieData {
 	 * @param value 值的哈希；
 	 * @param ts        记录数据的逻辑时间戳；
 	 */
-	public MerkleTrieDataEntry(Bytes key, long version, HashDigest value) {
+	public MerkleTrieDataEntry(Bytes key, long version, Bytes value) {
 		this.key = key;
 		this.version = version;
 		this.value = value;
@@ -64,7 +74,7 @@ public class MerkleTrieDataEntry implements MerkleTrieData {
 	}
 
 	@Override
-	public HashDigest getValue() {
+	public Bytes getValue() {
 		return value;
 	}
 
