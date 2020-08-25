@@ -331,7 +331,7 @@ public class MerkleHashTrieTest {
 		// 数据集合长度为 0 时也能正常生成；
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(0);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
-		MerkleTree merkleTree = newMerkleTree_with_committed(datas);
+		MerkleHashTrie merkleTree = newMerkleTree_with_committed(datas);
 		HashDigest rootHash = merkleTree.getRootHash();
 		assertNotNull(rootHash);
 		assertEquals(0, merkleTree.getTotalKeys());
@@ -634,7 +634,7 @@ public class MerkleHashTrieTest {
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
-		MerkleTree merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
+		MerkleHashTrie merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
 		HashDigest rootHash0 = merkleTree.getRootHash();
 		assertNotNull(rootHash0);
 		assertEquals(count, merkleTree.getTotalKeys());
@@ -702,7 +702,7 @@ public class MerkleHashTrieTest {
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
-		MerkleTree merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
+		MerkleHashTrie merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
 		HashDigest rootHash0 = merkleTree.getRootHash();
 		assertNotNull(rootHash0);
 		assertEquals(count, merkleTree.getTotalKeys());
@@ -1689,7 +1689,7 @@ public class MerkleHashTrieTest {
 		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
 		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
-		MerkleTree merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
+		MerkleHashTrie merkleTree = newMerkleTree_with_committed(datas, cryptoSetting, storage);
 		HashDigest rootHash0 = merkleTree.getRootHash();
 		assertNotNull(rootHash0);
 

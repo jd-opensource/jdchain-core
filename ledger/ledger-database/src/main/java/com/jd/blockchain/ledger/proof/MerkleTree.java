@@ -23,13 +23,6 @@ public interface MerkleTree extends Transactional {
 	long getTotalKeys();
 
 	/**
-	 * 记录的总数；包括了一个键的不同版本；
-	 * 
-	 * @return
-	 */
-	long getTotalRecords();
-
-	/**
 	 * 返回指定 key 最新版本的默克尔证明；
 	 * <p>
 	 * 默克尔证明的根哈希为当前默克尔树的根哈希；<br>

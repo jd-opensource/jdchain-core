@@ -121,7 +121,6 @@ public class MerkleHashTrie implements Iterable<MerkleDataEntry>, MerkleTree {
 		return root.getTotalKeys();
 	}
 
-	@Override
 	public long getTotalRecords() {
 		return root.getTotalRecords();
 	}

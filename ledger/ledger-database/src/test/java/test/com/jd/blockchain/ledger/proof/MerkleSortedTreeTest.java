@@ -24,7 +24,7 @@ import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.proof.MerkleSortedTree;
-import com.jd.blockchain.ledger.proof.MerkleSortedTree.MerkleData;
+import com.jd.blockchain.ledger.proof.MerkleSortedTree.ValueEntry;
 import com.jd.blockchain.ledger.proof.MerkleTreeKeyExistException;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.ArrayUtils;
@@ -113,7 +113,7 @@ public class MerkleSortedTreeTest {
 		MerkleSortedTree mst = new MerkleSortedTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		// 验证空的迭代器；
-		SkippingIterator<MerkleData> iter = mst.iterator();
+		SkippingIterator<ValueEntry> iter = mst.iterator();
 
 		assertEquals(0, iter.getTotalCount());
 		assertEquals(-1, iter.getCursor());
@@ -132,7 +132,7 @@ public class MerkleSortedTreeTest {
 		assertTrue(iter.hasNext());
 		int i = 0;
 		while (iter.hasNext()) {
-			MerkleData merkleData = iter.next();
+			ValueEntry merkleData = iter.next();
 			assertNotNull(merkleData);
 			assertEquals(ids1[i], merkleData.getId());
 			i++;
@@ -159,7 +159,7 @@ public class MerkleSortedTreeTest {
 		assertTrue(iter.hasNext());
 		i = 0;
 		while (iter.hasNext()) {
-			MerkleData merkleData = iter.next();
+			ValueEntry merkleData = iter.next();
 			assertNotNull(merkleData);
 			assertEquals(totalIds[i], merkleData.getId());
 			i++;
@@ -177,7 +177,7 @@ public class MerkleSortedTreeTest {
 		index += skipped;
 		assertEquals(index, iter.getCursor());
 
-		MerkleData merkleData = iter.next();
+		ValueEntry merkleData = iter.next();
 		index++;
 		assertEquals(index, iter.getCursor());
 		assertNotNull(merkleData);
@@ -361,7 +361,7 @@ public class MerkleSortedTreeTest {
 		MerkleSortedTree mst = new MerkleSortedTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		// 验证空的迭代器；
-		SkippingIterator<MerkleData> iter = mst.iterator();
+		SkippingIterator<ValueEntry> iter = mst.iterator();
 
 		assertEquals(0, iter.getTotalCount());
 		assertEquals(-1, iter.getCursor());
@@ -490,7 +490,7 @@ public class MerkleSortedTreeTest {
 		int i;
 		for (i = 0; i < ids.length; i++) {
 			long id = ids[i];
-			MerkleData mdata = mst.get(id);
+			ValueEntry mdata = mst.get(id);
 			assertNotNull(mdata);
 			assertEquals(id, mdata.getId());
 
