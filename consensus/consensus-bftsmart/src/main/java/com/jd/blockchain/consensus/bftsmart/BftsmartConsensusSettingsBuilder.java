@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.StringTokenizer;
 
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.ledger.ParticipantNode;
@@ -30,6 +29,12 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 	private static final String CONFIG_TEMPLATE_FILE = "bftsmart.config";
 
 	private static final String CONFIG_LEDGER_INIT = "ledger.init";
+
+	public static final String PARTICIPANT_OP_KEY = "participant.op";
+
+	public static final String DEACTIVE_PARTICIPANT_ID_KEY = "deactive.participant.id";
+	
+	public static final String ACTIVE_PARTICIPANT_ID_KEY = "active.participant.id";
 
 	/**
 	 * 参数键：节点数量；
@@ -246,7 +251,7 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
         if (newProps != null) {
             // update system config and node settings
             Property[] systemConfigs = modifySystemProperties(((BftsmartConsensusSettings) oldConsensusSettings).getSystemConfigs(), newProps);
-            if (newProps.getProperty(SERVER_VIEW_KEY) != null) {
+            if (newProps.getProperty(PARTICIPANT_OP_KEY) != null) {
 
                 // in active new participant's case, update nodesetting and view id
                 BftsmartNodeSettings[] newNodeSettings = createNewNodeSetting(oldConsensusSettings.getNodes(), newProps);
@@ -264,48 +269,38 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 
         BftsmartNodeSettings[] bftsmartNodeSettings = null;
 
-		bftsmartNodeSettings = new BftsmartNodeSettings[oldNodeSettings.length + 1];
+		if (newProps.getProperty(PARTICIPANT_OP_KEY).equals("active")) {
 
-        String serversView = newProps.getProperty(SERVER_VIEW_KEY);
+			int activeId = Integer.parseInt(newProps.getProperty(ACTIVE_PARTICIPANT_ID_KEY));
 
-		StringTokenizer str = new StringTokenizer(serversView, ",");
-		int[] initialView = new int[str.countTokens()];
+			bftsmartNodeSettings = new BftsmartNodeSettings[oldNodeSettings.length + 1];
 
-		for (int i = 0; i < initialView.length; i++) {
-			initialView[i] = Integer.parseInt(str.nextToken());
+			// organize new participant node
+			String host = newProps.getProperty(keyOfNode(CONSENSUS_HOST_PATTERN, activeId));
+			int port = Integer.parseInt(newProps.getProperty(keyOfNode(CONSENSUS_PORT_PATTERN, activeId)));
+			PubKey pubKey = new PubKey(Base58Utils.decode(newProps.getProperty(keyOfNode(PUBKEY_PATTERN, activeId))));
+			BftsmartNodeConfig bftsmartNodeConfig = new BftsmartNodeConfig(pubKey, activeId, new NetworkAddress(host, port));
+
+			for (int i = 0; i < oldNodeSettings.length; i++) {
+				bftsmartNodeSettings[i] = (BftsmartNodeSettings) oldNodeSettings[i];
+			}
+
+			bftsmartNodeSettings[oldNodeSettings.length] = bftsmartNodeConfig;
+
+		} else if (newProps.getProperty(PARTICIPANT_OP_KEY).equals("deactive")) {
+			int deActiveId = Integer.parseInt(newProps.getProperty(DEACTIVE_PARTICIPANT_ID_KEY));
+
+			bftsmartNodeSettings = new BftsmartNodeSettings[oldNodeSettings.length - 1];
+			int j = 0;
+			for (int i = 0; i < oldNodeSettings.length; i++) {
+				BftsmartNodeSettings bftsmartNodeSetting = (BftsmartNodeSettings) oldNodeSettings[i];
+				if (bftsmartNodeSetting.getId() != deActiveId) {
+					bftsmartNodeSettings[j++] = bftsmartNodeSetting;
+				}
+			}
+		} else {
+			throw new IllegalArgumentException("createNewNodeSetting properties error!");
 		}
-
-		// get activate id from system.initial.view property
-		int activeId = -1;
-        for (int i = 0; i < initialView.length; i++) {
-            boolean found = false;
-
-            for (int j = 0; j < oldNodeSettings.length; j++) {
-                bftsmartNodeSettings[j] = (BftsmartNodeSettings) oldNodeSettings[j];
-                if (bftsmartNodeSettings[j].getId() == initialView[i]) {
-                   found = true;
-                   break;
-                }
-            }
-
-            if (!found) {
-                activeId = initialView[i];
-                break;
-            }
-        }
-
-        // organize new participant node
-        String host = newProps.getProperty(keyOfNode(CONSENSUS_HOST_PATTERN, activeId));
-        int port = Integer.parseInt(newProps.getProperty(keyOfNode(CONSENSUS_PORT_PATTERN, activeId)));
-        PubKey pubKey = new PubKey(Base58Utils.decode(newProps.getProperty(keyOfNode(PUBKEY_PATTERN, activeId))));
-
-        BftsmartNodeConfig bftsmartNodeConfig = new BftsmartNodeConfig(pubKey, activeId, new NetworkAddress(host, port));
-
-		for (int i = 0; i < oldNodeSettings.length; i++) {
-			bftsmartNodeSettings[i] = (BftsmartNodeSettings) oldNodeSettings[i];
-		}
-
-		bftsmartNodeSettings[oldNodeSettings.length] = bftsmartNodeConfig;
 
 		return bftsmartNodeSettings;
 	}
@@ -317,14 +312,35 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 	 */
 	private Property[] modifySystemProperties(Property[] systemProperties, Properties newProps) {
 
-		Map<String, Property> propertyMap = convert2Map(systemProperties);
+		Map<String, Property> propertyMapOrig = convert2Map(systemProperties);
+
+		Map<String, Property> propertyMapNew = new HashMap<>();
 
 		Property[] properties = PropertiesUtils.getOrderedValues(newProps);
 
-		for (Property property: properties) {
-			propertyMap.put(property.getName(), new Property(property.getName(), property.getValue()));
+		if (newProps.getProperty(PARTICIPANT_OP_KEY).equals("deactive")) {
+			String deActiveId = newProps.getProperty(DEACTIVE_PARTICIPANT_ID_KEY);
+
+			for (String  key : propertyMapOrig.keySet()) {
+				if (key.startsWith(keyOfNode(CONSENSUS_HOST_PATTERN, Integer.parseInt(deActiveId)))
+						|| key.startsWith(keyOfNode(CONSENSUS_PORT_PATTERN, Integer.parseInt(deActiveId)))
+						|| key.startsWith(keyOfNode(CONSENSUS_SECURE_PATTERN, Integer.parseInt(deActiveId)))
+						|| key.startsWith(keyOfNode(PUBKEY_PATTERN, Integer.parseInt(deActiveId)))) {
+					continue;
+				}
+				propertyMapNew.put(key, propertyMapOrig.get(key));
+			}
+
+			for (Property property : properties) {
+				propertyMapNew.put(property.getName(), new Property(property.getName(), property.getValue()));
+			}
+		} else {
+			propertyMapNew = propertyMapOrig;
+			for (Property property : properties) {
+				propertyMapNew.put(property.getName(), new Property(property.getName(), property.getValue()));
+			}
 		}
-		return convert2Array(propertyMap);
+		return convert2Array(propertyMapNew);
 	}
 
 	private Map<String, Property> convert2Map(Property[] properties) {
