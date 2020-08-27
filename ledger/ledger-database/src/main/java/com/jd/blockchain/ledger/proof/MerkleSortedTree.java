@@ -538,7 +538,7 @@ public class MerkleSortedTree implements Transactional {
 		return path;
 	}
 
-	private void updateChild(MerklePathNode parent, int index, HashDigest childHash, MerkleEntry child) {
+	private void updateChild(MerklePathNode parent, int index, HashDigest childHash, IndexEntry child) {
 		// 检查是否有子项，如果有，则需要合并子项；
 		MerkleEntry origChild = parent.getChildAtIndex(index);
 		if (origChild == null) {
@@ -550,25 +550,38 @@ public class MerkleSortedTree implements Transactional {
 		MerkleEntry newChild;
 		if (origChild instanceof ValueEntry) {
 			ValueEntry origData = (ValueEntry) origChild;
-			if (child instanceof ValueEntry) {
-				ValueEntry newData = (ValueEntry) child;
-				if (origData.getId() == newData.getId()) {
-					newChild = updateData(origData, newData);
-				} else {
-					newChild = mergeChildren(origChildHash, origData, childHash, (ValueEntry) child);
-				}
+			newChild = mergeChildren(origChildHash, origData, childHash, (IndexEntry) child);
+		} else {
+			IndexEntry origPath = (IndexEntry) origChild;
+			newChild = mergeChildren(childHash, (IndexEntry) child, origChildHash, origPath);
+		}
+
+		parent.setChildAtIndex(index, null, newChild);
+	}
+	
+	private void updateChild(MerklePathNode parent, int index, HashDigest childHash, ValueEntry child) {
+		// 检查是否有子项，如果有，则需要合并子项；
+		MerkleEntry origChild = parent.getChildAtIndex(index);
+		if (origChild == null) {
+			parent.setChildAtIndex(index, childHash, child);
+			return;
+		}
+		// 合并；
+		HashDigest origChildHash = parent.getChildHashAtIndex(index);
+		MerkleEntry newChild;
+		if (origChild instanceof ValueEntry) {
+			ValueEntry origData = (ValueEntry) origChild;
+			ValueEntry newData = (ValueEntry) child;
+			if (origData.getId() == newData.getId()) {
+				newChild = updateData(origData, newData);
 			} else {
-				newChild = mergeChildren(origChildHash, origData, childHash, (IndexEntry) child);
+				newChild = mergeChildren(origChildHash, origData, childHash, (ValueEntry) child);
 			}
 		} else {
 			IndexEntry origPath = (IndexEntry) origChild;
-			if (child instanceof ValueEntry) {
-				newChild = mergeChildren(childHash, (ValueEntry) child, origChildHash, origPath);
-			} else {
-				newChild = mergeChildren(childHash, (IndexEntry) child, origChildHash, origPath);
-			}
+			newChild = mergeChildren(childHash, (ValueEntry) child, origChildHash, origPath);
 		}
-
+		
 		parent.setChildAtIndex(index, null, newChild);
 	}
 
@@ -590,7 +603,12 @@ public class MerkleSortedTree implements Transactional {
 		byte[] nodeBytes = loadNodeBytes(nodeHash);
 		MerkleEntry merkleEntry = BinaryProtocol.decode(nodeBytes);
 		if (setting.getAutoVerifyHash()) {
-			verifyHash(nodeHash, nodeBytes, "Merkle hash verification fail! -- NodeHash=" + nodeHash.toBase58());
+			if (merkleEntry instanceof ValueEntry) {
+				byte[] bytes = ((ValueEntry) merkleEntry).getBytes();
+				verifyHash(nodeHash, bytes, "Merkle hash verification fail! -- NodeHash=" + nodeHash.toBase58());
+			}else {
+				verifyHash(nodeHash, nodeBytes, "Merkle hash verification fail! -- NodeHash=" + nodeHash.toBase58());
+			}
 		}
 		return merkleEntry;
 	}
@@ -608,11 +626,19 @@ public class MerkleSortedTree implements Transactional {
 
 	private HashDigest saveData(ValueEntry data) {
 		byte[] dataNodeBytes = BinaryProtocol.encode(data, ValueEntry.class);
-		HashDigest dataEntryHash = DEFAULT_HASH_FUNCTION.hash(dataNodeBytes);
-
+		HashDigest dataEntryHash = DEFAULT_HASH_FUNCTION.hash(data.getBytes());
+		
 		saveNodeBytes(dataEntryHash, dataNodeBytes);
 
 		return dataEntryHash;
+	}
+	
+	private HashDigest saveIndex(IndexEntry indexEntry) {
+		byte[] nodeBytes = BinaryProtocol.encode(indexEntry, IndexEntry.class);
+		HashDigest hash = DEFAULT_HASH_FUNCTION.hash(nodeBytes);
+		saveNodeBytes(hash, nodeBytes);
+		
+		return hash;
 	}
 
 	/**
@@ -1069,9 +1095,7 @@ public class MerkleSortedTree implements Transactional {
 			}
 
 			// save;
-			byte[] nodeBytes = BinaryProtocol.encode(this, IndexEntry.class);
-			HashDigest hash = tree.DEFAULT_HASH_FUNCTION.hash(nodeBytes);
-			tree.saveNodeBytes(hash, nodeBytes);
+			HashDigest hash = tree.saveIndex(this);
 
 			// update hash;
 			for (int i = 0; i < tree.DEGREE; i++) {
