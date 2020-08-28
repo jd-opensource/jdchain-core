@@ -1,11 +1,15 @@
 package com.jd.blockchain.peer.consensus;
 
 import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.blockchain.consensus.BlockStateSnapshot;
+import com.jd.blockchain.consensus.service.ConsensusContext;
+import com.jd.blockchain.consensus.service.ConsensusMessageContext;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.OperationResult;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.ledger.core.LedgerEditor;
 import com.jd.blockchain.ledger.core.TransactionBatchProcessor;
 import com.jd.blockchain.ledger.core.TransactionEngineImpl;
 import com.jd.blockchain.service.TransactionBatchProcess;
@@ -39,7 +43,6 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 @Component
 public class ConsensusMessageDispatcher implements MessageHandle {
-	private Logger logger = LoggerFactory.getLogger(ConsensusMessageDispatcher.class);
 
 	@Autowired
 	private TransactionEngine txEngine;
@@ -55,7 +58,8 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 	}
 
 	@Override
-	public String beginBatch(String realmName) {
+	public String beginBatch(ConsensusContext consensusContext) {
+		String realmName = realmName(consensusContext);
 		RealmProcessor realmProcessor = realmProcessorMap.get(realmName);
 		if (realmProcessor == null) {
 			beginLock.lock();
@@ -73,33 +77,31 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 	}
 
 	@Override
-	public StateSnapshot getStateSnapshot(String realmName) {
-		RealmProcessor realmProcessor = realmProcessorMap.get(realmName);
+	public StateSnapshot getStateSnapshot(ConsensusContext consensusContext) {
+		RealmProcessor realmProcessor = realmProcessorMap.get(realmName(consensusContext));
 		if (realmProcessor == null) {
 			throw new IllegalArgumentException("RealmName is not init!");
 		}
-
 		return realmProcessor.getStateSnapshot();
-
 	}
 
 	@Override
-	public StateSnapshot getGenisStateSnapshot(String realmName) {
-		RealmProcessor realmProcessor = realmProcessorMap.get(realmName);
+	public StateSnapshot getGenesisStateSnapshot(ConsensusContext consensusContext) {
+		RealmProcessor realmProcessor = realmProcessorMap.get(realmName(consensusContext));
 		if (realmProcessor == null) {
 			throw new IllegalArgumentException("RealmName is not init!");
 		}
-		return realmProcessor.getGenisStateSnapshot();
+		return realmProcessor.getGenesisStateSnapshot();
 	}
 
 	@Override
-	public AsyncFuture<byte[]> processOrdered(int messageId, byte[] message, String realmName, String batchId) {
+	public AsyncFuture<byte[]> processOrdered(int messageId, byte[] message, ConsensusMessageContext context) {
 		// TODO 要求messageId在同一个批次不重复，但目前暂不验证
-		RealmProcessor realmProcessor = realmProcessorMap.get(realmName);
+		RealmProcessor realmProcessor = realmProcessorMap.get(realmName(context));
 		if (realmProcessor == null) {
 			throw new IllegalArgumentException("RealmName is not init!");
 		}
-		if (!realmProcessor.getCurrBatchId().equalsIgnoreCase(batchId)) {
+		if (!realmProcessor.getCurrBatchId().equalsIgnoreCase(batchId(context))) {
 			throw new IllegalArgumentException("BatchId is not begin!");
 		}
 		TransactionRequest txRequest = BinaryProtocol.decode(message);
@@ -107,44 +109,40 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 	}
 
 	@Override
-	public StateSnapshot completeBatch(String realmName, String batchId) {
-		RealmProcessor realmProcessor = realmProcessorMap.get(realmName);
+	public StateSnapshot completeBatch(ConsensusMessageContext context) {
+		RealmProcessor realmProcessor = realmProcessorMap.get(realmName(context));
 		if (realmProcessor == null) {
 			throw new IllegalArgumentException("RealmName is not init!");
 		}
-		if (!realmProcessor.getCurrBatchId().equalsIgnoreCase(batchId)) {
+		if (!realmProcessor.getCurrBatchId().equalsIgnoreCase(batchId(context))) {
 			throw new IllegalArgumentException("BatchId is not begin!");
 		}
-		return realmProcessor.complete();
+		return realmProcessor.complete(context.getTimestamp());
 	}
 
 	@Override
-	public void commitBatch(String realmName, String batchId) {
-		RealmProcessor realmProcessor = realmProcessorMap.get(realmName);
+	public void commitBatch(ConsensusMessageContext context) {
+		RealmProcessor realmProcessor = realmProcessorMap.get(realmName(context));
 		if (realmProcessor == null) {
 			throw new IllegalArgumentException("RealmName is not init!");
 		}
-		if (!realmProcessor.getCurrBatchId().equalsIgnoreCase(batchId)) {
+		if (!realmProcessor.getCurrBatchId().equalsIgnoreCase(batchId(context))) {
 			throw new IllegalArgumentException("BatchId is not begin!");
 		}
 
-		logger.debug("before realmProcessor.commit(),[batchId={}]",batchId);
 		realmProcessor.commit();
-		logger.debug("after realmProcessor.commit(),[batchId={}]",batchId);
-//		realmProcessorMap.remove(realmName);
 	}
 
 	@Override
-	public void rollbackBatch(String realmName, String batchId, int reasonCode) {
-		RealmProcessor realmProcessor = realmProcessorMap.get(realmName);
+	public void rollbackBatch(int reasonCode, ConsensusMessageContext context) {
+		RealmProcessor realmProcessor = realmProcessorMap.get(realmName(context));
 		if (realmProcessor == null) {
 			throw new IllegalArgumentException("RealmName is not init!");
 		}
-		if (!realmProcessor.getCurrBatchId().equalsIgnoreCase(batchId)) {
+		if (!realmProcessor.getCurrBatchId().equalsIgnoreCase(batchId(context))) {
 			throw new IllegalArgumentException("BatchId is not begin!");
 		}
 		realmProcessor.rollback(reasonCode);
-//		realmProcessorMap.remove(realmName);
 	}
 
 	@Override
@@ -162,13 +160,19 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 		return realmProcessor;
 	}
 
+	private String realmName(ConsensusContext consensusContext) {
+		return consensusContext.getRealmName();
+	}
+
+	private String batchId(ConsensusMessageContext context) {
+	    return context.getBatchId();
+    }
+
 	private final class RealmProcessor {
 
 		private final Lock realmLock = new ReentrantLock();
 
 		private String currBatchId;
-
-		private final ExecutorService txExecutor = Executors.newSingleThreadExecutor();
 
 		// todo 暂不处理队列溢出导致的OOM问题
 		private final ExecutorService asyncBlExecutor = Executors.newSingleThreadExecutor();
@@ -179,9 +183,7 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 
 		private final AtomicLong batchIdIndex = new AtomicLong();
 
-		private LedgerBlock currBlock;
-
-        private TransactionBatchProcess txBatchProcess;
+		private TransactionBatchProcess txBatchProcess;
 
 		HashDigest ledgerHash;
 
@@ -226,46 +228,40 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 		}
 
 		public StateSnapshot getStateSnapshot() {
-			return new BlockStateSnapshot(((TransactionBatchProcessor)getTxBatchProcess()).getPreLatestBlockHeight(), ((TransactionBatchProcessor)getTxBatchProcess()).getPrevLatestBlockHash());
+			TransactionBatchProcess txBatchProcess = getTxBatchProcess();
+			if (txBatchProcess instanceof TransactionBatchProcessor) {
+				LedgerBlock block = ((TransactionBatchProcessor) txBatchProcess).getLatestBlock();
+				return new BlockStateSnapshot(block.getHeight(), block.getTimestamp(), block.getHash());
+			} else {
+				throw new IllegalStateException("Tx batch process is not instance of TransactionBatchProcessor !!!");
+			}
 		}
 
-		public StateSnapshot getGenisStateSnapshot() {
-			return new BlockStateSnapshot(0, ((TransactionBatchProcessor)getTxBatchProcess()).getGenisBlockHash());
+		public StateSnapshot getGenesisStateSnapshot() {
+			TransactionBatchProcess txBatchProcess = getTxBatchProcess();
+			if (txBatchProcess instanceof TransactionBatchProcessor) {
+				LedgerBlock block = ((TransactionBatchProcessor) txBatchProcess).getGenesisBlock();
+				return new BlockStateSnapshot(block.getHeight(), block.getTimestamp(), block.getHash());
+			} else {
+				throw new IllegalStateException("Tx batch process is not instance of TransactionBatchProcessor !!!");
+			}
 		}
 
 		public AsyncFuture<byte[]> schedule(TransactionRequest txRequest) {
 			CompletableAsyncFuture<byte[]> asyncTxResult = new CompletableAsyncFuture<>();
 			TransactionResponse resp = getTxBatchProcess().schedule(txRequest);
 			txResponseMap.put(resp, asyncTxResult);
-//			txExecutor.execute(() -> {
-//				TransactionResponse resp = getTxBatchProcess().schedule(txRequest);
-//				txResponseMap.put(resp, asyncTxResult);
-//			});
 			return asyncTxResult;
 		}
 
-		public StateSnapshot complete() {
+		public StateSnapshot complete(long timestamp) {
+			LedgerEditor.TIMESTAMP_HOLDER.set(timestamp);
 			batchResultHandle = getTxBatchProcess().prepare();
-			currBlock = batchResultHandle.getBlock();
+			LedgerBlock currBlock = batchResultHandle.getBlock();
 			long blockHeight = currBlock.getHeight();
 			HashDigest blockHash = currBlock.getHash();
 			asyncBlExecute(new HashMap<>(txResponseMap), blockHeight, blockHash);
-			BlockStateSnapshot blockStateSnapshot = new BlockStateSnapshot(blockHeight, blockHash);
-			return blockStateSnapshot;
-
-//
-//
-//			CompletableAsyncFuture<StateSnapshot> asyncStateSnapshot = new CompletableAsyncFuture<>();
-//			txExecutor.execute(() -> {
-//				batchResultHandle = getTxBatchProcess().prepare();
-//				currBlock = batchResultHandle.getBlock();
-//				long blockHeight = currBlock.getHeight();
-//				HashDigest blockHash = currBlock.getHash();
-//				asyncBlExecute(new HashMap<>(txResponseMap), blockHeight, blockHash);
-//				BlockStateSnapshot blockStateSnapshot = new BlockStateSnapshot(blockHeight, blockHash);
-//				asyncStateSnapshot.complete(blockStateSnapshot);
-//			});
-//			return asyncStateSnapshot.get();
+			return new BlockStateSnapshot(blockHeight, currBlock.getTimestamp(), blockHash);
 		}
 
 		public void commit() {
@@ -278,9 +274,10 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 				currBatchId = null;
 				txResponseMap = null;
 				txBatchProcess = null;
-				batchResultHandle =null;
+				batchResultHandle = null;
 			} finally {
 				realmLock.unlock();
+				LedgerEditor.TIMESTAMP_HOLDER.remove();
 			}
 		}
 
@@ -288,16 +285,25 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 			realmLock.lock();
 			try {
 				if (batchResultHandle != null) {
-					batchResultHandle.cancel(TransactionState.valueOf((byte)reasonCode));
+					batchResultHandle.cancel(TransactionState.valueOf((byte) reasonCode));
 				}
 				currBatchId = null;
 				txResponseMap = null;
 				txBatchProcess = null;
-				batchResultHandle =  null;
-				((TransactionEngineImpl) (txEngine)).freeBatch(ledgerHash);
-				((TransactionEngineImpl) (txEngine)).resetNewBlockEditor(ledgerHash);
+				batchResultHandle = null;
+				if (txEngine != null && txEngine instanceof TransactionEngineImpl) {
+					((TransactionEngineImpl) txEngine).freeBatch(ledgerHash);
+					((TransactionEngineImpl) txEngine).resetNewBlockEditor(ledgerHash);
+				} else {
+					if (txEngine == null) {
+						throw new IllegalStateException("You should init txEngine first !!!");
+					} else {
+						throw new IllegalStateException("TxEngine is not instance of TransactionEngineImpl !!!");
+					}
+				}
 			} finally {
 				realmLock.unlock();
+				LedgerEditor.TIMESTAMP_HOLDER.remove();
 			}
 		}
 
@@ -363,32 +369,6 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 			@Override
 			public OperationResult[] getOperationResults() {
 				return txResp.getOperationResults();
-			}
-		}
-
-		private final class BlockStateSnapshot implements StateSnapshot {
-
-			private long id;
-
-			private byte[] snapshotBytes;
-
-			public BlockStateSnapshot(long id, byte[] snapshotBytes) {
-				this.id = id;
-				this.snapshotBytes = snapshotBytes;
-			}
-
-			public BlockStateSnapshot(long id, HashDigest hash) {
-				this(id, hash.toBytes());
-			}
-
-			@Override
-			public long getId() {
-				return id;
-			}
-
-			@Override
-			public byte[] getSnapshot() {
-				return snapshotBytes;
 			}
 		}
 	}

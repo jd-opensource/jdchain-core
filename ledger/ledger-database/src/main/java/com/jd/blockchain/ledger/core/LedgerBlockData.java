@@ -163,6 +163,7 @@ public class LedgerBlockData implements LedgerBlock {
 		this.ledgerHash = ledgerHash;
 	}
 
+	@Override
 	public long getTimestamp() {
 		return timestamp;
 	}

@@ -18,7 +18,7 @@ import com.jd.blockchain.transaction.SignatureUtils;
 import com.jd.blockchain.transaction.TxBuilder;
 import com.jd.blockchain.transaction.TxResponseMessage;
 
-public class TransactionBatchProcessor implements TransactionBatchProcess {
+public class TransactionBatchProcessor implements TransactionBatchProcess, BlockQuery {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TransactionBatchProcessor.class);
 
@@ -38,22 +38,6 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 	private List<TransactionResponse> responseList = new ArrayList<>();
 
 	private TransactionBatchResult batchResult;
-
-	public byte[] getPrevLatestBlockHash() {
-		return ledger.getLatestBlockHash().toBytes();
-	}
-
-	public byte[] getGenisBlockHash() {
-		return ledger.getBlockHash(0).toBytes();
-	}
-
-	public long getPreLatestBlockHeight() {
-		return ledger.getLatestBlockHeight();
-	}
-
-	public HashDigest getLedgerHash() {
-		return ledger.getHash();
-	}
 
 	/**
 	 * @param newBlockEditor 新区块的数据编辑器；
@@ -93,6 +77,21 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 //				handlesRegisteration);
 //		return processor;
 //	}
+
+	@Override
+	public HashDigest getLedgerHash() {
+		return ledger.getHash();
+	}
+
+	@Override
+	public LedgerBlock getLatestBlock() {
+		return ledger.getLatestBlock();
+	}
+
+	@Override
+	public LedgerBlock getGenesisBlock() {
+		return ledger.getBlock(0L);
+	}
 
 	/*
 	 * (non-Javadoc)
