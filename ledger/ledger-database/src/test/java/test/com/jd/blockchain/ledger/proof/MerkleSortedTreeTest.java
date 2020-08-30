@@ -490,14 +490,13 @@ public class MerkleSortedTreeTest {
 		int i;
 		for (i = 0; i < ids.length; i++) {
 			long id = ids[i];
-			ValueEntry mdata = mst.get(id);
+			byte[] mdata = mst.get(id);
 			assertNotNull(mdata);
-			assertEquals(id, mdata.getId());
 
 			HashDigest dataHash = HASH_FUNCTION.hash(datas[i]);
-			HashDigest dataHash1 = HASH_FUNCTION.hash(mdata.getBytes());
+			HashDigest dataHash1 = HASH_FUNCTION.hash(mdata);
 			assertEquals(dataHash, dataHash1);
-			assertArrayEquals(datas[i], mdata.getBytes());
+			assertArrayEquals(datas[i], mdata);
 		}
 	}
 

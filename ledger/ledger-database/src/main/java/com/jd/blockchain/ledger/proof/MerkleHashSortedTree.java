@@ -1,6 +1,5 @@
 package com.jd.blockchain.ledger.proof;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContract;
 import com.jd.blockchain.binaryproto.DataField;
 import com.jd.blockchain.binaryproto.NumberEncoding;
@@ -9,7 +8,6 @@ import com.jd.blockchain.consts.DataCodes;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.proof.MerkleSortedTree.ValueEntry;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.SkippingIterator;
@@ -246,8 +244,9 @@ public class MerkleHashSortedTree implements MerkleTree {
 		}
 
 		@Override
-		protected ValueEntry updateData(ValueEntry origValue, ValueEntry newValue) {
-			return super.updateData(origValue, newValue);
+		protected byte[] updateData(long id, byte[] origData, byte[] newData) {
+			// TODO Auto-generated method stub
+			return super.updateData(id, origData, newData);
 		}
 
 	}
@@ -271,33 +270,6 @@ public class MerkleHashSortedTree implements MerkleTree {
 
 	}
 
-	private static class KeyValueEntry implements ValueEntry {
-
-		private MerkleDataEntry value;
-
-		private long id;
-
-		public KeyValueEntry(long id, Bytes key, long version, Bytes value) {
-			this.id = id;
-			this.value = new DataEntry(key, version, value);
-		}
-
-		public KeyValueEntry(long id, MerkleDataEntry value) {
-			this.id = id;
-			this.value = value;
-		}
-
-//		@Override
-		public long getId() {
-			return id;
-		}
-
-		@Override
-		public byte[] getBytes() {
-			return BinaryProtocol.encode(value, MerkleDataEntry.class);
-		}
-
-	}
 
 	private static class DataEntry implements MerkleDataEntry {
 
@@ -324,29 +296,6 @@ public class MerkleHashSortedTree implements MerkleTree {
 		@Override
 		public Bytes getValue() {
 			return value;
-		}
-
-	}
-
-	private static class KeySetEntry implements ValueEntry {
-
-		private HashKeySet keyset;
-
-		private long id;
-
-		public KeySetEntry(long id, HashKeySet keyset) {
-			this.id = id;
-			this.keyset = keyset;
-		}
-
-		@Override
-		public long getId() {
-			return id;
-		}
-
-		@Override
-		public byte[] getBytes() {
-			return BinaryProtocol.encode(keyset, HashKeySet.class);
 		}
 
 	}
