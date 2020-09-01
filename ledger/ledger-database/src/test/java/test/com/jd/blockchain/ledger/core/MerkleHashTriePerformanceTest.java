@@ -11,7 +11,7 @@ import com.jd.blockchain.ledger.proof.MerkleHashTrie;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.Bytes;
 
-public class MerkleTreePerformanceTest {
+public class MerkleHashTriePerformanceTest {
 
 	@Test
 	public void test() {
@@ -46,7 +46,7 @@ public class MerkleTreePerformanceTest {
 	}
 
 	private void testPerformace1(int round, int count) {
-		System.out.printf("------------- Performance test: HashSortingMerkleTree --------------\r\n", round, count);
+		System.out.printf("------------- Performance test: MerkleHashTrie --------------\r\n", round, count);
 
 		CryptoSetting setting = LedgerTestUtils.createDefaultCryptoSetting();
 		Bytes prefix = Bytes.fromString(LedgerTestUtils.LEDGER_KEY_PREFIX);

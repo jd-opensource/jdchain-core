@@ -23,7 +23,6 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.CryptoSetting;
-import com.jd.blockchain.ledger.proof.BytesConverter;
 import com.jd.blockchain.ledger.proof.MerkleSortTree;
 import com.jd.blockchain.ledger.proof.MerkleSortTree.ValueEntry;
 import com.jd.blockchain.ledger.proof.MerkleTreeKeyExistException;
@@ -292,7 +291,7 @@ public class MerkleSortedTreeTest {
 	 */
 	@Test
 	public void testImmutability() {
-		MerkleSortTree mst1 = newMerkleSortedTree();
+		MerkleSortTree<byte[]> mst1 = newMerkleSortedTree();
 
 		// 创建基准数据；
 		int count = 10253;
@@ -305,7 +304,7 @@ public class MerkleSortedTreeTest {
 		long[] ids2 = ids1.clone();
 		ArrayUtils.reverse(datas2);
 		ArrayUtils.reverse(ids2);
-		MerkleSortTree mst2 = newMerkleSortedTree();
+		MerkleSortTree<byte[]> mst2 = newMerkleSortedTree();
 		addDatas(ids2, datas2, mst2);
 		assertEquals(mst1.getRootHash(), mst2.getRootHash());
 
@@ -313,7 +312,7 @@ public class MerkleSortedTreeTest {
 		byte[][] datas3 = datas1.clone();
 		long[] ids3 = ids1.clone();
 		resortRandomly(ids3, datas3);
-		MerkleSortTree mst3 = newMerkleSortedTree();
+		MerkleSortTree<byte[]> mst3 = newMerkleSortedTree();
 		addDatas(ids3, datas3, mst3);
 		assertEquals(mst1.getRootHash(), mst3.getRootHash());
 
@@ -322,7 +321,7 @@ public class MerkleSortedTreeTest {
 		long[] ids4 = ids1.clone();
 		resortRandomly(ids4, datas4);
 
-		MerkleSortTree mst4 = newMerkleSortedTree();
+		MerkleSortTree<byte[]> mst4 = newMerkleSortedTree();
 		assertNull(mst4.getRootHash());
 
 		int count4_1 = 1024;

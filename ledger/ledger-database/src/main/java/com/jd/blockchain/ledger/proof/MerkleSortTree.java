@@ -24,7 +24,6 @@ import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.MathUtils;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
-import com.jd.blockchain.utils.io.BytesSerializable;
 
 /**
  * 默克尔排序树；
@@ -358,6 +357,7 @@ public class MerkleSortTree<T> implements Transactional {
 		// leaf node;
 		T child;
 		if (merkleIndex instanceof LeafNode) {
+			@SuppressWarnings("unchecked")
 			LeafNode<T> path = (LeafNode<T>) merkleIndex;
 			child = path.getChild(idx);
 		} else {
@@ -501,14 +501,17 @@ public class MerkleSortTree<T> implements Transactional {
 				updateChildAtIndex(parentNode, index, dataId, data);
 				return parentNode;
 			} else {
-				LeafNode parentNode;
+				// while PATH_STEP == 1, this index node is leaf;
 				if (indexNode instanceof LeafNode) {
-					parentNode = (LeafNode) indexNode;
+					@SuppressWarnings("unchecked")
+					LeafNode<T> parentNode = (LeafNode<T>) indexNode;
+					updateChildAtIndex(parentNode, index, dataId, data);
+					return parentNode;
 				} else {
-					parentNode = new LeafNode(indexNodeHash, indexNode, this);
+					LeafNode<T> parentNode = new LeafNode<T>(indexNodeHash, indexNode, this);
+					updateChildAtIndex(parentNode, index, dataId, data);
+					return parentNode;
 				}
-				updateChildAtIndex(parentNode, index, dataId, data);
-				return parentNode;
 			}
 		} else {
 			// 数据节点不从属于 pathNode 路径节点，它们有共同的父节点；
@@ -846,21 +849,6 @@ public class MerkleSortTree<T> implements Transactional {
 		 * @return
 		 */
 		byte[] getBytes();
-
-	}
-
-	private static class BytesValue implements BytesSerializable {
-
-		private byte[] value;
-
-		public BytesValue(byte[] value) {
-			this.value = value;
-		}
-
-		@Override
-		public byte[] toBytes() {
-			return value;
-		}
 
 	}
 
