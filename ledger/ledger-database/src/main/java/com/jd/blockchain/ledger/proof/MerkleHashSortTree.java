@@ -236,14 +236,15 @@ public class MerkleHashSortTree implements MerkleTree {
 	private static class HashSortedTree extends MerkleSortTree {
 
 		public HashSortedTree(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage) {
-			super(TreeDegree.D4, setting, keyPrefix, kvStorage);
+			super(TreeDegree.D4, setting, keyPrefix, kvStorage, new HashEntryConverter());
 		}
 
 		public HashSortedTree(HashDigest rootHash, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
-			super(rootHash, setting, keyPrefix, kvStorage);
+			super(rootHash, setting, keyPrefix, kvStorage, new HashEntryConverter());
 		}
 
 	}
+	
 
 	/**
 	 * 维护同一个 key 的多版本数据的子树；
@@ -251,17 +252,49 @@ public class MerkleHashSortTree implements MerkleTree {
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class VersioningDataTree extends MerkleSortTree {
+	private static class VersioningDataTree extends MerkleSortTree<DataEntry> {
 
 		public VersioningDataTree(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage) {
-			super(TreeDegree.D4, setting, keyPrefix, kvStorage);
+			super(TreeDegree.D4, setting, keyPrefix, kvStorage, new DataEntryConverter());
 		}
 
 		public VersioningDataTree(HashDigest rootHash, CryptoSetting setting, Bytes keyPrefix,
 				ExPolicyKVStorage kvStorage) {
-			super(rootHash, setting, keyPrefix, kvStorage);
+			super(rootHash, setting, keyPrefix, kvStorage, new DataEntryConverter());
 		}
 
+	}
+	
+	private static class HashEntryConverter implements BytesConverter<HashEntry>{
+
+		@Override
+		public byte[] toBytes(HashEntry value) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public HashEntry fromBytes(byte[] bytes) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+		
+	}
+	
+	private static class DataEntryConverter implements BytesConverter<DataEntry>{
+
+		@Override
+		public byte[] toBytes(DataEntry value) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public DataEntry fromBytes(byte[] bytes) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+		
 	}
 
 

@@ -23,6 +23,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.proof.BytesConverter;
 import com.jd.blockchain.ledger.proof.MerkleSortTree;
 import com.jd.blockchain.ledger.proof.MerkleSortTree.ValueEntry;
 import com.jd.blockchain.ledger.proof.MerkleTreeKeyExistException;
@@ -37,6 +38,7 @@ public class MerkleSortedTreeTest {
 	private static final CryptoAlgorithm HASH_ALGORITHM = ClassicAlgorithm.SHA256;
 
 	private static final HashFunction HASH_FUNCTION = Crypto.getHashFunction(HASH_ALGORITHM);
+	
 
 	/**
 	 * 测试顺序加入数据，是否能够得到
@@ -110,7 +112,7 @@ public class MerkleSortedTreeTest {
 	public void testIterator() {
 		CryptoSetting cryptoSetting = createCryptoSetting();
 		MemoryKVStorage storage = new MemoryKVStorage();
-		MerkleSortTree mst = new MerkleSortTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		// 验证空的迭代器；
 		SkippingIterator<ValueEntry> iter = mst.iterator();
@@ -250,7 +252,7 @@ public class MerkleSortedTreeTest {
 	public void testCounts() {
 		CryptoSetting cryptoSetting = createCryptoSetting();
 		MemoryKVStorage storage = new MemoryKVStorage();
-		MerkleSortTree mst = new MerkleSortTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+		MerkleSortTree<byte[]> mst =MerkleSortTree.createBytesTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		HashSet<Long> excludingIDs = new HashSet<Long>();
 
@@ -271,7 +273,7 @@ public class MerkleSortedTreeTest {
 
 		// 从存储中重新加载默克尔树，验证默克尔树中是否已经写入相同的数据；
 		HashDigest rootHash = mst.getRootHash();
-		mst = new MerkleSortTree(rootHash, cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+		mst = MerkleSortTree.createBytesTree(rootHash, cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
 		assertDataEquals(ids, datas, mst);
 
 		// 对重新加载的默克尔树持续写入，验证重复加载后持续写入的正确性；
@@ -358,7 +360,7 @@ public class MerkleSortedTreeTest {
 	public void testIdConfliction() {
 		CryptoSetting cryptoSetting = createCryptoSetting();
 		MemoryKVStorage storage = new MemoryKVStorage();
-		MerkleSortTree mst = new MerkleSortTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		// 验证空的迭代器；
 		SkippingIterator<ValueEntry> iter = mst.iterator();
@@ -448,10 +450,10 @@ public class MerkleSortedTreeTest {
 		testAddingAndAssertingEquals(ids, datas);
 	}
 
-	private static MerkleSortTree newMerkleSortedTree() {
+	private static MerkleSortTree<byte[]> newMerkleSortedTree() {
 		CryptoSetting cryptoSetting = createCryptoSetting();
 		MemoryKVStorage storage = new MemoryKVStorage();
-		MerkleSortTree mst = new MerkleSortTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		return mst;
 	}
@@ -459,7 +461,7 @@ public class MerkleSortedTreeTest {
 	private static void testAddingAndAssertingEquals(long[] ids, byte[][] datas) {
 		CryptoSetting cryptoSetting = createCryptoSetting();
 		MemoryKVStorage storage = new MemoryKVStorage();
-		MerkleSortTree mst = new MerkleSortTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		assertNull(mst.getRootHash());
 
@@ -471,26 +473,26 @@ public class MerkleSortedTreeTest {
 		assertDataEquals(ids, datas, mst);
 
 		// reload merkle tree from storage;
-		MerkleSortTree mst1 = new MerkleSortTree(rootHash, cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+		MerkleSortTree<byte[]> mst1 = MerkleSortTree.createBytesTree(rootHash, cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		assertEquals(rootHash, mst1.getRootHash());
 		assertDataEquals(ids, datas, mst1);
 	}
 
-	private static void addDatas(long[] ids, byte[][] datas, MerkleSortTree mst) {
+	private static void addDatas(long[] ids, byte[][] datas, MerkleSortTree<byte[]> mst) {
 		for (int i = 0; i < ids.length; i++) {
 			mst.set(ids[i], datas[i]);
 		}
 		mst.commit();
 	}
 
-	private static void assertDataEquals(long[] ids, byte[][] datas, MerkleSortTree mst) {
+	private static void assertDataEquals(long[] ids, byte[][] datas, MerkleSortTree<byte[]> mst) {
 		assertEquals(ids.length, mst.getCount());
 
 		int i;
 		for (i = 0; i < ids.length; i++) {
 			long id = ids[i];
-			byte[] mdata = mst.getBytes(id);
+			byte[] mdata = mst.get(id);
 			assertNotNull(mdata);
 
 			HashDigest dataHash = HASH_FUNCTION.hash(datas[i]);
