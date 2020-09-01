@@ -4,10 +4,12 @@ import java.util.Random;
 
 import org.junit.Test;
 
-import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.proof.MerkleSortTree;
+import com.jd.blockchain.ledger.proof.TreeOptions;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.hash.MurmurHash3;
 
 import test.com.jd.blockchain.ledger.core.LedgerTestUtils;
 
@@ -42,13 +44,12 @@ public class MerkleSortTreePerformanceTest {
 //		testPerformace1(200, 1000);
 //		testPerformace1(200, 500);
 //		testPerformace1(400, 500);
-
 	}
 
 	private void testPerformace1(int round, int count) {
 		System.out.printf("------------- Performance test: MerkleSortTree --------------\r\n", round, count);
 
-		CryptoSetting setting = LedgerTestUtils.createDefaultCryptoSetting();
+		TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(ClassicAlgorithm.SHA256.code());
 		Bytes prefix = Bytes.fromString(LedgerTestUtils.LEDGER_KEY_PREFIX);
 		MemoryKVStorage storage = new MemoryKVStorage();
 
@@ -58,11 +59,12 @@ public class MerkleSortTreePerformanceTest {
 
 		long startTs = System.currentTimeMillis();
 
-		MerkleSortTree<byte[]> merkleTree = MerkleSortTree.createBytesTree(setting, prefix, storage);
+		MerkleSortTree<byte[]> merkleTree = MerkleSortTree.createBytesTree(options, prefix, storage);
 		long key;
 		for (int r = 0; r < round; r++) {
 			for (int i = 0; i < count; i++) {
-				key = ((long)r << 32) | i ;
+				key = ((long) r << 32) | i;
+				MurmurHash3.murmurhash3_x64_64_1(value, 0, value.length, 10);
 				merkleTree.set(key, value);
 			}
 			merkleTree.commit();

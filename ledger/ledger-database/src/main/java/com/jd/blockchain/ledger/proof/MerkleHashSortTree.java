@@ -235,12 +235,12 @@ public class MerkleHashSortTree implements MerkleTree {
 	 */
 	private static class HashSortedTree extends MerkleSortTree {
 
-		public HashSortedTree(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage) {
-			super(TreeDegree.D4, setting, keyPrefix, kvStorage, new HashEntryConverter());
+		public HashSortedTree(TreeOptions options, String keyPrefix, ExPolicyKVStorage kvStorage) {
+			super(TreeDegree.D4, options, keyPrefix, kvStorage, new HashEntryConverter());
 		}
 
-		public HashSortedTree(HashDigest rootHash, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
-			super(rootHash, setting, keyPrefix, kvStorage, new HashEntryConverter());
+		public HashSortedTree(HashDigest rootHash,TreeOptions options, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
+			super(rootHash, options, keyPrefix, kvStorage, new HashEntryConverter());
 		}
 
 	}
@@ -254,13 +254,13 @@ public class MerkleHashSortTree implements MerkleTree {
 	 */
 	private static class VersioningDataTree extends MerkleSortTree<DataEntry> {
 
-		public VersioningDataTree(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage) {
-			super(TreeDegree.D4, setting, keyPrefix, kvStorage, new DataEntryConverter());
+		public VersioningDataTree(TreeOptions options, String keyPrefix, ExPolicyKVStorage kvStorage) {
+			super(TreeDegree.D4, options, keyPrefix, kvStorage, new DataEntryConverter());
 		}
 
-		public VersioningDataTree(HashDigest rootHash, CryptoSetting setting, Bytes keyPrefix,
+		public VersioningDataTree(HashDigest rootHash, TreeOptions options, Bytes keyPrefix,
 				ExPolicyKVStorage kvStorage) {
-			super(rootHash, setting, keyPrefix, kvStorage, new DataEntryConverter());
+			super(rootHash, options, keyPrefix, kvStorage, new DataEntryConverter());
 		}
 
 	}

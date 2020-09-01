@@ -7,7 +7,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
 
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -15,17 +14,17 @@ import java.util.HashSet;
 import java.util.Random;
 
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
-import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.ledger.proof.MerkleSortTree;
 import com.jd.blockchain.ledger.proof.MerkleSortTree.ValueEntry;
 import com.jd.blockchain.ledger.proof.MerkleTreeKeyExistException;
+import com.jd.blockchain.ledger.proof.TreeOptions;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.SkippingIterator;
@@ -37,7 +36,6 @@ public class MerkleSortedTreeTest {
 	private static final CryptoAlgorithm HASH_ALGORITHM = ClassicAlgorithm.SHA256;
 
 	private static final HashFunction HASH_FUNCTION = Crypto.getHashFunction(HASH_ALGORITHM);
-	
 
 	/**
 	 * 测试顺序加入数据，是否能够得到
@@ -71,6 +69,49 @@ public class MerkleSortedTreeTest {
 		count = 10010;
 		datas = generateRandomData(count);
 		testWithSequenceIDs(datas, count);
+	}
+
+	@Test
+	public void testAddDuplicatedData() {
+		Random random = new Random();
+		byte[] data = new byte[32];
+		random.nextBytes(data);
+
+		MemoryKVStorage storage = new MemoryKVStorage();
+
+		// 配置选项设置为”不报告重复数据项“；
+		// 以不同的 id 重复设置两个相同的数据，预期不会报告异常；
+		MerkleProofException ex = null;
+		try {
+			TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(HASH_ALGORITHM.code())
+					.setReportDuplicatedData(false);
+			MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage);
+
+			mst.set(1, data);
+			mst.set(2, data);
+
+			mst.commit();
+		} catch (MerkleProofException e) {
+			ex = e;
+		}
+		assertNull(ex);
+
+		// 配置选项设置为”报告重复数据项“；
+		// 以不同的 id 重复设置两个相同的数据，预期将报告异常；
+		ex = null;
+		try {
+			TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(HASH_ALGORITHM.code())
+					.setReportDuplicatedData(true);
+			MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage);
+
+			mst.set(1, data);
+			mst.set(2, data);
+
+			mst.commit();
+		} catch (MerkleProofException e) {
+			ex = e;
+		}
+		assertNotNull(ex);
 	}
 
 	/**
@@ -109,9 +150,9 @@ public class MerkleSortedTreeTest {
 
 	@Test
 	public void testIterator() {
-		CryptoSetting cryptoSetting = createCryptoSetting();
+		TreeOptions options = createTreeOptions();
 		MemoryKVStorage storage = new MemoryKVStorage();
-		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		// 验证空的迭代器；
 		SkippingIterator<ValueEntry> iter = mst.iterator();
@@ -219,8 +260,8 @@ public class MerkleSortedTreeTest {
 			assertNotNull(merkleData);
 			assertEquals(totalIds[index], merkleData.getId());
 		}
-		
-		//验证直接跳跃到倒数第 1 条的情形；
+
+		// 验证直接跳跃到倒数第 1 条的情形；
 		long left = iter.getCount();
 		iter.skip(left - 1);
 
@@ -228,30 +269,30 @@ public class MerkleSortedTreeTest {
 		assertEquals(1, iter.getCount());
 
 		merkleData = iter.next();
-		assertEquals(totalCount-1, iter.getCursor());
+		assertEquals(totalCount - 1, iter.getCursor());
 		assertNotNull(merkleData);
-		assertEquals(totalIds[(int)totalCount-1], merkleData.getId());
-		
+		assertEquals(totalIds[(int) totalCount - 1], merkleData.getId());
+
 		assertFalse(iter.hasNext());
 		merkleData = iter.next();
 		assertNull(merkleData);
-		
-		//验证直接跳跃到末尾的情形；
+
+		// 验证直接跳跃到末尾的情形；
 		iter = mst.iterator();
 		assertTrue(iter.hasNext());
-		
+
 		long c = iter.skip(totalCount);
 		assertEquals(totalCount, c);
 		assertFalse(iter.hasNext());
 		merkleData = iter.next();
 		assertNull(merkleData);
 	}
-	
+
 	@Test
 	public void testCounts() {
-		CryptoSetting cryptoSetting = createCryptoSetting();
+		TreeOptions options = createTreeOptions();
 		MemoryKVStorage storage = new MemoryKVStorage();
-		MerkleSortTree<byte[]> mst =MerkleSortTree.createBytesTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		HashSet<Long> excludingIDs = new HashSet<Long>();
 
@@ -272,7 +313,7 @@ public class MerkleSortedTreeTest {
 
 		// 从存储中重新加载默克尔树，验证默克尔树中是否已经写入相同的数据；
 		HashDigest rootHash = mst.getRootHash();
-		mst = MerkleSortTree.createBytesTree(rootHash, cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+		mst = MerkleSortTree.createBytesTree(rootHash, options, DEFAULT_MKL_KEY_PREFIX, storage);
 		assertDataEquals(ids, datas, mst);
 
 		// 对重新加载的默克尔树持续写入，验证重复加载后持续写入的正确性；
@@ -357,9 +398,9 @@ public class MerkleSortedTreeTest {
 	 */
 	@Test
 	public void testIdConfliction() {
-		CryptoSetting cryptoSetting = createCryptoSetting();
+		TreeOptions options = createTreeOptions();
 		MemoryKVStorage storage = new MemoryKVStorage();
-		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		// 验证空的迭代器；
 		SkippingIterator<ValueEntry> iter = mst.iterator();
@@ -373,10 +414,11 @@ public class MerkleSortedTreeTest {
 		int count = 10;
 		byte[][] datas = generateRandomData(count);
 		long[] ids = generateSeqenceIDs(0, count);
-		
-		addDatas(ids, datas, mst);;
-		
-		//预期默认的 MerkleSortedTree 实现下，写入相同 id 的数据会引发移除；
+
+		addDatas(ids, datas, mst);
+		;
+
+		// 预期默认的 MerkleSortedTree 实现下，写入相同 id 的数据会引发移除；
 		MerkleTreeKeyExistException keyExistException = null;
 		try {
 			mst.set(8, datas[0]);
@@ -385,7 +427,7 @@ public class MerkleSortedTreeTest {
 		}
 		assertNotNull(keyExistException);
 	}
-	
+
 	/**
 	 * 随机地对 id 和数据两个数组重排序；
 	 * 
@@ -450,17 +492,17 @@ public class MerkleSortedTreeTest {
 	}
 
 	private static MerkleSortTree<byte[]> newMerkleSortedTree() {
-		CryptoSetting cryptoSetting = createCryptoSetting();
+		TreeOptions options = createTreeOptions();
 		MemoryKVStorage storage = new MemoryKVStorage();
-		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		return mst;
 	}
 
 	private static void testAddingAndAssertingEquals(long[] ids, byte[][] datas) {
-		CryptoSetting cryptoSetting = createCryptoSetting();
+		TreeOptions options = createTreeOptions();
 		MemoryKVStorage storage = new MemoryKVStorage();
-		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		assertNull(mst.getRootHash());
 
@@ -472,7 +514,8 @@ public class MerkleSortedTreeTest {
 		assertDataEquals(ids, datas, mst);
 
 		// reload merkle tree from storage;
-		MerkleSortTree<byte[]> mst1 = MerkleSortTree.createBytesTree(rootHash, cryptoSetting, DEFAULT_MKL_KEY_PREFIX, storage);
+		MerkleSortTree<byte[]> mst1 = MerkleSortTree.createBytesTree(rootHash, options, DEFAULT_MKL_KEY_PREFIX,
+				storage);
 
 		assertEquals(rootHash, mst1.getRootHash());
 		assertDataEquals(ids, datas, mst1);
@@ -511,11 +554,9 @@ public class MerkleSortedTreeTest {
 		return datas;
 	}
 
-	private static CryptoSetting createCryptoSetting() {
-		CryptoSetting cryptoSetting = Mockito.mock(CryptoSetting.class);
-		when(cryptoSetting.getAutoVerifyHash()).thenReturn(true);
-		when(cryptoSetting.getHashAlgorithm()).thenReturn(HASH_ALGORITHM.code());
-		return cryptoSetting;
+	private static TreeOptions createTreeOptions() {
+		return TreeOptions.build().setDefaultHashAlgorithm(HASH_ALGORITHM.code()).setVerifyHashOnLoad(true)
+				.setReportDuplicatedData(true);
 	}
 
 	/**

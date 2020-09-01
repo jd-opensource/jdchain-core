@@ -12,7 +12,6 @@ import com.jd.blockchain.consts.DataCodes;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
-import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.core.HashPathProof;
 import com.jd.blockchain.ledger.core.MerkleProofException;
@@ -63,7 +62,7 @@ public class MerkleSortTree<T> implements Transactional {
 
 	protected final HashFunction DEFAULT_HASH_FUNCTION;
 
-	protected final CryptoSetting setting;
+	protected final TreeOptions OPTIONS;
 
 	private final Bytes KEY_PREFIX;
 
@@ -79,9 +78,9 @@ public class MerkleSortTree<T> implements Transactional {
 	 * @param kvStorage 节点的存储；
 	 * @param converter 数据的转换器；
 	 */
-	public MerkleSortTree(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage,
+	public MerkleSortTree(TreeOptions options, String keyPrefix, ExPolicyKVStorage kvStorage,
 			BytesConverter<T> converter) {
-		this(TreeDegree.D3, setting, Bytes.fromString(keyPrefix), kvStorage, converter);
+		this(TreeDegree.D3, options, Bytes.fromString(keyPrefix), kvStorage, converter);
 	}
 
 	/**
@@ -89,9 +88,9 @@ public class MerkleSortTree<T> implements Transactional {
 	 * 
 	 * @param kvStorage
 	 */
-	public MerkleSortTree(TreeDegree degree, CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage,
+	public MerkleSortTree(TreeDegree degree, TreeOptions options, String keyPrefix, ExPolicyKVStorage kvStorage,
 			BytesConverter<T> converter) {
-		this(degree, setting, Bytes.fromString(keyPrefix), kvStorage, converter);
+		this(degree, options, Bytes.fromString(keyPrefix), kvStorage, converter);
 	}
 
 	/**
@@ -99,9 +98,9 @@ public class MerkleSortTree<T> implements Transactional {
 	 * 
 	 * @param kvStorage
 	 */
-	public MerkleSortTree(CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage,
+	public MerkleSortTree(TreeOptions options, Bytes keyPrefix, ExPolicyKVStorage kvStorage,
 			BytesConverter<T> converter) {
-		this(TreeDegree.D3, setting, keyPrefix, kvStorage, converter);
+		this(TreeDegree.D3, options, keyPrefix, kvStorage, converter);
 	}
 
 	/**
@@ -109,17 +108,17 @@ public class MerkleSortTree<T> implements Transactional {
 	 * 
 	 * @param kvStorage
 	 */
-	public MerkleSortTree(TreeDegree degree, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage,
+	public MerkleSortTree(TreeDegree degree, TreeOptions options, Bytes keyPrefix, ExPolicyKVStorage kvStorage,
 			BytesConverter<T> converter) {
 		this.DEGREE = degree.DEGREEE;
 		this.MAX_LEVEL = degree.MAX_DEPTH;
 		this.MAX_COUNT = MathUtils.power(DEGREE, MAX_LEVEL);
 		this.CONVERTER = converter;
 
-		this.setting = setting;
+		this.OPTIONS = options;
 		this.KEY_PREFIX = keyPrefix;
 		this.kvStorage = kvStorage;
-		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
+		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(options.getDefaultHashAlgorithm());
 
 		this.root = createTopRoot();
 	}
@@ -132,9 +131,9 @@ public class MerkleSortTree<T> implements Transactional {
 	 * @param kvStorage    保存 Merkle 节点的存储服务；
 	 * @param readonly     是否只读；
 	 */
-	public MerkleSortTree(HashDigest rootHash, CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage,
+	public MerkleSortTree(HashDigest rootHash, TreeOptions options, String keyPrefix, ExPolicyKVStorage kvStorage,
 			BytesConverter<T> converter) {
-		this(rootHash, setting, Bytes.fromString(keyPrefix), kvStorage, converter);
+		this(rootHash, options, Bytes.fromString(keyPrefix), kvStorage, converter);
 	}
 
 	/**
@@ -145,12 +144,12 @@ public class MerkleSortTree<T> implements Transactional {
 	 * @param kvStorage    保存 Merkle 节点的存储服务；
 	 * @param readonly     是否只读；
 	 */
-	public MerkleSortTree(HashDigest rootHash, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage,
+	public MerkleSortTree(HashDigest rootHash, TreeOptions options, Bytes keyPrefix, ExPolicyKVStorage kvStorage,
 			BytesConverter<T> converter) {
 		this.KEY_PREFIX = keyPrefix;
-		this.setting = setting;
+		this.OPTIONS = options;
 		this.kvStorage = kvStorage;
-		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
+		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(options.getDefaultHashAlgorithm());
 		this.CONVERTER = converter;
 
 		IndexEntry merkleIndex = loadMerkleEntry(rootHash);
@@ -180,9 +179,9 @@ public class MerkleSortTree<T> implements Transactional {
 	 * @param kvStorage
 	 * @return
 	 */
-	public static MerkleSortTree<byte[]> createBytesTree(CryptoSetting setting, String keyPrefix,
+	public static MerkleSortTree<byte[]> createBytesTree(TreeOptions options, String keyPrefix,
 			ExPolicyKVStorage kvStorage) {
-		return new MerkleSortTree<byte[]>(setting, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
+		return new MerkleSortTree<byte[]>(options, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
 	}
 
 	/**
@@ -193,9 +192,9 @@ public class MerkleSortTree<T> implements Transactional {
 	 * @param kvStorage
 	 * @return
 	 */
-	public static MerkleSortTree<byte[]> createBytesTree(CryptoSetting setting, Bytes keyPrefix,
+	public static MerkleSortTree<byte[]> createBytesTree(TreeOptions options, Bytes keyPrefix,
 			ExPolicyKVStorage kvStorage) {
-		return new MerkleSortTree<byte[]>(setting, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
+		return new MerkleSortTree<byte[]>(options, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
 	}
 	
 	/**
@@ -206,9 +205,9 @@ public class MerkleSortTree<T> implements Transactional {
 	 * @param kvStorage
 	 * @return
 	 */
-	public static MerkleSortTree<byte[]> createBytesTree(TreeDegree degree, CryptoSetting setting, String keyPrefix,
+	public static MerkleSortTree<byte[]> createBytesTree(TreeDegree degree, TreeOptions options, String keyPrefix,
 			ExPolicyKVStorage kvStorage) {
-		return new MerkleSortTree<byte[]>(degree, setting, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
+		return new MerkleSortTree<byte[]>(degree, options, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
 	}
 
 	/**
@@ -219,9 +218,9 @@ public class MerkleSortTree<T> implements Transactional {
 	 * @param kvStorage
 	 * @return
 	 */
-	public static MerkleSortTree<byte[]> createBytesTree(TreeDegree degree, CryptoSetting setting, Bytes keyPrefix,
+	public static MerkleSortTree<byte[]> createBytesTree(TreeDegree degree, TreeOptions options, Bytes keyPrefix,
 			ExPolicyKVStorage kvStorage) {
-		return new MerkleSortTree<byte[]>(degree, setting, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
+		return new MerkleSortTree<byte[]>(degree, options, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
 	}
 	
 	/**
@@ -232,9 +231,9 @@ public class MerkleSortTree<T> implements Transactional {
 	 * @param kvStorage
 	 * @return
 	 */
-	public static MerkleSortTree<byte[]> createBytesTree(HashDigest rootHash, CryptoSetting setting, String keyPrefix,
+	public static MerkleSortTree<byte[]> createBytesTree(HashDigest rootHash, TreeOptions options, String keyPrefix,
 			ExPolicyKVStorage kvStorage) {
-		return new MerkleSortTree<byte[]>(rootHash, setting, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
+		return new MerkleSortTree<byte[]>(rootHash, options, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
 	}
 
 	/**
@@ -245,9 +244,9 @@ public class MerkleSortTree<T> implements Transactional {
 	 * @param kvStorage
 	 * @return
 	 */
-	public static MerkleSortTree<byte[]> createBytesTree(HashDigest rootHash, CryptoSetting setting, Bytes keyPrefix,
+	public static MerkleSortTree<byte[]> createBytesTree(HashDigest rootHash, TreeOptions options, Bytes keyPrefix,
 			ExPolicyKVStorage kvStorage) {
-		return new MerkleSortTree<byte[]>(rootHash, setting, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
+		return new MerkleSortTree<byte[]>(rootHash, options, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
 	}
 
 	/**
@@ -690,15 +689,15 @@ public class MerkleSortTree<T> implements Transactional {
 	 */
 	private byte[] loadNodeBytes(HashDigest nodeHash) {
 		byte[] nodeBytes = loadBytes(nodeHash);
-		if (setting.getAutoVerifyHash()) {
+		if (OPTIONS.isVerifyHashOnLoad()) {
 			verifyHash(nodeHash, nodeBytes, "Merkle hash verification fail! -- NodeHash=" + nodeHash.toBase58());
 		}
 		return nodeBytes;
 	}
 
-	private HashDigest saveNodeBytes(byte[] nodeBytes) {
+	private HashDigest saveNodeBytes(byte[] nodeBytes, boolean reportDuplication) {
 		HashDigest nodeHash = DEFAULT_HASH_FUNCTION.hash(nodeBytes);
-		saveBytes(nodeHash, nodeBytes);
+		saveBytes(nodeHash, nodeBytes, reportDuplication);
 		return nodeHash;
 	}
 
@@ -717,7 +716,7 @@ public class MerkleSortTree<T> implements Transactional {
 
 	private HashDigest saveIndex(IndexEntry indexEntry) {
 		byte[] nodeBytes = BinaryProtocol.encode(indexEntry, IndexEntry.class);
-		return saveNodeBytes(nodeBytes);
+		return saveNodeBytes(nodeBytes, true);
 	}
 
 	/**
@@ -765,19 +764,10 @@ public class MerkleSortTree<T> implements Transactional {
 		return nodeBytes;
 	}
 
-	@SuppressWarnings("unused")
-	private void saveBytes(byte[] key, byte[] nodeBytes) {
+	private void saveBytes(Bytes key, byte[] nodeBytes, boolean reportDuplication) {
 		Bytes storageKey = encodeStorageKey(key);
 		boolean success = kvStorage.set(storageKey, nodeBytes, ExPolicy.NOT_EXISTING);
-		if (!success) {
-			throw new MerkleProofException("Merkle node already exist! -- key=" + storageKey.toBase58());
-		}
-	}
-
-	private void saveBytes(Bytes key, byte[] nodeBytes) {
-		Bytes storageKey = encodeStorageKey(key);
-		boolean success = kvStorage.set(storageKey, nodeBytes, ExPolicy.NOT_EXISTING);
-		if (!success) {
+		if (reportDuplication && !success) {
 			throw new MerkleProofException("Merkle node already exist! -- key=" + storageKey.toBase58());
 		}
 	}
@@ -1196,7 +1186,7 @@ public class MerkleSortTree<T> implements Transactional {
 				if (childHashs[i] == null && children[i] != null) {
 					@SuppressWarnings("unchecked")
 					byte[] childBytes = CONVERTER.toBytes((T)children[i]);
-					childHashs[i] = TREE.saveNodeBytes(childBytes);
+					childHashs[i] = TREE.saveNodeBytes(childBytes, TREE.OPTIONS.isReportDuplicatedData());
 					childCounts[i] = 1;
 				}
 			}
