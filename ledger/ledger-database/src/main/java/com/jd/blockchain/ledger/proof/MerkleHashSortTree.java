@@ -12,7 +12,7 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.SkippingIterator;
 
-public class MerkleHashSortedTree implements MerkleTree {
+public class MerkleHashSortTree implements MerkleTree {
 	
 	private HashSortedTree hashTree;
 
@@ -233,7 +233,7 @@ public class MerkleHashSortedTree implements MerkleTree {
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class HashSortedTree extends MerkleSortedTree {
+	private static class HashSortedTree extends MerkleSortTree {
 
 		public HashSortedTree(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage) {
 			super(TreeDegree.D4, setting, keyPrefix, kvStorage);
@@ -241,12 +241,6 @@ public class MerkleHashSortedTree implements MerkleTree {
 
 		public HashSortedTree(HashDigest rootHash, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
 			super(rootHash, setting, keyPrefix, kvStorage);
-		}
-
-		@Override
-		protected byte[] updateData(long id, byte[] origData, byte[] newData) {
-			// TODO Auto-generated method stub
-			return super.updateData(id, origData, newData);
 		}
 
 	}
@@ -257,7 +251,7 @@ public class MerkleHashSortedTree implements MerkleTree {
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class VersioningDataTree extends MerkleSortedTree {
+	private static class VersioningDataTree extends MerkleSortTree {
 
 		public VersioningDataTree(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage kvStorage) {
 			super(TreeDegree.D4, setting, keyPrefix, kvStorage);
