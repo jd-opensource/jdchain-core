@@ -468,8 +468,21 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
                 preStateSnapshot = messageHandle.getStateSnapshot(context);
                 if (preStateSnapshot instanceof BlockStateSnapshot) {
                     BlockStateSnapshot preBlockStateSnapshot = (BlockStateSnapshot)preStateSnapshot;
-                    if (preBlockStateSnapshot.getTimestamp() > timestamp) {
-                        throw new IllegalStateException("The time of the last block is longer than the current one !!!");
+                    long preBlockTimestamp = preBlockStateSnapshot.getTimestamp();
+                    if (preBlockTimestamp > timestamp) {
+                        // 打印错误信息
+                        LOGGER.warn("The time[{}] of the last block is longer than the current[{}] !!!", preBlockTimestamp, timestamp);
+                        // 设置返回的应答信息
+                        for (byte[] command : commands) {
+                            // 状态设置为共识错误
+                            responseLinkedList.add(createAppResponse(command, TransactionState.CONSENSUS_ERROR));
+                        }
+                        // 将该状态设置为未执行
+                        stateHolder.setComputeStatus(PreComputeStatus.UN_EXECUTED);
+                        // 回滚该操作
+                        messageHandle.rollbackBatch(TransactionState.CONSENSUS_ERROR.CODE, context);
+                        // 返回成功，但需要设置当前的状态
+                        return BatchAppResultImpl.createSuccess(responseLinkedList, cidBytes, batchId, cidBytes);
                     }
                 }
 
@@ -547,6 +560,14 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             if (context == null) {
                 throw new NoSuchElementException("no element by " + batchId);
             }
+            // 判断该CID是否执行过
+            PreComputeStatus computeStatus = stateHolder.getComputeStatus();
+            if (computeStatus == PreComputeStatus.UN_EXECUTED) {
+                // 当前CID并未真正操作账本，因此无需做处理
+                stateHolder.reset();
+                return;
+            }
+
 //            long lastCid = stateHolder.lastCid;
 //            if (cid <= lastCid) {
 //                // 表示该CID已经执行过，不再处理
@@ -585,6 +606,13 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 //                return;
 //            }
 //            stateHolder.setLastCid(cid);
+            // 判断该CID是否执行过
+            PreComputeStatus computeStatus = stateHolder.getComputeStatus();
+            if (computeStatus == PreComputeStatus.UN_EXECUTED) {
+                // 当前CID并未真正操作账本，因此无需做处理
+                stateHolder.reset();
+                return;
+            }
             String batchingID = stateHolder.batchingID;
             stateHolder.reset();
             LOGGER.debug("Rollback of operations that cause inconsistencies in the ledger");
@@ -710,16 +738,6 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     }
 
-    private byte[] int2Bytes(int cid){
-        byte[] arr = new byte[4] ;
-        arr[0] = (byte)cid ;
-        arr[1] = (byte)(cid >> 8) ;
-        arr[2] = (byte)(cid >> 16) ;
-        arr[3] = (byte)(cid >> 24) ;
-
-        return arr;
-    }
-
     private static class InnerStateHolder {
 
         private long lastCid;
@@ -727,6 +745,12 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         private long currentCid = -1L;
 
         private String batchingID = "";
+
+        /**
+         * 预计算状态
+         *         默认为已计算
+         */
+        private PreComputeStatus computeStatus = PreComputeStatus.EXECUTED;
 
         public InnerStateHolder(long lastCid) {
             this.lastCid = lastCid;
@@ -761,10 +785,33 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             this.batchingID = batchingID;
         }
 
+        public PreComputeStatus getComputeStatus() {
+            return computeStatus;
+        }
+
+        public void setComputeStatus(PreComputeStatus computeStatus) {
+            this.computeStatus = computeStatus;
+        }
+
         public void reset() {
             currentCid = -1;
             batchingID = "";
+            computeStatus = PreComputeStatus.EXECUTED;
         }
     }
 
+    private enum PreComputeStatus {
+
+        /**
+         * 已执行
+         *
+         */
+        EXECUTED,
+
+        /**
+         * 未执行
+         *
+         */
+        UN_EXECUTED,
+    }
 }
