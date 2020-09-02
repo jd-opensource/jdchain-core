@@ -629,10 +629,11 @@ public class MerkleHashTrie implements Iterable<BytesKVEntry>, MerkleTree {
 	}
 	
 	@Override
-	public void setData(byte[] key, long version, byte[] value) {
+	public long setData(byte[] key, long version, byte[] value) {
 		MerkleTrieDataEntry data = new MerkleTrieDataEntry(key, version, value);
 		long keyHash = KeyIndexer.hash(data.getKey());
 		setDataEntry(keyHash, data);
+		return version + 1;
 	}
 	
 //	@Override

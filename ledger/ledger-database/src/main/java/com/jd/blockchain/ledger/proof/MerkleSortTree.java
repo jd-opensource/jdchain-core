@@ -170,7 +170,7 @@ public class MerkleSortTree<T> implements Transactional {
 
 		this.root = new PathNode(rootHash, merkleIndex, this);
 	}
-	
+
 	/**
 	 * 创建数据类型为字节数组的空的默克尔排序树；
 	 * 
@@ -196,7 +196,7 @@ public class MerkleSortTree<T> implements Transactional {
 			ExPolicyKVStorage kvStorage) {
 		return new MerkleSortTree<byte[]>(options, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
 	}
-	
+
 	/**
 	 * 创建数据类型为字节数组的空的默克尔排序树；
 	 * 
@@ -222,7 +222,7 @@ public class MerkleSortTree<T> implements Transactional {
 			ExPolicyKVStorage kvStorage) {
 		return new MerkleSortTree<byte[]>(degree, options, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
 	}
-	
+
 	/**
 	 * 以指定哈希的节点为根节点创建数据类型为字节数组的默克尔排序树；
 	 * 
@@ -383,12 +383,12 @@ public class MerkleSortTree<T> implements Transactional {
 	}
 
 	@Override
-	public void commit() {
+	public final void commit() {
 		root.commit();
 	}
 
 	@Override
-	public void cancel() {
+	public final void cancel() {
 		root.cancel();
 	}
 
@@ -533,16 +533,16 @@ public class MerkleSortTree<T> implements Transactional {
 	 * @param parentNode 作为父节点的默克尔索引节点；
 	 * @param index      要设置的数据节点在父节点中的位置；
 	 * @param dataId     要设置的数据节点的 id；
-	 * @param dataBytes  要设置的字节数据；
+	 * @param data       要设置的字节数据；
 	 * @return
 	 */
-	private void updateChildAtIndex(LeafNode<T> parentNode, int index, long dataId, T dataBytes) {
+	private void updateChildAtIndex(LeafNode<T> parentNode, int index, long dataId, T data) {
 		T origChild = parentNode.getChild(index);
-		T childBytes = dataBytes;
-		if (origChild != null) {
-			childBytes = updateData(dataId, origChild, dataBytes);
+
+		T newChild = updateData(dataId, origChild, data);
+		if (newChild != null) {
+			parentNode.setChild(index, null, newChild);
 		}
-		parentNode.setChild(index, null, childBytes);
 	}
 
 	/**
@@ -581,7 +581,7 @@ public class MerkleSortTree<T> implements Transactional {
 		if (origChild == null) {
 			long offset = calculateOffset(dataId, 1L);
 			LeafNode<T> leafNode = new LeafNode<T>(offset, this);
-			leafNode.setChild(leafNode.index(dataId), null, dataBytes);
+			updateChildAtIndex(leafNode, leafNode.index(dataId), dataId, dataBytes);
 
 			parentNode.setChild(index, null, leafNode);
 			return;
@@ -668,17 +668,41 @@ public class MerkleSortTree<T> implements Transactional {
 	}
 
 	/**
-	 * 更新同一个 id 的数据节点；
+	 * 更新指定 id 的数据节点；
 	 * 
 	 * <p>
 	 * 这是模板方法，默认实现并不允许更新相同 id 的数据，并抛出 {@link MerkleProofException} 异常;
 	 * 
-	 * @param origValue 原来的数据；
-	 * @param newValue  具有相同 id 的新数据；
-	 * @return 更新后的新节点的数据；
+	 * @param origValue 原数据；如果为 null，则表明是新增数据；
+	 * @param newValue  新数据；
+	 * @return 更新后的新节点的数据； 如果返回 null，则忽略此次操作；
 	 */
 	protected T updateData(long id, T origData, T newData) {
-		throw new MerkleTreeKeyExistException("Unsupport updating datas with the same id!");
+		if (origData != null) {
+			throw new MerkleTreeKeyExistException("Unsupport updating datas with the same id!");
+		}
+		return newData;
+	}
+
+	/**
+	 * 准备提交指定 id 的数据，保存至存储服务；<br>
+	 * 
+	 * 此方法在对指定数据节点进行序列化并进行哈希计算之前被调用；
+	 * 
+	 * @param id
+	 * @param data
+	 */
+	protected T beforeCommit(long id, T data) {
+		return data;
+	}
+
+	/**
+	 * 已经取消指定 id 的数据；
+	 * 
+	 * @param id
+	 * @param child
+	 */
+	protected void afterCancel(long id, T data) {
 	}
 
 	/**
@@ -1112,25 +1136,31 @@ public class MerkleSortTree<T> implements Transactional {
 		 */
 		protected abstract void commitChildren(long[] childCounts, HashDigest[] childHashs, Object[] children);
 
+		protected void cancelChild(long id, Object child) {
+		}
+
 		/**
 		 * 取消当前节点的更改；
 		 */
 		public void cancel() {
-//			Object child;
+			Object child;
 			for (int i = 0; i < TREE.DEGREE; i++) {
-				if (childHashs[i] == null || origChildHashs[i] == null || (!childHashs[i].equals(origChildHashs[i]))) {
-//					child = children[i];
+				if (children[i] != null && (childHashs[i] == null || origChildHashs[i] == null
+						|| (!childHashs[i].equals(origChildHashs[i])))) {
+					child = children[i];
 					children[i] = null;
-//					// 清理字节点以便优化大对象的垃圾回收效率；
-//					if (child != null && child instanceof MerkleNode) {
-//						((MerkleNode) child).cancel();
-//					}
+					// 清理字节点以便优化大对象的垃圾回收效率；
+					if (STEP == 1) {
+						long id = OFFSET + i;
+						cancelChild(id, child);
+					} else if (child instanceof MerkleNode) {
+						((MerkleNode) child).cancel();
+					}
 				}
 				childHashs[i] = origChildHashs[i];
 			}
 			// 注：不需要处理 nodeHash 的回滚，因为 nodeHash 是 commit 操作的最后确认标志；
 		}
-
 	}
 
 	/**
@@ -1159,6 +1189,11 @@ public class MerkleSortTree<T> implements Transactional {
 			CONVERTER = tree.CONVERTER;
 		}
 
+		@SuppressWarnings("unchecked")
+		private MerkleSortTree<T> tree() {
+			return (MerkleSortTree<T>) TREE;
+		}
+
 		protected void setChild(int index, HashDigest childHash, T child) {
 			super.setChildObject(index, childHash, child);
 		}
@@ -1185,11 +1220,21 @@ public class MerkleSortTree<T> implements Transactional {
 				// 保存新创建的子节点；
 				if (childHashs[i] == null && children[i] != null) {
 					@SuppressWarnings("unchecked")
-					byte[] childBytes = CONVERTER.toBytes((T)children[i]);
-					childHashs[i] = TREE.saveNodeBytes(childBytes, TREE.OPTIONS.isReportDuplicatedData());
+					T child = (T) children[i];
+					long id = OFFSET + i;
+					child = tree().beforeCommit(id, child);
+					byte[] childBytes = CONVERTER.toBytes(child);
+					childHashs[i] = tree().saveNodeBytes(childBytes, TREE.OPTIONS.isReportDuplicatedData());
 					childCounts[i] = 1;
+					children[i] = child;
 				}
 			}
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		protected void cancelChild(long id, Object child) {
+			tree().afterCancel(id, (T) child);
 		}
 
 	}
@@ -1433,5 +1478,6 @@ public class MerkleSortTree<T> implements Transactional {
 		public byte[] fromBytes(byte[] bytes) {
 			return bytes;
 		}
-	};
+	}
+
 }

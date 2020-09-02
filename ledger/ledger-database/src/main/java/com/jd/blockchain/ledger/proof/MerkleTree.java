@@ -22,6 +22,27 @@ public interface MerkleTree extends Transactional {
 	long getTotalKeys();
 
 	/**
+	 * 返回指定 key 的最新数据；
+	 * 
+	 * @param key
+	 * @return
+	 */
+	BytesKVEntry getData(byte[] key);
+
+	BytesKVEntry getData(byte[] key, long version);
+
+	/**
+	 * 设置键值；
+	 * 
+	 * @param key     键；
+	 * @param version 当前指定的键的最新版本；只有版本匹配了，才写入值，并返回更新后的版本号；每次写入版本号递增 1；<br>
+	 *                对于不存在的键，参数应为 -1;
+	 * @param value   要写入的新版本的值；
+	 * @return 新的版本号；如果写入成功，则返回值等于 version 参数 + 1；如果版本不匹配，则返回 -1；
+	 */
+	long setData(byte[] key, long version, byte[] value);
+
+	/**
 	 * 返回指定 key 最新版本的默克尔证明；
 	 * <p>
 	 * 默克尔证明的根哈希为当前默克尔树的根哈希；<br>
@@ -51,10 +72,6 @@ public interface MerkleTree extends Transactional {
 	 */
 	MerkleProof getProof(byte[] key, long version);
 
-	BytesKVEntry getData(byte[] key);
-
-	BytesKVEntry getData(byte[] key, long version);
-
 	/**
 	 * 返回所有键的最新版本数据；
 	 */
@@ -82,6 +99,4 @@ public interface MerkleTree extends Transactional {
 	 */
 	SkippingIterator<BytesKVEntry> getKeyDiffIterator(MerkleHashTrie origTree);
 
-	void setData(byte[] key, long version, byte[] value);
-	
 }
