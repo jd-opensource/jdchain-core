@@ -453,7 +453,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 	 */
 	@Override
 	public MerkleProof getProof(Bytes key) {
-		return merkleTree.getProof(key);
+		return merkleTree.getProof(key.toBytes());
 	}
 
 	/**

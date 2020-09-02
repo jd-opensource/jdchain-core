@@ -6,16 +6,12 @@ import com.jd.blockchain.binaryproto.NumberEncoding;
 import com.jd.blockchain.binaryproto.PrimitiveType;
 import com.jd.blockchain.consts.DataCodes;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.proof.MerkleSortTree.ValueEntry;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
-import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.hash.MurmurHash3;
-import com.jd.blockchain.utils.io.BytesUtils;
 
 public class MerkleHashSortTree implements MerkleTree {
 	
@@ -49,24 +45,6 @@ public class MerkleHashSortTree implements MerkleTree {
 	}
 
 	@Override
-	public MerkleProof getProof(String key) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public MerkleProof getProof(String key, long version) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public MerkleProof getProof(Bytes key) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public MerkleProof getProof(byte[] key) {
 		// TODO Auto-generated method stub
 		return null;
@@ -78,17 +56,6 @@ public class MerkleHashSortTree implements MerkleTree {
 		return null;
 	}
 
-
-//	@Override
-//	public MerkleDataEntry getData(String key) {
-//		return loadData(BytesUtils.toBytes(key), -1);
-//	}
-//
-//	@Override
-//	public MerkleDataEntry getData(String key, long version) {
-//		return loadData(BytesUtils.toBytes(key), version);
-//	}
-
 	@Override
 	public BytesKVHashEntry getData(byte[] key) {
 		return loadData(key, -1);
@@ -99,18 +66,6 @@ public class MerkleHashSortTree implements MerkleTree {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
-//	@Override
-//	public MerkleDataEntry getData(Bytes key) {
-//		// TODO Auto-generated method stub
-//		return null;
-//	}
-//
-//	@Override
-//	public MerkleDataEntry getData(Bytes key, long version) {
-//		// TODO Auto-generated method stub
-//		return null;
-//	}
 
 	@Override
 	public SkippingIterator<BytesKVEntry> iterator() {
@@ -135,36 +90,6 @@ public class MerkleHashSortTree implements MerkleTree {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
-//	@Override
-//	public void setData(String key, long version, Bytes dataHash) {
-//		// TODO Auto-generated method stub
-//
-//	}
-//
-//	@Override
-//	public void setData(Bytes key, long version, Bytes dataHash) {
-//		// TODO Auto-generated method stub
-//
-//	}
-//
-//	@Override
-//	public void setData(byte[] key, long version, Bytes dataHash) {
-//		// TODO Auto-generated method stub
-//
-//	}
-//
-//	@Override
-//	public void setData(String key, long version, byte[] dataHash) {
-//		// TODO Auto-generated method stub
-//
-//	}
-//
-//	@Override
-//	public void setData(Bytes key, long version, byte[] dataHash) {
-//		// TODO Auto-generated method stub
-//
-//	}
 
 	@Override
 	public void setData(byte[] key, long version, byte[] dataHash) {

@@ -590,10 +590,10 @@ public class MerkleHashTrieTest {
 	}
 
 	private MerkleProof assertMerkleProof(VersioningKVData<String, byte[]> data, MerkleTree merkleTree) {
-		MerkleProof proof_nx = merkleTree.getProof("KEY_NOT_EXIST");
+		MerkleProof proof_nx = merkleTree.getProof(BytesUtils.toBytes("KEY_NOT_EXIST"));
 		assertNull(proof_nx);
 
-		MerkleProof proof = merkleTree.getProof(data.getKey(), data.getVersion());
+		MerkleProof proof = merkleTree.getProof(BytesUtils.toBytes(data.getKey()), data.getVersion());
 		assertNotNull(proof);
 		HashDigest[] hashPaths = proof.getHashPath();
 
@@ -1806,7 +1806,7 @@ public class MerkleHashTrieTest {
 		assertEquals(7, hashPaths.length);
 
 		// 重新加载默克尔树，默克尔证明是一致的；
-		MerkleTree merkleTree_1_1 = new MerkleHashTrie(rootHash1, cryptoSetting, KEY_PREFIX, storage, false);
+		MerkleHashTrie merkleTree_1_1 = new MerkleHashTrie(rootHash1, cryptoSetting, KEY_PREFIX, storage, false);
 		MerkleProof proof28_4 = merkleTree_1_1.getProof("KEY-28", 1);
 		assertNotNull(proof28_4);
 		assertEquals(proof28_1, proof28_4);

@@ -138,7 +138,6 @@ public class MerkleHashTrie implements Iterable<BytesKVEntry>, MerkleTree {
 	 * @param key
 	 * @return 默克尔证明
 	 */
-	@Override
 	public MerkleProof getProof(String key) {
 		return seekProof(BytesUtils.toBytes(key));
 	}
@@ -156,7 +155,6 @@ public class MerkleHashTrie implements Iterable<BytesKVEntry>, MerkleTree {
 	 * @param key
 	 * @return 默克尔证明
 	 */
-	@Override
 	public MerkleProof getProof(String key, long version) {
 		return seekProof(BytesUtils.toBytes(key), version);
 	}
@@ -174,7 +172,6 @@ public class MerkleHashTrie implements Iterable<BytesKVEntry>, MerkleTree {
 	 * @param key
 	 * @return 默克尔证明
 	 */
-	@Override
 	public MerkleProof getProof(Bytes key) {
 		return seekProof(key.toBytes());
 	}
