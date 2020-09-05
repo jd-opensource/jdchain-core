@@ -12,6 +12,7 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
@@ -22,9 +23,11 @@ import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.ledger.proof.MerkleSortTree;
+import com.jd.blockchain.ledger.proof.MerkleSortTree.DefaultDataPolicy;
 import com.jd.blockchain.ledger.proof.MerkleSortTree.ValueEntry;
 import com.jd.blockchain.ledger.proof.MerkleTreeKeyExistException;
 import com.jd.blockchain.ledger.proof.TreeOptions;
+import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.SkippingIterator;
@@ -502,12 +505,16 @@ public class MerkleSortedTreeTest {
 	private static void testAddingAndAssertingEquals(long[] ids, byte[][] datas) {
 		TreeOptions options = createTreeOptions();
 		MemoryKVStorage storage = new MemoryKVStorage();
-		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage);
+		
+		Counter counter = new Counter();
+		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage, counter);
 
 		assertNull(mst.getRootHash());
 
 		addDatas(ids, datas, mst);
 
+		assertEquals(ids.length, counter.count.get());
+		
 		HashDigest rootHash = mst.getRootHash();
 		assertNotNull(rootHash);
 
@@ -558,7 +565,8 @@ public class MerkleSortedTreeTest {
 		return TreeOptions.build().setDefaultHashAlgorithm(HASH_ALGORITHM.code()).setVerifyHashOnLoad(true)
 				.setReportDuplicatedData(true);
 	}
-
+	
+	
 	/**
 	 * 计算 value 的 x 次方；
 	 * <p>
@@ -577,5 +585,20 @@ public class MerkleSortedTreeTest {
 			r *= value;
 		}
 		return r;
+	}
+	
+	
+	private static class Counter extends DefaultDataPolicy<byte[]>{
+		
+		private AtomicInteger count = new AtomicInteger(0);
+		
+		@Override
+		public byte[] updateData(long id, byte[] origData, byte[] newData) {
+			try {
+				return super.updateData(id, origData, newData);
+			} finally {
+				count.incrementAndGet();
+			}
+		}
 	}
 }

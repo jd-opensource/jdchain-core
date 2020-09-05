@@ -94,5 +94,14 @@ public class TreeOptions {
 		this.reportDuplicatedData = reportDuplicatedData;
 		return this;
 	}
+	
+	@Override
+	public TreeOptions clone() {
+		try {
+			return (TreeOptions) super.clone();
+		} catch (CloneNotSupportedException e) {
+			throw new IllegalStateException(e.getMessage(), e);
+		}
+	}
 
 }

@@ -43,7 +43,15 @@ import com.jd.blockchain.utils.Transactional;
  */
 public class MerkleSortTree<T> implements Transactional {
 
-	private static final BytesConverter<byte[]> BYTES_TO_BYTES_CONVERTER = new BytesToBytesConverter();
+	public static final BytesConverter<byte[]> BYTES_TO_BYTES_CONVERTER = new BytesToBytesConverter();
+
+	@SuppressWarnings("rawtypes")
+	private static final DataPolicy DEFAULT_DATA_POLICY = new DefaultDataPolicy<>();
+
+	@SuppressWarnings("unchecked")
+	private static <T> DataPolicy<T> defaultDataPolicy() {
+		return (DataPolicy<T>) DEFAULT_DATA_POLICY;
+	}
 
 	public static final int DEFAULT_DEGREE = TreeDegree.D3.DEGREEE;
 
@@ -66,9 +74,13 @@ public class MerkleSortTree<T> implements Transactional {
 
 	private final Bytes KEY_PREFIX;
 
-	private ExPolicyKVStorage kvStorage;
+	private final DataPolicy<T> DATA_POLICY;
+
+	private final ExPolicyKVStorage KV_STORAGE;
 
 	private MerkleNode root;
+
+	private Long maxId;
 
 	/**
 	 * 构建空的树；
@@ -81,6 +93,19 @@ public class MerkleSortTree<T> implements Transactional {
 	public MerkleSortTree(TreeOptions options, String keyPrefix, ExPolicyKVStorage kvStorage,
 			BytesConverter<T> converter) {
 		this(TreeDegree.D3, options, Bytes.fromString(keyPrefix), kvStorage, converter);
+	}
+
+	/**
+	 * 构建空的树；
+	 * 
+	 * @param setting   密码参数；
+	 * @param keyPrefix 键的前缀；
+	 * @param kvStorage 节点的存储；
+	 * @param converter 数据的转换器；
+	 */
+	public MerkleSortTree(TreeOptions options, String keyPrefix, ExPolicyKVStorage kvStorage,
+			BytesConverter<T> converter, DataPolicy<T> dataPolicy) {
+		this(TreeDegree.D3, options, Bytes.fromString(keyPrefix), kvStorage, converter, dataPolicy);
 	}
 
 	/**
@@ -108,8 +133,28 @@ public class MerkleSortTree<T> implements Transactional {
 	 * 
 	 * @param kvStorage
 	 */
+	public MerkleSortTree(TreeOptions options, Bytes keyPrefix, ExPolicyKVStorage kvStorage,
+			BytesConverter<T> converter, DataPolicy<T> dataPolicy) {
+		this(TreeDegree.D3, options, keyPrefix, kvStorage, converter, dataPolicy);
+	}
+
+	/**
+	 * 构建空的树；
+	 * 
+	 * @param kvStorage
+	 */
 	public MerkleSortTree(TreeDegree degree, TreeOptions options, Bytes keyPrefix, ExPolicyKVStorage kvStorage,
 			BytesConverter<T> converter) {
+		this(degree, options, keyPrefix, kvStorage, converter, defaultDataPolicy());
+	}
+
+	/**
+	 * 构建空的树；
+	 * 
+	 * @param kvStorage
+	 */
+	public MerkleSortTree(TreeDegree degree, TreeOptions options, Bytes keyPrefix, ExPolicyKVStorage kvStorage,
+			BytesConverter<T> converter, DataPolicy<T> dataPolicy) {
 		this.DEGREE = degree.DEGREEE;
 		this.MAX_LEVEL = degree.MAX_DEPTH;
 		this.MAX_COUNT = MathUtils.power(DEGREE, MAX_LEVEL);
@@ -117,8 +162,10 @@ public class MerkleSortTree<T> implements Transactional {
 
 		this.OPTIONS = options;
 		this.KEY_PREFIX = keyPrefix;
-		this.kvStorage = kvStorage;
+		this.KV_STORAGE = kvStorage;
 		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(options.getDefaultHashAlgorithm());
+
+		this.DATA_POLICY = dataPolicy;
 
 		this.root = createTopRoot();
 	}
@@ -146,11 +193,28 @@ public class MerkleSortTree<T> implements Transactional {
 	 */
 	public MerkleSortTree(HashDigest rootHash, TreeOptions options, Bytes keyPrefix, ExPolicyKVStorage kvStorage,
 			BytesConverter<T> converter) {
+		this(rootHash, options, keyPrefix, kvStorage, converter, defaultDataPolicy());
+	}
+
+	/**
+	 * 创建 Merkle 树；
+	 * 
+	 * @param rootHash   节点的根Hash; 如果指定为 null，则实际上创建一个空的 Merkle Tree；
+	 * @param options    树的配置选项；
+	 * @param keyPrefix  存储数据的 key 的前缀；
+	 * @param kvStorage  保存 Merkle 节点的存储服务；
+	 * @param converter  默克尔树的转换器；
+	 * @param dataPolicy 数据节点的处理策略；
+	 */
+	public MerkleSortTree(HashDigest rootHash, TreeOptions options, Bytes keyPrefix, ExPolicyKVStorage kvStorage,
+			BytesConverter<T> converter, DataPolicy<T> dataPolicy) {
 		this.KEY_PREFIX = keyPrefix;
 		this.OPTIONS = options;
-		this.kvStorage = kvStorage;
+		this.KV_STORAGE = kvStorage;
 		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(options.getDefaultHashAlgorithm());
 		this.CONVERTER = converter;
+
+		this.DATA_POLICY = dataPolicy;
 
 		IndexEntry merkleIndex = loadMerkleEntry(rootHash);
 		int subtreeCount = merkleIndex.getChildCounts().length;
@@ -169,6 +233,8 @@ public class MerkleSortTree<T> implements Transactional {
 		this.MAX_COUNT = MathUtils.power(DEGREE, MAX_LEVEL);
 
 		this.root = new PathNode(rootHash, merkleIndex, this);
+
+		refreshMaxId();
 	}
 
 	/**
@@ -182,6 +248,19 @@ public class MerkleSortTree<T> implements Transactional {
 	public static MerkleSortTree<byte[]> createBytesTree(TreeOptions options, String keyPrefix,
 			ExPolicyKVStorage kvStorage) {
 		return new MerkleSortTree<byte[]>(options, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
+	}
+
+	/**
+	 * 创建数据类型为字节数组的空的默克尔排序树；
+	 * 
+	 * @param setting
+	 * @param keyPrefix
+	 * @param kvStorage
+	 * @return
+	 */
+	public static MerkleSortTree<byte[]> createBytesTree(TreeOptions options, String keyPrefix,
+			ExPolicyKVStorage kvStorage, DataPolicy<byte[]> dataPolicy) {
+		return new MerkleSortTree<byte[]>(options, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER, dataPolicy);
 	}
 
 	/**
@@ -249,6 +328,20 @@ public class MerkleSortTree<T> implements Transactional {
 		return new MerkleSortTree<byte[]>(rootHash, options, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
 	}
 
+	private Long refreshMaxId() {
+		if (getCount() == 0) {
+			// 空的默克尔树；
+			maxId = null;
+		} else {
+			// 默克尔树不为空 ；
+			SkippingIterator<ValueEntry> itr = iterator();
+			itr.skip(itr.getTotalCount() - 1);
+			ValueEntry value = itr.next();
+			maxId = Long.valueOf(value.getId());
+		}
+		return maxId;
+	}
+
 	/**
 	 * 创建顶级根节点；
 	 * 
@@ -276,9 +369,29 @@ public class MerkleSortTree<T> implements Transactional {
 		}
 	}
 
-	public void set(long id, T data) {
+	/**
+	 * 设置指定 id 的数据；
+	 * 
+	 * @param id   数据的编号；
+	 * @param data 数据；
+	 * @return true 表示数据已设置； false 表示数据未设置；当内部的数据写入策略有可能阻止设置数据，此时将返回 false；
+	 */
+	public boolean set(long id, T data) {
 		checkId(id);
-		root = mergeChildren(root.getNodeHash(), root, id, data);
+		MerkleNode newRoot = mergeChildren(root.getNodeHash(), root, id, data);
+		if (newRoot == null) {
+			return false;
+		}
+		root = newRoot;
+		// 更新 maxId；
+		if (maxId == null || id > maxId.longValue()) {
+			maxId = Long.valueOf(id);
+		}
+		return true;
+	}
+
+	public Long getMaxId() {
+		return maxId;
 	}
 
 	public T get(long id) {
@@ -458,14 +571,15 @@ public class MerkleSortTree<T> implements Transactional {
 	}
 
 	/**
-	 * 合并子节点，返回共同的父节点；
+	 * 合并指定的索引节点和数据节点；
 	 * 
-	 * @param indexNodeHash 路径节点的哈希；
-	 * @param indexNode     路径节点；
-	 * @param dataNode      数据项；
-	 * 
-	 * @return
+	 * @param indexNodeHash 索引节点的哈希；
+	 * @param indexNode     索引节点；
+	 * @param dataId        数据节点的 id；
+	 * @param data          数据；
+	 * @return 返回共同的父节点；如果未更新数据，则返回 null；
 	 */
+	@SuppressWarnings("unchecked")
 	private MerkleNode mergeChildren(HashDigest indexNodeHash, IndexEntry indexNode, long dataId, T data) {
 		final long PATH_OFFSET = indexNode.getOffset();
 		final long PATH_STEP = indexNode.getStep();
@@ -497,20 +611,19 @@ public class MerkleSortTree<T> implements Transactional {
 					parentNode = new PathNode(indexNodeHash, indexNode, this);
 				}
 
-				updateChildAtIndex(parentNode, index, dataId, data);
-				return parentNode;
+				boolean ok = updateChildAtIndex(parentNode, index, dataId, data);
+
+				return ok ? parentNode : null;
 			} else {
 				// while PATH_STEP == 1, this index node is leaf;
+				LeafNode<T> parentNode;
 				if (indexNode instanceof LeafNode) {
-					@SuppressWarnings("unchecked")
-					LeafNode<T> parentNode = (LeafNode<T>) indexNode;
-					updateChildAtIndex(parentNode, index, dataId, data);
-					return parentNode;
+					parentNode = (LeafNode<T>) indexNode;
 				} else {
-					LeafNode<T> parentNode = new LeafNode<T>(indexNodeHash, indexNode, this);
-					updateChildAtIndex(parentNode, index, dataId, data);
-					return parentNode;
+					parentNode = new LeafNode<T>(indexNodeHash, indexNode, this);
 				}
+				boolean ok = updateChildAtIndex(parentNode, index, dataId, data);
+				return ok ? parentNode : null;
 			}
 		} else {
 			// 数据节点不从属于 pathNode 路径节点，它们有共同的父节点；
@@ -518,7 +631,10 @@ public class MerkleSortTree<T> implements Transactional {
 			PathNode parentPathNode = new PathNode(pathOffset, step, this);
 
 			int dataChildIndex = parentPathNode.index(dataId);
-			updateChildAtIndex(parentPathNode, dataChildIndex, dataId, data);
+			boolean ok = updateChildAtIndex(parentPathNode, dataChildIndex, dataId, data);
+			if (!ok) {
+				return null;
+			}
 
 			int pathChildIndex = parentPathNode.index(pathId);
 			updateChildAtIndex(parentPathNode, pathChildIndex, indexNodeHash, indexNode);
@@ -534,15 +650,17 @@ public class MerkleSortTree<T> implements Transactional {
 	 * @param index      要设置的数据节点在父节点中的位置；
 	 * @param dataId     要设置的数据节点的 id；
 	 * @param data       要设置的字节数据；
-	 * @return
+	 * @return true 表示更新成功； false 表示未更新；
 	 */
-	private void updateChildAtIndex(LeafNode<T> parentNode, int index, long dataId, T data) {
+	private boolean updateChildAtIndex(LeafNode<T> parentNode, int index, long dataId, T data) {
 		T origChild = parentNode.getChild(index);
 
-		T newChild = updateData(dataId, origChild, data);
+		T newChild = DATA_POLICY.updateData(dataId, origChild, data);
 		if (newChild != null) {
 			parentNode.setChild(index, null, newChild);
+			return true;
 		}
+		return false;
 	}
 
 	/**
@@ -576,21 +694,27 @@ public class MerkleSortTree<T> implements Transactional {
 	 * @param dataBytes  要设置的字节数据；
 	 * @return
 	 */
-	private void updateChildAtIndex(PathNode parentNode, int index, long dataId, T dataBytes) {
+	private boolean updateChildAtIndex(PathNode parentNode, int index, long dataId, T dataBytes) {
 		IndexEntry origChild = parentNode.getChild(index);
 		if (origChild == null) {
 			long offset = calculateOffset(dataId, 1L);
 			LeafNode<T> leafNode = new LeafNode<T>(offset, this);
-			updateChildAtIndex(leafNode, leafNode.index(dataId), dataId, dataBytes);
+			boolean ok = updateChildAtIndex(leafNode, leafNode.index(dataId), dataId, dataBytes);
+			if (ok) {
+				parentNode.setChild(index, null, leafNode);
+			}
 
-			parentNode.setChild(index, null, leafNode);
-			return;
+			return ok;
 		}
 
 		// 合并两个子节点；
 		HashDigest origChildHash = parentNode.getChildHashAtIndex(index);
 		IndexEntry newChild = mergeChildren(origChildHash, origChild, dataId, dataBytes);
+		if (newChild == null) {
+			return false;
+		}
 		parentNode.setChild(index, null, newChild);
+		return true;
 	}
 
 	/**
@@ -668,44 +792,6 @@ public class MerkleSortTree<T> implements Transactional {
 	}
 
 	/**
-	 * 更新指定 id 的数据节点；
-	 * 
-	 * <p>
-	 * 这是模板方法，默认实现并不允许更新相同 id 的数据，并抛出 {@link MerkleProofException} 异常;
-	 * 
-	 * @param origValue 原数据；如果为 null，则表明是新增数据；
-	 * @param newValue  新数据；
-	 * @return 更新后的新节点的数据； 如果返回 null，则忽略此次操作；
-	 */
-	protected T updateData(long id, T origData, T newData) {
-		if (origData != null) {
-			throw new MerkleTreeKeyExistException("Unsupport updating datas with the same id!");
-		}
-		return newData;
-	}
-
-	/**
-	 * 准备提交指定 id 的数据，保存至存储服务；<br>
-	 * 
-	 * 此方法在对指定数据节点进行序列化并进行哈希计算之前被调用；
-	 * 
-	 * @param id
-	 * @param data
-	 */
-	protected T beforeCommit(long id, T data) {
-		return data;
-	}
-
-	/**
-	 * 已经取消指定 id 的数据；
-	 * 
-	 * @param id
-	 * @param child
-	 */
-	protected void afterCancel(long id, T data) {
-	}
-
-	/**
 	 * 加载指定哈希的默克尔节点的字节；
 	 * 
 	 * @param nodeHash
@@ -772,7 +858,7 @@ public class MerkleSortTree<T> implements Transactional {
 	@SuppressWarnings("unused")
 	private byte[] loadBytes(byte[] key) {
 		Bytes storageKey = encodeStorageKey(key);
-		byte[] nodeBytes = kvStorage.get(storageKey);
+		byte[] nodeBytes = KV_STORAGE.get(storageKey);
 		if (nodeBytes == null) {
 			throw new MerkleProofException("Merkle node does not exist! -- key=" + storageKey.toBase58());
 		}
@@ -781,7 +867,7 @@ public class MerkleSortTree<T> implements Transactional {
 
 	private byte[] loadBytes(Bytes key) {
 		Bytes storageKey = encodeStorageKey(key);
-		byte[] nodeBytes = kvStorage.get(storageKey);
+		byte[] nodeBytes = KV_STORAGE.get(storageKey);
 		if (nodeBytes == null) {
 			throw new MerkleProofException("Merkle node does not exist! -- key=" + storageKey.toBase58());
 		}
@@ -790,13 +876,98 @@ public class MerkleSortTree<T> implements Transactional {
 
 	private void saveBytes(Bytes key, byte[] nodeBytes, boolean reportDuplication) {
 		Bytes storageKey = encodeStorageKey(key);
-		boolean success = kvStorage.set(storageKey, nodeBytes, ExPolicy.NOT_EXISTING);
+		boolean success = KV_STORAGE.set(storageKey, nodeBytes, ExPolicy.NOT_EXISTING);
 		if (reportDuplication && !success) {
 			throw new MerkleProofException("Merkle node already exist! -- key=" + storageKey.toBase58());
 		}
 	}
 
 	// ----------------------------- inner types --------------------------
+
+	/**
+	 * 数据处理策略；
+	 * <p>
+	 * 
+	 * 定义默克尔树在对数据节点进行更新、提交、取消操作的策略；
+	 * 
+	 * @author huanghaiquan
+	 *
+	 * @param <T>
+	 */
+	public static interface DataPolicy<T> {
+
+		/**
+		 * 更新指定 id 的数据节点；
+		 * 
+		 * @param origValue 原数据；如果为 null，则表明是新增数据；
+		 * @param newValue  新数据；
+		 * @return 更新后的新节点的数据； 如果返回 null，则忽略此次操作；
+		 */
+		T updateData(long id, T origData, T newData);
+
+		/**
+		 * 准备提交指定 id 的数据，保存至存储服务；<br>
+		 * 
+		 * 此方法在对指定数据节点进行序列化并进行哈希计算之前被调用；
+		 * 
+		 * @param id
+		 * @param data
+		 */
+		T beforeCommit(long id, T data);
+
+		/**
+		 * 已经取消指定 id 的数据；
+		 * 
+		 * @param id
+		 * @param child
+		 */
+		void afterCancel(long id, T data);
+
+	}
+
+	public static class DefaultDataPolicy<T> implements DataPolicy<T> {
+
+		/**
+		 * 更新指定 id 的数据节点；
+		 * 
+		 * <p>
+		 * 默认实现并不允许更新相同 id 的数据，并抛出 {@link MerkleProofException} 异常;
+		 * 
+		 * @param origValue 原数据；如果为 null，则表明是新增数据；
+		 * @param newValue  新数据；
+		 * @return 更新后的新节点的数据； 如果返回 null，则忽略此次操作；
+		 */
+		@Override
+		public T updateData(long id, T origData, T newData) {
+			if (origData != null) {
+				throw new MerkleTreeKeyExistException("Unsupport updating datas with the same id!");
+			}
+			return newData;
+		}
+
+		/**
+		 * 准备提交指定 id 的数据，保存至存储服务；<br>
+		 * 
+		 * 此方法在对指定数据节点进行序列化并进行哈希计算之前被调用；
+		 * 
+		 * @param id
+		 * @param data
+		 */
+		@Override
+		public T beforeCommit(long id, T data) {
+			return data;
+		}
+
+		/**
+		 * 已经取消指定 id 的数据；
+		 * 
+		 * @param id
+		 * @param child
+		 */
+		@Override
+		public void afterCancel(long id, T data) {
+		}
+	}
 
 	public static interface MerkleEntrySelector {
 
@@ -1222,7 +1393,7 @@ public class MerkleSortTree<T> implements Transactional {
 					@SuppressWarnings("unchecked")
 					T child = (T) children[i];
 					long id = OFFSET + i;
-					child = tree().beforeCommit(id, child);
+					child = tree().DATA_POLICY.beforeCommit(id, child);
 					byte[] childBytes = CONVERTER.toBytes(child);
 					childHashs[i] = tree().saveNodeBytes(childBytes, TREE.OPTIONS.isReportDuplicatedData());
 					childCounts[i] = 1;
@@ -1234,7 +1405,7 @@ public class MerkleSortTree<T> implements Transactional {
 		@SuppressWarnings("unchecked")
 		@Override
 		protected void cancelChild(long id, Object child) {
-			tree().afterCancel(id, (T) child);
+			tree().DATA_POLICY.afterCancel(id, (T) child);
 		}
 
 	}

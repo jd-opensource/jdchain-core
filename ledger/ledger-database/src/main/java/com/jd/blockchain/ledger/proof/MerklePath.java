@@ -27,7 +27,7 @@ public interface MerklePath extends MerkleTrieEntry {
 	/**
 	 * 记录数；<br>
 	 * 
-	 * 一条记录是键的一个版本；所以记录数({@link #getRecords()})大于等于键数({@link #getKeys()})；
+	 * 一条记录是键的一个版本；所以记录数({@link #getRecords()})大于等于键数({@link #getKeySet()})；
 	 * 
 	 * @return
 	 */

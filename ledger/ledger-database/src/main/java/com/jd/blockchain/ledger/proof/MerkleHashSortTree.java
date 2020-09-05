@@ -1,5 +1,7 @@
 package com.jd.blockchain.ledger.proof;
 
+import java.util.Arrays;
+
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContract;
 import com.jd.blockchain.binaryproto.DataField;
@@ -7,17 +9,54 @@ import com.jd.blockchain.binaryproto.PrimitiveType;
 import com.jd.blockchain.consts.DataCodes;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.proof.MerkleSortTree.DataPolicy;
 import com.jd.blockchain.ledger.proof.MerkleSortTree.ValueEntry;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.hash.MurmurHash3;
+import com.jd.blockchain.utils.io.BytesUtils;
 
 public class MerkleHashSortTree implements MerkleTree {
 
 	private static final int KEY_HASH_SEED = 220268;
 
-	private HashSortTree hashTree;
+	private static final Bytes PATH_HASH = Bytes.fromString("HASH");
+	private static final Bytes PATH_BUCKET = Bytes.fromString("BUCKET");
+
+	private static final TreeDegree HASH_TREE_DEGREE = TreeDegree.D4;
+
+	private static final TreeDegree BUCKET_TREE_DEGREE = TreeDegree.D4;
+
+	private final KeyHashBucketConverter HASH_BUCKET_CONVERT;
+
+	private MerkleSortTree<HashEntry> hashTree;
+
+	public MerkleHashSortTree(TreeOptions options, Bytes prefix, ExPolicyKVStorage kvStorage) {
+		Bytes hashPrefix = prefix.concat(PATH_HASH);
+		Bytes bucketPrefix = prefix.concat(PATH_BUCKET);
+
+		this.HASH_BUCKET_CONVERT = new KeyHashBucketConverter(BUCKET_TREE_DEGREE, options, bucketPrefix, kvStorage);
+
+		DataPolicy<HashEntry> dataPolicy = new KeyHashBucketPolicy(BUCKET_TREE_DEGREE, options, bucketPrefix,
+				kvStorage);
+
+		this.hashTree = new MerkleSortTree<HashEntry>(HASH_TREE_DEGREE, options, hashPrefix, kvStorage,
+				HASH_BUCKET_CONVERT, dataPolicy);
+	}
+
+	public MerkleHashSortTree(HashDigest rootHash, TreeOptions options, Bytes prefix, ExPolicyKVStorage kvStorage) {
+		Bytes hashPrefix = prefix.concat(PATH_HASH);
+		Bytes bucketPrefix = prefix.concat(PATH_BUCKET);
+
+		this.HASH_BUCKET_CONVERT = new KeyHashBucketConverter(BUCKET_TREE_DEGREE, options, bucketPrefix, kvStorage);
+
+		DataPolicy<HashEntry> dataPolicy = new KeyHashBucketPolicy(BUCKET_TREE_DEGREE, options, bucketPrefix,
+				kvStorage);
+
+		this.hashTree = new MerkleSortTree<HashEntry>(rootHash, options, hashPrefix, kvStorage, HASH_BUCKET_CONVERT,
+				dataPolicy);
+	}
 
 	@Override
 	public boolean isUpdated() {
@@ -91,13 +130,16 @@ public class MerkleHashSortTree implements MerkleTree {
 	}
 
 	@Override
-	public long setData(byte[] key, long version, byte[] value) {
-		if (version < -1) {
+	public long setData(byte[] key, long expectedVersion, byte[] newValue) {
+		if (expectedVersion < -1) {
 			throw new IllegalArgumentException("Version must be greater than or equal to -1!");
 		}
 		long keyHash = KeyIndexer.hash(key);
-		long newVersion = hashTree.set(keyHash, key, version, value);
-		return newVersion;
+
+		// 写入键值数据；写入成功后，将会更新 kv 的版本；
+		KVWriteEntry kv = new KVWriteEntry(key, expectedVersion, newValue);
+		hashTree.set(keyHash, kv);
+		return kv.getNewVersion();
 	}
 
 	private BytesKVEntry loadData(byte[] key, long version) {
@@ -108,18 +150,13 @@ public class MerkleHashSortTree implements MerkleTree {
 		}
 
 		// 从版本树种加载指定版本；
-		KeyHashBucketTree keytree;
-		if (entry instanceof KeyHashBucketTree) {
-			keytree = (KeyHashBucketTree) entry;
-		} else {
-			keytree = new KeyHashBucketTree((KeyHashBucket) entry);
-		}
+		KeySetHashBucket hashBucket = (KeySetHashBucket) entry;
 
 		ValueEntry value;
 		if (version < 0) {
-			value = keytree.loadMaxVersion(key);
+			value = hashBucket.loadLatestValue(key);
 		} else {
-			value = keytree.loadVersion(key, version);
+			value = hashBucket.loadValue(key, version);
 		}
 		if (value == null) {
 			return null;
@@ -170,25 +207,13 @@ public class MerkleHashSortTree implements MerkleTree {
 
 	// ------------------- inner types ---------------------
 
+	/**
+	 * 
+	 * @author huanghaiquan
+	 *
+	 */
 	public static interface HashEntry {
-
 	}
-
-//	@DataContract(code = DataCodes.MERKLE_HASH_SORTED_TREE_KV_ENTRY)
-//	public static interface BytesKVHashEntry extends BytesKVEntry, HashEntry {
-//
-//		@DataField(order = 1, primitiveType = PrimitiveType.BYTES)
-//		@Override
-//		Bytes getKey();
-//
-//		@DataField(order = 2, primitiveType = PrimitiveType.INT64, numberEncoding = NumberEncoding.LONG)
-//		@Override
-//		long getVersion();
-//
-//		@DataField(order = 3, primitiveType = PrimitiveType.BYTES)
-//		@Override
-//		Bytes getValue();
-//	}
 
 	@DataContract(code = DataCodes.MERKLE_HASH_SORTED_TREE_KEY_INDEX)
 	public static interface KeyIndex {
@@ -196,47 +221,60 @@ public class MerkleHashSortTree implements MerkleTree {
 		@DataField(order = 1, primitiveType = PrimitiveType.BYTES)
 		byte[] getKey();
 
-//		@DataField(order = 2, primitiveType = PrimitiveType.INT64, numberEncoding = NumberEncoding.LONG)
-//		long getVersion();
-
-		@DataField(order = 3, primitiveType = PrimitiveType.BYTES)
+		@DataField(order = 2, primitiveType = PrimitiveType.BYTES)
 		HashDigest getRootHash();
 	}
 
 	@DataContract(code = DataCodes.MERKLE_HASH_SORTED_TREE_KEY_HASH_BUCKET)
-	public static interface KeyHashBucket extends HashEntry {
+	public static interface HashBucketEntry {
 
+		/**
+		 * 键的集合；
+		 * 
+		 * @return
+		 */
 		@DataField(order = 1, refContract = true, list = true)
-		KeyIndex[] getKeys();
+		KeyIndex[] getKeySet();
 
 	}
 
 	/**
-	 * 主干树；
+	 * 哈希数据的数据策略，实现一个 key 的多版本写入；
+	 * <p>
+	 * 
+	 * 将设置的 KVWriteEntry 转为写入到 KeySetHashBucket 的版本树；
 	 * 
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class HashSortTree extends MerkleSortTree<HashEntry> {
+	private static class KeyHashBucketPolicy implements DataPolicy<HashEntry> {
 
-		public HashSortTree(TreeOptions options, String keyPrefix, ExPolicyKVStorage kvStorage) {
-			super(TreeDegree.D4, options, keyPrefix, kvStorage, new KeyHashBucketConverter());
-		}
+		private final TreeDegree TREE_DEGREE;
 
-		public HashSortTree(HashDigest rootHash, TreeOptions options, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
-			super(rootHash, options, keyPrefix, kvStorage, new KeyHashBucketConverter());
+		private TreeOptions keyTreeOption;
+
+		private Bytes bucketPrefix;
+
+		private ExPolicyKVStorage kvStorage;
+
+		public KeyHashBucketPolicy(TreeDegree treeDegree, TreeOptions keyTreeOption, Bytes bucketPrefix,
+				ExPolicyKVStorage kvStorage) {
+			this.TREE_DEGREE = treeDegree;
+			this.keyTreeOption = keyTreeOption;
+			this.bucketPrefix = bucketPrefix;
+			this.kvStorage = kvStorage;
 		}
 
 		@Override
-		protected HashEntry beforeCommit(long id, HashEntry data) {
-			KeyHashBucketTree bucket = (KeyHashBucketTree) data;
+		public HashEntry beforeCommit(long id, HashEntry data) {
+			KeySetHashBucket bucket = (KeySetHashBucket) data;
 			bucket.commit();
 			return bucket;
 		}
 
 		@Override
-		protected void afterCancel(long id, HashEntry data) {
-			KeyHashBucketTree bucket = (KeyHashBucketTree) data;
+		public void afterCancel(long id, HashEntry data) {
+			KeySetHashBucket bucket = (KeySetHashBucket) data;
 			bucket.cancel();
 		}
 
@@ -244,39 +282,84 @@ public class MerkleHashSortTree implements MerkleTree {
 		 * 新增或者插入key；
 		 */
 		@Override
-		protected HashEntry updateData(long id, HashEntry origData, HashEntry newData) {
+		public HashEntry updateData(long id, HashEntry origData, HashEntry newData) {
+			KVWriteEntry kvw = (KVWriteEntry) newData;
+			KeySetHashBucket bucket = null;
 			if (origData == null) {
-				//新增；
+				// 新增数据, 预期版本应该为 -1；
+				if (kvw.getExpectedVersion() != -1) {
+					// 预期版本不匹配，返回失败的结果，将返回的版本号设置为 -1；
+					kvw.setNewVersion(-1);
+					return null;
+				}
+
+				Bytes bucketKeyPrefix = bucketPrefix.concat(BytesUtils.toBytes(id));
+				bucket = new KeySetHashBucket(id, kvw.getKey(), kvw.getNewValue(), TREE_DEGREE, keyTreeOption,
+						bucketKeyPrefix, kvStorage);
+				// 新增数据的版本为 0 ；
+				kvw.setNewVersion(bucket.getLatestVersion(kvw.getKey()));
+
+				assert 0 == kvw.getNewVersion();
+
+				return bucket;
+			} else {
+				bucket = (KeySetHashBucket) origData;
+				long latestVersion = bucket.getLatestVersion(kvw.getKey());
+				boolean ok = false;
+				if (latestVersion == kvw.getExpectedVersion()) {
+					latestVersion++;
+					ok = bucket.set(kvw.getKey(), latestVersion, kvw.getNewValue());
+				}
+				if (ok) {
+					kvw.setNewVersion(latestVersion);
+					return bucket;
+				} else {
+					// 写入失败，设置 -1 表示失败；
+					kvw.setNewVersion(-1);
+					return null;
+				}
 			}
-			return super.updateData(id, origData, newData);
 		}
 
-		public long set(long keyHash, byte[] key, long version, byte[] value) {
-			BytesKeyValue kv = new BytesKeyValue(key, version, value);
-
-			// 写入键值数据；写入成功后，将会更新 kv 的版本；
-			set(keyHash, new BytesKeyValue(key, version, value));
-			
-			return kv.getVersion();
-		}
 	}
 
 	private static class KeyHashBucketConverter implements BytesConverter<HashEntry> {
 
+		private final TreeDegree treeDegree;
+		private final TreeOptions treeOption;
+		private final Bytes bucketPrefix;
+		private final ExPolicyKVStorage kvStorage;
+
+		public KeyHashBucketConverter(TreeDegree treeDegree, TreeOptions treeOption, Bytes bucketPrefix,
+				ExPolicyKVStorage kvStorage) {
+			this.treeDegree = treeDegree;
+			this.treeOption = treeOption;
+			this.bucketPrefix = bucketPrefix;
+			this.kvStorage = kvStorage;
+		}
+
 		@Override
 		public byte[] toBytes(HashEntry value) {
-			return BinaryProtocol.encode(value, KeyHashBucket.class);
+			return BinaryProtocol.encode(value, HashBucketEntry.class);
 		}
 
 		@Override
 		public HashEntry fromBytes(byte[] bytes) {
-			KeyHashBucket bucket = BinaryProtocol.decode(bytes, KeyHashBucket.class);
-			return new KeyHashBucketTree(bucket);
+			HashBucketEntry bucket = BinaryProtocol.decode(bytes, HashBucketEntry.class);
+
+			KeyIndex[] keySet = bucket.getKeySet();
+			if (keySet.length == 0) {
+				throw new IllegalStateException("No key in the specified hash bucket!");
+			}
+
+			long bucketId = KeyIndexer.hash(keySet[0].getKey());
+			Bytes bucketKeyPrefix = bucketPrefix.concat(BytesUtils.toBytes(bucketId));
+			return new KeySetHashBucket(bucketId, keySet, treeDegree, treeOption, bucketKeyPrefix, kvStorage);
 		}
 
 	}
 
-	private static class BytesKeyValue implements BytesKVEntry, HashEntry {
+	private static class BytesKeyValue implements BytesKVEntry {
 
 		private Bytes key;
 		private long version;
@@ -286,6 +369,10 @@ public class MerkleHashSortTree implements MerkleTree {
 			this.key = new Bytes(key);
 			this.version = version;
 			this.value = new Bytes(value);
+		}
+
+		public void setVersion(long v) {
+			version = v;
 		}
 
 		public BytesKeyValue(Bytes key, long version, Bytes value) {
@@ -313,13 +400,43 @@ public class MerkleHashSortTree implements MerkleTree {
 
 	private static class KeyIndexEntry implements KeyIndex {
 
+		private final KeySetHashBucket BUCKET;
+
 		private byte[] key;
 
-		private HashDigest rootHash;
+		private MerkleSortTree<byte[]> tree;
 
-		public KeyIndexEntry(byte[] key, HashDigest rootHash) {
+		/**
+		 * 创建新的键值索引；
+		 * 
+		 * @param key
+		 * @param value
+		 * @param bucket
+		 */
+		public KeyIndexEntry(byte[] key, byte[] value, KeySetHashBucket bucket) {
+			this.BUCKET = bucket;
 			this.key = key;
-			this.rootHash = rootHash;
+			this.tree = createNewTree();
+			this.tree.set(0, value);
+		}
+
+		public KeyIndexEntry(KeyIndex keyIndex, KeySetHashBucket bucket) {
+			this.BUCKET = bucket;
+			this.key = keyIndex.getKey();
+			this.tree = createTree(keyIndex.getRootHash());
+		}
+
+		private Bytes getKeyPrefix() {
+			return BUCKET.bucketKeyPrefix.concat(key);
+		}
+
+		private MerkleSortTree<byte[]> createNewTree() {
+			return MerkleSortTree.createBytesTree(BUCKET.treeDegree, BUCKET.treeOption, getKeyPrefix(),
+					BUCKET.kvStorage);
+		}
+
+		private MerkleSortTree<byte[]> createTree(HashDigest rootHash) {
+			return MerkleSortTree.createBytesTree(rootHash, BUCKET.treeOption, getKeyPrefix(), BUCKET.kvStorage);
 		}
 
 		@Override
@@ -329,73 +446,181 @@ public class MerkleHashSortTree implements MerkleTree {
 
 		@Override
 		public HashDigest getRootHash() {
-			return rootHash;
+			return tree.getRootHash();
 		}
 
-		public void setRootHash(HashDigest rootHash) {
-			this.rootHash = rootHash;
+		public Long getLatestVersion() {
+			return tree.getMaxId();
+		}
+
+		public void cancel() {
+			tree.cancel();
+		}
+
+		public void commit() {
+			tree.commit();
+		}
+
+		public ValueEntry getLatestValue() {
+			return null;
+		}
+
+		public ValueEntry getValue(long version) {
+			// TODO Auto-generated method stub
+			return null;
 		}
 
 	}
 
-	private static class KeyHashBucketTree implements KeyHashBucket {
+	private static class KVWriteEntry implements HashEntry {
 
-		private TreeOptions treeOption;
-		private Bytes bucketPrefix;
-		private ExPolicyKVStorage kvStorage;
+		private byte[] key;
+
+		private long expectedVersion;
+
+		private byte[] newValue;
+
+		private long newVersion;
+
+		public KVWriteEntry(byte[] key, long expectedVersion, byte[] newValue) {
+			this.key = key;
+			this.expectedVersion = expectedVersion;
+			this.newValue = newValue;
+		}
+
+		/**
+		 * 设置新的版本；
+		 * 
+		 * @param newVersion
+		 */
+		public void setNewVersion(long newVersion) {
+			this.newVersion = newVersion;
+		}
+
+		public byte[] getKey() {
+			return key;
+		}
+
+		public long getExpectedVersion() {
+			return expectedVersion;
+		}
+
+		public byte[] getNewValue() {
+			return newValue;
+		}
+
+		public long getNewVersion() {
+			return newVersion;
+		}
+
+	}
+
+	private static class KeySetHashBucket implements HashBucketEntry, HashEntry {
+
+		private final TreeDegree treeDegree;
+		private final TreeOptions treeOption;
+		private final Bytes bucketKeyPrefix;
+		private final ExPolicyKVStorage kvStorage;
+
+		private final long BUCKET_ID;
 
 		private KeyIndexEntry[] entries;
 
-		private MerkleSortTree<byte[]>[] keyTrees;
-
-		public KeyHashBucketTree(byte[] key, TreeOptions treeOption, Bytes bucketPrefix, ExPolicyKVStorage kvStorage) {
+		/**
+		 * 新创建一个新的哈希桶；
+		 * 
+		 * @param bucketId        哈希桶的编号；即指定的 key 的64位哈希值；
+		 * @param key             哈希桶的首个键；
+		 * @param value           哈希桶的首个键对应的值；
+		 * @param treeDegree      键的版本子树的参数：树的度；
+		 * @param treeOption      键的版本子树的参数：树的配置选项；
+		 * @param bucketKeyPrefix 哈希桶的所有版本子树的共同的前缀；
+		 * @param kvStorage       存储服务；
+		 */
+		public KeySetHashBucket(long bucketId, byte[] key, byte[] value, TreeDegree treeDegree, TreeOptions treeOption,
+				Bytes bucketKeyPrefix, ExPolicyKVStorage kvStorage) {
+			this.BUCKET_ID = bucketId;
+			this.treeDegree = treeDegree;
 			this.treeOption = treeOption;
-			this.bucketPrefix = bucketPrefix;
+			this.bucketKeyPrefix = bucketKeyPrefix;
 			this.kvStorage = kvStorage;
-			this.entries = new KeyIndexEntry[] { new KeyIndexEntry(key, null) };
 
-			this.keyTrees = new MerkleSortTree[1];
+			KeyIndexEntry keyIndex = new KeyIndexEntry(key, value, this);
+
+			this.entries = new KeyIndexEntry[] { keyIndex };
 		}
 
-		public KeyHashBucketTree(KeyHashBucket keyset) {
-			// TODO:
-//			this.entries = keyset.getKeys();
+		public KeySetHashBucket(long bucketId, KeyIndex[] keys, TreeDegree treeDegree, TreeOptions treeOption,
+				Bytes bucketKeyPrefix, ExPolicyKVStorage kvStorage) {
+			this.BUCKET_ID = bucketId;
+			this.treeDegree = treeDegree;
+			this.treeOption = treeOption;
+			this.bucketKeyPrefix = bucketKeyPrefix;
+			this.kvStorage = kvStorage;
+
+			if (keys.length == 0) {
+				throw new IllegalStateException("No key in the specified hash bucket!");
+			}
+
+			this.entries = new KeyIndexEntry[keys.length];
+			for (int i = 0; i < keys.length; i++) {
+				entries[i] = new KeyIndexEntry(keys[i], this);
+				long keyHash = KeyIndexer.hash(entries[i].getKey());
+				if (keyHash != bucketId) {
+					throw new IllegalStateException(
+							"There are two keys with the two different 64 bits hash values in one hash bucket!");
+				}
+			}
+		}
+
+		public boolean set(byte[] key, long maxVersion, byte[] value) {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		private KeyIndexEntry getKeyEntry(byte[] key) {
+			// 由于哈希冲突的概率极低，绝大多数的哈希桶都只有一项 key；
+			// 因此，当只有一项的时候，出于优化性能而不必对 key 进行比较，可直接返回；
+			if (entries.length == 1) {
+				return entries[0];
+			}
+			for (KeyIndexEntry keyEntry : entries) {
+				if (Arrays.equals(keyEntry.getKey(), key)) {
+					return keyEntry;
+				}
+			}
+			// 正常情况下不可能执行到此处；因为至少有一个 key 会匹配；
+			throw new IllegalStateException("No key match in hash bucket[" + BUCKET_ID + "]!");
+		}
+
+		public long getLatestVersion(byte[] key) {
+			return getKeyEntry(key).getLatestVersion();
 		}
 
 		public void cancel() {
 			for (int i = 0; i < entries.length; i++) {
-				if (keyTrees[i] != null) {
-					keyTrees[i].cancel();
-					keyTrees[i] = null;
-				}
+				entries[i].cancel();
 			}
 		}
 
 		public void commit() {
 			for (int i = 0; i < entries.length; i++) {
-				if (keyTrees[i] != null) {
-					keyTrees[i].commit();
-					entries[i].setRootHash(keyTrees[i].getRootHash());
-				}
+				entries[i].commit();
 			}
 		}
 
-		private MerkleSortTree<byte[]> createKeyTree(TreeOptions option, Bytes keyPrefix, ExPolicyKVStorage kvStorage) {
-			return MerkleSortTree.createBytesTree(TreeDegree.D4, option, keyPrefix, kvStorage);
+		public ValueEntry loadLatestValue(byte[] key) {
+			KeyIndexEntry keyEntry = getKeyEntry(key);
+			return keyEntry.getLatestValue();
 		}
 
-		public ValueEntry loadMaxVersion(byte[] key) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		public ValueEntry loadVersion(byte[] key, long version) {
-			// TODO Auto-generated method stub
-			return null;
+		public ValueEntry loadValue(byte[] key, long version) {
+			KeyIndexEntry keyEntry = getKeyEntry(key);
+			return keyEntry.getValue(version);
 		}
 
 		@Override
-		public KeyIndex[] getKeys() {
+		public KeyIndex[] getKeySet() {
 			return entries;
 		}
 
