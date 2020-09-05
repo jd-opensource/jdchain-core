@@ -10,8 +10,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
@@ -27,12 +30,11 @@ import com.jd.blockchain.ledger.proof.MerkleSortTree.DefaultDataPolicy;
 import com.jd.blockchain.ledger.proof.MerkleSortTree.ValueEntry;
 import com.jd.blockchain.ledger.proof.MerkleTreeKeyExistException;
 import com.jd.blockchain.ledger.proof.TreeOptions;
-import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.SkippingIterator;
 
-public class MerkleSortedTreeTest {
+public class MerkleSortTreeTest {
 
 	private static final String DEFAULT_MKL_KEY_PREFIX = "";
 
@@ -152,6 +154,91 @@ public class MerkleSortedTreeTest {
 	}
 
 	@Test
+	public void testCommitAndCancel() {
+		int count1 = 48;
+		byte[][] datas1 = generateRandomData(count1);
+		long[] ids1 = generateRandomIDs(count1);
+
+		Set<Long> excludingIds = makeIdSet(ids1);
+		int count2 = 32;
+		byte[][] datas2 = generateRandomData(count2);
+		long[] ids2 = generateRandomIDs(count2, excludingIds, true);
+
+		TreeOptions options = createTreeOptions();
+		MemoryKVStorage storage = new MemoryKVStorage();
+		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage);
+
+		long expectedMaxId1 = Arrays.stream(ids1).max().getAsLong();
+
+		assertEquals(0, mst.getCount());
+		assertNull(mst.getRootHash());
+		assertNull(mst.getMaxId());
+
+		addDatas(ids1, datas1, mst);
+
+		// 未提交之前总数不会发生变化；
+		assertEquals(0, mst.getCount());
+		assertNull(mst.getRootHash());
+		// “最大编码”会实时更新；
+		assertNotNull(mst.getMaxId());
+		assertEquals(expectedMaxId1, mst.getMaxId().longValue());
+		// 迭代器不包含未提交的数据；预期迭代器为空；
+		SkippingIterator<ValueEntry> iter = mst.iterator();
+		assertEquals(0, iter.getTotalCount());
+
+		// 提交之后才更新属性；
+		mst.commit();
+
+		assertEquals(count1, mst.getCount());
+		assertNotNull(mst.getRootHash());
+		assertNotNull(mst.getMaxId());
+
+		assertEquals(expectedMaxId1, mst.getMaxId().longValue());
+
+		assertDataEquals(ids1, datas1, mst);
+
+		// 预期提交后，迭代器反映出最新提交的数据；
+		Map<Long, byte[]> dataMap = new HashMap<Long, byte[]>();
+		mapIdValues(ids1, datas1, dataMap);
+		iter = mst.iterator();
+		long[] sortedIds1 = ids1;
+		Arrays.sort(sortedIds1);
+		assertIteratorSortedAndEquals(iter, count1, sortedIds1, dataMap);
+
+		// 测试写入数据后回滚操作是否符合预期；
+		long expectedMaxId2 = Arrays.stream(ids2).max().getAsLong();
+		expectedMaxId2 = Math.max(expectedMaxId1, expectedMaxId2);
+
+		HashDigest rootHash1 = mst.getRootHash();
+
+		// 写入数据，但并不提交；
+		addDatas(ids2, datas2, mst);
+
+		// 预期未提交之前，根哈希不会变化；
+		assertEquals(rootHash1, mst.getRootHash());
+		// 预期未提交之前，总数不会变化；
+		assertEquals(count1, mst.getCount());
+		// 预期“最大编码”属性是实时变化的；
+		assertEquals(expectedMaxId2, mst.getMaxId().longValue());
+		// 预期未提交之前，预期迭代器不会变化；
+		iter = mst.iterator();
+		assertIteratorSortedAndEquals(iter, count1, sortedIds1, dataMap);
+
+		// 回滚之后，预期所有的属性恢复到上一次提交的结果；
+		mst.cancel();
+
+		// 预期“根哈希”维持上次提交之后的结果；
+		assertEquals(rootHash1, mst.getRootHash());
+		// 预期“总数”维持上次提交之后的结果；
+		assertEquals(count1, mst.getCount());
+		// 预期“最大编码”属性恢复到上次提交之后的结果；
+		assertEquals(expectedMaxId1, mst.getMaxId().longValue());
+		// 预期迭代器不会变化，维持上次提交之后的结果；
+		iter = mst.iterator();
+		assertIteratorSortedAndEquals(iter, count1, sortedIds1, dataMap);
+	}
+
+	@Test
 	public void testIterator() {
 		TreeOptions options = createTreeOptions();
 		MemoryKVStorage storage = new MemoryKVStorage();
@@ -169,47 +256,31 @@ public class MerkleSortedTreeTest {
 		int count1 = 10;
 		byte[][] datas1 = generateRandomData(count1);
 		long[] ids1 = generateSeqenceIDs(0, count1);
-		addDatas(ids1, datas1, mst);
+		HashMap<Long, byte[]> dataMap = new HashMap<Long, byte[]>();
+		mapIdValues(ids1, datas1, dataMap);
+
+		addDatasAndCommit(ids1, datas1, mst);
 
 		iter = mst.iterator();
-		assertEquals(count1, iter.getTotalCount());
-		assertEquals(-1, iter.getCursor());
-		assertTrue(iter.hasNext());
-		int i = 0;
-		while (iter.hasNext()) {
-			ValueEntry merkleData = iter.next();
-			assertNotNull(merkleData);
-			assertEquals(ids1[i], merkleData.getId());
-			i++;
-		}
-		assertEquals(count1, i);
+
+		assertIteratorSortedAndEquals(iter, count1, ids1, dataMap);
 
 		// 随机加入；验证迭代器返回有序的序列；
-		HashSet<Long> excludingIDs = new HashSet<Long>();
-		for (long l : ids1) {
-			excludingIDs.add(l);
-		}
+		Set<Long> excludingIDs = makeIdSet(ids1);
 		int count2 = (int) power(4, 8) + 1;
 		byte[][] datas2 = generateRandomData(count2);
 		long[] ids2 = generateRandomIDs(count2, excludingIDs, true);
-		addDatas(ids2, datas2, mst);
+		mapIdValues(ids2, datas2, dataMap);
+
+		addDatasAndCommit(ids2, datas2, mst);
 
 		long[] totalIds = ArrayUtils.concat(ids1, ids2);
 		Arrays.sort(totalIds);
 
 		long totalCount = count1 + count2;
 		iter = mst.iterator();
-		assertEquals(totalCount, iter.getTotalCount());
-		assertEquals(-1, iter.getCursor());
-		assertTrue(iter.hasNext());
-		i = 0;
-		while (iter.hasNext()) {
-			ValueEntry merkleData = iter.next();
-			assertNotNull(merkleData);
-			assertEquals(totalIds[i], merkleData.getId());
-			i++;
-		}
-		assertEquals(totalCount, i);
+
+		assertIteratorSortedAndEquals(iter, totalCount, totalIds, dataMap);
 
 		// 验证有跳跃的情形；
 		iter = mst.iterator();
@@ -291,6 +362,51 @@ public class MerkleSortedTreeTest {
 		assertNull(merkleData);
 	}
 
+	private Set<Long> makeIdSet(long[] ids) {
+		HashSet<Long> idset = new HashSet<Long>();
+		makeIdSet(ids, idset);
+		return idset;
+	}
+
+	private void makeIdSet(long[] ids, Set<Long> idset) {
+		for (int i = 0; i < ids.length; i++) {
+			idset.add(ids[i]);
+		}
+	}
+
+	private void mapIdValues(long[] ids, byte[][] values, Map<Long, byte[]> dataMap) {
+		for (int i = 0; i < values.length; i++) {
+			dataMap.put(ids[i], values[i]);
+		}
+	}
+
+	/**
+	 * 断言迭代器是有序的，且与指定的 id 和数据一致；
+	 * 
+	 * @param expectedCount
+	 * @param iter
+	 */
+	private void assertIteratorSortedAndEquals(SkippingIterator<ValueEntry> iter, long expectedCount,
+			long[] expectedSortIDs, Map<Long, byte[]> dataMap) {
+		assertEquals(expectedCount, iter.getTotalCount());
+		assertEquals(-1, iter.getCursor());
+		assertTrue(iter.hasNext());
+		int i = 0;
+		long preId = -1;
+		while (iter.hasNext()) {
+			ValueEntry merkleData = iter.next();
+			assertNotNull(merkleData);
+			assertEquals(expectedSortIDs[i], merkleData.getId());
+			assertArrayEquals(dataMap.get(expectedSortIDs[i]), merkleData.getBytes());
+			if (i > 0) {
+				assertTrue(merkleData.getId() >= preId);
+			}
+			preId = merkleData.getId();
+			i++;
+		}
+		assertEquals(expectedCount, i);
+	}
+
 	@Test
 	public void testCounts() {
 		TreeOptions options = createTreeOptions();
@@ -302,12 +418,12 @@ public class MerkleSortedTreeTest {
 		int count1 = (int) power(MerkleSortTree.DEFAULT_DEGREE, 2);
 		byte[][] datas1 = generateRandomData(count1);
 		long[] ids1 = generateRandomIDs(count1, excludingIDs, true);
-		addDatas(ids1, datas1, mst);
+		addDatasAndCommit(ids1, datas1, mst);
 
 		int count2 = (int) power(MerkleSortTree.DEFAULT_DEGREE, 3);
 		byte[][] datas2 = generateRandomData(count2);
 		long[] ids2 = generateRandomIDs(count2, excludingIDs, true);
-		addDatas(ids2, datas2, mst);
+		addDatasAndCommit(ids2, datas2, mst);
 
 		// 合并前两次产生的数据，验证默克尔树中是否已经写入相同的数据；
 		long[] ids = ArrayUtils.concat(ids1, ids2);
@@ -323,7 +439,7 @@ public class MerkleSortedTreeTest {
 		int count3 = 1023;
 		byte[][] datas3 = generateRandomData(count3);
 		long[] ids3 = generateRandomIDs(count3, excludingIDs, true);
-		addDatas(ids3, datas3, mst);
+		addDatasAndCommit(ids3, datas3, mst);
 
 		ids = ArrayUtils.concat(ids, ids3);
 		datas = ArrayUtils.concat(datas, datas3, byte[].class);
@@ -341,7 +457,7 @@ public class MerkleSortedTreeTest {
 		int count = 10253;
 		byte[][] datas1 = generateRandomData(count);
 		long[] ids1 = generateRandomIDs(count);
-		addDatas(ids1, datas1, mst1);
+		addDatasAndCommit(ids1, datas1, mst1);
 
 		// 反转数据的顺序之后写入，校验是否一致；
 		byte[][] datas2 = datas1.clone();
@@ -349,7 +465,7 @@ public class MerkleSortedTreeTest {
 		ArrayUtils.reverse(datas2);
 		ArrayUtils.reverse(ids2);
 		MerkleSortTree<byte[]> mst2 = newMerkleSortedTree();
-		addDatas(ids2, datas2, mst2);
+		addDatasAndCommit(ids2, datas2, mst2);
 		assertEquals(mst1.getRootHash(), mst2.getRootHash());
 
 		// 随机打乱顺序之后写入，校验是否一致；
@@ -357,7 +473,7 @@ public class MerkleSortedTreeTest {
 		long[] ids3 = ids1.clone();
 		resortRandomly(ids3, datas3);
 		MerkleSortTree<byte[]> mst3 = newMerkleSortedTree();
-		addDatas(ids3, datas3, mst3);
+		addDatasAndCommit(ids3, datas3, mst3);
 		assertEquals(mst1.getRootHash(), mst3.getRootHash());
 
 		// 先随机打乱顺序，然后分多次写入，验证最终是否得到一致的结果；
@@ -371,7 +487,7 @@ public class MerkleSortedTreeTest {
 		int count4_1 = 1024;
 		byte[][] datas4_1 = Arrays.copyOfRange(datas4, 0, count4_1);
 		long[] ids4_1 = Arrays.copyOfRange(ids4, 0, count4_1);
-		addDatas(ids4_1, datas4_1, mst4);
+		addDatasAndCommit(ids4_1, datas4_1, mst4);
 		HashDigest rootHash4_1 = mst4.getRootHash();
 		assertNotNull(rootHash4_1);
 		assertEquals(count4_1, mst4.getCount());
@@ -379,7 +495,7 @@ public class MerkleSortedTreeTest {
 		int count4_2 = 1203;
 		byte[][] datas4_2 = Arrays.copyOfRange(datas4, count4_1, count4_1 + count4_2);
 		long[] ids4_2 = Arrays.copyOfRange(ids4, count4_1, count4_1 + count4_2);
-		addDatas(ids4_2, datas4_2, mst4);
+		addDatasAndCommit(ids4_2, datas4_2, mst4);
 		HashDigest rootHash4_2 = mst4.getRootHash();
 		assertNotNull(rootHash4_2);
 		assertNotEquals(rootHash4_1, rootHash4_2);
@@ -387,7 +503,7 @@ public class MerkleSortedTreeTest {
 
 		byte[][] datas4_3 = Arrays.copyOfRange(datas4, count4_1 + count4_2, count);
 		long[] ids4_3 = Arrays.copyOfRange(ids4, count4_1 + count4_2, count);
-		addDatas(ids4_3, datas4_3, mst4);
+		addDatasAndCommit(ids4_3, datas4_3, mst4);
 		HashDigest rootHash4_3 = mst4.getRootHash();
 		assertNotNull(rootHash4_3);
 		assertNotEquals(rootHash4_2, rootHash4_3);
@@ -418,7 +534,7 @@ public class MerkleSortedTreeTest {
 		byte[][] datas = generateRandomData(count);
 		long[] ids = generateSeqenceIDs(0, count);
 
-		addDatas(ids, datas, mst);
+		addDatasAndCommit(ids, datas, mst);
 		;
 
 		// 预期默认的 MerkleSortedTree 实现下，写入相同 id 的数据会引发移除；
@@ -460,12 +576,18 @@ public class MerkleSortedTreeTest {
 		testAddingAndAssertingEquals(ids, datas);
 	}
 
+	/**
+	 * 生成随机且不重复的编码；
+	 * 
+	 * @param count
+	 * @return
+	 */
 	private static long[] generateRandomIDs(int count) {
 		HashSet<Long> excludingIDs = new HashSet<Long>();
 		return generateRandomIDs(count, excludingIDs, true);
 	}
 
-	private static long[] generateRandomIDs(int count, HashSet<Long> excludingIDs, boolean noRepeatly) {
+	private static long[] generateRandomIDs(int count, Set<Long> excludingIDs, boolean noRepeatly) {
 		long[] ids = new long[count];
 		SecureRandom random = new SecureRandom();
 		long id = -1;
@@ -505,16 +627,16 @@ public class MerkleSortedTreeTest {
 	private static void testAddingAndAssertingEquals(long[] ids, byte[][] datas) {
 		TreeOptions options = createTreeOptions();
 		MemoryKVStorage storage = new MemoryKVStorage();
-		
+
 		Counter counter = new Counter();
 		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage, counter);
 
 		assertNull(mst.getRootHash());
 
-		addDatas(ids, datas, mst);
+		addDatasAndCommit(ids, datas, mst);
 
 		assertEquals(ids.length, counter.count.get());
-		
+
 		HashDigest rootHash = mst.getRootHash();
 		assertNotNull(rootHash);
 
@@ -528,11 +650,15 @@ public class MerkleSortedTreeTest {
 		assertDataEquals(ids, datas, mst1);
 	}
 
+	private static void addDatasAndCommit(long[] ids, byte[][] datas, MerkleSortTree<byte[]> mst) {
+		addDatas(ids, datas, mst);
+		mst.commit();
+	}
+
 	private static void addDatas(long[] ids, byte[][] datas, MerkleSortTree<byte[]> mst) {
 		for (int i = 0; i < ids.length; i++) {
 			mst.set(ids[i], datas[i]);
 		}
-		mst.commit();
 	}
 
 	private static void assertDataEquals(long[] ids, byte[][] datas, MerkleSortTree<byte[]> mst) {
@@ -565,8 +691,7 @@ public class MerkleSortedTreeTest {
 		return TreeOptions.build().setDefaultHashAlgorithm(HASH_ALGORITHM.code()).setVerifyHashOnLoad(true)
 				.setReportDuplicatedData(true);
 	}
-	
-	
+
 	/**
 	 * 计算 value 的 x 次方；
 	 * <p>
@@ -586,12 +711,11 @@ public class MerkleSortedTreeTest {
 		}
 		return r;
 	}
-	
-	
-	private static class Counter extends DefaultDataPolicy<byte[]>{
-		
+
+	private static class Counter extends DefaultDataPolicy<byte[]> {
+
 		private AtomicInteger count = new AtomicInteger(0);
-		
+
 		@Override
 		public byte[] updateData(long id, byte[] origData, byte[] newData) {
 			try {

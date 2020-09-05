@@ -3,6 +3,8 @@ package com.jd.blockchain.ledger.proof;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.naming.RefAddr;
+
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContract;
 import com.jd.blockchain.binaryproto.DataField;
@@ -356,6 +358,15 @@ public class MerkleSortTree<T> implements Transactional {
 		return root.getNodeHash();
 	}
 
+	/**
+	 * 数据节点的总数；
+	 * 
+	 * <br>
+	 * 
+	 * 注：不包括已修改但未提交的数据；
+	 * 
+	 * @return
+	 */
 	public long getCount() {
 		return count(root);
 	}
@@ -390,6 +401,17 @@ public class MerkleSortTree<T> implements Transactional {
 		return true;
 	}
 
+	/**
+	 * 最大的编码；<br>
+	 * 如果默克尔没有数据，则返回 null；
+	 * <p>
+	 * 
+	 * 该属性会实时反映默克尔树的状态，包括未提交的状态，有新的数据写入之后立即更新该属性；<br>
+	 * 
+	 * 如果未提交的更改已经取消，该属性也同时恢复到上一次提交后的结果；
+	 * 
+	 * @return
+	 */
 	public Long getMaxId() {
 		return maxId;
 	}
@@ -398,9 +420,14 @@ public class MerkleSortTree<T> implements Transactional {
 		return seekData(root, id, NullSelector.INSTANCE);
 	}
 
+	/**
+	 * 所有已经提交的数据节点的迭代器；
+	 * 
+	 * @return
+	 */
 	public SkippingIterator<ValueEntry> iterator() {
 		// 克隆根节点的数据，避免根节点的更新影响了迭代器；
-		return new MerklePathIterator(root.getOffset(), root.getStep(), root.getChildHashs().clone(),
+		return new MerklePathIterator(root.getOffset(), root.getStep(), root.getOrigChildHashs(),
 				root.getChildCounts().clone());
 	}
 
@@ -503,6 +530,7 @@ public class MerkleSortTree<T> implements Transactional {
 	@Override
 	public final void cancel() {
 		root.cancel();
+		refreshMaxId();
 	}
 
 	/**
@@ -1141,6 +1169,8 @@ public class MerkleSortTree<T> implements Transactional {
 
 		protected final long STEP;
 
+		private final HashDigest[] ORIG_CHILD_HASHS;
+
 		private HashDigest nodeHash;
 
 		private long[] childCounts;
@@ -1150,8 +1180,6 @@ public class MerkleSortTree<T> implements Transactional {
 		private boolean modified;
 
 		private Object[] children;
-
-		private HashDigest[] origChildHashs;
 
 		protected MerkleNode(HashDigest nodeHash, long offset, long step, long[] childCounts, HashDigest[] childHashs,
 				MerkleSortTree<?> tree) {
@@ -1165,10 +1193,14 @@ public class MerkleSortTree<T> implements Transactional {
 			this.STEP = step;
 			this.childCounts = childCounts;
 			this.childHashs = childHashs;
-			this.origChildHashs = childHashs.clone();
+			this.ORIG_CHILD_HASHS = childHashs.clone();
 			this.children = new Object[tree.DEGREE];
 
 			assert childHashs.length == tree.DEGREE;
+		}
+
+		public HashDigest[] getOrigChildHashs() {
+			return ORIG_CHILD_HASHS;
 		}
 
 		public HashDigest getNodeHash() {
@@ -1290,7 +1322,7 @@ public class MerkleSortTree<T> implements Transactional {
 
 			// update hash;
 			for (int i = 0; i < TREE.DEGREE; i++) {
-				origChildHashs[i] = childHashs[i];
+				ORIG_CHILD_HASHS[i] = childHashs[i];
 			}
 			this.nodeHash = hash;
 			this.modified = false;
@@ -1316,8 +1348,8 @@ public class MerkleSortTree<T> implements Transactional {
 		public void cancel() {
 			Object child;
 			for (int i = 0; i < TREE.DEGREE; i++) {
-				if (children[i] != null && (childHashs[i] == null || origChildHashs[i] == null
-						|| (!childHashs[i].equals(origChildHashs[i])))) {
+				if (children[i] != null && (childHashs[i] == null || ORIG_CHILD_HASHS[i] == null
+						|| (!childHashs[i].equals(ORIG_CHILD_HASHS[i])))) {
 					child = children[i];
 					children[i] = null;
 					// 清理字节点以便优化大对象的垃圾回收效率；
@@ -1328,7 +1360,7 @@ public class MerkleSortTree<T> implements Transactional {
 						((MerkleNode) child).cancel();
 					}
 				}
-				childHashs[i] = origChildHashs[i];
+				childHashs[i] = ORIG_CHILD_HASHS[i];
 			}
 			// 注：不需要处理 nodeHash 的回滚，因为 nodeHash 是 commit 操作的最后确认标志；
 		}
