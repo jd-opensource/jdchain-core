@@ -152,7 +152,7 @@ public class MerkleHashSortTree implements MerkleTree {
 		// 从版本树种加载指定版本；
 		KeySetHashBucket hashBucket = (KeySetHashBucket) entry;
 
-		ValueEntry value;
+		ValueEntry<byte[]> value;
 		if (version < 0) {
 			value = hashBucket.loadLatestValue(key);
 		} else {
@@ -161,7 +161,7 @@ public class MerkleHashSortTree implements MerkleTree {
 		if (value == null) {
 			return null;
 		}
-		return new BytesKeyValue(key, value.getId(), value.getBytes());
+		return new BytesKeyValue(key, value.getId(), value.getValue());
 
 //		if (entry instanceof BytesKVHashEntry) {
 //			BytesKVHashEntry dataEntry = (BytesKVHashEntry) entry;
@@ -461,11 +461,12 @@ public class MerkleHashSortTree implements MerkleTree {
 			tree.commit();
 		}
 
-		public ValueEntry getLatestValue() {
+		public ValueEntry<byte[]> getLatestValue() {
+			// TODO Auto-generated method stub
 			return null;
 		}
 
-		public ValueEntry getValue(long version) {
+		public ValueEntry<byte[]> getValue(long version) {
 			// TODO Auto-generated method stub
 			return null;
 		}
@@ -609,12 +610,12 @@ public class MerkleHashSortTree implements MerkleTree {
 			}
 		}
 
-		public ValueEntry loadLatestValue(byte[] key) {
+		public ValueEntry<byte[]> loadLatestValue(byte[] key) {
 			KeyIndexEntry keyEntry = getKeyEntry(key);
 			return keyEntry.getLatestValue();
 		}
 
-		public ValueEntry loadValue(byte[] key, long version) {
+		public ValueEntry<byte[]> loadValue(byte[] key, long version) {
 			KeyIndexEntry keyEntry = getKeyEntry(key);
 			return keyEntry.getValue(version);
 		}
@@ -622,6 +623,49 @@ public class MerkleHashSortTree implements MerkleTree {
 		@Override
 		public KeyIndex[] getKeySet() {
 			return entries;
+		}
+
+	}
+
+	/**
+	 * 返回最新 KV 的
+	 * 
+	 * @author huanghaiquan
+	 *
+	 */
+	private static class LatestKeyValueIterator implements SkippingIterator<BytesKVEntry> {
+
+		private SkippingIterator<ValueEntry> valueEntriesIterator;
+
+		private KeyHashBucketConverter hashBucketConvert;
+
+		@Override
+		public boolean hasNext() {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		@Override
+		public BytesKVEntry next() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public long getTotalCount() {
+			return valueEntriesIterator.getTotalCount();
+		}
+
+		@Override
+		public long getCursor() {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+
+		@Override
+		public long skip(long count) {
+			// TODO Auto-generated method stub
+			return 0;
 		}
 
 	}

@@ -183,7 +183,7 @@ public class MerkleSortTreeTest {
 		assertNotNull(mst.getMaxId());
 		assertEquals(expectedMaxId1, mst.getMaxId().longValue());
 		// 迭代器不包含未提交的数据；预期迭代器为空；
-		SkippingIterator<ValueEntry> iter = mst.iterator();
+		SkippingIterator<ValueEntry<byte[]>> iter = mst.bytesIterator();
 		assertEquals(0, iter.getTotalCount());
 
 		// 提交之后才更新属性；
@@ -245,7 +245,7 @@ public class MerkleSortTreeTest {
 		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		// 验证空的迭代器；
-		SkippingIterator<ValueEntry> iter = mst.iterator();
+		SkippingIterator<ValueEntry<byte[]>> iter = mst.bytesIterator();
 
 		assertEquals(0, iter.getTotalCount());
 		assertEquals(-1, iter.getCursor());
@@ -293,7 +293,7 @@ public class MerkleSortTreeTest {
 		index += skipped;
 		assertEquals(index, iter.getCursor());
 
-		ValueEntry merkleData = iter.next();
+		ValueEntry<byte[]> merkleData = iter.next();
 		index++;
 		assertEquals(index, iter.getCursor());
 		assertNotNull(merkleData);
@@ -386,7 +386,7 @@ public class MerkleSortTreeTest {
 	 * @param expectedCount
 	 * @param iter
 	 */
-	private void assertIteratorSortedAndEquals(SkippingIterator<ValueEntry> iter, long expectedCount,
+	private void assertIteratorSortedAndEquals(SkippingIterator<ValueEntry<byte[]>> iter, long expectedCount,
 			long[] expectedSortIDs, Map<Long, byte[]> dataMap) {
 		assertEquals(expectedCount, iter.getTotalCount());
 		assertEquals(-1, iter.getCursor());
@@ -394,10 +394,10 @@ public class MerkleSortTreeTest {
 		int i = 0;
 		long preId = -1;
 		while (iter.hasNext()) {
-			ValueEntry merkleData = iter.next();
+			ValueEntry<byte[]> merkleData = iter.next();
 			assertNotNull(merkleData);
 			assertEquals(expectedSortIDs[i], merkleData.getId());
-			assertArrayEquals(dataMap.get(expectedSortIDs[i]), merkleData.getBytes());
+			assertArrayEquals(dataMap.get(expectedSortIDs[i]), merkleData.getValue());
 			if (i > 0) {
 				assertTrue(merkleData.getId() >= preId);
 			}
@@ -522,7 +522,7 @@ public class MerkleSortTreeTest {
 		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		// 验证空的迭代器；
-		SkippingIterator<ValueEntry> iter = mst.iterator();
+		SkippingIterator<ValueEntry<byte[]>> iter = mst.bytesIterator();
 
 		assertEquals(0, iter.getTotalCount());
 		assertEquals(-1, iter.getCursor());

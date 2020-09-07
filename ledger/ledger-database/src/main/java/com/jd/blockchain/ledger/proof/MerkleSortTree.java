@@ -3,8 +3,6 @@ package com.jd.blockchain.ledger.proof;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.naming.RefAddr;
-
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContract;
 import com.jd.blockchain.binaryproto.DataField;
@@ -336,9 +334,9 @@ public class MerkleSortTree<T> implements Transactional {
 			maxId = null;
 		} else {
 			// 默克尔树不为空 ；
-			SkippingIterator<ValueEntry> itr = iterator();
+			SkippingIterator<ValueEntry<T>> itr = iterator();
 			itr.skip(itr.getTotalCount() - 1);
-			ValueEntry value = itr.next();
+			ValueEntry<T> value = itr.next();
 			maxId = Long.valueOf(value.getId());
 		}
 		return maxId;
@@ -421,14 +419,25 @@ public class MerkleSortTree<T> implements Transactional {
 	}
 
 	/**
-	 * 所有已经提交的数据节点的迭代器；
+	 * 包含所有已提交的数据对象的迭代器；
 	 * 
 	 * @return
 	 */
-	public SkippingIterator<ValueEntry> iterator() {
+	public SkippingIterator<ValueEntry<T>> iterator() {
 		// 克隆根节点的数据，避免根节点的更新影响了迭代器；
-		return new MerklePathIterator(root.getOffset(), root.getStep(), root.getOrigChildHashs(),
-				root.getChildCounts().clone());
+		return new MerklePathIterator<T>(root.getOffset(), root.getStep(), root.getOrigChildHashs(),
+				root.getChildCounts().clone(), CONVERTER, this);
+	}
+
+	/**
+	 * 包含所有已提交的数据字节的迭代器；<br>
+	 * 
+	 * @return
+	 */
+	public SkippingIterator<ValueEntry<byte[]>> bytesIterator() {
+		// 克隆根节点的数据，避免根节点的更新影响了迭代器；
+		return new MerklePathIterator<byte[]>(root.getOffset(), root.getStep(), root.getOrigChildHashs(),
+				root.getChildCounts().clone(), BYTES_TO_BYTES_CONVERTER, this);
 	}
 
 	/**
@@ -1052,16 +1061,16 @@ public class MerkleSortTree<T> implements Transactional {
 		}
 	}
 
-	public static interface ValueEntry {
+	public static interface ValueEntry<T> {
 
 		long getId();
 
 		/**
-		 * 数据字节；
+		 * 返回值；
 		 * 
 		 * @return
 		 */
-		byte[] getBytes();
+		T getValue();
 
 	}
 
@@ -1071,13 +1080,13 @@ public class MerkleSortTree<T> implements Transactional {
 	 * @author huanghaiquan
 	 *
 	 */
-	private static class IDValue implements ValueEntry {
+	private static class IDValue<T> implements ValueEntry<T> {
 
 		private long id;
 
-		private byte[] value;
+		private T value;
 
-		private IDValue(long id, byte[] value) {
+		private IDValue(long id, T value) {
 			this.id = id;
 			this.value = value;
 		}
@@ -1093,7 +1102,7 @@ public class MerkleSortTree<T> implements Transactional {
 		 * @return
 		 */
 		@Override
-		public byte[] getBytes() {
+		public T getValue() {
 			return value;
 		}
 
@@ -1517,7 +1526,11 @@ public class MerkleSortTree<T> implements Transactional {
 	 * @author huanghaiquan
 	 *
 	 */
-	private class MerklePathIterator implements SkippingIterator<ValueEntry> {
+	private static class MerklePathIterator<T> implements SkippingIterator<ValueEntry<T>> {
+
+		private final MerkleSortTree<?> TREE;
+
+		private final BytesConverter<T> CONVERTER;
 
 		private final long totalCount;
 
@@ -1534,15 +1547,19 @@ public class MerkleSortTree<T> implements Transactional {
 
 		private long cursor = -1;
 
-		private SkippingIterator<ValueEntry> childIterator;
+		private SkippingIterator<ValueEntry<T>> childIterator;
 
-		public MerklePathIterator(long offset, long step, HashDigest[] childHashs, long[] childCounts) {
+		public MerklePathIterator(long offset, long step, HashDigest[] childHashs, long[] childCounts,
+				BytesConverter<T> converter, MerkleSortTree<?> tree) {
 			this.offset = offset;
 			this.step = step;
 			this.childHashs = childHashs;
 			this.childCounts = childCounts;
 			// 使用此方法的上下文逻辑已经能够约束每一项的数字大小范围，不需要考虑溢出；
 			this.totalCount = ArrayUtils.sum(childCounts);
+
+			this.CONVERTER = converter;
+			this.TREE = tree;
 		}
 
 		@Override
@@ -1563,7 +1580,7 @@ public class MerkleSortTree<T> implements Transactional {
 			if (count == 0) {
 				return 0;
 			}
-			if (childIndex >= DEGREE) {
+			if (childIndex >= TREE.DEGREE) {
 				return 0;
 			}
 
@@ -1583,11 +1600,11 @@ public class MerkleSortTree<T> implements Transactional {
 				childIterator = null;
 				skipped = currLeft;
 				childIndex++;
-				while (childIndex < DEGREE && skipped + childCounts[childIndex] <= count) {
+				while (childIndex < TREE.DEGREE && skipped + childCounts[childIndex] <= count) {
 					skipped += childCounts[childIndex];
 					childIndex++;
 				}
-				if (childIndex < DEGREE) {
+				if (childIndex < TREE.DEGREE) {
 					// 未超出子节点的范围；
 					long c = count - skipped;
 					childIterator = createChildIterator(childIndex);
@@ -1601,7 +1618,7 @@ public class MerkleSortTree<T> implements Transactional {
 			return skipped;
 		}
 
-		private SkippingIterator<ValueEntry> createChildIterator(int childIndex) {
+		private SkippingIterator<ValueEntry<T>> createChildIterator(int childIndex) {
 			HashDigest childHash = childHashs[childIndex];
 			if (childHash == null) {
 				// 正常情况下不应该进入此逻辑分支，因为空的子节点的数量表为 0，迭代器的迭代处理逻辑理应过滤掉此位置的子节点；
@@ -1609,24 +1626,24 @@ public class MerkleSortTree<T> implements Transactional {
 			}
 
 			if (step > 1) {
-				IndexEntry child = loadMerkleEntry(childHash);
-				return new MerklePathIterator(child.getOffset(), child.getStep(), child.getChildHashs(),
-						child.getChildCounts());
+				IndexEntry child = TREE.loadMerkleEntry(childHash);
+				return new MerklePathIterator<T>(child.getOffset(), child.getStep(), child.getChildHashs(),
+						child.getChildCounts(), CONVERTER, TREE);
 			}
-			byte[] childBytes = loadNodeBytes(childHash);
+			byte[] childBytes = TREE.loadNodeBytes(childHash);
 			long id = offset + childIndex;
-			return new MerkleDataIteratorWrapper(new IDValue(id, childBytes));
+			return new MerkleDataIteratorWrapper<T>(id, childBytes, CONVERTER);
 		}
 
 		@Override
-		public ValueEntry next() {
+		public ValueEntry<T> next() {
 			if (!hasNext()) {
 				return null;
 			}
 
 			long s = ArrayUtils.sum(childCounts, 0, childIndex + 1);
 
-			while (cursor + 1 >= s && childIndex < DEGREE - 1) {
+			while (cursor + 1 >= s && childIndex < TREE.DEGREE - 1) {
 				childIndex++;
 				childIterator = null;
 				s += childCounts[childIndex];
@@ -1646,12 +1663,18 @@ public class MerkleSortTree<T> implements Transactional {
 
 	}
 
-	private static class MerkleDataIteratorWrapper extends AbstractSkippingIterator<ValueEntry> {
+	private static class MerkleDataIteratorWrapper<T> extends AbstractSkippingIterator<ValueEntry<T>> {
 
-		private ValueEntry data;
+		private long id;
 
-		public MerkleDataIteratorWrapper(ValueEntry data) {
-			this.data = data;
+		private byte[] valueBytes;
+
+		private BytesConverter<T> converter;
+
+		public MerkleDataIteratorWrapper(long id, byte[] valueBytes, BytesConverter<T> converter) {
+			this.id = id;
+			this.valueBytes = valueBytes;
+			this.converter = converter;
 		}
 
 		@Override
@@ -1660,10 +1683,11 @@ public class MerkleSortTree<T> implements Transactional {
 		}
 
 		@Override
-		public ValueEntry next() {
+		public ValueEntry<T> next() {
 			if (hasNext()) {
 				cursor++;
-				return data;
+				T value = converter.fromBytes(valueBytes);
+				return new IDValue<T>(id, value);
 			}
 			return null;
 		}
