@@ -162,39 +162,6 @@ public class MerkleHashSortTree implements MerkleTree {
 			return null;
 		}
 		return new BytesKeyValue(key, value.getId(), value.getValue());
-
-//		if (entry instanceof BytesKVHashEntry) {
-//			BytesKVHashEntry dataEntry = (BytesKVHashEntry) entry;
-//			long dataVersion = dataEntry.getVersion();
-//
-//			// 只有 version 为 0 的节点才有可能直接作为主干树的叶子节点；
-//			assert dataVersion == 0 : "内部数据状态错误：版本非 0 的数据节点不应该是哈希树的叶子节点!";
-//
-//			if (dataVersion == version || version < 0) {
-//				return dataEntry;
-//			}
-//			// version > dataVersion; 指定的版本不存在，直接返回 null；
-//			return null;
-//		} else {
-//			// 从版本树种加载指定版本；
-//			KeyHashBucketTree keytree;
-//			if (entry instanceof KeyHashBucketTree) {
-//				keytree = (KeyHashBucketTree) entry;
-//			}else {
-//				keytree = new KeyHashBucketTree((KeyHashBucket) entry);
-//			}
-//			
-//			ValueEntry value ;
-//			if (version < 0) {
-//				value = keytree.loadMaxVersion(key);
-//			}else {
-//				value = keytree.loadVersion(key, version);
-//			}
-//			if (value == null) {
-//				return null;
-//			}
-//			return new BytesKeyValue(key, value.getId(), value.getBytes());
-//		}
 	}
 
 	public static long computeKeyID(Bytes key) {
@@ -264,16 +231,18 @@ public class MerkleHashSortTree implements MerkleTree {
 			this.bucketPrefix = bucketPrefix;
 			this.kvStorage = kvStorage;
 		}
-
+		
+		
 		@Override
-		public HashEntry beforeCommit(long id, HashEntry data) {
+		public HashEntry beforeCommitting(long id, HashEntry data) {
 			KeySetHashBucket bucket = (KeySetHashBucket) data;
 			bucket.commit();
 			return bucket;
 		}
 
+		
 		@Override
-		public void afterCancel(long id, HashEntry data) {
+		public void afterCanceled(long id, HashEntry data) {
 			KeySetHashBucket bucket = (KeySetHashBucket) data;
 			bucket.cancel();
 		}
@@ -319,6 +288,19 @@ public class MerkleHashSortTree implements MerkleTree {
 					return null;
 				}
 			}
+		}
+		
+		@Override
+		public long count(long id, HashEntry data) {
+			KeySetHashBucket bucket = (KeySetHashBucket) data;
+			return bucket.getKeySet().length;
+		}
+		
+		@Override
+		public SkippingIterator<ValueEntry<HashEntry>> iterator(long id, byte[] bytesData, long count,
+				BytesConverter<HashEntry> converter) {
+			// TODO Auto-generated method stub
+			return null;
 		}
 
 	}

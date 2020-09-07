@@ -426,7 +426,7 @@ public class MerkleSortTree<T> implements Transactional {
 	public SkippingIterator<ValueEntry<T>> iterator() {
 		// 克隆根节点的数据，避免根节点的更新影响了迭代器；
 		return new MerklePathIterator<T>(root.getOffset(), root.getStep(), root.getOrigChildHashs(),
-				root.getChildCounts().clone(), CONVERTER, this);
+				root.getChildCounts().clone(), DATA_POLICY, CONVERTER, this);
 	}
 
 	/**
@@ -437,7 +437,7 @@ public class MerkleSortTree<T> implements Transactional {
 	public SkippingIterator<ValueEntry<byte[]>> bytesIterator() {
 		// 克隆根节点的数据，避免根节点的更新影响了迭代器；
 		return new MerklePathIterator<byte[]>(root.getOffset(), root.getStep(), root.getOrigChildHashs(),
-				root.getChildCounts().clone(), BYTES_TO_BYTES_CONVERTER, this);
+				root.getChildCounts().clone(), defaultDataPolicy(), BYTES_TO_BYTES_CONVERTER, this);
 	}
 
 	/**
@@ -926,6 +926,15 @@ public class MerkleSortTree<T> implements Transactional {
 	 * <p>
 	 * 
 	 * 定义默克尔树在对数据节点进行更新、提交、取消操作的策略；
+	 * <p>
+	 * 
+	 * 1. 当调用 {@link MerkleSortTree#set(long, Object)} 方法写入数据时，在被正式写入到叶子节点之前将触发
+	 * {@link DataPolicy#updateData(long, Object, Object)} 方法；
+	 * <p>
+	 * 
+	 * 2. 当调用 {@link MerkleSortTree#commit()} 方法提交新写入的数据时，如果
+	 * {@link MerkleSortTree#isUpdated()} 为true , 则每一条新写入的数据在被序列化之前都会作为参数先后调用方法
+	 * {@link #beforeCommitting(long, Object)} 和 {@link #count(long, Object)};
 	 * 
 	 * @author huanghaiquan
 	 *
@@ -943,14 +952,33 @@ public class MerkleSortTree<T> implements Transactional {
 		T updateData(long id, T origData, T newData);
 
 		/**
-		 * 准备提交指定 id 的数据，保存至存储服务；<br>
+		 * 准备提交指定 id 的数据；
+		 * <p>
 		 * 
-		 * 此方法在对指定数据节点进行序列化并进行哈希计算之前被调用；
+		 * 此方法在 {@link #count(long, Object)} 方法之前被调用；
 		 * 
-		 * @param id
-		 * @param data
+		 * @param id   数据的编码；
+		 * @param data 新写入的数据对象，即 {@link #updateData(long, Object, Object)} 方法的返回值；
+		 * @return 返回值是实际要提交的数据对象；
 		 */
-		T beforeCommit(long id, T data);
+		T beforeCommitting(long id, T data);
+
+		/**
+		 * 在提交前对指定 id 的数据进行计数；返回值必须大于等于 0；<br>
+		 * 
+		 * 通常，一个 id 只表示一项数据的时候，返回计数 1 ；<br>
+		 * 
+		 * 如果扩展为表示其它的计数数值，需要对应地扩展 {@link #createIterator()}
+		 * 方法返回的迭代器，实现对应数量的遍历，否则会影响整个默克尔树的遍历；
+		 * <p>
+		 * 
+		 * 此方法在正式提交数据之前被调用；
+		 * 
+		 * @param id   数据的编码；
+		 * @param data 数据对象；即 {@link #beforeCommitting(long, Object)} 方法的返回值；
+		 * @return
+		 */
+		long count(long id, T data);
 
 		/**
 		 * 已经取消指定 id 的数据；
@@ -958,7 +986,18 @@ public class MerkleSortTree<T> implements Transactional {
 		 * @param id
 		 * @param child
 		 */
-		void afterCancel(long id, T data);
+		void afterCanceled(long id, T data);
+
+		/**
+		 * 迭代指定的 id 的数据；
+		 * 
+		 * @param id        数据的编码；
+		 * @param bytesData 字节数组形式的数据；
+		 * @param count     迭代器包含的数据记录的总数；
+		 * @param converter 数据的转换器；
+		 * @return
+		 */
+		SkippingIterator<ValueEntry<T>> iterator(long id, byte[] bytesData, long count, BytesConverter<T> converter);
 
 	}
 
@@ -991,8 +1030,13 @@ public class MerkleSortTree<T> implements Transactional {
 		 * @param data
 		 */
 		@Override
-		public T beforeCommit(long id, T data) {
+		public T beforeCommitting(long id, T data) {
 			return data;
+		}
+
+		@Override
+		public long count(long id, T data) {
+			return 1;
 		}
 
 		/**
@@ -1002,7 +1046,13 @@ public class MerkleSortTree<T> implements Transactional {
 		 * @param child
 		 */
 		@Override
-		public void afterCancel(long id, T data) {
+		public void afterCanceled(long id, T data) {
+		}
+
+		@Override
+		public SkippingIterator<ValueEntry<T>> iterator(long id, byte[] bytesData, long count,
+				BytesConverter<T> converter) {
+			return new MerkleDataIteratorWrapper<T>(id, bytesData, converter);
 		}
 	}
 
@@ -1434,10 +1484,13 @@ public class MerkleSortTree<T> implements Transactional {
 					@SuppressWarnings("unchecked")
 					T child = (T) children[i];
 					long id = OFFSET + i;
-					child = tree().DATA_POLICY.beforeCommit(id, child);
+					
+					child = tree().DATA_POLICY.beforeCommitting(id, child);
+					long count = tree().DATA_POLICY.count(id, child);
+					
 					byte[] childBytes = CONVERTER.toBytes(child);
 					childHashs[i] = tree().saveNodeBytes(childBytes, TREE.OPTIONS.isReportDuplicatedData());
-					childCounts[i] = 1;
+					childCounts[i] = count;
 					children[i] = child;
 				}
 			}
@@ -1446,7 +1499,7 @@ public class MerkleSortTree<T> implements Transactional {
 		@SuppressWarnings("unchecked")
 		@Override
 		protected void cancelChild(long id, Object child) {
-			tree().DATA_POLICY.afterCancel(id, (T) child);
+			tree().DATA_POLICY.afterCanceled(id, (T) child);
 		}
 
 	}
@@ -1532,6 +1585,8 @@ public class MerkleSortTree<T> implements Transactional {
 
 		private final BytesConverter<T> CONVERTER;
 
+		private final DataPolicy<T> DATA_POLICY;
+
 		private final long totalCount;
 
 		private final long offset;
@@ -1550,7 +1605,7 @@ public class MerkleSortTree<T> implements Transactional {
 		private SkippingIterator<ValueEntry<T>> childIterator;
 
 		public MerklePathIterator(long offset, long step, HashDigest[] childHashs, long[] childCounts,
-				BytesConverter<T> converter, MerkleSortTree<?> tree) {
+				DataPolicy<T> dataPolicy, BytesConverter<T> converter, MerkleSortTree<?> tree) {
 			this.offset = offset;
 			this.step = step;
 			this.childHashs = childHashs;
@@ -1558,6 +1613,7 @@ public class MerkleSortTree<T> implements Transactional {
 			// 使用此方法的上下文逻辑已经能够约束每一项的数字大小范围，不需要考虑溢出；
 			this.totalCount = ArrayUtils.sum(childCounts);
 
+			this.DATA_POLICY = dataPolicy;
 			this.CONVERTER = converter;
 			this.TREE = tree;
 		}
@@ -1628,11 +1684,12 @@ public class MerkleSortTree<T> implements Transactional {
 			if (step > 1) {
 				IndexEntry child = TREE.loadMerkleEntry(childHash);
 				return new MerklePathIterator<T>(child.getOffset(), child.getStep(), child.getChildHashs(),
-						child.getChildCounts(), CONVERTER, TREE);
+						child.getChildCounts(), DATA_POLICY, CONVERTER, TREE);
 			}
 			byte[] childBytes = TREE.loadNodeBytes(childHash);
 			long id = offset + childIndex;
-			return new MerkleDataIteratorWrapper<T>(id, childBytes, CONVERTER);
+			long count = childCounts[childIndex];
+			return DATA_POLICY.iterator(id, childBytes, count, CONVERTER);
 		}
 
 		@Override
@@ -1652,8 +1709,10 @@ public class MerkleSortTree<T> implements Transactional {
 			if (childIterator == null) {
 				childIterator = createChildIterator(childIndex);
 			}
+			
+			ValueEntry<T> v = childIterator.next();
 			cursor++;
-			return childIterator.next();
+			return v;
 		}
 
 		@Override

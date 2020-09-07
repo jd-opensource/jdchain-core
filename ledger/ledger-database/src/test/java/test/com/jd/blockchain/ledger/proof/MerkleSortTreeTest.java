@@ -8,6 +8,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -25,14 +27,19 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.core.MerkleProofException;
+import com.jd.blockchain.ledger.proof.BytesConverter;
 import com.jd.blockchain.ledger.proof.MerkleSortTree;
+import com.jd.blockchain.ledger.proof.MerkleSortTree.DataPolicy;
 import com.jd.blockchain.ledger.proof.MerkleSortTree.DefaultDataPolicy;
 import com.jd.blockchain.ledger.proof.MerkleSortTree.ValueEntry;
 import com.jd.blockchain.ledger.proof.MerkleTreeKeyExistException;
 import com.jd.blockchain.ledger.proof.TreeOptions;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
+import com.jd.blockchain.utils.AbstractSkippingIterator;
 import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.SkippingIterator;
+import com.jd.blockchain.utils.io.BytesEncoding;
+import com.jd.blockchain.utils.io.BytesUtils;
 
 public class MerkleSortTreeTest {
 
@@ -360,6 +367,150 @@ public class MerkleSortTreeTest {
 		assertFalse(iter.hasNext());
 		merkleData = iter.next();
 		assertNull(merkleData);
+	}
+
+	/**
+	 * 测试包含数据策略中计数大于 1 的数据迭代；
+	 */
+	@Test
+	public void testMultiDataCountIterator() {
+		TreeOptions options = createTreeOptions();
+		MemoryKVStorage storage = new MemoryKVStorage();
+
+		DataPolicy<byte[]> bytesDataPolicy = new DefaultDataPolicy<byte[]>() {
+			@Override
+			public byte[] updateData(long id, byte[] origData, byte[] newData) {
+				ByteArrayOutputStream out = new ByteArrayOutputStream();
+				if (origData == null) {
+					BytesUtils.writeInt(1, out);
+				} else {
+					int count = BytesUtils.toInt(origData) + 1;
+					BytesUtils.writeInt(count, out);
+					out.write(origData, 4, origData.length - 4);
+				}
+				BytesEncoding.writeInNormal(newData, out);
+				return out.toByteArray();
+			}
+
+			@Override
+			public long count(long id, byte[] data) {
+				return BytesUtils.toInt(data);
+			}
+
+			@Override
+			public SkippingIterator<ValueEntry<byte[]>> iterator(long id, byte[] bytesData, long count,
+					BytesConverter<byte[]> converter) {
+				byte[][] values = new byte[(int) count][];
+				ByteArrayInputStream in = new ByteArrayInputStream(bytesData, 4, bytesData.length - 4);
+				for (int i = 0; i < values.length; i++) {
+					values[i] = BytesEncoding.readInNormal(in);
+				}
+				return new BytesEntriesIterator(id, values);
+			}
+		};
+
+		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage,
+				bytesDataPolicy);
+
+		int count = 16;
+		byte[][] datas = generateRandomData(count);
+		long[] ids = new long[count];
+		int startIndex = 10;
+		for (int i = 0; i < startIndex; i++) {
+			ids[i] = i;
+		}
+		// 从 10 开始，连续3条不同的记录使用相同的 编码；
+		int testId = startIndex + 2;
+		ids[startIndex] = testId;
+		ids[startIndex + 1] = testId;
+		ids[startIndex + 2] = testId;
+		for (int i = 0; i < ids.length - startIndex - 3; i++) {
+			ids[startIndex + i + 3] = startIndex + i + 5;
+		}
+
+		addDatas(ids, datas, mst);
+
+		mst.commit();
+
+		// 验证所有的数据都能够正常检索；
+		SkippingIterator<ValueEntry<byte[]>> iter = mst.iterator();
+		assertEquals(count, iter.getTotalCount());
+
+		assertIteratorEquals(count, datas, ids, 0, iter);
+
+		// 验证略过中间数据也能够正常检索：跳跃到连续 id 的前一条；
+		iter = mst.iterator();
+		iter.skip(startIndex - 1);
+		int i = startIndex - 1;
+		assertIteratorEquals(count - (startIndex - 1), datas, ids, startIndex - 1, iter);
+
+		// 验证略过中间数据也能够正常检索：跳跃到连续 id 的第1条；
+		iter = mst.iterator();
+		iter.skip(startIndex);
+		i = startIndex;
+		{
+			ValueEntry<byte[]> v = iter.next();
+			assertNotNull(v);
+			assertEquals(testId, v.getId());
+			assertArrayEquals(datas[i], v.getValue());
+			v = iter.next();
+			assertNotNull(v);
+			assertEquals(testId, v.getId());
+			assertArrayEquals(datas[i + 1], v.getValue());
+			v = iter.next();
+			assertNotNull(v);
+			assertEquals(testId, v.getId());
+			assertArrayEquals(datas[i + 2], v.getValue());
+		}
+		assertIteratorEquals(count - (i + 3), datas, ids, i + 3, iter);
+
+		// 验证略过中间数据也能够正常检索：跳跃到连续 id 的第2条；
+		iter = mst.iterator();
+		iter.skip(startIndex + 1);
+		i = startIndex;
+		{
+			ValueEntry<byte[]> v = iter.next();
+			assertNotNull(v);
+			assertEquals(testId, v.getId());
+			assertArrayEquals(datas[i + 1], v.getValue());
+			v = iter.next();
+			assertNotNull(v);
+			assertEquals(testId, v.getId());
+			assertArrayEquals(datas[i + 2], v.getValue());
+		}
+		assertIteratorEquals(count - (i + 3), datas, ids, i + 3, iter);
+
+		// 验证略过中间数据也能够正常检索：跳跃到连续 id 的第3条；
+		iter = mst.iterator();
+		iter.skip(startIndex + 2);
+		i = startIndex;
+		{
+			ValueEntry<byte[]> v = iter.next();
+			assertNotNull(v);
+			assertEquals(testId, v.getId());
+			assertArrayEquals(datas[i + 2], v.getValue());
+		}
+		assertIteratorEquals(count - (i + 3), datas, ids, i + 3, iter);
+
+		// 验证略过中间数据也能够正常检索：跳跃到连续 id 第3条；
+		iter = mst.iterator();
+		iter.skip(startIndex + 3);
+		assertIteratorEquals(count - (startIndex + 3), datas, ids, startIndex + 3, iter);
+	}
+
+	private void assertIteratorEquals(int count, byte[][] datas, long[] ids, int startIndex,
+			SkippingIterator<ValueEntry<byte[]>> iter) {
+		int i = startIndex;
+		int c = 0;
+		while (iter.hasNext()) {
+			ValueEntry<byte[]> v = iter.next();
+			assertNotNull(v);
+			assertEquals(ids[i], v.getId());
+			assertArrayEquals(datas[i], v.getValue());
+			i++;
+			c++;
+		}
+		assertEquals(c, count);
 	}
 
 	private Set<Long> makeIdSet(long[] ids) {
@@ -724,5 +875,55 @@ public class MerkleSortTreeTest {
 				count.incrementAndGet();
 			}
 		}
+	}
+
+	private static class BytesEntriesIterator extends AbstractSkippingIterator<ValueEntry<byte[]>> {
+
+		private long id;
+
+		private byte[][] items;
+
+		public BytesEntriesIterator(long id, byte[][] items) {
+			this.id = id;
+			this.items = items;
+		}
+
+		@Override
+		public long getTotalCount() {
+			return items.length;
+		}
+
+		@Override
+		protected ValueEntry<byte[]> get(long cursor) {
+			return new BytesIDValue(id, items[(int) cursor]);
+		}
+	}
+
+	private static class BytesIDValue implements ValueEntry<byte[]> {
+
+		private long id;
+
+		private byte[] value;
+
+		private BytesIDValue(long id, byte[] value) {
+			this.id = id;
+			this.value = value;
+		}
+
+		@Override
+		public long getId() {
+			return id;
+		}
+
+		/**
+		 * 数据字节；
+		 * 
+		 * @return
+		 */
+		@Override
+		public byte[] getValue() {
+			return value;
+		}
+
 	}
 }
