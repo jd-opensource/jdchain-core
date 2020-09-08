@@ -256,12 +256,16 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 
 		public StateSnapshot complete(long timestamp) {
 			LedgerEditor.TIMESTAMP_HOLDER.set(timestamp);
-			batchResultHandle = getTxBatchProcess().prepare();
-			LedgerBlock currBlock = batchResultHandle.getBlock();
-			long blockHeight = currBlock.getHeight();
-			HashDigest blockHash = currBlock.getHash();
-			asyncBlExecute(new HashMap<>(txResponseMap), blockHeight, blockHash);
-			return new BlockStateSnapshot(blockHeight, currBlock.getTimestamp(), blockHash);
+			try {
+				batchResultHandle = getTxBatchProcess().prepare();
+				LedgerBlock currBlock = batchResultHandle.getBlock();
+				long blockHeight = currBlock.getHeight();
+				HashDigest blockHash = currBlock.getHash();
+				asyncBlExecute(new HashMap<>(txResponseMap), blockHeight, blockHash);
+				return new BlockStateSnapshot(blockHeight, currBlock.getTimestamp(), blockHash);
+			} finally {
+				LedgerEditor.TIMESTAMP_HOLDER.remove();
+			}
 		}
 
 		public void commit() {
@@ -277,7 +281,6 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 				batchResultHandle = null;
 			} finally {
 				realmLock.unlock();
-				LedgerEditor.TIMESTAMP_HOLDER.remove();
 			}
 		}
 
@@ -303,7 +306,6 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 				}
 			} finally {
 				realmLock.unlock();
-				LedgerEditor.TIMESTAMP_HOLDER.remove();
 			}
 		}
 

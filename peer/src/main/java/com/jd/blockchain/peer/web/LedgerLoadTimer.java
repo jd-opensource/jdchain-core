@@ -86,7 +86,7 @@ public class LedgerLoadTimer implements ApplicationContextAware {
                     LedgerBindingConfig ledgerBindingConfig = loadLedgerBindingConfig();
                     if (ledgerBindingConfig == null) {
                         // print debug
-                        LOGGER.error("Can not load any ledgerBindingConfigs !!!");
+                        LOGGER.warn("Can not load any ledgerBindingConfigs !!!");
                         return;
                     }
 

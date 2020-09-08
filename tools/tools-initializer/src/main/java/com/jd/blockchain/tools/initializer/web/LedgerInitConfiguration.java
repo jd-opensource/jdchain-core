@@ -107,6 +107,7 @@ public class LedgerInitConfiguration {
 
 		LedgerInitData ledgerSettings = createLedgerInitSettings(ledgerInitProps, cryptoConfig, consensusConfig,
 				participants);
+		ledgerSettings.setCreatedTime(ledgerInitProps.getCreatedTime());
 		ledgerConfig.ledgerSettings = ledgerSettings;
 
 		SecurityInitData securitySettings = createSecurityInitSettings(ledgerInitProps, participants);

@@ -91,6 +91,8 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     private volatile InnerStateHolder stateHolder;
 
+    private long timeTolerance = -1L;
+
     public BftsmartNodeServer() {
 
     }
@@ -107,6 +109,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         serverId = findServerId();
         initConfig(serverId, systemConfig, hostsConfig);
         this.manageService = new BftsmartConsensusManageService(this);
+        this.timeTolerance = tomConfig.getTimeTolerance();
     }
 
     protected int findServerId() {
@@ -278,6 +281,20 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         String batchId = messageHandle.beginBatch(context);
         context.setBatchId(batchId);
         try {
+            StateSnapshot preStateSnapshot = messageHandle.getStateSnapshot(context);
+            if (preStateSnapshot instanceof BlockStateSnapshot) {
+                BlockStateSnapshot preBlockStateSnapshot = (BlockStateSnapshot)preStateSnapshot;
+                long preBlockTimestamp = preBlockStateSnapshot.getTimestamp();
+                if (timestamp < preBlockTimestamp && (preBlockTimestamp - timestamp) > timeTolerance) {
+                    // 打印错误信息
+                    LOGGER.warn("The time[{}] of the last block is mismatch with the current[{}] for time tolerance[{}] !!!",
+                            preBlockTimestamp, timestamp, timeTolerance);
+                    // 回滚该操作
+                    messageHandle.rollbackBatch(TransactionState.CONSENSUS_ERROR.CODE, context);
+                    return;
+                }
+            }
+
             int msgId = 0;
             for (byte[] txContent : manageConsensusCmds) {
                 messageHandle.processOrdered(msgId++, txContent, context);
@@ -445,7 +462,6 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
      */
     @Override
     public BatchAppResultImpl preComputeAppHash(int cid, byte[][] commands, long timestamp) {
-
         List<AsyncFuture<byte[]>> asyncFutureLinkedList = new ArrayList<>(commands.length);
         List<byte[]> responseLinkedList = new ArrayList<>();
         StateSnapshot newStateSnapshot, preStateSnapshot, genisStateSnapshot;
@@ -469,9 +485,10 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
                 if (preStateSnapshot instanceof BlockStateSnapshot) {
                     BlockStateSnapshot preBlockStateSnapshot = (BlockStateSnapshot)preStateSnapshot;
                     long preBlockTimestamp = preBlockStateSnapshot.getTimestamp();
-                    if (preBlockTimestamp > timestamp) {
+                    if (timestamp < preBlockTimestamp && (preBlockTimestamp - timestamp) > timeTolerance) {
                         // 打印错误信息
-                        LOGGER.warn("The time[{}] of the last block is longer than the current[{}] !!!", preBlockTimestamp, timestamp);
+                        LOGGER.warn("The time[{}] of the last block is mismatch with the current[{}] for time tolerance[{}] !!!",
+                                preBlockTimestamp, timestamp, timeTolerance);
                         // 设置返回的应答信息
                         for (byte[] command : commands) {
                             // 状态设置为共识错误
@@ -483,6 +500,9 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
                         messageHandle.rollbackBatch(TransactionState.CONSENSUS_ERROR.CODE, context);
                         // 返回成功，但需要设置当前的状态
                         return BatchAppResultImpl.createSuccess(responseLinkedList, cidBytes, batchId, cidBytes);
+                    } else {
+                        LOGGER.info("Last block's timestamp = {}, current timestamp = {}, time tolerance = {} !",
+                                preBlockTimestamp, timestamp, timeTolerance);
                     }
                 }
 
