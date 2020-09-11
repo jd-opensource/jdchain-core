@@ -17,6 +17,7 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.core.HashPathProof;
 import com.jd.blockchain.ledger.core.MerkleProofException;
+import com.jd.blockchain.ledger.merkletree.BytesKVEntry;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.AbstractSkippingIterator;
@@ -305,7 +306,7 @@ public class MerkleHashTrie implements Iterable<BytesKVEntry>, MerkleTree {
 	/**
 	 * 迭代器包含所有基准树与原始树之间差异的数据项
 	 */
-	@Override
+//	@Override
 	public SkippingIterator<BytesKVEntry> getKeyDiffIterator(MerkleHashTrie origTree) {
 		return new PathKeysDiffIterator(root, this, origTree.root, origTree, 0);
 	}
@@ -629,11 +630,10 @@ public class MerkleHashTrie implements Iterable<BytesKVEntry>, MerkleTree {
 	}
 	
 	@Override
-	public long setData(byte[] key, long version, byte[] value) {
+	public void setData(byte[] key, long version, byte[] value) {
 		MerkleTrieDataEntry data = new MerkleTrieDataEntry(key, version, value);
 		long keyHash = KeyIndexer.hash(data.getKey());
 		setDataEntry(keyHash, data);
-		return version + 1;
 	}
 	
 //	@Override

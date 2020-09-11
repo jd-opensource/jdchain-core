@@ -1,4 +1,4 @@
-package com.jd.blockchain.ledger.proof;
+package com.jd.blockchain.ledger.merkletree;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -328,30 +328,14 @@ public class MerkleSortTree<T> implements Transactional {
 		return new MerkleSortTree<byte[]>(rootHash, options, keyPrefix, kvStorage, BYTES_TO_BYTES_CONVERTER);
 	}
 
-	private Long refreshMaxId() {
-		if (getCount() == 0) {
-			// 空的默克尔树；
-			maxId = null;
-		} else {
-			// 默克尔树不为空 ；
-			SkippingIterator<ValueEntry<T>> itr = iterator();
-			itr.skip(itr.getTotalCount() - 1);
-			ValueEntry<T> value = itr.next();
-			maxId = Long.valueOf(value.getId());
-		}
-		return maxId;
-	}
-
 	/**
-	 * 创建顶级根节点；
+	 * 根哈希；
+	 * <p>
+	 * 
+	 * 注：在未提交写入的新数据之前，不更新根哈希；
 	 * 
 	 * @return
 	 */
-	protected PathNode createTopRoot() {
-		long step = MAX_COUNT / DEGREE;
-		return new PathNode(0, step, this);
-	}
-
 	public HashDigest getRootHash() {
 		return root.getNodeHash();
 	}
@@ -361,21 +345,12 @@ public class MerkleSortTree<T> implements Transactional {
 	 * 
 	 * <br>
 	 * 
-	 * 注：不包括已修改但未提交的数据；
+	 * 注：注：在未提交写入的新数据之前，不更节点总数；
 	 * 
 	 * @return
 	 */
 	public long getCount() {
 		return count(root);
-	}
-
-	private void checkId(long id) {
-		if (id < 0) {
-			throw new IllegalArgumentException("'id' is negative!");
-		}
-		if (id >= MAX_COUNT) {
-			throw new IllegalArgumentException("'id' is greater than or equal to the MAX_COUNT[" + MAX_COUNT + "]!");
-		}
 	}
 
 	/**
@@ -465,6 +440,44 @@ public class MerkleSortTree<T> implements Transactional {
 	public T seekData(long id, MerkleEntrySelector pathSelector) {
 		pathSelector.accept(root.getNodeHash(), root);
 		return seekData(root, id, pathSelector);
+	}
+
+	/**
+	 * 检查指定的 id 是否在合法范围；
+	 * 
+	 * @param id
+	 */
+	private void checkId(long id) {
+		if (id < 0) {
+			throw new IllegalArgumentException("'id' is negative!");
+		}
+		if (id >= MAX_COUNT) {
+			throw new IllegalArgumentException("'id' is greater than or equal to the MAX_COUNT[" + MAX_COUNT + "]!");
+		}
+	}
+
+	private Long refreshMaxId() {
+		if (getCount() == 0) {
+			// 空的默克尔树；
+			maxId = null;
+		} else {
+			// 默克尔树不为空 ；
+			SkippingIterator<ValueEntry<T>> itr = iterator();
+			itr.skip(itr.getTotalCount() - 1);
+			ValueEntry<T> value = itr.next();
+			maxId = Long.valueOf(value.getId());
+		}
+		return maxId;
+	}
+
+	/**
+	 * 创建顶级根节点；
+	 * 
+	 * @return
+	 */
+	protected PathNode createTopRoot() {
+		long step = MAX_COUNT / DEGREE;
+		return new PathNode(0, step, this);
 	}
 
 	/**
@@ -947,7 +960,8 @@ public class MerkleSortTree<T> implements Transactional {
 		 * 
 		 * @param origValue 原数据；如果为 null，则表明是新增数据；
 		 * @param newValue  新数据；
-		 * @return 更新后的新节点的数据； 如果返回 null，则忽略此次操作；
+		 * @return 更新后的新节点的数据； 如果返回 null，则忽略此次操作，导致
+		 *         {@link MerkleSortTree#set(long, Object)} 方法返回 false；
 		 */
 		T updateData(long id, T origData, T newData);
 
@@ -1484,10 +1498,10 @@ public class MerkleSortTree<T> implements Transactional {
 					@SuppressWarnings("unchecked")
 					T child = (T) children[i];
 					long id = OFFSET + i;
-					
+
 					child = tree().DATA_POLICY.beforeCommitting(id, child);
 					long count = tree().DATA_POLICY.count(id, child);
-					
+
 					byte[] childBytes = CONVERTER.toBytes(child);
 					childHashs[i] = tree().saveNodeBytes(childBytes, TREE.OPTIONS.isReportDuplicatedData());
 					childCounts[i] = count;
@@ -1709,7 +1723,7 @@ public class MerkleSortTree<T> implements Transactional {
 			if (childIterator == null) {
 				childIterator = createChildIterator(childIndex);
 			}
-			
+
 			ValueEntry<T> v = childIterator.next();
 			cursor++;
 			return v;

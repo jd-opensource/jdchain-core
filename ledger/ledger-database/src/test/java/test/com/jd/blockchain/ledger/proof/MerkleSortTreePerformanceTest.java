@@ -5,8 +5,8 @@ import java.util.Random;
 import org.junit.Test;
 
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
-import com.jd.blockchain.ledger.proof.MerkleSortTree;
-import com.jd.blockchain.ledger.proof.TreeOptions;
+import com.jd.blockchain.ledger.merkletree.MerkleSortTree;
+import com.jd.blockchain.ledger.merkletree.TreeOptions;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.hash.MurmurHash3;

@@ -6,6 +6,7 @@ import com.jd.blockchain.binaryproto.NumberEncoding;
 import com.jd.blockchain.binaryproto.PrimitiveType;
 import com.jd.blockchain.consts.DataCodes;
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.ledger.merkletree.BytesKVEntry;
 import com.jd.blockchain.utils.Bytes;
 
 /**

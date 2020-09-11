@@ -5,7 +5,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.proof.BytesKVEntry;
+import com.jd.blockchain.ledger.merkletree.BytesKVEntry;
 import com.jd.blockchain.ledger.proof.MerkleHashTrie;
 import com.jd.blockchain.ledger.proof.MerkleTree;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;

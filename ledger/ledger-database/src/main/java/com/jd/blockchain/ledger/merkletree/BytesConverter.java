@@ -1,4 +1,4 @@
-package com.jd.blockchain.ledger.proof;
+package com.jd.blockchain.ledger.merkletree;
 
 public interface BytesConverter<T> {
 	

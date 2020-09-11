@@ -21,19 +21,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
-import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.core.MerkleProofException;
-import com.jd.blockchain.ledger.proof.BytesConverter;
-import com.jd.blockchain.ledger.proof.MerkleSortTree;
-import com.jd.blockchain.ledger.proof.MerkleSortTree.DataPolicy;
-import com.jd.blockchain.ledger.proof.MerkleSortTree.DefaultDataPolicy;
-import com.jd.blockchain.ledger.proof.MerkleSortTree.ValueEntry;
-import com.jd.blockchain.ledger.proof.MerkleTreeKeyExistException;
-import com.jd.blockchain.ledger.proof.TreeOptions;
+import com.jd.blockchain.ledger.merkletree.BytesConverter;
+import com.jd.blockchain.ledger.merkletree.MerkleSortTree;
+import com.jd.blockchain.ledger.merkletree.MerkleSortTree.DataPolicy;
+import com.jd.blockchain.ledger.merkletree.MerkleSortTree.DefaultDataPolicy;
+import com.jd.blockchain.ledger.merkletree.MerkleSortTree.ValueEntry;
+import com.jd.blockchain.ledger.merkletree.MerkleTreeKeyExistException;
+import com.jd.blockchain.ledger.merkletree.TreeOptions;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.AbstractSkippingIterator;
 import com.jd.blockchain.utils.ArrayUtils;
@@ -47,7 +45,6 @@ public class MerkleSortTreeTest {
 
 	private static final CryptoAlgorithm HASH_ALGORITHM = ClassicAlgorithm.SHA256;
 
-	private static final HashFunction HASH_FUNCTION = Crypto.getHashFunction(HASH_ALGORITHM);
 
 	/**
 	 * 测试顺序加入数据，是否能够得到
@@ -127,6 +124,79 @@ public class MerkleSortTreeTest {
 	}
 
 	/**
+	 * 测试读未提交数据；
+	 */
+	@Test
+	public void testReadUncommitting() {
+		int count = 10;
+		byte[][] datas = generateRandomData(count);
+		long[] ids = generateSeqenceIDs(0, count);
+
+		TreeOptions options = createTreeOptions();
+		MemoryKVStorage storage = new MemoryKVStorage();
+		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage);
+
+		addDatas(ids, datas, mst);
+
+		// 验证未提交之前能够读取到对应的数据；
+		assertNull(mst.getRootHash());
+		assertEquals(0, mst.getCount());
+		assertEquals(ids[ids.length-1], mst.getMaxId().intValue());
+
+		assertDataExists(mst, ids, datas);
+		
+		mst.commit();
+		
+		assertNotNull(mst.getRootHash());
+		assertDataEquals(mst, ids, datas);
+		
+		HashDigest rootHash = mst.getRootHash();
+		mst = MerkleSortTree.createBytesTree(rootHash, options, DEFAULT_MKL_KEY_PREFIX, storage);
+		assertDataEquals(mst, ids, datas);
+		
+		// 在已经有数据的默克尔树中以编码顺序递增的方式加入数据，验证在未提交之前能够读取到新加入的数据；
+		int count1 = 200;
+		byte[][] datas1 = generateRandomData(count1);
+		long[] ids1 = generateSeqenceIDs(count + 10, count1);
+		
+		addDatas(ids1, datas1, mst);
+		
+		assertEquals(ids1[ids1.length-1], mst.getMaxId().intValue());
+		
+		assertDataExists(mst, ids, datas);
+		assertDataExists(mst, ids1, datas1);
+		
+		mst.commit();
+		assertDataExists(mst, ids1, datas1);
+		
+		// 在已经有数据的默克尔树中以编码随机不重复产生的方式加入数据，验证在未提交之前能够读取到新加入的数据；
+		Set<Long> excludingIDs = createIdSet(ids);
+		joinIdSet(ids1, excludingIDs);
+		
+		int count2 = 300;
+		byte[][] datas2 = generateRandomData(count2);
+		long[] ids2 = generateRandomIDs(count2, excludingIDs, true);
+		
+		HashDigest rootHash1 = mst.getRootHash();
+		mst = MerkleSortTree.createBytesTree(rootHash1, options, DEFAULT_MKL_KEY_PREFIX, storage);
+		
+		addDatas(ids2, datas2, mst);
+		
+		assertEquals(count + count1, mst.getCount());
+		
+		assertDataExists(mst, ids, datas);
+		assertDataExists(mst, ids1, datas1);
+		assertDataExists(mst, ids2, datas2);
+		
+		mst.commit();
+		assertEquals(count + count1 + count2, mst.getCount());
+		
+		assertDataExists(mst, ids, datas);
+		assertDataExists(mst, ids1, datas1);
+		assertDataExists(mst, ids2, datas2);
+	}
+
+	/**
 	 * 测试顺序加入数据，是否能够得到
 	 */
 	@Test
@@ -166,7 +236,7 @@ public class MerkleSortTreeTest {
 		byte[][] datas1 = generateRandomData(count1);
 		long[] ids1 = generateRandomIDs(count1);
 
-		Set<Long> excludingIds = makeIdSet(ids1);
+		Set<Long> excludingIds = createIdSet(ids1);
 		int count2 = 32;
 		byte[][] datas2 = generateRandomData(count2);
 		long[] ids2 = generateRandomIDs(count2, excludingIds, true);
@@ -202,7 +272,7 @@ public class MerkleSortTreeTest {
 
 		assertEquals(expectedMaxId1, mst.getMaxId().longValue());
 
-		assertDataEquals(ids1, datas1, mst);
+		assertDataEquals(mst, ids1, datas1);
 
 		// 预期提交后，迭代器反映出最新提交的数据；
 		Map<Long, byte[]> dataMap = new HashMap<Long, byte[]>();
@@ -273,7 +343,7 @@ public class MerkleSortTreeTest {
 		assertIteratorSortedAndEquals(iter, count1, ids1, dataMap);
 
 		// 随机加入；验证迭代器返回有序的序列；
-		Set<Long> excludingIDs = makeIdSet(ids1);
+		Set<Long> excludingIDs = createIdSet(ids1);
 		int count2 = (int) power(4, 8) + 1;
 		byte[][] datas2 = generateRandomData(count2);
 		long[] ids2 = generateRandomIDs(count2, excludingIDs, true);
@@ -513,13 +583,13 @@ public class MerkleSortTreeTest {
 		assertEquals(c, count);
 	}
 
-	private Set<Long> makeIdSet(long[] ids) {
+	private Set<Long> createIdSet(long[] ids) {
 		HashSet<Long> idset = new HashSet<Long>();
-		makeIdSet(ids, idset);
+		joinIdSet(ids, idset);
 		return idset;
 	}
 
-	private void makeIdSet(long[] ids, Set<Long> idset) {
+	private void joinIdSet(long[] ids, Set<Long> idset) {
 		for (int i = 0; i < ids.length; i++) {
 			idset.add(ids[i]);
 		}
@@ -579,12 +649,12 @@ public class MerkleSortTreeTest {
 		// 合并前两次产生的数据，验证默克尔树中是否已经写入相同的数据；
 		long[] ids = ArrayUtils.concat(ids1, ids2);
 		byte[][] datas = ArrayUtils.concat(datas1, datas2, byte[].class);
-		assertDataEquals(ids, datas, mst);
+		assertDataEquals(mst, ids, datas);
 
 		// 从存储中重新加载默克尔树，验证默克尔树中是否已经写入相同的数据；
 		HashDigest rootHash = mst.getRootHash();
 		mst = MerkleSortTree.createBytesTree(rootHash, options, DEFAULT_MKL_KEY_PREFIX, storage);
-		assertDataEquals(ids, datas, mst);
+		assertDataEquals(mst, ids, datas);
 
 		// 对重新加载的默克尔树持续写入，验证重复加载后持续写入的正确性；
 		int count3 = 1023;
@@ -594,7 +664,7 @@ public class MerkleSortTreeTest {
 
 		ids = ArrayUtils.concat(ids, ids3);
 		datas = ArrayUtils.concat(datas, datas3, byte[].class);
-		assertDataEquals(ids, datas, mst);
+		assertDataEquals(mst, ids, datas);
 	}
 
 	/**
@@ -791,14 +861,14 @@ public class MerkleSortTreeTest {
 		HashDigest rootHash = mst.getRootHash();
 		assertNotNull(rootHash);
 
-		assertDataEquals(ids, datas, mst);
+		assertDataEquals(mst, ids, datas);
 
 		// reload merkle tree from storage;
 		MerkleSortTree<byte[]> mst1 = MerkleSortTree.createBytesTree(rootHash, options, DEFAULT_MKL_KEY_PREFIX,
 				storage);
 
 		assertEquals(rootHash, mst1.getRootHash());
-		assertDataEquals(ids, datas, mst1);
+		assertDataEquals(mst1, ids, datas);
 	}
 
 	private static void addDatasAndCommit(long[] ids, byte[][] datas, MerkleSortTree<byte[]> mst) {
@@ -806,24 +876,43 @@ public class MerkleSortTreeTest {
 		mst.commit();
 	}
 
+	/**
+	 * 把指定的数据加入的默克尔树；
+	 * 
+	 * @param ids
+	 * @param datas
+	 * @param mst
+	 */
 	private static void addDatas(long[] ids, byte[][] datas, MerkleSortTree<byte[]> mst) {
 		for (int i = 0; i < ids.length; i++) {
 			mst.set(ids[i], datas[i]);
 		}
 	}
 
-	private static void assertDataEquals(long[] ids, byte[][] datas, MerkleSortTree<byte[]> mst) {
+	/**
+	 * 断言默克尔树中的数据总数和内容与指定的 id 列表和数据列表一致；
+	 * @param mst
+	 * @param ids
+	 * @param datas
+	 */
+	private static void assertDataEquals(MerkleSortTree<byte[]> mst, long[] ids, byte[][] datas) {
 		assertEquals(ids.length, mst.getCount());
 
+		assertDataExists(mst, ids, datas);
+	}
+
+	/**
+	 * 断言默克尔树中存在指定的数据；
+	 * @param mst
+	 * @param ids
+	 * @param datas
+	 */
+	private static void assertDataExists(MerkleSortTree<byte[]> mst, long[] ids, byte[][] datas) {
 		int i;
 		for (i = 0; i < ids.length; i++) {
 			long id = ids[i];
 			byte[] mdata = mst.get(id);
 			assertNotNull(mdata);
-
-			HashDigest dataHash = HASH_FUNCTION.hash(datas[i]);
-			HashDigest dataHash1 = HASH_FUNCTION.hash(mdata);
-			assertEquals(dataHash, dataHash1);
 			assertArrayEquals(datas[i], mdata);
 		}
 	}
