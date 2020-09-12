@@ -33,7 +33,7 @@ import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.merkletree.BytesKVEntry;
+import com.jd.blockchain.ledger.merkletree.KVEntry;
 import com.jd.blockchain.ledger.proof.KeyIndexer;
 import com.jd.blockchain.ledger.proof.MerkleHashTrie;
 import com.jd.blockchain.ledger.proof.MerklePath;
@@ -425,11 +425,11 @@ public class MerkleHashTrieTest {
 			dataMap.put(data.getKey(), data);
 		}
 
-		Iterator<BytesKVEntry> dataIterator = merkleTree.iterator();
+		Iterator<KVEntry> dataIterator = merkleTree.iterator();
 		String[] dataKeys = new String[count];
 		int index = 0;
 		while (dataIterator.hasNext()) {
-			BytesKVEntry data = dataIterator.next();
+			KVEntry data = dataIterator.next();
 			assertNotNull(data);
 			String key = data.getKey().toUTF8String();
 			assertTrue(dataMap.containsKey(key));
@@ -440,7 +440,7 @@ public class MerkleHashTrieTest {
 		assertEquals(0, dataMap.size());
 		assertEquals(count, index);
 
-		SkippingIterator<BytesKVEntry> skippingIterator = merkleTree.iterator();
+		SkippingIterator<KVEntry> skippingIterator = merkleTree.iterator();
 		testDataIteratorSkipping(dataKeys, skippingIterator, 0);
 
 		skippingIterator = merkleTree.iterator();
@@ -498,7 +498,7 @@ public class MerkleHashTrieTest {
 		MerkleHashTrie merkleTree2 = new MerkleHashTrie(rootHash, cryptoSetting, prefix, storage, false);
 
 		for (int i = 0; i < datas.length; i++) {
-			BytesKVEntry data = merkleTree2.getData(datas[i].getKey());
+			KVEntry data = merkleTree2.getData(datas[i].getKey());
 			assertNotNull(data);
 		}
 	}
@@ -516,7 +516,7 @@ public class MerkleHashTrieTest {
 
 		merkleTree.setData(key, version, value);
 
-		BytesKVEntry mkdata = merkleTree.getData(key);
+		KVEntry mkdata = merkleTree.getData(key);
 
 		assertNotNull(mkdata);
 
@@ -532,7 +532,7 @@ public class MerkleHashTrieTest {
 		assertNotNull(mkdata);
 	}
 
-	private void testDataIteratorSkipping(String[] expectedKeys, SkippingIterator<BytesKVEntry> iterator, int skip) {
+	private void testDataIteratorSkipping(String[] expectedKeys, SkippingIterator<KVEntry> iterator, int skip) {
 		int count = expectedKeys.length;
 		int index = skip;
 		iterator.skip(index);
@@ -542,7 +542,7 @@ public class MerkleHashTrieTest {
 			assertFalse(iterator.hasNext());
 		}
 		while (iterator.hasNext()) {
-			BytesKVEntry data = iterator.next();
+			KVEntry data = iterator.next();
 			assertNotNull(data);
 			String key = data.getKey().toUTF8String();
 			assertEquals(expectedKeys[index], key);
@@ -803,7 +803,7 @@ public class MerkleHashTrieTest {
 		assertEquals(count + newAddCount, merkleTree_reload.getTotalKeys());
 		assertEquals(count + newAddCount, merkleTree_reload.getTotalRecords());
 
-		SkippingIterator<BytesKVEntry> diffIterator;
+		SkippingIterator<KVEntry> diffIterator;
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
 		// max boundary skip test
@@ -838,7 +838,7 @@ public class MerkleHashTrieTest {
 		int diffNum1 = 0;
 		assertEquals(newAddCount, diffIterator.getTotalCount());
 		while (diffIterator.hasNext()) {
-			BytesKVEntry data = diffIterator.next();
+			KVEntry data = diffIterator.next();
 			assertNotNull(data);
 			diffNum1++;
 		}
@@ -902,7 +902,7 @@ public class MerkleHashTrieTest {
 		assertEquals(count + newAddCount, merkleTree_reload.getTotalKeys());
 		assertEquals(count + newAddCount, merkleTree_reload.getTotalRecords());
 
-		SkippingIterator<BytesKVEntry> diffIterator;
+		SkippingIterator<KVEntry> diffIterator;
 
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
@@ -938,7 +938,7 @@ public class MerkleHashTrieTest {
 		int diffNum1 = 0;
 		assertEquals(newAddCount, diffIterator.getTotalCount());
 		while (diffIterator.hasNext()) {
-			BytesKVEntry data = diffIterator.next();
+			KVEntry data = diffIterator.next();
 			assertNotNull(data);
 			diffNum1++;
 		}
@@ -1001,7 +1001,7 @@ public class MerkleHashTrieTest {
 		assertEquals(count + newAddCount, merkleTree_reload.getTotalKeys());
 		assertEquals(count + newAddCount, merkleTree_reload.getTotalRecords());
 
-		SkippingIterator<BytesKVEntry> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
+		SkippingIterator<KVEntry> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
 		// max boundary skip test
 		assertEquals(newAddCount, diffIterator.getTotalCount());
@@ -1036,7 +1036,7 @@ public class MerkleHashTrieTest {
 		int diffNum1 = 0;
 		assertEquals(newAddCount, diffIterator.getTotalCount());
 		while (diffIterator.hasNext()) {
-			BytesKVEntry data = diffIterator.next();
+			KVEntry data = diffIterator.next();
 			assertNotNull(data);
 			diffNum1++;
 		}
@@ -1120,7 +1120,7 @@ public class MerkleHashTrieTest {
 		assertEquals(count + newAddCount + newAddCount1, merkleTree_reload.getTotalKeys());
 		assertEquals(count + newAddCount + newAddCount1, merkleTree_reload.getTotalRecords());
 
-		SkippingIterator<BytesKVEntry> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
+		SkippingIterator<KVEntry> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
 		// max boundary skip test
 		assertEquals(newAddCount + newAddCount1, diffIterator.getTotalCount());
@@ -1155,7 +1155,7 @@ public class MerkleHashTrieTest {
 		diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 		int diffNum1 = 0;
 		while (diffIterator.hasNext()) {
-			BytesKVEntry data = diffIterator.next();
+			KVEntry data = diffIterator.next();
 			assertNotNull(data);
 			diffNum1++;
 		}
@@ -1279,7 +1279,7 @@ public class MerkleHashTrieTest {
 		assertEquals(count + newAddCount, merkleTree_reload.getTotalKeys());
 		assertEquals(count + newAddCount, merkleTree_reload.getTotalRecords());
 
-		SkippingIterator<BytesKVEntry> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
+		SkippingIterator<KVEntry> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
 		// max boundary skip test
 		assertEquals(newAddCount, diffIterator.getTotalCount());
@@ -1314,7 +1314,7 @@ public class MerkleHashTrieTest {
 		int diffNum1 = 0;
 		assertEquals(newAddCount, diffIterator.getTotalCount());
 		while (diffIterator.hasNext()) {
-			BytesKVEntry data = diffIterator.next();
+			KVEntry data = diffIterator.next();
 			assertNotNull(data);
 			diffNum1++;
 		}
@@ -1382,7 +1382,7 @@ public class MerkleHashTrieTest {
 		assertEquals(count + newAddCount, merkleTree_reload.getTotalKeys());
 		assertEquals(count + newAddCount, merkleTree_reload.getTotalRecords());
 
-		SkippingIterator<BytesKVEntry> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
+		SkippingIterator<KVEntry> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
 		// max boundary skip test
 		assertEquals(newAddCount, diffIterator.getTotalCount());
@@ -1417,7 +1417,7 @@ public class MerkleHashTrieTest {
 		int diffNum1 = 0;
 		assertEquals(newAddCount, diffIterator.getTotalCount());
 		while (diffIterator.hasNext()) {
-			BytesKVEntry data = diffIterator.next();
+			KVEntry data = diffIterator.next();
 			assertNotNull(data);
 			diffNum1++;
 		}
@@ -1506,7 +1506,7 @@ public class MerkleHashTrieTest {
 		assertEquals(count + newAddCount, merkleTree_reload.getTotalKeys());
 		assertEquals(count + newAddCount, merkleTree_reload.getTotalRecords());
 
-		SkippingIterator<BytesKVEntry> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
+		SkippingIterator<KVEntry> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
 		// max boundary skip test
 		assertEquals(newAddCount, diffIterator.getTotalCount());
@@ -1541,7 +1541,7 @@ public class MerkleHashTrieTest {
 		int diffNum1 = 0;
 		assertEquals(newAddCount, diffIterator.getTotalCount());
 		while (diffIterator.hasNext()) {
-			BytesKVEntry data = diffIterator.next();
+			KVEntry data = diffIterator.next();
 			assertNotNull(data);
 			diffNum1++;
 		}
@@ -1622,7 +1622,7 @@ public class MerkleHashTrieTest {
 		assertEquals(count + newAddCount, merkleTree_reload.getTotalKeys());
 		assertEquals(count + newAddCount, merkleTree_reload.getTotalRecords());
 
-		SkippingIterator<BytesKVEntry> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
+		SkippingIterator<KVEntry> diffIterator = merkleTree_reload.getKeyDiffIterator(merkleTree);
 
 		// max boundary skip test
 		assertEquals(newAddCount, diffIterator.getTotalCount());
@@ -1656,7 +1656,7 @@ public class MerkleHashTrieTest {
 		int diffNum1 = 0;
 		assertEquals(newAddCount, diffIterator.getTotalCount());
 		while (diffIterator.hasNext()) {
-			BytesKVEntry data = diffIterator.next();
+			KVEntry data = diffIterator.next();
 			assertNotNull(data);
 			diffNum1++;
 		}
@@ -2029,10 +2029,10 @@ public class MerkleHashTrieTest {
 		assertNotNull(rootHash_N1);
 		assertNotNull(rootHash_N2);
 
-		SkippingIterator<BytesKVEntry> iterator = merkleTree.iterator();
-		SkippingIterator<BytesKVEntry> iterator1 = merkleTree1.iterator();
-		BytesKVEntry dt;
-		BytesKVEntry dt1;
+		SkippingIterator<KVEntry> iterator = merkleTree.iterator();
+		SkippingIterator<KVEntry> iterator1 = merkleTree1.iterator();
+		KVEntry dt;
+		KVEntry dt1;
 		assertEquals(iterator.getTotalCount(), iterator1.getTotalCount());
 		for (int i = 0; i < iterator.getTotalCount(); i++) {
 			assertTrue(iterator.hasNext());
@@ -2049,7 +2049,7 @@ public class MerkleHashTrieTest {
 		}
 	}
 
-	private void assertMerkleProofEquals(BytesKVEntry data, MerkleProof proof, MerkleProof proof1) {
+	private void assertMerkleProofEquals(KVEntry data, MerkleProof proof, MerkleProof proof1) {
 		HashDigest[] path = proof.getHashPath();
 		HashDigest[] path1 = proof1.getHashPath();
 		assertEquals(path.length, path1.length);

@@ -2,17 +2,25 @@ package com.jd.blockchain.ledger.merkletree;
 
 import java.util.Arrays;
 
-import com.jd.blockchain.ledger.merkletree.MerkleSortTree.ValueEntry;
+import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.AbstractSkippingIterator;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.SkippingIterator;
 
-public class KeySetHashBucket implements HashBucketEntry, HashEntry {
+/**
+ * 默克尔哈希桶；
+ * <p>
+ * 维护相同哈希值的多个 key 以及每个 key 对应的默克尔树；
+ * 
+ * @author huanghaiquan
+ *
+ */
+public class MerkleHashBucket implements HashBucketEntry, HashEntry {
 
 	private final TreeDegree treeDegree;
 	private final TreeOptions treeOptions;
-	private final Bytes bucketKeyPrefix;
+	private final Bytes bucketPrefix;
 
 	private final ExPolicyKVStorage kvStorage;
 
@@ -31,33 +39,33 @@ public class KeySetHashBucket implements HashBucketEntry, HashEntry {
 	 * @param bucketKeyPrefix 哈希桶的所有版本子树的共同的前缀；
 	 * @param kvStorage       存储服务；
 	 */
-	public KeySetHashBucket(long bucketId, byte[] key, byte[] value, TreeDegree treeDegree, TreeOptions treeOptions,
-			Bytes bucketKeyPrefix, ExPolicyKVStorage kvStorage) {
+	public MerkleHashBucket(long bucketId, byte[] key, byte[] value, TreeDegree treeDegree, TreeOptions treeOptions,
+			Bytes bucketPrefix, ExPolicyKVStorage kvStorage) {
 		this.BUCKET_ID = bucketId;
 		this.treeDegree = treeDegree;
 		this.treeOptions = treeOptions;
-		this.bucketKeyPrefix = bucketKeyPrefix;
+		this.bucketPrefix = bucketPrefix;
 		this.kvStorage = kvStorage;
 
-		KeyVersionTree kvTree = new KeyVersionTree(key, value, treeDegree, treeOptions, bucketKeyPrefix, kvStorage);
-
+		KeyVersionTree kvTree = createKeyTree(key, value);
 		this.kvTrees = new KeyVersionTree[] { kvTree };
 	}
 
 	/**
 	 * 加载哈希桶；
 	 * 
-	 * @param keys
-	 * @param treeDegree
+	 * @param bucketId     哈希桶的编码；
+	 * @param keys         与哈希桶对应的“键索引”列表；
+	 * @param treeDegree   树的度；
 	 * @param treeOptions
-	 * @param bucketKeyPrefix
+	 * @param bucketPrefix
 	 * @param kvStorage
 	 */
-	public KeySetHashBucket(KeyIndex[] keys, TreeDegree treeDegree, TreeOptions treeOptions, Bytes bucketKeyPrefix,
-			ExPolicyKVStorage kvStorage) {
+	public MerkleHashBucket(long bucketId, KeyIndex[] keys, TreeDegree treeDegree, TreeOptions treeOptions,
+			Bytes bucketPrefix, ExPolicyKVStorage kvStorage) {
 		this.treeDegree = treeDegree;
 		this.treeOptions = treeOptions;
-		this.bucketKeyPrefix = bucketKeyPrefix;
+		this.bucketPrefix = bucketPrefix;
 		this.kvStorage = kvStorage;
 
 		if (keys.length == 0) {
@@ -66,17 +74,9 @@ public class KeySetHashBucket implements HashBucketEntry, HashEntry {
 
 		this.kvTrees = new KeyVersionTree[keys.length];
 
-		long bucketId = Murmur3HashPolicy.INSTANCE.hash(keys[0].getKey());
-		kvTrees[0] = new KeyVersionTree(keys[0], treeOptions, bucketKeyPrefix, kvStorage);
-
-		for (int i = 1; i < keys.length; i++) {
-			long keyHash = Murmur3HashPolicy.INSTANCE.hash(kvTrees[i].getKey());
-			if (keyHash != bucketId) {
-				throw new IllegalStateException(
-						"There are two keys with the two different 64 bits hash values in one hash bucket!");
-			}
-
-			kvTrees[i] = new KeyVersionTree(keys[i], treeOptions, bucketKeyPrefix, kvStorage);
+		for (int i = 0; i < keys.length; i++) {
+			byte[] key = keys[i].getKey();
+			kvTrees[i] = createKeyTree(key, keys[i].getRootHash());
 		}
 
 		this.BUCKET_ID = bucketId;
@@ -89,14 +89,14 @@ public class KeySetHashBucket implements HashBucketEntry, HashEntry {
 	 * @param version 版本号，作为版本子树的数据编码； ；
 	 * @param value   要设置的值；
 	 */
-	public void set(byte[] key, long version, byte[] value) {
+	public void setValue(byte[] key, long version, byte[] value) {
 		KeyVersionTree kvTree = getKeyVersionTree(key);
 		if (kvTree == null) {
 			// 新增
-			kvTree = new KeyVersionTree(key, value, treeDegree, treeOptions, bucketKeyPrefix, kvStorage);
+			kvTree = createKeyTree(key, value);
 			insertNewKey(kvTree);
 		} else {
-			kvTree.set(version, value);
+			kvTree.setValue(version, value);
 		}
 
 	}
@@ -107,12 +107,12 @@ public class KeySetHashBucket implements HashBucketEntry, HashEntry {
 	 * @param key
 	 * @return
 	 */
-	public long getLatestVersion(byte[] key) {
+	public long getVersion(byte[] key) {
 		KeyVersionTree kvTree = getKeyVersionTree(key);
 		if (kvTree == null) {
 			return -1;
 		}
-		return kvTree.getLatestVersion();
+		return kvTree.getVersion();
 	}
 
 	/**
@@ -124,12 +124,12 @@ public class KeySetHashBucket implements HashBucketEntry, HashEntry {
 	 * @param key
 	 * @return
 	 */
-	public ValueEntry<byte[]> getLatestValue(byte[] key) {
+	public MerkleValue<byte[]> getValue(byte[] key) {
 		KeyVersionTree kvTree = getKeyVersionTree(key);
 		if (kvTree == null) {
 			return null;
 		}
-		return kvTree.getLatestValue();
+		return kvTree.getValue();
 	}
 
 	/**
@@ -142,7 +142,7 @@ public class KeySetHashBucket implements HashBucketEntry, HashEntry {
 	 * @param version
 	 * @return
 	 */
-	public ValueEntry<byte[]> getValue(byte[] key, long version) {
+	public MerkleValue<byte[]> getValue(byte[] key, long version) {
 		KeyVersionTree kvTree = getKeyVersionTree(key);
 		if (kvTree == null) {
 			return null;
@@ -151,10 +151,12 @@ public class KeySetHashBucket implements HashBucketEntry, HashEntry {
 	}
 
 	/**
+	 * 返回所有键的最新版本值的迭代器；
+	 * 
 	 * @return
 	 */
-	public SkippingIterator<ValueEntry<HashEntry>> keysIterator() {
-		return new HashBucketKeysIterator();
+	public SkippingIterator<MerkleValue<HashEntry>> iterator() {
+		return new BucketKeysLatestValueIterator();
 	}
 
 	@Override
@@ -178,8 +180,20 @@ public class KeySetHashBucket implements HashBucketEntry, HashEntry {
 		}
 	}
 
-	KeyVersionTree getKeyTree(int index) {
+	private KeyVersionTree getKeyTree(int index) {
 		return kvTrees[index];
+	}
+
+	private KeyVersionTree createKeyTree(byte[] key, byte[] value) {
+		Bytes keyTreePrefix = bucketPrefix.concat(key);
+		KeyVersionTree kvTree = new KeyVersionTree(key, value, treeDegree, treeOptions, keyTreePrefix, kvStorage);
+		return kvTree;
+	}
+
+	private KeyVersionTree createKeyTree(byte[] key, HashDigest rootHash) {
+		Bytes keyTreePrefix = bucketPrefix.concat(key);
+		KeyVersionTree kvTree = new KeyVersionTree(key, rootHash, treeOptions, keyTreePrefix, kvStorage);
+		return kvTree;
 	}
 
 	/**
@@ -222,9 +236,8 @@ public class KeySetHashBucket implements HashBucketEntry, HashEntry {
 		}
 		kvTrees = newTrees;
 	}
-	
-	
-	private class HashBucketKeysIterator extends AbstractSkippingIterator<ValueEntry<HashEntry>> {
+
+	private class BucketKeysLatestValueIterator extends AbstractSkippingIterator<MerkleValue<HashEntry>> {
 
 		@Override
 		public long getTotalCount() {
@@ -232,43 +245,13 @@ public class KeySetHashBucket implements HashBucketEntry, HashEntry {
 		}
 
 		@Override
-		protected ValueEntry<HashEntry> get(long cursor) {
+		protected MerkleValue<HashEntry> get(long cursor) {
 			KeyVersionTree kvTree = getKeyTree((int) cursor);
-			ValueEntry<byte[]> latestValue = kvTree.getLatestValue();
-			BytesKV kv = new BytesKV(kvTree.getKey(), latestValue.getId(), latestValue.getValue());
+			MerkleValue<byte[]> latestValue = kvTree.getValue();
+			KeyValue kv = new KeyValue(kvTree.getKey(), latestValue.getId(), latestValue.getValue());
 			return new IDValue<HashEntry>(BUCKET_ID, kv);
 		}
 
 	}
 
-	private class BytesKV implements BytesKVEntry, HashEntry {
-
-		private Bytes key;
-
-		private long version;
-
-		private Bytes value;
-
-		private BytesKV(byte[] key, long version, byte[] value) {
-			this.key = new Bytes(key);
-			this.version = version;
-			this.value = new Bytes(value);
-		}
-
-		@Override
-		public Bytes getKey() {
-			return key;
-		}
-
-		@Override
-		public long getVersion() {
-			return version;
-		}
-
-		@Override
-		public Bytes getValue() {
-			return value;
-		}
-
-	}
 }

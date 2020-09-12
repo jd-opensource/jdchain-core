@@ -6,7 +6,7 @@ import com.jd.blockchain.binaryproto.NumberEncoding;
 import com.jd.blockchain.binaryproto.PrimitiveType;
 import com.jd.blockchain.consts.DataCodes;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.merkletree.BytesKVEntry;
+import com.jd.blockchain.ledger.merkletree.KVEntry;
 import com.jd.blockchain.utils.Bytes;
 
 /**
@@ -16,7 +16,7 @@ import com.jd.blockchain.utils.Bytes;
  *
  */
 @DataContract(code = DataCodes.MERKLE_TRIE_DATA)
-public interface MerkleTrieData extends MerkleTrieEntry, BytesKVEntry{
+public interface MerkleTrieData extends MerkleTrieEntry, KVEntry{
 
 	/**
 	 * 键；

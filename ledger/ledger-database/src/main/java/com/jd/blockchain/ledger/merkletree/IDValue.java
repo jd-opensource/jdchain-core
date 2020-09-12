@@ -1,8 +1,6 @@
 package com.jd.blockchain.ledger.merkletree;
 
-import com.jd.blockchain.ledger.merkletree.MerkleSortTree.ValueEntry;
-
-class IDValue<T> implements ValueEntry<T> {
+class IDValue<T> implements MerkleValue<T> {
 
 	private long id;
 

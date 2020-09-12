@@ -1,7 +1,6 @@
 package com.jd.blockchain.ledger.merkletree;
 
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.merkletree.MerkleSortTree.ValueEntry;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.Bytes;
 
@@ -29,15 +28,14 @@ public class KeyVersionTree implements KeyIndex {
 	public KeyVersionTree(byte[] key, byte[] value, TreeDegree treeDegree, TreeOptions options, Bytes prefix,
 			ExPolicyKVStorage kvStorage) {
 		this.key = key;
-		Bytes keyPrefix = prefix.concat(key);
-		this.tree = MerkleSortTree.createBytesTree(treeDegree, options, keyPrefix, kvStorage);
+		this.tree = MerkleSortTree.createBytesTree(treeDegree, options, prefix, kvStorage);
 		this.tree.set(0, value);
 	}
 
-	public KeyVersionTree(KeyIndex keyIndex, TreeOptions options, Bytes prefix, ExPolicyKVStorage kvStorage) {
-		this.key = keyIndex.getKey();
-		Bytes keyPrefix = prefix.concat(key);
-		this.tree = MerkleSortTree.createBytesTree(keyIndex.getRootHash(), options, keyPrefix, kvStorage);
+	public KeyVersionTree(byte[] key, HashDigest rootHash, TreeOptions options, Bytes prefix,
+			ExPolicyKVStorage kvStorage) {
+		this.key = key;
+		this.tree = MerkleSortTree.createBytesTree(rootHash, options, prefix, kvStorage);
 	}
 
 	@Override
@@ -50,9 +48,16 @@ public class KeyVersionTree implements KeyIndex {
 		return tree.getRootHash();
 	}
 
-	public long getLatestVersion() {
-		// 注：上下文逻辑和构造函数确保每一个新的 KV 树都至少有一个版本的记录，所以 MAXID 不可能为 null；
-		return tree.getMaxId();
+	/**
+	 * 返回最新版本；<br>
+	 * 
+	 * 如果没有数据，则返回 -1；
+	 * 
+	 * @return
+	 */
+	public long getVersion() {
+		Long version = tree.getMaxId();
+		return version == null ? -1 : version.longValue();
 	}
 
 	public void cancel() {
@@ -63,8 +68,13 @@ public class KeyVersionTree implements KeyIndex {
 		tree.commit();
 	}
 
-	public ValueEntry<byte[]> getLatestValue() {
-		long version = getLatestVersion();
+	/**
+	 * 返回最新版本的值；
+	 * 
+	 * @return
+	 */
+	public MerkleValue<byte[]> getValue() {
+		long version = getVersion();
 		return getValue(version);
 	}
 
@@ -76,7 +86,7 @@ public class KeyVersionTree implements KeyIndex {
 	 * @param version
 	 * @return
 	 */
-	public ValueEntry<byte[]> getValue(long version) {
+	public MerkleValue<byte[]> getValue(long version) {
 		byte[] value = tree.get(version);
 		if (value == null) {
 			return null;
@@ -90,7 +100,7 @@ public class KeyVersionTree implements KeyIndex {
 	 * @param version
 	 * @param value
 	 */
-	public void set(long version, byte[] value) {
+	public void setValue(long version, byte[] value) {
 		tree.set(version, value);
 	}
 

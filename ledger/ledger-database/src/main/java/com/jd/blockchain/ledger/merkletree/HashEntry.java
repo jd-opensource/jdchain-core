@@ -1,9 +1,5 @@
 package com.jd.blockchain.ledger.merkletree;
 
-/**
- * 
- * @author huanghaiquan
- *
- */
-interface HashEntry {
+
+public interface HashEntry {
 }

@@ -26,12 +26,12 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.ledger.merkletree.BytesConverter;
+import com.jd.blockchain.ledger.merkletree.DataPolicy;
 import com.jd.blockchain.ledger.merkletree.MerkleSortTree;
-import com.jd.blockchain.ledger.merkletree.MerkleSortTree.DataPolicy;
 import com.jd.blockchain.ledger.merkletree.MerkleSortTree.DefaultDataPolicy;
-import com.jd.blockchain.ledger.merkletree.MerkleSortTree.ValueEntry;
 import com.jd.blockchain.ledger.merkletree.MerkleTreeKeyExistException;
 import com.jd.blockchain.ledger.merkletree.TreeOptions;
+import com.jd.blockchain.ledger.merkletree.MerkleValue;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.AbstractSkippingIterator;
 import com.jd.blockchain.utils.ArrayUtils;
@@ -260,7 +260,7 @@ public class MerkleSortTreeTest {
 		assertNotNull(mst.getMaxId());
 		assertEquals(expectedMaxId1, mst.getMaxId().longValue());
 		// 迭代器不包含未提交的数据；预期迭代器为空；
-		SkippingIterator<ValueEntry<byte[]>> iter = mst.bytesIterator();
+		SkippingIterator<MerkleValue<byte[]>> iter = mst.bytesIterator();
 		assertEquals(0, iter.getTotalCount());
 
 		// 提交之后才更新属性；
@@ -322,7 +322,7 @@ public class MerkleSortTreeTest {
 		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		// 验证空的迭代器；
-		SkippingIterator<ValueEntry<byte[]>> iter = mst.bytesIterator();
+		SkippingIterator<MerkleValue<byte[]>> iter = mst.bytesIterator();
 
 		assertEquals(0, iter.getTotalCount());
 		assertEquals(-1, iter.getCursor());
@@ -370,7 +370,7 @@ public class MerkleSortTreeTest {
 		index += skipped;
 		assertEquals(index, iter.getCursor());
 
-		ValueEntry<byte[]> merkleData = iter.next();
+		MerkleValue<byte[]> merkleData = iter.next();
 		index++;
 		assertEquals(index, iter.getCursor());
 		assertNotNull(merkleData);
@@ -468,7 +468,7 @@ public class MerkleSortTreeTest {
 			}
 
 			@Override
-			public SkippingIterator<ValueEntry<byte[]>> iterator(long id, byte[] bytesData, long count,
+			public SkippingIterator<MerkleValue<byte[]>> iterator(long id, byte[] bytesData, long count,
 					BytesConverter<byte[]> converter) {
 				byte[][] values = new byte[(int) count][];
 				ByteArrayInputStream in = new ByteArrayInputStream(bytesData, 4, bytesData.length - 4);
@@ -503,7 +503,7 @@ public class MerkleSortTreeTest {
 		mst.commit();
 
 		// 验证所有的数据都能够正常检索；
-		SkippingIterator<ValueEntry<byte[]>> iter = mst.iterator();
+		SkippingIterator<MerkleValue<byte[]>> iter = mst.iterator();
 		assertEquals(count, iter.getTotalCount());
 
 		assertIteratorEquals(count, datas, ids, 0, iter);
@@ -519,7 +519,7 @@ public class MerkleSortTreeTest {
 		iter.skip(startIndex);
 		i = startIndex;
 		{
-			ValueEntry<byte[]> v = iter.next();
+			MerkleValue<byte[]> v = iter.next();
 			assertNotNull(v);
 			assertEquals(testId, v.getId());
 			assertArrayEquals(datas[i], v.getValue());
@@ -539,7 +539,7 @@ public class MerkleSortTreeTest {
 		iter.skip(startIndex + 1);
 		i = startIndex;
 		{
-			ValueEntry<byte[]> v = iter.next();
+			MerkleValue<byte[]> v = iter.next();
 			assertNotNull(v);
 			assertEquals(testId, v.getId());
 			assertArrayEquals(datas[i + 1], v.getValue());
@@ -555,7 +555,7 @@ public class MerkleSortTreeTest {
 		iter.skip(startIndex + 2);
 		i = startIndex;
 		{
-			ValueEntry<byte[]> v = iter.next();
+			MerkleValue<byte[]> v = iter.next();
 			assertNotNull(v);
 			assertEquals(testId, v.getId());
 			assertArrayEquals(datas[i + 2], v.getValue());
@@ -569,11 +569,11 @@ public class MerkleSortTreeTest {
 	}
 
 	private void assertIteratorEquals(int count, byte[][] datas, long[] ids, int startIndex,
-			SkippingIterator<ValueEntry<byte[]>> iter) {
+			SkippingIterator<MerkleValue<byte[]>> iter) {
 		int i = startIndex;
 		int c = 0;
 		while (iter.hasNext()) {
-			ValueEntry<byte[]> v = iter.next();
+			MerkleValue<byte[]> v = iter.next();
 			assertNotNull(v);
 			assertEquals(ids[i], v.getId());
 			assertArrayEquals(datas[i], v.getValue());
@@ -607,7 +607,7 @@ public class MerkleSortTreeTest {
 	 * @param expectedCount
 	 * @param iter
 	 */
-	private void assertIteratorSortedAndEquals(SkippingIterator<ValueEntry<byte[]>> iter, long expectedCount,
+	private void assertIteratorSortedAndEquals(SkippingIterator<MerkleValue<byte[]>> iter, long expectedCount,
 			long[] expectedSortIDs, Map<Long, byte[]> dataMap) {
 		assertEquals(expectedCount, iter.getTotalCount());
 		assertEquals(-1, iter.getCursor());
@@ -615,7 +615,7 @@ public class MerkleSortTreeTest {
 		int i = 0;
 		long preId = -1;
 		while (iter.hasNext()) {
-			ValueEntry<byte[]> merkleData = iter.next();
+			MerkleValue<byte[]> merkleData = iter.next();
 			assertNotNull(merkleData);
 			assertEquals(expectedSortIDs[i], merkleData.getId());
 			assertArrayEquals(dataMap.get(expectedSortIDs[i]), merkleData.getValue());
@@ -743,7 +743,7 @@ public class MerkleSortTreeTest {
 		MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage);
 
 		// 验证空的迭代器；
-		SkippingIterator<ValueEntry<byte[]>> iter = mst.bytesIterator();
+		SkippingIterator<MerkleValue<byte[]>> iter = mst.bytesIterator();
 
 		assertEquals(0, iter.getTotalCount());
 		assertEquals(-1, iter.getCursor());
@@ -966,7 +966,7 @@ public class MerkleSortTreeTest {
 		}
 	}
 
-	private static class BytesEntriesIterator extends AbstractSkippingIterator<ValueEntry<byte[]>> {
+	private static class BytesEntriesIterator extends AbstractSkippingIterator<MerkleValue<byte[]>> {
 
 		private long id;
 
@@ -983,12 +983,12 @@ public class MerkleSortTreeTest {
 		}
 
 		@Override
-		protected ValueEntry<byte[]> get(long cursor) {
+		protected MerkleValue<byte[]> get(long cursor) {
 			return new BytesIDValue(id, items[(int) cursor]);
 		}
 	}
 
-	private static class BytesIDValue implements ValueEntry<byte[]> {
+	private static class BytesIDValue implements MerkleValue<byte[]> {
 
 		private long id;
 

@@ -5,7 +5,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.merkletree.BytesKVEntry;
+import com.jd.blockchain.ledger.merkletree.KVEntry;
 import com.jd.blockchain.ledger.proof.MerkleHashTrie;
 import com.jd.blockchain.ledger.proof.MerkleTree;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
@@ -166,10 +166,10 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 			throw new IllegalArgumentException("The specified from-index and count are out of bound!");
 		}
 		byte[][] values = new byte[count][];
-		SkippingIterator<BytesKVEntry> iterator = merkleTree.iterator();
+		SkippingIterator<KVEntry> iterator = merkleTree.iterator();
 		iterator.skip(fromIndex);
 		for (int i = 0; i < count && iterator.hasNext(); i++) {
-			BytesKVEntry dataNode = iterator.next();
+			KVEntry dataNode = iterator.next();
 			Bytes dataKey = encodeDataKey(dataNode.getKey());
 			values[i] = valueStorage.get(dataKey, dataNode.getVersion());
 		}
@@ -192,10 +192,10 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		DataEntry<Bytes, byte[]>[] values = new DataEntry[count];
 		byte[] bytesValue;
 
-		SkippingIterator<BytesKVEntry> iterator = merkleTree.iterator();
+		SkippingIterator<KVEntry> iterator = merkleTree.iterator();
 		iterator.skip(fromIndex);
 		for (int i = 0; i < count && iterator.hasNext(); i++) {
-			BytesKVEntry dataNode = iterator.next();
+			KVEntry dataNode = iterator.next();
 			Bytes dataKey = encodeDataKey(dataNode.getKey());
 			bytesValue = valueStorage.get(dataKey, dataNode.getVersion());
 			values[i] = new VersioningKVData<Bytes, byte[]>(dataNode.getKey(), dataNode.getVersion(), bytesValue);
@@ -209,10 +209,10 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 			throw new IllegalArgumentException("Index out of bound!");
 		}
 		byte[] bytesValue;
-		SkippingIterator<BytesKVEntry> iterator = merkleTree.iterator();
+		SkippingIterator<KVEntry> iterator = merkleTree.iterator();
 		iterator.skip(index);
 		if (iterator.hasNext()) {
-			BytesKVEntry dataNode = iterator.next();
+			KVEntry dataNode = iterator.next();
 			Bytes dataKey = encodeDataKey(dataNode.getKey());
 			bytesValue = valueStorage.get(dataKey, dataNode.getVersion());
 			DataEntry<Bytes, byte[]> entry = new VersioningKVData<Bytes, byte[]>(dataNode.getKey(),
@@ -230,10 +230,10 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 	 */
 	@Deprecated // 基于 MerkleHashTrie 的数据是无序固定排列的；
 	public byte[] getValuesAtIndex(int fromIndex) {
-		SkippingIterator<BytesKVEntry> iterator = merkleTree.iterator();
+		SkippingIterator<KVEntry> iterator = merkleTree.iterator();
 		iterator.skip(fromIndex);
 		if (iterator.hasNext()) {
-			BytesKVEntry dataNode = iterator.next();
+			KVEntry dataNode = iterator.next();
 			Bytes dataKey = encodeDataKey(dataNode.getKey());
 			return valueStorage.get(dataKey, dataNode.getVersion());
 		}
@@ -339,7 +339,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 	 * @return 返回指定的键的版本；如果不存在，则返回 -1；
 	 */
 	private long getMerkleVersion(Bytes key) {
-		BytesKVEntry mdn = merkleTree.getData(key.toBytes());
+		KVEntry mdn = merkleTree.getData(key.toBytes());
 		if (mdn == null) {
 			return -1;
 		}

@@ -2,7 +2,7 @@ package com.jd.blockchain.ledger.proof;
 
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.merkletree.BytesKVEntry;
+import com.jd.blockchain.ledger.merkletree.KVEntry;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 
@@ -28,7 +28,7 @@ public interface MerkleTree extends Transactional {
 	 * @param key
 	 * @return
 	 */
-	BytesKVEntry getData(byte[] key);
+	KVEntry getData(byte[] key);
 
 	/**
 	 * 返回指定版本的数据；
@@ -37,7 +37,7 @@ public interface MerkleTree extends Transactional {
 	 * @param version 版本；如果小于 0 ，则返回最新版本的数据；
 	 * @return
 	 */
-	BytesKVEntry getData(byte[] key, long version);
+	KVEntry getData(byte[] key, long version);
 
 	/**
 	 * 设置键值；
@@ -81,7 +81,7 @@ public interface MerkleTree extends Transactional {
 	/**
 	 * 返回所有键的最新版本数据；
 	 */
-	SkippingIterator<BytesKVEntry> iterator();
+	SkippingIterator<KVEntry> iterator();
 
 	/**
 	 * 返回指定键的所有版本数据；
@@ -89,7 +89,7 @@ public interface MerkleTree extends Transactional {
 	 * @param key
 	 * @return
 	 */
-	SkippingIterator<BytesKVEntry> iterator(byte[] key);
+	SkippingIterator<KVEntry> iterator(byte[] key);
 
 	/**
 	 * 返回指定键的指定版本之前的所有数据（含指定版本）；
@@ -98,7 +98,7 @@ public interface MerkleTree extends Transactional {
 	 * @param version
 	 * @return
 	 */
-	SkippingIterator<BytesKVEntry> iterator(byte[] key, long version);
+	SkippingIterator<KVEntry> iterator(byte[] key, long version);
 
 //	/**
 //	 * 迭代器包含所有基准树与原始树之间差异的数据项

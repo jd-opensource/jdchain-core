@@ -26,8 +26,14 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.merkletree.BytesKVEntry;
+import com.jd.blockchain.ledger.merkletree.HashBucketEntry;
+import com.jd.blockchain.ledger.merkletree.HashEntry;
+import com.jd.blockchain.ledger.merkletree.KVEntry;
+import com.jd.blockchain.ledger.merkletree.KeyValue;
+import com.jd.blockchain.ledger.merkletree.MerkleHashBucket;
 import com.jd.blockchain.ledger.merkletree.MerkleHashSortTree;
+import com.jd.blockchain.ledger.merkletree.MerkleValue;
+import com.jd.blockchain.ledger.merkletree.TreeDegree;
 import com.jd.blockchain.ledger.merkletree.TreeOptions;
 import com.jd.blockchain.ledger.proof.KeyIndexer;
 import com.jd.blockchain.ledger.proof.MerkleTree;
@@ -39,6 +45,7 @@ import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.BytesUtils;
+import com.jd.blockchain.utils.security.RandomUtils;
 
 import test.com.jd.blockchain.ledger.core.LedgerTestUtils;
 
@@ -47,8 +54,6 @@ public class MerkleHashSortTreeTest {
 	private static final Bytes KEY_PREFIX = Bytes.fromString("/MerkleTree");
 
 	private static final HashFunction SHA256_HASH_FUNC = Crypto.getHashFunction(ClassicAlgorithm.SHA256);
-
-	
 
 	/**
 	 * 测试加入存在哈希冲突(基于 {@link MerkleHashSortTree#MURMUR3_HASH_POLICY}
@@ -60,6 +65,127 @@ public class MerkleHashSortTreeTest {
 	public void testAddDataWithHashConfliction() {
 		// 采用几组验证过存在哈希冲突的 key；
 		// [203799850] -- [KEY-18981], [KEY-21163]
+
+	}
+
+	/**
+	 * 采用 8 位的哈希值获得更多的哈希冲突，验证在哈希冲突的情况下默克尔树是否正常处理；
+	 * 
+	 * @author huanghaiquan
+	 *
+	 */
+	private static class HashTreeIn8Bits extends MerkleHashSortTree {
+
+		public HashTreeIn8Bits(TreeOptions options, Bytes prefix, ExPolicyKVStorage kvStorage) {
+			super(options, prefix, kvStorage);
+		}
+
+		public HashTreeIn8Bits(HashDigest rootHash, TreeOptions options, Bytes prefix, ExPolicyKVStorage kvStorage) {
+			super(rootHash, options, prefix, kvStorage);
+		}
+
+		@Override
+		protected long hashKey(byte[] key) {
+			return super.hashKey(key) & 0xFFL;
+		}
+	}
+
+	/**
+	 * 
+	 */
+	@Test
+	public void testHashBucket() {
+		byte[][] keys = new byte[4][];
+		byte[][] values = new byte[4][];
+
+		for (int i = 0; i < keys.length; i++) {
+			keys[i] = BytesUtils.toBytes("KEY-" + i);
+			values[i] = RandomUtils.generateRandomBytes(16);
+		}
+
+		TreeOptions treeOptions = TreeOptions.build().setDefaultHashAlgorithm(ClassicAlgorithm.SHA256.code());
+		Bytes bucketPrefix = Bytes.fromString("BUCKET");
+		MemoryKVStorage kvStorage = new MemoryKVStorage();
+		MerkleHashBucket hashBucket = new MerkleHashBucket(100, keys[0], values[0], TreeDegree.D3, treeOptions,
+				bucketPrefix, kvStorage);
+
+		// 验证初始化之后的数据是否正确；
+		assertEquals(1, hashBucket.getKeysCount());
+
+		MerkleValue<byte[]> value = hashBucket.getValue(keys[0]);
+		assertNotNull(value);
+		assertEquals(0, value.getId());
+		assertArrayEquals(values[0], value.getValue());
+		assertEquals(0, hashBucket.getVersion(keys[0]));
+
+		MerkleValue<byte[]> value_v1 = hashBucket.getValue(keys[0], 1);
+		assertNull(value_v1);
+
+		MerkleValue<byte[]> value1_v1 = hashBucket.getValue(keys[1], 0);
+		assertNull(value1_v1);
+
+		// 提交数据；
+		hashBucket.commit();
+
+		// 模拟对默尔克哈希桶的存储；
+		byte[] bucketBytes = BinaryProtocol.encode(hashBucket, HashBucketEntry.class);
+		HashBucketEntry bucketEntry = BinaryProtocol.decode(bucketBytes);
+
+		// 重新加载；
+		hashBucket = new MerkleHashBucket(100, bucketEntry.getKeySet(), TreeDegree.D3, treeOptions, bucketPrefix,
+				kvStorage);
+		// 验证重新加载之后的数据正确性；
+		value = hashBucket.getValue(keys[0]);
+		assertNotNull(value);
+		assertEquals(0, value.getId());
+		assertArrayEquals(values[0], value.getValue());
+		assertEquals(0, hashBucket.getVersion(keys[0]));
+
+		assertEquals(1, hashBucket.getKeysCount());
+
+		SkippingIterator<MerkleValue<HashEntry>> keysIterator = hashBucket.iterator();
+		assertEquals(1, keysIterator.getTotalCount());
+		assertTrue(keysIterator.hasNext());
+
+		MerkleValue<HashEntry> entry = keysIterator.next();
+		assertNotNull(entry);
+		assertTrue(entry.getValue() instanceof KeyValue);
+		KeyValue kv = (KeyValue) entry.getValue();
+		assertArrayEquals(keys[0], kv.getKey().toBytes());
+		assertArrayEquals(values[0], kv.getValue().toBytes());
+
+		// 验证加入新的键；
+		for (int i = 1; i < keys.length; i++) {
+			hashBucket.setValue(keys[i], 0, values[i]);
+		}
+
+		assertEquals(keys.length, hashBucket.getKeysCount());
+		for (int i = 0; i < keys.length; i++) {
+			value = hashBucket.getValue(keys[i]);
+			assertNotNull(value);
+			// id 即版本；
+			assertEquals(0, value.getId());
+			assertArrayEquals(values[i], value.getValue());
+			assertEquals(0, hashBucket.getVersion(keys[i]));
+		}
+
+		hashBucket.commit();
+
+		// 重新加载并验证数据；
+		bucketBytes = BinaryProtocol.encode(hashBucket, HashBucketEntry.class);
+		bucketEntry = BinaryProtocol.decode(bucketBytes);
+		
+		hashBucket = new MerkleHashBucket(100, bucketEntry.getKeySet(), TreeDegree.D3, treeOptions, bucketPrefix,
+				kvStorage);
+		assertEquals(keys.length, hashBucket.getKeysCount());
+		for (int i = 0; i < keys.length; i++) {
+			value = hashBucket.getValue(keys[i]);
+			assertNotNull(value);
+			// id 即版本；
+			assertEquals(0, value.getId());
+			assertArrayEquals(values[i], value.getValue());
+			assertEquals(0, hashBucket.getVersion(keys[i]));
+		}
 	}
 
 	/**
@@ -84,7 +210,7 @@ public class MerkleHashSortTreeTest {
 		assertNull(merkleTree.getRootHash());
 		assertEquals(0, merkleTree.getTotalKeys());
 
-		BytesKVEntry dt = merkleTree.getData("KEY-69");
+		KVEntry dt = merkleTree.getData("KEY-69");
 		assertNotNull(dt);
 		assertEquals(0, dt.getVersion());
 		dt = merkleTree.getData("KEY-69", 0);
@@ -136,7 +262,7 @@ public class MerkleHashSortTreeTest {
 
 	private void assertDataExist(MerkleHashSortTree merkleTree, VersioningKVData<String, byte[]>[] datas) {
 		for (int i = 0; i < datas.length; i++) {
-			BytesKVEntry kv = merkleTree.getData(datas[i].getKey());
+			KVEntry kv = merkleTree.getData(datas[i].getKey());
 			assertNotNull(kv);
 			assertEquals(datas[i].getKey(), kv.getKey().toString("UTF-8"));
 			assertEquals(datas[i].getVersion(), kv.getVersion());
@@ -161,7 +287,7 @@ public class MerkleHashSortTreeTest {
 		assertNull(merkleTree.getRootHash());
 		assertEquals(0, merkleTree.getTotalKeys());
 
-		BytesKVEntry dt = merkleTree.getData("KEY-69");
+		KVEntry dt = merkleTree.getData("KEY-69");
 		assertNotNull(dt);
 		assertEquals(0, dt.getVersion());
 		dt = merkleTree.getData("KEY-69", 0);
@@ -291,11 +417,11 @@ public class MerkleHashSortTreeTest {
 			dataMap.put(data.getKey(), data);
 		}
 
-		Iterator<BytesKVEntry> dataIterator = merkleTree.iterator();
+		Iterator<KVEntry> dataIterator = merkleTree.iterator();
 		String[] dataKeys = new String[count];
 		int index = 0;
 		while (dataIterator.hasNext()) {
-			BytesKVEntry data = dataIterator.next();
+			KVEntry data = dataIterator.next();
 			assertNotNull(data);
 			String key = data.getKey().toUTF8String();
 			assertTrue(dataMap.containsKey(key));
@@ -306,7 +432,7 @@ public class MerkleHashSortTreeTest {
 		assertEquals(0, dataMap.size());
 		assertEquals(count, index);
 
-		SkippingIterator<BytesKVEntry> skippingIterator = merkleTree.iterator();
+		SkippingIterator<KVEntry> skippingIterator = merkleTree.iterator();
 		testDataIteratorSkipping(dataKeys, skippingIterator, 0);
 
 		skippingIterator = merkleTree.iterator();
@@ -364,7 +490,7 @@ public class MerkleHashSortTreeTest {
 		MerkleHashSortTree merkleTree2 = new MerkleHashSortTree(rootHash, treeOption, prefix, storage);
 
 		for (int i = 0; i < datas.length; i++) {
-			BytesKVEntry data = merkleTree2.getData(datas[i].getKey());
+			KVEntry data = merkleTree2.getData(datas[i].getKey());
 			assertNotNull(data);
 		}
 	}
@@ -382,7 +508,7 @@ public class MerkleHashSortTreeTest {
 
 		merkleTree.setData(key, version, value);
 
-		BytesKVEntry mkdata = merkleTree.getData(key);
+		KVEntry mkdata = merkleTree.getData(key);
 
 		assertNotNull(mkdata);
 
@@ -398,7 +524,7 @@ public class MerkleHashSortTreeTest {
 		assertNotNull(mkdata);
 	}
 
-	private void testDataIteratorSkipping(String[] expectedKeys, SkippingIterator<BytesKVEntry> iterator, int skip) {
+	private void testDataIteratorSkipping(String[] expectedKeys, SkippingIterator<KVEntry> iterator, int skip) {
 		int count = expectedKeys.length;
 		int index = skip;
 		iterator.skip(index);
@@ -408,7 +534,7 @@ public class MerkleHashSortTreeTest {
 			assertFalse(iterator.hasNext());
 		}
 		while (iterator.hasNext()) {
-			BytesKVEntry data = iterator.next();
+			KVEntry data = iterator.next();
 			assertNotNull(data);
 			String key = data.getKey().toUTF8String();
 			assertEquals(expectedKeys[index], key);
@@ -520,10 +646,10 @@ public class MerkleHashSortTreeTest {
 		assertNotNull(rootHash1);
 		assertNotEquals(rootHash0, rootHash1);
 
-		BytesKVEntry data1025_reload_0 = merkleTree_reload.getData(data1025.getKey(), 0);
+		KVEntry data1025_reload_0 = merkleTree_reload.getData(data1025.getKey(), 0);
 		assertNotNull(data1025_reload_0);
 
-		BytesKVEntry data0_reload_0 = merkleTree_reload.getData("KEY-0", 0);
+		KVEntry data0_reload_0 = merkleTree_reload.getData("KEY-0", 0);
 		assertNotNull(data0_reload_0);
 
 		System.out.println("mkl reload total keys = " + merkleTree_reload.getTotalKeys());
@@ -537,10 +663,10 @@ public class MerkleHashSortTreeTest {
 		assertNotNull(rootHash2);
 		assertNotEquals(rootHash0, rootHash2);
 
-		BytesKVEntry data1025_reload_1 = merkleTree_reload_1.getData(data1025.getKey(), 0);
+		KVEntry data1025_reload_1 = merkleTree_reload_1.getData(data1025.getKey(), 0);
 		assertNotNull(data1025_reload_1);
 
-		BytesKVEntry data0_reload_1 = merkleTree_reload_1.getData("KEY-0", 0);
+		KVEntry data0_reload_1 = merkleTree_reload_1.getData("KEY-0", 0);
 		assertNotNull(data0_reload_1);
 
 		System.out.println("mkl reload total keys = " + merkleTree_reload_1.getTotalKeys());
@@ -581,10 +707,10 @@ public class MerkleHashSortTreeTest {
 		assertNotNull(rootHash1);
 		assertNotEquals(rootHash0, rootHash1);
 
-		BytesKVEntry data1025_reload_0 = merkleTree_reload.getData(data1025.getKey(), 0);
+		KVEntry data1025_reload_0 = merkleTree_reload.getData(data1025.getKey(), 0);
 		assertNotNull(data1025_reload_0);
 
-		BytesKVEntry data0_reload_0 = merkleTree_reload.getData("KEY-0", 0);
+		KVEntry data0_reload_0 = merkleTree_reload.getData("KEY-0", 0);
 		assertNotNull(data0_reload_0);
 
 		System.out.println("mkl reload total keys = " + merkleTree_reload.getTotalKeys());
@@ -598,10 +724,10 @@ public class MerkleHashSortTreeTest {
 		assertNotNull(rootHash2);
 		assertNotEquals(rootHash0, rootHash2);
 
-		BytesKVEntry data1025_reload_1 = merkleTree_reload_1.getData(data1025.getKey(), 0);
+		KVEntry data1025_reload_1 = merkleTree_reload_1.getData(data1025.getKey(), 0);
 		assertNotNull(data1025_reload_1);
 
-		BytesKVEntry data0_reload_1 = merkleTree_reload_1.getData("KEY-0", 0);
+		KVEntry data0_reload_1 = merkleTree_reload_1.getData("KEY-0", 0);
 		assertNotNull(data0_reload_1);
 
 		System.out.println("mkl reload total keys = " + merkleTree_reload_1.getTotalKeys());
@@ -701,13 +827,13 @@ public class MerkleHashSortTreeTest {
 		hashPaths = proof.getHashPath();
 		assertEquals(6, hashPaths.length);
 
-		BytesKVEntry data28_reload_0 = merkleTree_reload.getData(data28.getKey(), 0);
+		KVEntry data28_reload_0 = merkleTree_reload.getData(data28.getKey(), 0);
 		assertNotNull(data28_reload_0);
 		assertEquals(data28.getKey(), data28_reload_0.getKey().toUTF8String());
 		assertEquals(datas[28].getVersion(), data28_reload_0.getVersion());
 		assertArrayEquals(datas[28].getValue(), data28_reload_0.getValue().toBytes());
 
-		BytesKVEntry data28_reload_1 = merkleTree_reload.getData(data28.getKey(), 1);
+		KVEntry data28_reload_1 = merkleTree_reload.getData(data28.getKey(), 1);
 		assertNotNull(data28_reload_1);
 		assertEquals(data28.getKey(), data28_reload_1.getKey().toUTF8String());
 		assertEquals(data28.getVersion(), data28_reload_1.getVersion());
@@ -718,7 +844,7 @@ public class MerkleHashSortTreeTest {
 		// 测试不同根哈希加载的默克尔树能够检索的最新版本；
 		MerkleHashSortTree merkleTree_0 = new MerkleHashSortTree(rootHash0, cryptoSetting, KEY_PREFIX, storage);
 		MerkleHashSortTree merkleTree_1 = new MerkleHashSortTree(rootHash1, cryptoSetting, KEY_PREFIX, storage);
-		BytesKVEntry data28_reload = merkleTree_0.getData(data28.getKey());
+		KVEntry data28_reload = merkleTree_0.getData(data28.getKey());
 		assertEquals(0, data28_reload.getVersion());
 		data28_reload = merkleTree_1.getData(data28.getKey());
 		assertEquals(1, data28_reload.getVersion());
@@ -872,7 +998,7 @@ public class MerkleHashSortTreeTest {
 	 * @param rootHash
 	 * @param data
 	 */
-	private void assertMerkleProofPath(MerkleProof proof, HashDigest rootHash, BytesKVEntry data) {
+	private void assertMerkleProofPath(MerkleProof proof, HashDigest rootHash, KVEntry data) {
 		HashDigest[] path = proof.getHashPath();
 		assertTrue(path.length >= 4);
 		assertEquals(path[0], rootHash);
@@ -989,10 +1115,10 @@ public class MerkleHashSortTreeTest {
 		assertNotNull(rootHash_N1);
 		assertNotNull(rootHash_N2);
 
-		SkippingIterator<BytesKVEntry> iterator = merkleTree.iterator();
-		SkippingIterator<BytesKVEntry> iterator1 = merkleTree1.iterator();
-		BytesKVEntry dt;
-		BytesKVEntry dt1;
+		SkippingIterator<KVEntry> iterator = merkleTree.iterator();
+		SkippingIterator<KVEntry> iterator1 = merkleTree1.iterator();
+		KVEntry dt;
+		KVEntry dt1;
 		assertEquals(iterator.getTotalCount(), iterator1.getTotalCount());
 		for (int i = 0; i < iterator.getTotalCount(); i++) {
 			assertTrue(iterator.hasNext());
@@ -1009,7 +1135,7 @@ public class MerkleHashSortTreeTest {
 		}
 	}
 
-	private void assertMerkleProofEquals(BytesKVEntry data, MerkleProof proof, MerkleProof proof1) {
+	private void assertMerkleProofEquals(KVEntry data, MerkleProof proof, MerkleProof proof1) {
 		HashDigest[] path = proof.getHashPath();
 		HashDigest[] path1 = proof1.getHashPath();
 		assertEquals(path.length, path1.length);
