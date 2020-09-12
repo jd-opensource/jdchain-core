@@ -13,10 +13,12 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -102,6 +104,76 @@ public class MerkleHashSortTreeTest {
 
 		assertEquals(count, merkleTree.getTotalKeys());
 		assertDataExist(merkleTree, datas);
+
+		// 验证迭代器；
+		SkippingIterator<KVEntry> kvIter = merkleTree.iterator();
+		assertDataEquals(datas, kvIter);
+
+		// 验证增加不同版本；
+		{
+			VersioningKVData<String, byte[]> newData = createNewVersion(datas, 2);
+			VersioningKVData<String, byte[]> newData1 = createNewVersion(datas, 26);
+			VersioningKVData<String, byte[]> newData2 = createNewVersion(datas, 8);
+			VersioningKVData<String, byte[]> newData3 = createNewVersion(datas, 2);
+
+			merkleTree.setData(newData.getKey(), newData.getVersion(), newData.getValue());
+			merkleTree.setData(newData1.getKey(), newData1.getVersion(), newData1.getValue());
+			merkleTree.setData(newData2.getKey(), newData2.getVersion(), newData2.getValue());
+			merkleTree.setData(newData3.getKey(), newData3.getVersion(), newData3.getValue());
+
+			//验证最新数据；
+			assertDataExist(merkleTree, datas);
+			
+			// 迭代器返回不包含未提交的数据；
+			// kvIter = merkleTree.iterator();
+			// assertDataEquals(datas, kvIter);
+
+			merkleTree.commit();
+
+			// 验证提交之后的数据；
+			kvIter = merkleTree.iterator();
+			assertDataEquals(datas, kvIter);
+		}
+		
+		
+
+	}
+
+	private VersioningKVData<String, byte[]> createNewVersion(VersioningKVData<String, byte[]>[] datas, int newIndex) {
+		Random rand = new Random();
+		byte[] bytes = new byte[16];
+		rand.nextBytes(bytes);
+		VersioningKVData<String, byte[]> newData = new VersioningKVData<String, byte[]>(datas[newIndex].getKey(),
+				datas[newIndex].getVersion() + 1, bytes);
+
+		datas[newIndex] = newData;
+		return newData;
+	}
+
+	private void assertDataEquals(VersioningKVData<String, byte[]>[] datas, SkippingIterator<KVEntry> kvIter) {
+		Map<String, VersioningKVData<String, byte[]>> dataMap = new HashMap<>();
+		for (VersioningKVData<String, byte[]> dt : datas) {
+			dataMap.put(dt.getKey(), dt);
+		}
+
+		assertEquals(datas.length, kvIter.getTotalCount());
+
+		Set<String> keyReadSet = new HashSet<String>();
+		while (kvIter.hasNext()) {
+			KVEntry kvEntry = (KVEntry) kvIter.next();
+
+			String strKey = kvEntry.getKey().toUTF8String();
+
+			assertFalse(keyReadSet.contains(strKey));
+			assertTrue(dataMap.containsKey(strKey));
+
+			VersioningKVData<String, byte[]> dt = dataMap.get(strKey);
+			assertEquals(dt.getVersion(), kvEntry.getVersion());
+			assertArrayEquals(dt.getValue(), kvEntry.getValue().toBytes());
+
+			keyReadSet.add(strKey);
+		}
+
 	}
 
 	/**

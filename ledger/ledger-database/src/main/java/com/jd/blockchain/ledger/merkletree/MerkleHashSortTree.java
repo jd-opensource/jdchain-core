@@ -130,6 +130,12 @@ public class MerkleHashSortTree implements MerkleTree {
 		return null;
 	}
 
+	/**
+	 * 返回所有键的最新版本数据；
+	 * <p>
+	 * 
+	 * 不包含未提交的数据；
+	 */
 	@Override
 	public SkippingIterator<KVEntry> iterator() {
 		return new LatestKeyValueIterator(hashTree.iterator());
