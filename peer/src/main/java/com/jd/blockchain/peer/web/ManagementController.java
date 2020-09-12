@@ -648,7 +648,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		TxBuilder txbuilder = new TxBuilder(ledgerHash);
 
 		// This transaction contains participant state update and settings update two ops
-		txbuilder.states().update(new BlockchainIdentityData(deActivePubKey), ParticipantNodeState.READY);
+		txbuilder.states().update(new BlockchainIdentityData(deActivePubKey), ParticipantNodeState.DECONSENSUS);
 
 		txbuilder.settings().update(properties);
 
@@ -876,7 +876,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
         if (op == Op.ACTIVE) {
 			for (ParticipantNode participantNode : ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()).getParticipants()) {
-				if ((participantNode.getAddress().toString().equals(currNode.getAddress().toString())) && participantNode.getParticipantNodeState() == ParticipantNodeState.READY) {
+				if ((participantNode.getAddress().toString().equals(currNode.getAddress().toString())) &&  ((participantNode.getParticipantNodeState() == ParticipantNodeState.READY) || (participantNode.getParticipantNodeState() == ParticipantNodeState.DECONSENSUS))) {
 					return true;
 				}
 			}
