@@ -86,6 +86,16 @@ public class MerkleHashSortTree implements MerkleTree {
 		return MurmurHash3.murmurhash3_x64_64_2(key, 0, key.length, 2281);
 	}
 
+	/**
+	 * 是否发生了变更；
+	 * <p>
+	 * 
+	 * 自上一次调用 commit() 或 cancel() 之后，对象的状态如果发生了变更，则返回 true，否则返回 false；
+	 * 
+	 * <p>
+	 * 
+	 * 对于新创建的空的 {@link MerkleHashSortTree} 实例，此属性返回 true；
+	 */
 	@Override
 	public boolean isUpdated() {
 		return hashTree.isUpdated();
@@ -148,7 +158,7 @@ public class MerkleHashSortTree implements MerkleTree {
 		if (bucket == null) {
 			return EmptySkippingIterator.instance();
 		}
-		
+
 		return bucket.iterator(key);
 	}
 
@@ -158,7 +168,7 @@ public class MerkleHashSortTree implements MerkleTree {
 		if (bucket == null) {
 			return EmptySkippingIterator.instance();
 		}
-		
+
 		return bucket.iterator(key, version);
 	}
 
@@ -217,7 +227,7 @@ public class MerkleHashSortTree implements MerkleTree {
 		}
 		return new KeyValue(key, value.getId(), value.getValue());
 	}
-	
+
 	private MerkleHashBucket getBucket(byte[] key) {
 		long keyHash = computeKeyID(key);
 		HashEntry entry = hashTree.get(keyHash);

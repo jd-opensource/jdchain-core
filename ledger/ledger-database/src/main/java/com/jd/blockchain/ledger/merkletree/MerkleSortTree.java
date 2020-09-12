@@ -528,6 +528,16 @@ public class MerkleSortTree<T> implements Transactional {
 		return child;
 	}
 
+	/**
+	 * 是否发生了变更；
+	 * <p>
+	 * 
+	 * 自上一次调用 commit() 或 cancel() 之后，对象的状态如果发生了变更，则返回 true，否则返回 false；
+	 * 
+	 * <p>
+	 * 
+	 * 对于新创建的空的 {@link MerkleSortTree} 实例，此属性返回 true；
+	 */
 	@Override
 	public boolean isUpdated() {
 		if (root == null) {

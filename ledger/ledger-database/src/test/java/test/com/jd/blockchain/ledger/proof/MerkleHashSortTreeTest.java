@@ -121,9 +121,9 @@ public class MerkleHashSortTreeTest {
 			merkleTree.setData(newData2.getKey(), newData2.getVersion(), newData2.getValue());
 			merkleTree.setData(newData3.getKey(), newData3.getVersion(), newData3.getValue());
 
-			//验证最新数据；
+			// 验证最新数据；
 			assertDataExist(merkleTree, datas);
-			
+
 			// 迭代器返回不包含未提交的数据；
 			// kvIter = merkleTree.iterator();
 			// assertDataEquals(datas, kvIter);
@@ -134,8 +134,6 @@ public class MerkleHashSortTreeTest {
 			kvIter = merkleTree.iterator();
 			assertDataEquals(datas, kvIter);
 		}
-		
-		
 
 	}
 
@@ -379,6 +377,19 @@ public class MerkleHashSortTreeTest {
 	}
 
 	/**
+	 * 断言指定的默克尔树不存在指定键的数据，或者不存在指定键的指定版本的数据；
+	 * @param merkleTree
+	 * @param datas
+	 */
+	private void assertDataNotExist(MerkleHashSortTree merkleTree, VersioningKVData<String, byte[]>[] datas) {
+		for (int i = 0; i < datas.length; i++) {
+			KVEntry kv = merkleTree.getData(datas[i].getKey());
+			// 数据不存在，或者指定版本的数据不存在；
+			assertTrue(kv == null || kv.getVersion() < datas[i].getVersion());
+		}
+	}
+
+	/**
 	 * 验证 HashSortingMerkleTree 在未提交之前，新增的数据记录可读和可回滚特性；
 	 */
 	@Test
@@ -428,7 +439,32 @@ public class MerkleHashSortTreeTest {
 		dt = merkleTree.getData("KEY-69", 1);
 		assertNull(dt);
 
-		assertFalse(merkleTree.isUpdated());
+		// 对于新创建的空的默克尔树的 updated 属性为 true，回滚之后仍然是空的，此时预期 updated 属性为 true；
+		assertTrue(merkleTree.isUpdated());
+
+		// 加入数据，提交后继续加入数据，验证能够正常回滚到上一次提交；
+		setDatas(merkleTree, datas);
+
+		merkleTree.commit();
+
+		assertDataExist(merkleTree, datas);
+
+		int count2 = 200;
+		List<VersioningKVData<String, byte[]>> dataList2 = generateDatasFrom(count, count2);
+		VersioningKVData<String, byte[]>[] datas2 = toArray(dataList2);
+
+		setDatas(merkleTree, datas2);
+
+		// 在回滚之前，验证全部的数据都存在；
+		assertDataExist(merkleTree, datas);
+		assertDataExist(merkleTree, datas2);
+
+		// 回滚未提交的第二批数据；
+		merkleTree.cancel();
+
+		// 验证仅剩第一批数据；
+		assertDataExist(merkleTree, datas);
+		assertDataNotExist(merkleTree, datas2);
 	}
 
 	/**
@@ -1301,7 +1337,17 @@ public class MerkleHashSortTreeTest {
 	 * @return
 	 */
 	private List<VersioningKVData<String, byte[]>> generateDatas(int count) {
-		return generateDatas(count, 0);
+		return generateDatas(count, 0L);
+	}
+
+	/**
+	 * 生成指定数量的 KV 测试数据集合； KEY 以 “KEY-%s” 格式生成，对应的值为 “VALUE-%s”
+	 * 
+	 * @param count
+	 * @return
+	 */
+	private List<VersioningKVData<String, byte[]>> generateDatasFrom(int fromId, int count) {
+		return generateDatasFrom(fromId, count, 0);
 	}
 
 	/**
@@ -1311,9 +1357,19 @@ public class MerkleHashSortTreeTest {
 	 * @return
 	 */
 	private List<VersioningKVData<String, byte[]>> generateDatas(int count, long version) {
+		return generateDatasFrom(0, count, version);
+	}
+
+	/**
+	 * 生成指定数量的 KV 测试数据集合； KEY 以 “KEY-%s” 格式生成，对应的值为 “VALUE-%s”
+	 * 
+	 * @param count
+	 * @return
+	 */
+	private List<VersioningKVData<String, byte[]>> generateDatasFrom(int fromId, int count, long version) {
 		List<VersioningKVData<String, byte[]>> dataList = new ArrayList<VersioningKVData<String, byte[]>>();
 		for (int i = 0; i < count; i++) {
-			VersioningKVData<String, byte[]> data = new VersioningKVData<String, byte[]>("KEY-" + i, version,
+			VersioningKVData<String, byte[]> data = new VersioningKVData<String, byte[]>("KEY-" + (i + fromId), version,
 					BytesUtils.concat(BytesUtils.toBytes(i), BytesUtils.toBytes("VALUE" + i)));
 			dataList.add(data);
 		}
