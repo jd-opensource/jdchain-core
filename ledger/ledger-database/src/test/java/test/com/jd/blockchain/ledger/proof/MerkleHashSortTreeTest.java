@@ -59,13 +59,49 @@ public class MerkleHashSortTreeTest {
 	 * 测试加入存在哈希冲突(基于 {@link MerkleHashSortTree#MURMUR3_HASH_POLICY}
 	 * 哈希策略)的数据时是否能够正确处理；<br>
 	 * 
-	 * 
 	 */
 	@Test
 	public void testAddDataWithHashConfliction() {
-		// 采用几组验证过存在哈希冲突的 key；
-		// [203799850] -- [KEY-18981], [KEY-21163]
+		// 8 位哈希最多有 256 个值，设置数据的总数大于 256 必然产生哈希冲突，可以验证哈希桶处理多个 key 的情况；
+		int count = 300;
+		List<VersioningKVData<String, byte[]>> dataList = generateDatas(count);
+		VersioningKVData<String, byte[]>[] datas = toArray(dataList);
 
+		TreeOptions treeOption = createTreeOptions();
+		MemoryKVStorage storage = new MemoryKVStorage();
+		MerkleHashSortTree merkleTree = new HashTreeIn8Bits(treeOption, KEY_PREFIX, storage);
+
+		setDatas(merkleTree, datas);
+
+		assertDataExist(merkleTree, datas);
+
+		// 未提交之前查不到信息；
+		assertNull(merkleTree.getRootHash());
+		assertEquals(0, merkleTree.getTotalKeys());
+
+		KVEntry dt = merkleTree.getData("KEY-69");
+		assertNotNull(dt);
+		assertEquals(0, dt.getVersion());
+		dt = merkleTree.getData("KEY-69", 0);
+		assertNotNull(dt);
+		assertEquals(0, dt.getVersion());
+
+		dt = merkleTree.getData("KEY-69", 1);
+		assertNull(dt);
+
+		// 提交；
+		merkleTree.commit();
+
+		assertEquals(count, merkleTree.getTotalKeys());
+
+		// 重新加载；
+		HashDigest rootHash = merkleTree.getRootHash();
+		assertNotNull(rootHash);
+
+		merkleTree = new HashTreeIn8Bits(rootHash, treeOption, KEY_PREFIX, storage);
+
+		assertEquals(count, merkleTree.getTotalKeys());
+		assertDataExist(merkleTree, datas);
 	}
 
 	/**
@@ -174,7 +210,7 @@ public class MerkleHashSortTreeTest {
 		// 重新加载并验证数据；
 		bucketBytes = BinaryProtocol.encode(hashBucket, HashBucketEntry.class);
 		bucketEntry = BinaryProtocol.decode(bucketBytes);
-		
+
 		hashBucket = new MerkleHashBucket(100, bucketEntry.getKeySet(), TreeDegree.D3, treeOptions, bucketPrefix,
 				kvStorage);
 		assertEquals(keys.length, hashBucket.getKeysCount());
