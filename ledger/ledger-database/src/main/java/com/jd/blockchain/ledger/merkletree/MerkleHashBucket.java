@@ -6,6 +6,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.AbstractSkippingIterator;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.EmptySkippingIterator;
 import com.jd.blockchain.utils.SkippingIterator;
 
 /**
@@ -90,7 +91,7 @@ public class MerkleHashBucket implements HashBucketEntry, HashEntry {
 	 * @param value   要设置的值；
 	 */
 	public void setValue(byte[] key, long version, byte[] value) {
-		KeyVersionTree kvTree = getKeyVersionTree(key);
+		KeyVersionTree kvTree = getKeyTree(key);
 		if (kvTree == null) {
 			// 新增
 			kvTree = createKeyTree(key, value);
@@ -108,7 +109,7 @@ public class MerkleHashBucket implements HashBucketEntry, HashEntry {
 	 * @return
 	 */
 	public long getVersion(byte[] key) {
-		KeyVersionTree kvTree = getKeyVersionTree(key);
+		KeyVersionTree kvTree = getKeyTree(key);
 		if (kvTree == null) {
 			return -1;
 		}
@@ -125,7 +126,7 @@ public class MerkleHashBucket implements HashBucketEntry, HashEntry {
 	 * @return
 	 */
 	public MerkleValue<byte[]> getValue(byte[] key) {
-		KeyVersionTree kvTree = getKeyVersionTree(key);
+		KeyVersionTree kvTree = getKeyTree(key);
 		if (kvTree == null) {
 			return null;
 		}
@@ -143,7 +144,7 @@ public class MerkleHashBucket implements HashBucketEntry, HashEntry {
 	 * @return
 	 */
 	public MerkleValue<byte[]> getValue(byte[] key, long version) {
-		KeyVersionTree kvTree = getKeyVersionTree(key);
+		KeyVersionTree kvTree = getKeyTree(key);
 		if (kvTree == null) {
 			return null;
 		}
@@ -156,7 +157,39 @@ public class MerkleHashBucket implements HashBucketEntry, HashEntry {
 	 * @return
 	 */
 	public SkippingIterator<MerkleValue<HashEntry>> iterator() {
-		return new BucketKeysLatestValueIterator();
+		return new BucketKVEntryIterator();
+	}
+
+	/**
+	 * 返回包括指定的键的所有版本的值的迭代器；
+	 * 
+	 * @param key
+	 * @return
+	 */
+	public SkippingIterator<KVEntry> iterator(byte[] key) {
+		KeyVersionTree kvTree = getKeyTree(key);
+		if (kvTree == null) {
+			return EmptySkippingIterator.instance();
+		}
+
+		SkippingIterator<MerkleValue<byte[]>> valueIterator = kvTree.iterator();
+		return new KVEntryIteratorWrapper(key, valueIterator);
+	}
+
+	/**
+	 * 返回包括指定的键的所有版本的值的迭代器；
+	 * 
+	 * @param key
+	 * @return
+	 */
+	public SkippingIterator<KVEntry> iterator(byte[] key, long version) {
+		KeyVersionTree kvTree = getKeyTree(key);
+		if (kvTree == null) {
+			return EmptySkippingIterator.instance();
+		}
+
+		SkippingIterator<MerkleValue<byte[]>> valueIterator = kvTree.iterator();
+		return new VersionFilterIterator(key, valueIterator, version);
 	}
 
 	@Override
@@ -180,10 +213,6 @@ public class MerkleHashBucket implements HashBucketEntry, HashEntry {
 		}
 	}
 
-	private KeyVersionTree getKeyTree(int index) {
-		return kvTrees[index];
-	}
-
 	private KeyVersionTree createKeyTree(byte[] key, byte[] value) {
 		Bytes keyTreePrefix = bucketPrefix.concat(key);
 		KeyVersionTree kvTree = new KeyVersionTree(key, value, treeDegree, treeOptions, keyTreePrefix, kvStorage);
@@ -196,6 +225,10 @@ public class MerkleHashBucket implements HashBucketEntry, HashEntry {
 		return kvTree;
 	}
 
+	private KeyVersionTree getKeyTree(int index) {
+		return kvTrees[index];
+	}
+
 	/**
 	 * 返回指定 key 的版本树；
 	 * <p>
@@ -205,7 +238,7 @@ public class MerkleHashBucket implements HashBucketEntry, HashEntry {
 	 * @param key
 	 * @return
 	 */
-	private KeyVersionTree getKeyVersionTree(byte[] key) {
+	private KeyVersionTree getKeyTree(byte[] key) {
 		for (KeyVersionTree kvTree : kvTrees) {
 			if (Arrays.equals(kvTree.getKey(), key)) {
 				return kvTree;
@@ -237,7 +270,7 @@ public class MerkleHashBucket implements HashBucketEntry, HashEntry {
 		kvTrees = newTrees;
 	}
 
-	private class BucketKeysLatestValueIterator extends AbstractSkippingIterator<MerkleValue<HashEntry>> {
+	private class BucketKVEntryIterator extends AbstractSkippingIterator<MerkleValue<HashEntry>> {
 
 		@Override
 		public long getTotalCount() {
@@ -252,6 +285,64 @@ public class MerkleHashBucket implements HashBucketEntry, HashEntry {
 			return new IDValue<HashEntry>(BUCKET_ID, kv);
 		}
 
+	}
+
+	private static class KVEntryIteratorWrapper implements SkippingIterator<KVEntry> {
+
+		private byte[] key;
+
+		private SkippingIterator<MerkleValue<byte[]>> values;
+
+		public KVEntryIteratorWrapper(byte[] key, SkippingIterator<MerkleValue<byte[]>> values) {
+			this.key = key;
+			this.values = values;
+		}
+
+		@Override
+		public boolean hasNext() {
+			return values.hasNext();
+		}
+
+		@Override
+		public KVEntry next() {
+			MerkleValue<byte[]> value = values.next();
+			if (value == null) {
+				return null;
+			}
+			return new KeyValue(key, value.getId(), value.getValue());
+		}
+
+		@Override
+		public long getTotalCount() {
+			return values.getTotalCount();
+		}
+
+		@Override
+		public long getCursor() {
+			return values.getCursor();
+		}
+
+		@Override
+		public long skip(long count) {
+			return values.skip(count);
+		}
+
+	}
+
+	private static class VersionFilterIterator extends KVEntryIteratorWrapper {
+
+		private long totalCount;
+
+		public VersionFilterIterator(byte[] key, SkippingIterator<MerkleValue<byte[]>> values, long maxVersion) {
+			super(key, values);
+
+			this.totalCount = Math.min(super.getTotalCount(), maxVersion + 1);
+		}
+
+		@Override
+		public long getTotalCount() {
+			return totalCount;
+		}
 	}
 
 }

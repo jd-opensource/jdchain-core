@@ -42,9 +42,9 @@ public interface MerkleTree extends Transactional {
 	/**
 	 * 设置键值；
 	 * 
-	 * @param key      键；
-	 * @param version  数据的版本；必须大于等于 0 ;
-	 * @param newValue 要写入的指定版本的值；
+	 * @param key             键；
+	 * @param expectedVersion 数据的版本；必须大于等于 0 ;
+	 * @param newValue        要写入的指定版本的值；
 	 */
 	void setData(byte[] key, long expectedVersion, byte[] newValue);
 

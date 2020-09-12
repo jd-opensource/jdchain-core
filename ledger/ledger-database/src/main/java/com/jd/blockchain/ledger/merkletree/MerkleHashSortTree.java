@@ -6,6 +6,7 @@ import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.proof.MerkleTree;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.EmptySkippingIterator;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.hash.MurmurHash3;
 import com.jd.blockchain.utils.io.BytesUtils;
@@ -143,14 +144,22 @@ public class MerkleHashSortTree implements MerkleTree {
 
 	@Override
 	public SkippingIterator<KVEntry> iterator(byte[] key) {
-		// TODO Auto-generated method stub
-		return null;
+		MerkleHashBucket bucket = getBucket(key);
+		if (bucket == null) {
+			return EmptySkippingIterator.instance();
+		}
+		
+		return bucket.iterator(key);
 	}
 
 	@Override
 	public SkippingIterator<KVEntry> iterator(byte[] key, long version) {
-		// TODO Auto-generated method stub
-		return null;
+		MerkleHashBucket bucket = getBucket(key);
+		if (bucket == null) {
+			return EmptySkippingIterator.instance();
+		}
+		
+		return bucket.iterator(key, version);
 	}
 
 	public KVEntry getData(String key) {
@@ -191,14 +200,11 @@ public class MerkleHashSortTree implements MerkleTree {
 	}
 
 	private KVEntry loadData(byte[] key, long version) {
-		long keyHash = computeKeyID(key);
-		HashEntry entry = hashTree.get(keyHash);
-		if (entry == null) {
+		// 从哈希桶加载指定版本；
+		MerkleHashBucket hashBucket = getBucket(key);
+		if (hashBucket == null) {
 			return null;
 		}
-
-		// 从版本树种加载指定版本；
-		MerkleHashBucket hashBucket = (MerkleHashBucket) entry;
 
 		MerkleValue<byte[]> value;
 		if (version < 0) {
@@ -210,6 +216,16 @@ public class MerkleHashSortTree implements MerkleTree {
 			return null;
 		}
 		return new KeyValue(key, value.getId(), value.getValue());
+	}
+	
+	private MerkleHashBucket getBucket(byte[] key) {
+		long keyHash = computeKeyID(key);
+		HashEntry entry = hashTree.get(keyHash);
+		if (entry == null) {
+			return null;
+		}
+
+		return (MerkleHashBucket) entry;
 	}
 
 	// ------------------- inner types ---------------------

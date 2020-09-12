@@ -3,6 +3,7 @@ package com.jd.blockchain.ledger.merkletree;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.SkippingIterator;
 
 /**
  * 键的版本树；<br>
@@ -102,6 +103,15 @@ public class KeyVersionTree implements KeyIndex {
 	 */
 	public void setValue(long version, byte[] value) {
 		tree.set(version, value);
+	}
+
+	/**
+	 * 包含所有版本的值的迭代器；
+	 * 
+	 * @return
+	 */
+	public SkippingIterator<MerkleValue<byte[]>> iterator() {
+		return tree.iterator();
 	}
 
 }
