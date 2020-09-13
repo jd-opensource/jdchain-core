@@ -31,7 +31,7 @@ import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.merkletree.HashBucketEntry;
 import com.jd.blockchain.ledger.merkletree.HashEntry;
 import com.jd.blockchain.ledger.merkletree.KVEntry;
-import com.jd.blockchain.ledger.merkletree.KeyValue;
+import com.jd.blockchain.ledger.merkletree.BytesKeyValue;
 import com.jd.blockchain.ledger.merkletree.MerkleHashBucket;
 import com.jd.blockchain.ledger.merkletree.MerkleHashSortTree;
 import com.jd.blockchain.ledger.merkletree.MerkleTree;
@@ -255,8 +255,8 @@ public class MerkleHashSortTreeTest {
 
 		MerkleValue<HashEntry> entry = keysIterator.next();
 		assertNotNull(entry);
-		assertTrue(entry.getValue() instanceof KeyValue);
-		KeyValue kv = (KeyValue) entry.getValue();
+		assertTrue(entry.getValue() instanceof BytesKeyValue);
+		BytesKeyValue kv = (BytesKeyValue) entry.getValue();
 		assertArrayEquals(keys[0], kv.getKey().toBytes());
 		assertArrayEquals(values[0], kv.getValue().toBytes());
 

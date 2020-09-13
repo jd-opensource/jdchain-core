@@ -2,13 +2,13 @@ package com.jd.blockchain.ledger.merkletree;
 
 import com.jd.blockchain.utils.Bytes;
 
-public class KeyValue implements KVEntry, HashEntry {
+public class BytesKeyValue implements KVEntry, HashEntry {
 
 	private Bytes key;
 	private long version;
 	private Bytes value;
 
-	public KeyValue(byte[] key, long version, byte[] value) {
+	public BytesKeyValue(byte[] key, long version, byte[] value) {
 		this.key = new Bytes(key);
 		this.version = version;
 		this.value = value == null ? null : new Bytes(value);

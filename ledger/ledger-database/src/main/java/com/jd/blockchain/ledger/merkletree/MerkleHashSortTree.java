@@ -224,7 +224,7 @@ public class MerkleHashSortTree implements MerkleTree {
 		if (value == null) {
 			return null;
 		}
-		return new KeyValue(key, value.getId(), value.getValue());
+		return new BytesKeyValue(key, value.getId(), value.getValue());
 	}
 
 	private MerkleHashBucket getBucket(byte[] key) {

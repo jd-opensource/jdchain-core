@@ -281,7 +281,7 @@ public class MerkleHashBucket implements HashBucketEntry, HashEntry {
 		protected MerkleValue<HashEntry> get(long cursor) {
 			KeyVersionTree kvTree = getKeyTree((int) cursor);
 			MerkleValue<byte[]> latestValue = kvTree.getValue();
-			KeyValue kv = new KeyValue(kvTree.getKey(), latestValue.getId(), latestValue.getValue());
+			BytesKeyValue kv = new BytesKeyValue(kvTree.getKey(), latestValue.getId(), latestValue.getValue());
 			return new IDValue<HashEntry>(BUCKET_ID, kv);
 		}
 
@@ -309,7 +309,7 @@ public class MerkleHashBucket implements HashBucketEntry, HashEntry {
 			if (value == null) {
 				return null;
 			}
-			return new KeyValue(key, value.getId(), value.getValue());
+			return new BytesKeyValue(key, value.getId(), value.getValue());
 		}
 
 		@Override
