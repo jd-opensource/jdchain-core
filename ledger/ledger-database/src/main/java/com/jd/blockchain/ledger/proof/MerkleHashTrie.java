@@ -18,6 +18,7 @@ import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.core.HashPathProof;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.ledger.merkletree.KVEntry;
+import com.jd.blockchain.ledger.merkletree.MerkleTree;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.AbstractSkippingIterator;

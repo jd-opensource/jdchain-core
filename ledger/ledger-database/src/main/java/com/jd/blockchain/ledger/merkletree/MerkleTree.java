@@ -1,11 +1,16 @@
-package com.jd.blockchain.ledger.proof;
+package com.jd.blockchain.ledger.merkletree;
 
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.merkletree.KVEntry;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 
+/**
+ * 默克尔树的抽象接口；
+ * 
+ * @author huanghaiquan
+ *
+ */
 public interface MerkleTree extends Transactional {
 
 	/**
@@ -99,10 +104,5 @@ public interface MerkleTree extends Transactional {
 	 * @return
 	 */
 	SkippingIterator<KVEntry> iterator(byte[] key, long version);
-
-//	/**
-//	 * 迭代器包含所有基准树与原始树之间差异的数据项
-//	 */
-//	SkippingIterator<BytesKVEntry> getKeyDiffIterator(MerkleHashTrie origTree);
 
 }
