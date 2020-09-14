@@ -15,7 +15,6 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.core.HashPathProof;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.ledger.merkletree.KVEntry;
 import com.jd.blockchain.ledger.merkletree.MerkleTree;
@@ -809,7 +808,8 @@ public class MerkleHashTrie implements Iterable<KVEntry>, MerkleTree {
 		}
 
 		MerkleProof createProof() {
-			return new HashPathProof(hashPaths);
+			throw new IllegalStateException("Not implemented!");
+//			return new HashPathProof(hashPaths);
 		}
 	}
 	

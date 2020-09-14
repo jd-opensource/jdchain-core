@@ -8,7 +8,6 @@ import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.core.HashPathProof;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
@@ -1025,7 +1024,7 @@ public class MerkleSortTree<T> implements Transactional {
 		private boolean success;
 
 		public MerkleProof getProof() {
-			return new HashPathProof(paths);
+			throw new IllegalStateException("Not implemented");
 		}
 
 		@Override

@@ -6,7 +6,12 @@ import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 
 /**
- * 默克尔树的抽象接口；
+ * 默克尔树；
+ * <p>
+ * 
+ * 默克尔树是由“哈希值”作为节点构成的树，把子节点哈希值按顺序组合在一起，对得到的数据进行哈希计算，得到父节点哈希值；
+ * <p>
+ * 因此，默克尔树的“根哈希”能够表示全部的叶子节点的有序状态，包括叶子节点的数值和排列顺序；
  * 
  * @author huanghaiquan
  *

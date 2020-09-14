@@ -28,10 +28,12 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.MerkleProofLevel;
+import com.jd.blockchain.ledger.MerkleProofVerifier;
+import com.jd.blockchain.ledger.merkletree.BytesKeyValue;
 import com.jd.blockchain.ledger.merkletree.HashBucketEntry;
 import com.jd.blockchain.ledger.merkletree.HashEntry;
 import com.jd.blockchain.ledger.merkletree.KVEntry;
-import com.jd.blockchain.ledger.merkletree.BytesKeyValue;
 import com.jd.blockchain.ledger.merkletree.MerkleHashBucket;
 import com.jd.blockchain.ledger.merkletree.MerkleHashSortTree;
 import com.jd.blockchain.ledger.merkletree.MerkleTree;
@@ -731,15 +733,14 @@ public class MerkleHashSortTreeTest {
 
 		MerkleProof proof = merkleTree.getProof(BytesUtils.toBytes(data.getKey()), data.getVersion());
 		assertNotNull(proof);
-		HashDigest[] hashPaths = proof.getHashPath();
 
 		HashDigest dataHash = SHA256_HASH_FUNC.hash(data.getValue());
 		assertEquals(dataHash, proof.getDataHash());
-		assertEquals(dataHash, hashPaths[hashPaths.length - 1]);
 
 		HashDigest rootHash = merkleTree.getRootHash();
 		assertEquals(rootHash, proof.getRootHash());
-		assertEquals(rootHash, hashPaths[0]);
+		
+		assertTrue(MerkleProofVerifier.verify(proof));
 
 		return proof;
 	}
@@ -748,7 +749,7 @@ public class MerkleHashSortTreeTest {
 			int expectProofPathCount) {
 		MerkleProof proof = assertMerkleProof(data, merkleTree);
 
-		assertEquals(expectProofPathCount, proof.getHashPath().length);
+		assertEquals(expectProofPathCount, proof.getProofLevels().length);
 	}
 
 	/**
@@ -964,11 +965,11 @@ public class MerkleHashSortTreeTest {
 
 		MerkleProof proof = merkleTree_reload.getProof(data28.getKey(), 1);
 		assertNotNull(proof);
-		HashDigest[] hashPaths = proof.getHashPath();
+		MerkleProofLevel[] hashPaths = proof.getProofLevels();
 		assertEquals(5, hashPaths.length);
 		proof = merkleTree_reload.getProof(data28.getKey(), 0);
 		assertNotNull(proof);
-		hashPaths = proof.getHashPath();
+		hashPaths = proof.getProofLevels();
 		assertEquals(6, hashPaths.length);
 
 		KVEntry data28_reload_0 = merkleTree_reload.getData(data28.getKey(), 0);
@@ -1032,7 +1033,7 @@ public class MerkleHashSortTreeTest {
 		// 验证默克尔证明的长度增长；
 		MerkleProof proof28_5 = merkleTree_1.getProof("KEY-28", 0);
 		assertNotNull(proof28_5);
-		hashPaths = proof28_5.getHashPath();
+		hashPaths = proof28_5.getProofLevels();
 		assertEquals(7, hashPaths.length);
 
 		// 重新加载默克尔树，默克尔证明是一致的；
@@ -1143,7 +1144,7 @@ public class MerkleHashSortTreeTest {
 	 * @param data
 	 */
 	private void assertMerkleProofPath(MerkleProof proof, HashDigest rootHash, KVEntry data) {
-		HashDigest[] path = proof.getHashPath();
+		MerkleProofLevel[] path = proof.getProofLevels();
 		assertTrue(path.length >= 4);
 		assertEquals(path[0], rootHash);
 
@@ -1280,8 +1281,8 @@ public class MerkleHashSortTreeTest {
 	}
 
 	private void assertMerkleProofEquals(KVEntry data, MerkleProof proof, MerkleProof proof1) {
-		HashDigest[] path = proof.getHashPath();
-		HashDigest[] path1 = proof1.getHashPath();
+		MerkleProofLevel[] path = proof.getProofLevels();
+		MerkleProofLevel[] path1 = proof1.getProofLevels();
 		assertEquals(path.length, path1.length);
 		for (int i = 0; i < path.length; i++) {
 			assertEquals(path[i], path1[i]);

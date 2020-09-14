@@ -8,6 +8,7 @@ import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.MerkleProofBuilder;
 import com.jd.blockchain.ledger.MerkleSnapshot;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
@@ -122,7 +123,7 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 
 			@Override
 			public TypedValue decode(byte[] t1) {
-				BytesValue v = BinaryProtocol.decodeAs(t1, BytesValue.class);
+				BytesValue v = BinaryProtocol.decode(t1, BytesValue.class);
 				return TypedValue.wrap(v);
 			}
 		};
@@ -207,7 +208,7 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 		if (rootProof == null) {
 			return null;
 		}
-		HashPathProof proof = new HashPathProof(rootProof, dataProof);
+		MerkleProof proof = MerkleProofBuilder.combine(rootProof, dataProof);
 		return proof;
 	}
 

@@ -22,7 +22,7 @@ import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleDataNode;
 import com.jd.blockchain.ledger.MerkleNode;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.core.HashPathProof;
+import com.jd.blockchain.ledger.MerkleProofBuilder;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
@@ -208,9 +208,9 @@ public class MerkleSequenceTree implements Transactional {
 			}
 		}
 		HashDigest[] hashPaths = ArrayUtils.cast(nodePath, HashDigest.class, p -> p.getNodeHash());
-		HashPathProof hashProof = new HashPathProof(hashPaths);
-		return hashProof;
-//		return new MerkleProofImpl(sn, nodePath);
+		
+		MerkleProofBuilder.create(hashPaths[0]);
+		throw new IllegalStateException("Not implemented!");
 	}
 
 	/**

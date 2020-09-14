@@ -33,6 +33,8 @@ import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.MerkleProofLevel;
+import com.jd.blockchain.ledger.MerkleProofVerifier;
 import com.jd.blockchain.ledger.merkletree.KVEntry;
 import com.jd.blockchain.ledger.merkletree.MerkleTree;
 import com.jd.blockchain.ledger.proof.KeyIndexer;
@@ -595,15 +597,14 @@ public class MerkleHashTrieTest {
 
 		MerkleProof proof = merkleTree.getProof(BytesUtils.toBytes(data.getKey()), data.getVersion());
 		assertNotNull(proof);
-		HashDigest[] hashPaths = proof.getHashPath();
 
 		HashDigest dataHash = SHA256_HASH_FUNC.hash(data.getValue());
 		assertEquals(dataHash, proof.getDataHash());
-		assertEquals(dataHash, hashPaths[hashPaths.length - 1]);
 
 		HashDigest rootHash = merkleTree.getRootHash();
 		assertEquals(rootHash, proof.getRootHash());
-		assertEquals(rootHash, hashPaths[0]);
+		
+		assertTrue(MerkleProofVerifier.verify(proof));
 
 		return proof;
 	}
@@ -612,7 +613,7 @@ public class MerkleHashTrieTest {
 			int expectProofPathCount) {
 		MerkleProof proof = assertMerkleProof(data, merkleTree);
 
-		assertEquals(expectProofPathCount, proof.getHashPath().length);
+		assertEquals(expectProofPathCount, proof.getProofLevels().length);
 	}
 
 	/**
@@ -1732,11 +1733,11 @@ public class MerkleHashTrieTest {
 
 		MerkleProof proof = merkleTree_reload.getProof(data28.getKey(), 1);
 		assertNotNull(proof);
-		HashDigest[] hashPaths = proof.getHashPath();
+		MerkleProofLevel[] hashPaths = proof.getProofLevels();
 		assertEquals(5, hashPaths.length);
 		proof = merkleTree_reload.getProof(data28.getKey(), 0);
 		assertNotNull(proof);
-		hashPaths = proof.getHashPath();
+		hashPaths = proof.getProofLevels();
 		assertEquals(6, hashPaths.length);
 
 		MerkleTrieData data28_reload_0 = merkleTree_reload.getData(data28.getKey(), 0);
@@ -1802,7 +1803,7 @@ public class MerkleHashTrieTest {
 		// 验证默克尔证明的长度增长；
 		MerkleProof proof28_5 = merkleTree_1.getProof("KEY-28", 0);
 		assertNotNull(proof28_5);
-		hashPaths = proof28_5.getHashPath();
+		hashPaths = proof28_5.getProofLevels();
 		assertEquals(7, hashPaths.length);
 
 		// 重新加载默克尔树，默克尔证明是一致的；
@@ -1913,15 +1914,15 @@ public class MerkleHashTrieTest {
 	 * @param data
 	 */
 	private void assertMerkleProofPath(MerkleProof proof, HashDigest rootHash, MerkleTrieData data) {
-		HashDigest[] path = proof.getHashPath();
-		assertTrue(path.length >= 4);
-		assertEquals(path[0], rootHash);
+		MerkleProofLevel[] proofLevels = proof.getProofLevels();
+		assertTrue(proofLevels.length >= 4);
+		assertEquals(proofLevels[0], rootHash);
 
 		HashFunction hashFunc = Crypto.getHashFunction(proof.getDataHash().getAlgorithm());
 		byte[] nodeBytes = BinaryProtocol.encode(data, MerkleTrieData.class);
 		HashDigest entryHash = hashFunc.hash(nodeBytes);
 
-		assertEquals(entryHash, path[path.length - 2]);
+		assertEquals(entryHash, proofLevels[proofLevels.length - 2]);
 		
 		//TODO: 暂时注释掉，待完成了默克尔证明之后再恢复；
 //		assertEquals(data.getValue(), path[path.length - 1]);
@@ -2050,8 +2051,8 @@ public class MerkleHashTrieTest {
 	}
 
 	private void assertMerkleProofEquals(KVEntry data, MerkleProof proof, MerkleProof proof1) {
-		HashDigest[] path = proof.getHashPath();
-		HashDigest[] path1 = proof1.getHashPath();
+		MerkleProofLevel[] path = proof.getProofLevels();
+		MerkleProofLevel[] path1 = proof1.getProofLevels();
 		assertEquals(path.length, path1.length);
 		for (int i = 0; i < path.length; i++) {
 			assertEquals(path[i], path1[i]);
