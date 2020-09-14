@@ -6,7 +6,9 @@ import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.merkletree.KVEntry;
+import com.jd.blockchain.ledger.merkletree.MerkleHashSortTree;
 import com.jd.blockchain.ledger.merkletree.MerkleTree;
+import com.jd.blockchain.ledger.merkletree.TreeOptions;
 import com.jd.blockchain.ledger.proof.MerkleHashTrie;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
@@ -21,7 +23,7 @@ import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 
 /**
- * {@link MerkleHashDataset} 是对数据的键维护 {@link MerkleHashTrie} 索引的一种数据集结构； <br>
+ * {@link MerkleHashDataset} 是基于默克尔树({@link MerkleHashSortTree})对数据的键维护一种数据集结构； <br>
  *
  * 注：此实现不是线程安全的；
  *
@@ -99,7 +101,10 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		// MerkleTree 本身是可缓冲的；
 		merkleKeyPrefix = keyPrefix.concat(MERKLE_TREE_PREFIX);
 		ExPolicyKVStorage merkleTreeStorage = exPolicyStorage;
-		this.merkleTree = new MerkleHashTrie(setting, merkleKeyPrefix, merkleTreeStorage);
+//		this.merkleTree = new MerkleHashTrie(setting, merkleKeyPrefix, merkleTreeStorage);
+		
+		TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(setting.getHashAlgorithm()).setVerifyHashOnLoad(setting.getAutoVerifyHash());
+		this.merkleTree = new MerkleHashSortTree(options, merkleKeyPrefix, merkleTreeStorage);
 	}
 
 	/**
@@ -139,7 +144,10 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		// MerkleTree 本身是可缓冲的；
 		merkleKeyPrefix = keyPrefix.concat(MERKLE_TREE_PREFIX);
 		ExPolicyKVStorage merkleTreeStorage = exPolicyStorage;
-		this.merkleTree = new MerkleHashTrie(merkleRootHash, setting, merkleKeyPrefix, merkleTreeStorage, readonly);
+//		this.merkleTree = new MerkleHashTrie(merkleRootHash, setting, merkleKeyPrefix, merkleTreeStorage, readonly);
+		
+		TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(setting.getHashAlgorithm()).setVerifyHashOnLoad(setting.getAutoVerifyHash());
+		this.merkleTree = new MerkleHashSortTree(merkleRootHash, options, merkleKeyPrefix, merkleTreeStorage);
 
 		this.readonly = readonly;
 	}
@@ -327,6 +335,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		return new Bytes(dataKeyPrefix, key);
 	}
 
+	@SuppressWarnings("unused")
 	private Bytes encodeDataKey(byte[] key) {
 		return new Bytes(dataKeyPrefix, key);
 	}

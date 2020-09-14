@@ -93,7 +93,7 @@ public class MerkleSortTreeTest {
 		MerkleProofException ex = null;
 		try {
 			TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(HASH_ALGORITHM.code())
-					.setReportDuplicatedData(false);
+					.setReportKeyStorageConfliction(false);
 			MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage);
 
 			mst.set(1, data);
@@ -110,7 +110,7 @@ public class MerkleSortTreeTest {
 		ex = null;
 		try {
 			TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(HASH_ALGORITHM.code())
-					.setReportDuplicatedData(true);
+					.setReportKeyStorageConfliction(true);
 			MerkleSortTree<byte[]> mst = MerkleSortTree.createBytesTree(options, DEFAULT_MKL_KEY_PREFIX, storage);
 
 			mst.set(1, data);
@@ -929,7 +929,7 @@ public class MerkleSortTreeTest {
 
 	private static TreeOptions createTreeOptions() {
 		return TreeOptions.build().setDefaultHashAlgorithm(HASH_ALGORITHM.code()).setVerifyHashOnLoad(true)
-				.setReportDuplicatedData(true);
+				.setReportKeyStorageConfliction(true);
 	}
 
 	/**

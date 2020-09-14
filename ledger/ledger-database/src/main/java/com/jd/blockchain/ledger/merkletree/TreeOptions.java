@@ -24,7 +24,7 @@ public class TreeOptions {
 	/**
 	 * 是否报告重复写入相同的数据节点；
 	 */
-	private boolean reportDuplicatedData = false;
+	private boolean reportKeyStorageConfliction = false;
 
 	private TreeOptions() {
 	}
@@ -62,7 +62,7 @@ public class TreeOptions {
 	}
 
 	/**
-	 * 是否报告重复写入相同的数据节点； 默认为 false；<br>
+	 * 当向存储服务写入相同的数据节点时是否报告异常； 默认为 false；<br>
 	 * 
 	 * 默克尔树在保存数据节点时，以数据的哈希为”键“进行保存，因此相同的数据将以相同的”键“进行保存；<br>
 	 * 
@@ -74,8 +74,8 @@ public class TreeOptions {
 	 * 
 	 * @return
 	 */
-	public boolean isReportDuplicatedData() {
-		return reportDuplicatedData;
+	public boolean isReportKeyStorageConfliction() {
+		return reportKeyStorageConfliction;
 	}
 
 	/**
@@ -88,10 +88,10 @@ public class TreeOptions {
 	 * <br>
 	 * 如果设置为 false ，则忽略重复的数据节点；
 	 * 
-	 * @param reportDuplicatedData
+	 * @param reportKeyStorageConfliction
 	 */
-	public TreeOptions setReportDuplicatedData(boolean reportDuplicatedData) {
-		this.reportDuplicatedData = reportDuplicatedData;
+	public TreeOptions setReportKeyStorageConfliction(boolean reportKeyStorageConfliction) {
+		this.reportKeyStorageConfliction = reportKeyStorageConfliction;
 		return this;
 	}
 	

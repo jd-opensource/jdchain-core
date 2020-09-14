@@ -859,9 +859,9 @@ public class MerkleSortTree<T> implements Transactional {
 		return nodeBytes;
 	}
 
-	private HashDigest saveNodeBytes(byte[] nodeBytes, boolean reportDuplication) {
+	private HashDigest saveNodeBytes(byte[] nodeBytes, boolean reportKeyStorageConfliction) {
 		HashDigest nodeHash = DEFAULT_HASH_FUNCTION.hash(nodeBytes);
-		saveBytes(nodeHash, nodeBytes, reportDuplication);
+		saveBytes(nodeHash, nodeBytes, reportKeyStorageConfliction);
 		return nodeHash;
 	}
 
@@ -928,11 +928,11 @@ public class MerkleSortTree<T> implements Transactional {
 		return nodeBytes;
 	}
 
-	private void saveBytes(Bytes key, byte[] nodeBytes, boolean reportDuplication) {
+	private void saveBytes(Bytes key, byte[] nodeBytes, boolean reportKeyStorageConfliction) {
 		Bytes storageKey = encodeStorageKey(key);
 		boolean success = KV_STORAGE.set(storageKey, nodeBytes, ExPolicy.NOT_EXISTING);
-		if (reportDuplication && !success) {
-			throw new MerkleProofException("Merkle node already exist! -- key=" + storageKey.toBase58());
+		if ((!success) && reportKeyStorageConfliction) {
+			throw new MerkleKeyStorageConflictException("Merkle node already exist! -- key=" + storageKey.toBase58());
 		}
 	}
 
@@ -1324,7 +1324,7 @@ public class MerkleSortTree<T> implements Transactional {
 					long count = tree().DATA_POLICY.count(id, child);
 
 					byte[] childBytes = CONVERTER.toBytes(child);
-					childHashs[i] = tree().saveNodeBytes(childBytes, TREE.OPTIONS.isReportDuplicatedData());
+					childHashs[i] = tree().saveNodeBytes(childBytes, TREE.OPTIONS.isReportKeyStorageConfliction());
 					childCounts[i] = count;
 					children[i] = child;
 				}

@@ -34,7 +34,7 @@ import com.jd.blockchain.utils.DatasetHelper;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.BytesUtils;
 
-public class MerkleDataSetTest {
+public class MerkleHashDataSetTest {
 	
 	private static final Bytes KEY_PREFIX = Bytes.fromString("/MerkleTree");
 
