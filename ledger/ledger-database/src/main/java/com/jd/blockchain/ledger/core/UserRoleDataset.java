@@ -178,7 +178,7 @@ public class UserRoleDataset implements Transactional, MerkleProvable, UserAutho
 
 	@Override
 	public UserRoles[] getUserRoles() {
-		DataEntry<Bytes, byte[]>[] kvEntries = dataset.getLatestDataEntries(0, (int) dataset.getDataCount());
+		DataEntry<Bytes, byte[]>[] kvEntries = dataset.getDataEntries(0, (int) dataset.getDataCount());
 		UserRoles[] pns = new UserRoles[kvEntries.length];
 		RoleSet roleset;
 		for (int i = 0; i < pns.length; i++) {

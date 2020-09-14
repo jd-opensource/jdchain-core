@@ -127,7 +127,7 @@ public class ParticipantDataset implements Transactional, MerkleProvable, Partic
 
 	@Override
 	public ParticipantNode[] getParticipants() {
-		byte[][] bytes = dataset.getLatestValues(0, (int) dataset.getDataCount());
+		byte[][] bytes = dataset.getValues(0, (int) dataset.getDataCount());
 		ParticipantNode[] pns = new ParticipantNode[bytes.length];
 
 		for (int i = 0; i < pns.length; i++) {

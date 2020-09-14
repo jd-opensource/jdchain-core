@@ -91,7 +91,7 @@ public class MerkleAccountSet implements Transactional, MerkleProvable, AccountQ
 
 	@Override
 	public BlockchainIdentity[] getAccountIDs(int fromIndex, int count) {
-		DataEntry<Bytes, byte[]>[] results = merkleDataset.getLatestDataEntries(fromIndex, count);
+		DataEntry<Bytes, byte[]>[] results = merkleDataset.getDataEntries(fromIndex, count);
 
 		BlockchainIdentity[] ids = new BlockchainIdentity[results.length];
 		for (int i = 0; i < results.length; i++) {

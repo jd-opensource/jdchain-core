@@ -266,7 +266,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable, Role
 
 	@Override
 	public RolePrivileges[] getRolePrivileges(int index, int count) {
-		DataEntry<Bytes, byte[]>[] kvEntries = dataset.getLatestDataEntries(index, count);
+		DataEntry<Bytes, byte[]>[] kvEntries = dataset.getDataEntries(index, count);
 		RolePrivileges[] pns = new RolePrivileges[kvEntries.length];
 		PrivilegeSet privilege;
 		for (int i = 0; i < pns.length; i++) {

@@ -165,8 +165,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		return merkleTree.getTotalKeys();
 	}
 
-	@Deprecated // 基于 MerkleHashTrie 的数据是无序固定排列的；
-	public byte[][] getLatestValues(long fromIndex, int count) {
+	public byte[][] getValues(long fromIndex, int count) {
 		if (count > LedgerConsts.MAX_LIST_COUNT) {
 			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
 		}
@@ -185,8 +184,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 
 	}
 
-	@Deprecated // 基于 MerkleHashTrie 的数据是无序固定排列的；
-	public DataEntry<Bytes, byte[]>[] getLatestDataEntries(long fromIndex, int count) {
+	public DataEntry<Bytes, byte[]>[] getDataEntries(long fromIndex, int count) {
 		if (count > LedgerConsts.MAX_LIST_COUNT) {
 			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
 		}
@@ -211,8 +209,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		return values;
 	}
 
-	@Deprecated // 基于 MerkleHashTrie 的数据是无序固定排列的；
-	public DataEntry<Bytes, byte[]> getLatestDataEntry(long index) {
+	public DataEntry<Bytes, byte[]> getDataEntryAt(long index) {
 		if (index < 0 || index + 1 > merkleTree.getTotalKeys()) {
 			throw new IllegalArgumentException("Index out of bound!");
 		}
@@ -236,8 +233,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 	 * @param fromIndex
 	 * @return
 	 */
-	@Deprecated // 基于 MerkleHashTrie 的数据是无序固定排列的；
-	public byte[] getValuesAtIndex(int fromIndex) {
+	public byte[] getValuesAt(int fromIndex) {
 		SkippingIterator<KVEntry> iterator = merkleTree.iterator();
 		iterator.skip(fromIndex);
 		if (iterator.hasNext()) {
@@ -536,7 +532,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		@Override
 		public DataEntry<Bytes, byte[]> next() {
 			if (hasNext()) {
-				DataEntry<Bytes, byte[]> entry = getLatestDataEntry(cursor);
+				DataEntry<Bytes, byte[]> entry = getDataEntryAt(cursor);
 				cursor = nextCursor(1);
 				return entry;
 			}
@@ -553,7 +549,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 					throw new IllegalArgumentException(
 							"Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
 				}
-				DataEntry<Bytes, byte[]>[] entries = getLatestDataEntries(from, (int) c);
+				DataEntry<Bytes, byte[]>[] entries = getDataEntries(from, (int) c);
 				cursor = nextCursor;
 				return entries;
 			}
@@ -591,7 +587,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		@Override
 		public DataEntry<Bytes, byte[]> next() {
 			if (hasNext()) {
-				DataEntry<Bytes, byte[]> entry = getLatestDataEntry(cursor);
+				DataEntry<Bytes, byte[]> entry = getDataEntryAt(cursor);
 				cursor = nextCursor(1);
 				return entry;
 			}
@@ -608,7 +604,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 					throw new IllegalArgumentException(
 							"Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
 				}
-				DataEntry<Bytes, byte[]>[] entries = getLatestDataEntries(from, (int) c);
+				DataEntry<Bytes, byte[]>[] entries = getDataEntries(from, (int) c);
 				// reverse;
 				ArrayUtils.reverse(entries);
 

@@ -44,7 +44,7 @@ public class TransactionSet implements Transactional, TransactionQuery {
 	public byte[][] getValuesByIndex(int fromIndex, int count) {
 		byte[][] values = new byte[count][];
 		for (int i = 0; i < count; i++) {
-			values[i] = txSet.getValuesAtIndex(fromIndex * 2);
+			values[i] = txSet.getValuesAt(fromIndex * 2);
 			fromIndex++;
 		}
 		return values;
