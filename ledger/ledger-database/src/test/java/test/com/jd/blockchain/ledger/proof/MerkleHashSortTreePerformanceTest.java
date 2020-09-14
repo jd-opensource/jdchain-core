@@ -1,19 +1,34 @@
 package test.com.jd.blockchain.ledger.proof;
 
+import java.io.IOException;
 import java.util.Random;
 
 import org.junit.Test;
 
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
-import com.jd.blockchain.ledger.merkletree.MerkleSortTree;
+import com.jd.blockchain.ledger.merkletree.MerkleHashSortTree;
 import com.jd.blockchain.ledger.merkletree.TreeOptions;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.hash.MurmurHash3;
+import com.jd.blockchain.utils.ConsoleUtils;
 
 import test.com.jd.blockchain.ledger.core.LedgerTestUtils;
 
-public class MerkleSortTreePerformanceTest {
+public class MerkleHashSortTreePerformanceTest {
+	
+	public static void main(String[] args) {
+		confirm("Are you ready? Any key to continue... \r\n");
+		
+		testPerformace1(1000, 1000);
+	}
+	
+	public static void confirm(String format, String...args){
+		System.out.println(String.format(format, args));
+		try {
+			System.in.read();
+		} catch (IOException e) {
+		}
+	}
 
 	@Test
 	public void test() {
@@ -44,12 +59,13 @@ public class MerkleSortTreePerformanceTest {
 //		testPerformace1(200, 1000);
 //		testPerformace1(200, 500);
 //		testPerformace1(400, 500);
+
 	}
 
-	private void testPerformace1(int round, int count) {
-		System.out.printf("------------- Performance test: MerkleSortTree --------------\r\n", round, count);
+	private static void testPerformace1(int round, int count) {
+		System.out.printf("------------- Performance test: MerkleHashSortTree --------------\r\n", round, count);
 
-		TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(ClassicAlgorithm.SHA256.code());
+		TreeOptions setting = TreeOptions.build().setDefaultHashAlgorithm(ClassicAlgorithm.SHA256.code());
 		Bytes prefix = Bytes.fromString(LedgerTestUtils.LEDGER_KEY_PREFIX);
 		MemoryKVStorage storage = new MemoryKVStorage();
 
@@ -59,12 +75,12 @@ public class MerkleSortTreePerformanceTest {
 
 		long startTs = System.currentTimeMillis();
 
-		MerkleSortTree<byte[]> merkleTree = MerkleSortTree.createBytesTree(options, prefix, storage);
-		long key;
+		MerkleHashSortTree merkleTree = new MerkleHashSortTree(setting, prefix, storage);
+		String key;
 		for (int r = 0; r < round; r++) {
 			for (int i = 0; i < count; i++) {
-				key = ((long) r << 32) | i;
-				merkleTree.set(key, value);
+				key = "KEY-" + r + "-" + i;
+				merkleTree.setData(key, 0, value);
 			}
 			merkleTree.commit();
 		}
