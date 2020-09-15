@@ -139,9 +139,8 @@ public class OperationDecoratorFactory {
      * @return
      */
     public static Operation decorateParticipantRegisterOperation(ParticipantRegisterOperation op) {
-        BlockchainIdentity partId = decorateBlockchainIdentity(op.getParticipantRegisterIdentity());
-        return new ParticipantRegisterOpTemplate(op.getParticipantName(),
-                partId, op.getNetworkAddress());
+        BlockchainIdentity partId = decorateBlockchainIdentity(op.getParticipantID());
+        return new ParticipantRegisterOpTemplate(op.getParticipantName(), partId);
     }
 
     /**
@@ -151,7 +150,7 @@ public class OperationDecoratorFactory {
      * @return
      */
     public static Operation decorateParticipantStateUpdateOperation(ParticipantStateUpdateOperation op) {
-        BlockchainIdentity stateUpdateIdentity = decorateBlockchainIdentity(op.getStateUpdateIdentity());
+        BlockchainIdentity stateUpdateIdentity = decorateBlockchainIdentity(op.getParticipantID());
         return new ParticipantStateUpdateOpTemplate(stateUpdateIdentity, op.getState());
     }
 

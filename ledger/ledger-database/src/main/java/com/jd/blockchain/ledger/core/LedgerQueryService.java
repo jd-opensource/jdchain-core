@@ -5,8 +5,8 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
-import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.DataAccountInfo;
+import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.KVDataVO;
 import com.jd.blockchain.ledger.KVInfoVO;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
@@ -16,12 +16,14 @@ import com.jd.blockchain.ledger.LedgerInfo;
 import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.PrivilegeSet;
 import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVData;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
+import com.jd.blockchain.ledger.UserPrivilegeSet;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.Bytes;
@@ -29,6 +31,7 @@ import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.DataIterator;
 import com.jd.blockchain.utils.query.QueryArgs;
 import com.jd.blockchain.utils.query.QueryUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -538,11 +541,26 @@ public class LedgerQueryService implements BlockchainQueryService {
 		return contractAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
-
 	@Override
-	public RoleSet getUserRoles(HashDigest ledgerHash, String userAddress){
+	public PrivilegeSet getRolePrivileges(HashDigest ledgerHash, String roleName) {
 		checkLedgerHash(ledgerHash);
-		return ledger.getAdminSettings().getAuthorizations().getUserRoles(Bytes.fromBase58(userAddress));
+		return this.getRolePrivilegeByRole(roleName);
 	}
 
+	@Override
+	public UserPrivilegeSet getUserPrivileges(HashDigest ledgerHash, String userAddress) {
+		checkLedgerHash(ledgerHash);
+//		LedgerSecurityManager securityManager = ledger.getSecurityManager();
+		LedgerDataQuery ledgerDataQuery = ledger.getLedgerData();
+		LedgerAdminDataQuery previousAdminDataset = ledgerDataQuery.getAdminDataset();
+		LedgerSecurityManager securityManager = new LedgerSecurityManagerImpl(previousAdminDataset.getAdminInfo().getRolePrivileges(),
+				previousAdminDataset.getAdminInfo().getAuthorizations(), previousAdminDataset.getParticipantDataset(),
+				ledgerDataQuery.getUserAccountSet());
+		UserPrivilegeSet userPrivilegeSet = securityManager.getUserRolesPrivilegs(Bytes.fromBase58(userAddress));
+		return userPrivilegeSet;
+	}
+
+	private PrivilegeSet getRolePrivilegeByRole(String roleName){
+		return ledger.getAdminSettings().getRolePrivileges().getRolePrivilege(roleName);
+	}
 }

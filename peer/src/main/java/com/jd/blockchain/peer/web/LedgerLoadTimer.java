@@ -79,9 +79,9 @@ public class LedgerLoadTimer implements ApplicationContextAware {
             boolean acquire = false;
             try {
                 /**
-                 * 2秒内获取许可
+                 * 5秒内获取许可
                  */
-                acquire = loadSemaphore.tryAcquire(2, TimeUnit.SECONDS);
+                acquire = loadSemaphore.tryAcquire(5, TimeUnit.SECONDS);
                 if (acquire) {
                     LedgerBindingConfig ledgerBindingConfig = loadLedgerBindingConfig();
                     if (ledgerBindingConfig == null) {
@@ -106,7 +106,7 @@ public class LedgerLoadTimer implements ApplicationContextAware {
                         LOGGER.debug("All ledgers is newest!!!");
                     }
                 } else {
-                    LOGGER.error("--- Can not get semaphore of load ledger !!!");
+                    LOGGER.warn("--- Can not get semaphore of load ledger !!!");
                 }
             } catch (Exception e) {
                 LOGGER.error("--- Ledger loader execute error !!!", e);

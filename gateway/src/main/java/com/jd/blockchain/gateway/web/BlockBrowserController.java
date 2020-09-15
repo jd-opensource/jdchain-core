@@ -22,10 +22,12 @@ import com.jd.blockchain.ledger.LedgerInfo;
 import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.PrivilegeSet;
 import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.UserInfo;
+import com.jd.blockchain.ledger.UserPrivilegeSet;
 import com.jd.blockchain.sdk.BlockchainExtendQueryService;
 import com.jd.blockchain.sdk.ContractSettings;
 import com.jd.blockchain.utils.BaseConstant;
@@ -765,10 +767,18 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 		return accounts;
 	}
 
-	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/userrole/{userAddress}")
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/authorization/role/{roleName}")
 	@Override
-	public RoleSet getUserRoles(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-								@PathVariable(name = "userAddress") String userAddress) {
-		return peerService.getQueryService(ledgerHash).getUserRoles(ledgerHash, userAddress);
+	public PrivilegeSet getRolePrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+										  @PathVariable(name = "roleName") String roleName) {
+
+		return peerService.getQueryService(ledgerHash).getRolePrivileges(ledgerHash, roleName);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/authorization/user/{userAddress}")
+	@Override
+	public UserPrivilegeSet getUserPrivileges(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+											  @PathVariable(name = "userAddress") String userAddress) {
+		return peerService.getQueryService(ledgerHash).getUserPrivileges(ledgerHash, userAddress);
 	}
 }

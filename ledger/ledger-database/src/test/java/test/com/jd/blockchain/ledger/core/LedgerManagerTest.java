@@ -48,6 +48,7 @@ public class LedgerManagerTest {
 		DataContractRegistry.register(ParticipantNode.class);
 		DataContractRegistry.register(ParticipantRegisterOperation.class);
 		DataContractRegistry.register(ParticipantStateUpdateOperation.class);
+		DataContractRegistry.register(ConsensusSettingsUpdateOperation.class);
 		DataContractRegistry.register(BlockBody.class);
 		DataContractRegistry.register(CryptoProvider.class);
 	}

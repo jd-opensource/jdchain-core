@@ -8,7 +8,6 @@
  */
 package com.jd.blockchain.consensus.mq;
 
-import com.jd.blockchain.consensus.ConsensusProviders;
 import com.jd.blockchain.consensus.ConsensusSettings;
 import com.jd.blockchain.consensus.ConsensusSettingsBuilder;
 import com.jd.blockchain.consensus.NodeSettings;
@@ -24,14 +23,10 @@ import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.ParticipantRegisterOperation;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.PropertiesUtils;
-import com.jd.blockchain.utils.codec.Base58Utils;
-import com.jd.blockchain.utils.io.BytesEncoder;
 import com.jd.blockchain.utils.io.BytesUtils;
 import com.jd.blockchain.utils.io.FileUtils;
-import com.jd.blockchain.utils.net.NetworkAddress;
 
 import org.springframework.core.io.ClassPathResource;
 
@@ -150,12 +145,6 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
         return consensusConfig;
     }
 
-    @Override
-    public Bytes updateConsensusSettings(Bytes oldConsensusSettings, PubKey newParticipantPk, NetworkAddress networkAddress, byte opFlag) {
-        // todo
-        return null;
-    }
-
     private MsgQueueNodeSettings[] addNodeSetting(NodeSettings[] nodeSettings, PubKey newParticipantPk) {
 
         MsgQueueNodeSettings msgQueueNodeSettings = new MsgQueueNodeConfig();
@@ -175,6 +164,7 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
     public Properties createPropertiesTemplate() {
         return PropertiesUtils.cloneFrom(CONFIG_TEMPLATE);
     }
+
 
     @Override
     public void writeSettings(ConsensusSettings settings, Properties props) {
@@ -248,6 +238,11 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 //            String keyOfHost = nodeKey(CONSENSUS_HOST_PATTERN, id);
 //            props.setProperty(keyOfHost, mqns.getAddress() == null ? "" : mqns.getAddress());
 //        }
+    }
+
+    @Override
+    public ConsensusSettings updateSettings(ConsensusSettings oldConsensusSettings, Properties newProps) {
+        return null;
     }
 
     private String initProp(Properties resolvingProps, String key, String defaultVal) {

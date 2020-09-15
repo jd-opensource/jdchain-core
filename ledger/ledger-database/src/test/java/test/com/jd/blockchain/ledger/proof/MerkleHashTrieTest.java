@@ -633,7 +633,7 @@ public class MerkleHashTrieTest {
 		Random random = new Random();
 		byte[] bytes = new byte[200];
 		random.nextBytes(bytes);
-		String newDataKey = bytes.toString();
+		String newDataKey = Arrays.toString(bytes);
 
 		CryptoSetting cryptoSetting = createCryptoSetting();
 		MemoryKVStorage storage = new MemoryKVStorage();

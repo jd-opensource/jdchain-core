@@ -16,6 +16,12 @@ class FullPermissionedSecurityManager implements LedgerSecurityManager {
 		return new FullPermissionedPolicy(endpoints, nodes);
 	}
 
+	@Override
+	public UserRolesPrivileges getUserRolesPrivilegs(Bytes userAddress) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 	private static class FullPermissionedPolicy implements SecurityPolicy {
 
 		private Set<Bytes> endpoints;
