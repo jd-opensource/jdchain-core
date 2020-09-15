@@ -173,4 +173,10 @@ public class LedgerTransactionData implements LedgerTransaction {
 		}
 		txSnapshot.setContractAccountSetHash(contractAccountSetHash);
 	}
+	
+	@Override
+	public HashDigest getTransactionHash() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

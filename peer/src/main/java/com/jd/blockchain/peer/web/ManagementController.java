@@ -834,7 +834,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		byte[] nodeRequestBytes = BinaryProtocol.encode(txMessage, TransactionRequest.class);
 		HashFunction hashFunc = Crypto.getHashFunction(cryptoSetting.getHashAlgorithm());
 		HashDigest txHash = hashFunc.hash(nodeRequestBytes);
-		txMessage.setHash(txHash);
+		txMessage.setTransactionHash(txHash);
 
 		return txMessage;
 	}

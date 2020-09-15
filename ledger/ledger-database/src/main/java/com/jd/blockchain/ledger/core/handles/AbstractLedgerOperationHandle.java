@@ -57,10 +57,10 @@ public abstract class AbstractLedgerOperationHandle<T extends Operation> impleme
 		@SuppressWarnings("unchecked")
 		T concretedOp = (T) op;
 		LOGGER.debug("before doProcess()... --[RequestHash={}][TxHash={}]",
-				requestContext.getHash(), requestContext.getTransactionContent().getHash());
+				requestContext.getTransactionHash(), requestContext.getTransactionContent().getHash());
 		doProcess(concretedOp, newBlockDataset, requestContext, ledger, handleContext, manager);
 		LOGGER.debug("after doProcess()... --[RequestHash={}][TxHash={}]",
-				requestContext.getHash(), requestContext.getTransactionContent().getHash());
+				requestContext.getTransactionHash(), requestContext.getTransactionContent().getHash());
 		
 		// 账本操作没有返回值；
 		return null;

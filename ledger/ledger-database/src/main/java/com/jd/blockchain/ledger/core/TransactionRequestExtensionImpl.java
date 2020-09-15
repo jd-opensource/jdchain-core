@@ -86,8 +86,8 @@ public class TransactionRequestExtensionImpl implements TransactionRequestExtens
 	}
 
 	@Override
-	public HashDigest getHash() {
-		return request.getHash();
+	public HashDigest getTransactionHash() {
+		return request.getTransactionHash();
 	}
 
 	@Override

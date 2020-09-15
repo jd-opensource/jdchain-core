@@ -18,13 +18,6 @@ import com.jd.blockchain.utils.Bytes;
  */
 public interface TransactionRequestExtension extends TransactionRequest {
 
-//	/**
-//	 * 交易请求；
-//	 * 
-//	 * @return
-//	 */
-//	TransactionRequest getRequest();
-
 	/**
 	 * 签名发起请求的终端用户的地址列表；
 	 * 
