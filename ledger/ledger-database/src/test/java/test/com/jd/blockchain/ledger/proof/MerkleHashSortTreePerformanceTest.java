@@ -43,7 +43,7 @@ public class MerkleHashSortTreePerformanceTest {
 		testPerformace1(1000, 1);
 		testPerformace1(1000, 10);
 		testPerformace1(1000, 100);
-		testPerformace1(1000, 1000);
+//		testPerformace1(1000, 1000);
 
 		System.out.println("=====================[round=10000]====================");
 		testPerformace1(10000, 5);

@@ -9,7 +9,6 @@ import com.jd.blockchain.ledger.merkletree.KVEntry;
 import com.jd.blockchain.ledger.merkletree.MerkleHashSortTree;
 import com.jd.blockchain.ledger.merkletree.MerkleTree;
 import com.jd.blockchain.ledger.merkletree.TreeOptions;
-import com.jd.blockchain.ledger.proof.MerkleHashTrie;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
@@ -89,22 +88,24 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 	 */
 	public MerkleHashDataset(CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage versioningStorage) {
-		// 缓冲对KV的写入；
-		this.bufferedStorage = new BufferedKVStorage(exPolicyStorage, versioningStorage, false);
-
-		// 把存储数据值、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
-		dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
-		this.valueStorage = bufferedStorage;
+//		// 缓冲对KV的写入；
+//		this.bufferedStorage = new BufferedKVStorage(exPolicyStorage, versioningStorage, false);
+//
+//		// 把存储数据值、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
+//		dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
+//		this.valueStorage = bufferedStorage;
+//		
+//		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
+//
+//		// MerkleTree 本身是可缓冲的；
+//		merkleKeyPrefix = keyPrefix.concat(MERKLE_TREE_PREFIX);
+//		ExPolicyKVStorage merkleTreeStorage = exPolicyStorage;
+////		this.merkleTree = new MerkleHashTrie(setting, merkleKeyPrefix, merkleTreeStorage);
+//		
+//		TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(setting.getHashAlgorithm()).setVerifyHashOnLoad(setting.getAutoVerifyHash());
+//		this.merkleTree = new MerkleHashSortTree(options, merkleKeyPrefix, merkleTreeStorage);
 		
-		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
-
-		// MerkleTree 本身是可缓冲的；
-		merkleKeyPrefix = keyPrefix.concat(MERKLE_TREE_PREFIX);
-		ExPolicyKVStorage merkleTreeStorage = exPolicyStorage;
-//		this.merkleTree = new MerkleHashTrie(setting, merkleKeyPrefix, merkleTreeStorage);
-		
-		TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(setting.getHashAlgorithm()).setVerifyHashOnLoad(setting.getAutoVerifyHash());
-		this.merkleTree = new MerkleHashSortTree(options, merkleKeyPrefix, merkleTreeStorage);
+		this(null, setting, keyPrefix, exPolicyStorage, versioningStorage, false);
 	}
 
 	/**
@@ -147,7 +148,11 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 //		this.merkleTree = new MerkleHashTrie(merkleRootHash, setting, merkleKeyPrefix, merkleTreeStorage, readonly);
 		
 		TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(setting.getHashAlgorithm()).setVerifyHashOnLoad(setting.getAutoVerifyHash());
-		this.merkleTree = new MerkleHashSortTree(merkleRootHash, options, merkleKeyPrefix, merkleTreeStorage);
+		if (merkleRootHash == null) {
+			this.merkleTree = new MerkleHashSortTree(options, merkleKeyPrefix, merkleTreeStorage);
+		}else {
+			this.merkleTree = new MerkleHashSortTree(merkleRootHash, options, merkleKeyPrefix, merkleTreeStorage);
+		}
 
 		this.readonly = readonly;
 	}

@@ -27,6 +27,11 @@
 		</dependency>
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
+			<artifactId>sdk-base</artifactId>
+			<version>${framework.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.jd.blockchain</groupId>
 			<artifactId>sdk-rpc</artifactId>
 			<version>${framework.version}</version>
 		</dependency>
