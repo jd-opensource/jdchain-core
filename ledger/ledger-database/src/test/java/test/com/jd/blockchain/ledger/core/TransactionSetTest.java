@@ -98,7 +98,7 @@ public class TransactionSetTest {
 
 		long blockHeight = 8922L;
 		LedgerTransactionData tx = new LedgerTransactionData(blockHeight, txReq, TransactionState.SUCCESS, txSnapshot);
-		txset.add(tx);
+		txset.addTransaction(tx);
 
 		assertTrue(txset.isUpdated());
 
@@ -122,7 +122,6 @@ public class TransactionSetTest {
 		assertNotNull(reloadTx);
 		assertEquals(0, state.CODE);
 
-		assertEquals(tx.getHash(), reloadTx.getHash());
 		assertEquals(tx.getBlockHeight(), reloadTx.getBlockHeight());
 		assertEquals(tx.getAdminAccountHash(), reloadTx.getAdminAccountHash());
 		assertEquals(tx.getContractAccountSetHash(), reloadTx.getContractAccountSetHash());
@@ -198,8 +197,13 @@ public class TransactionSetTest {
 
 	/**
 	 * 利用一个随机出现的错误中采用的特殊值来验证正确性；
+	 * 
+	 * <p>
+	 * 
+	 * 注：重构了 {@link LedgerTransaction} 和 {@link TransactionContent}
+	 * 等交易结构相关的类型之后，此用例已经失效； by huanghaiquan on 2020-09-16;
 	 */
-//	@Test
+	// @Test
 	public void testSpecialCase_1() {
 		CryptoSetting defCryptoSetting = LedgerTestUtils.createDefaultCryptoSetting();
 
@@ -221,14 +225,15 @@ public class TransactionSetTest {
 
 		BlockchainKeypair userKeypair1 = LedgerTestUtils.createKeyPair(
 				"7VeRKf3GFLFcBfzvtzmtyMXEoX2HYGEJ4j7CmHcnRV99W5Dp", "7VeRYQjeAaQY5Po8MMtmGNHA2SniqLXmJaZwBS5K8zTtMAU1");
-		TransactionRequest transactionRequest1 = LedgerTestUtils.createTxRequest_UserReg_SHA256(userKeypair1, ledgerHash, 1580315317127L,
-				parti0, parti0);
+		TransactionRequest transactionRequest1 = LedgerTestUtils.createTxRequest_UserReg_SHA256(userKeypair1,
+				ledgerHash, 1580315317127L, parti0, parti0);
 //		TransactionRequest transactionRequest1 = LedgerTestUtils.createTxRequest_UserReg(userKeypair1, ledgerHash, 202001202020L,
 //				parti0, parti0);
 		System.out.printf("\r\n ===||=== transactionRequest1.getTransactionHash()=[%s]\r\n",
 				transactionRequest1.getTransactionHash().toBase58());
 //		assertEquals("j5sXmpcomtM2QMUNWeQWsF8bNFFnyeXoCjVAekEeLSscgY", transactionRequest1.getTransactionHash().toBase58());
-		assertEquals("j5wPGKT5CUzwi8j6VfCWaP2p9YZ6WVWtMANp9HbHWzvhgG", transactionRequest1.getTransactionHash().toBase58());
+		assertEquals("j5wPGKT5CUzwi8j6VfCWaP2p9YZ6WVWtMANp9HbHWzvhgG",
+				transactionRequest1.getTransactionHash().toBase58());
 
 		TransactionStagedSnapshot txSnapshot = new TransactionStagedSnapshot();
 		txSnapshot.setAdminAccountHash(
@@ -237,7 +242,7 @@ public class TransactionSetTest {
 				new HashDigest(Base58Utils.decode("j5oQDSob92mCoGSHtrXa9soqgAtMyjwfRMt2kj7igXXJrP")));
 
 		LedgerTransaction tx = new LedgerTransactionData(1, transactionRequest1, TransactionState.SUCCESS, txSnapshot);
-		txset.add(tx);
+		txset.addTransaction(tx);
 
 		LedgerTransaction tx_query = txset.get(transactionRequest1.getTransactionHash());
 		assertNotNull(tx_query);
@@ -259,6 +264,5 @@ public class TransactionSetTest {
 		assertNotNull(tx_query);
 		assertEquals(0, tx_state.CODE);
 	}
-
 
 }

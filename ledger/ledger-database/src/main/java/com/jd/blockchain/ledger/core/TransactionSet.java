@@ -97,13 +97,12 @@ public class TransactionSet implements Transactional, TransactionQuery {
 	 * @param txRequest
 	 * @param result
 	 */
-	public void add(LedgerTransaction tx) {
+	public void addTransaction(LedgerTransaction tx) {
 		// TODO: 优化对交易内存存储的优化，应对大数据量单交易，共享操作的“写集”与实际写入账户的KV版本；
 		// 序列化交易内容；
 		byte[] txBytes = serialize(tx);
 		// 以交易内容的 hash 为 key；
-		// String key = tx.getTransactionContent().getHash().toBase58();
-		Bytes key = new Bytes(tx.getTransactionHash().toBytes());
+		Bytes key = tx.getTransactionHash();
 		// 交易只有唯一的版本；
 		long v = txSet.setValue(key, txBytes, -1);
 		if (v < 0) {

@@ -22,8 +22,6 @@ public class TransactionDecorator implements LedgerTransaction {
 
     private HashDigest contractAccountSetHash;
 
-    private HashDigest hash;
-    
     private HashDigest transactionHash;
 
     private long blockHeight;
@@ -39,7 +37,6 @@ public class TransactionDecorator implements LedgerTransaction {
     private OperationResult[] operationResults;
 
     public TransactionDecorator(LedgerTransaction ledgerTransaction) {
-        this.hash = ledgerTransaction.getHash();
         this.blockHeight = ledgerTransaction.getBlockHeight();
         this.adminAccountHash = ledgerTransaction.getAdminAccountHash();
         this.userAccountSetHash = ledgerTransaction.getUserAccountSetHash();
@@ -126,11 +123,6 @@ public class TransactionDecorator implements LedgerTransaction {
     }
 
     @Override
-    public HashDigest getHash() {
-        return this.hash;
-    }
-    
-    @Override
     public HashDigest getTransactionHash() {
     	return transactionHash;
     }
@@ -179,10 +171,6 @@ public class TransactionDecorator implements LedgerTransaction {
 
     public void setContractAccountSetHash(HashDigest contractAccountSetHash) {
         this.contractAccountSetHash = contractAccountSetHash;
-    }
-
-    public void setHash(HashDigest hash) {
-        this.hash = hash;
     }
 
     public void setBlockHeight(long blockHeight) {

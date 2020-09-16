@@ -7,7 +7,6 @@ import com.jd.blockchain.ledger.OperationResult;
 import com.jd.blockchain.ledger.TransactionContent;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionState;
-import com.jd.blockchain.transaction.TxBuilder;
 
 public class LedgerTransactionData implements LedgerTransaction {
 
@@ -22,8 +21,6 @@ public class LedgerTransactionData implements LedgerTransaction {
 	private DigitalSignature[] nodeSignatures;
 
 	private TransactionState executionState;
-
-	private HashDigest hash;
 
 	private long blockHeight;
 
@@ -52,11 +49,6 @@ public class LedgerTransactionData implements LedgerTransaction {
 		this.nodeSignatures = txReq.getNodeSignatures();
 		this.executionState = execState;
 		this.operationResults = opResults;
-	}
-
-	@Override
-	public HashDigest getHash() {
-		return this.hash;
 	}
 
 	@Override
@@ -146,10 +138,6 @@ public class LedgerTransactionData implements LedgerTransaction {
 
 	public void setExecutionState(TransactionState executionState) {
 		this.executionState = executionState;
-	}
-
-	public void setHash(HashDigest hash) {
-		this.hash = hash;
 	}
 
 	public void setBlockHeight(long blockHeight) {

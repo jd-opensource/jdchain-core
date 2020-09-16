@@ -527,10 +527,6 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 		private boolean rollbacked = false;
 
-		private LedgerTransaction transaction;
-
-		private HashDigest txRootHash;
-
 		private LedgerTransactionContextImpl(TransactionRequest txRequest, LedgerDataset dataset,
 				TransactionSet txset, BufferedKVStorage storage, LedgerTransactionalEditor editor, LedgerEventSet eventSet) {
 			this.txRequest = txRequest;
@@ -585,7 +581,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 				tx = new LedgerTransactionData(blockEditor.getBlockHeight(), txRequest, txResult, txDataSnapshot,
 						operationResultArray(operationResults));
 				logger.debug("before txset.add(),[contentHash={}]",this.getTransactionRequest().getTransactionHash());
-				this.txset.add(tx);
+				this.txset.addTransaction(tx);
 				logger.debug("after txset.add(),[contentHash={}]",this.getTransactionRequest().getTransactionHash());
 				this.txset.commit();
 				logger.debug("after txset.commit(),[contentHash={}]",this.getTransactionRequest().getTransactionHash());
@@ -628,7 +624,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			try {
 				tx = new LedgerTransactionData(blockEditor.getBlockHeight(), txRequest, txResult, txDataSnapshot,
 						operationResultArray(operationResults));
-				this.txset.add(tx);
+				this.txset.addTransaction(tx);
 				this.txset.commit();
 			} catch (Exception e) {
 				//to reset currentTxCtx

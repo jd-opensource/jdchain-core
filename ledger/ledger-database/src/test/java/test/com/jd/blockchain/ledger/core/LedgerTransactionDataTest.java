@@ -78,8 +78,6 @@ public class LedgerTransactionDataTest {
 		HashDigest dataAccountSetHash = new HashDigest(ClassicAlgorithm.SHA256, "zhaoliu".getBytes());
 		HashDigest contractAccountSetHash = new HashDigest(ClassicAlgorithm.SHA256, "sunqi".getBytes());
 
-		data.setHash(hash);
-		// data.setBlockHeight(blockHeight);
 		data.setAdminAccountHash(adminAccountHash);
 		data.setUserAccountSetHash(userAccountSetHash);
 		data.setDataAccountSetHash(dataAccountSetHash);
@@ -97,7 +95,7 @@ public class LedgerTransactionDataTest {
 		assertEquals(resolvedData.getDataAccountSetHash(), data.getDataAccountSetHash());
 		assertEquals(resolvedData.getUserAccountSetHash(), data.getUserAccountSetHash());
 		assertEquals(resolvedData.getExecutionState(), data.getExecutionState());
-		assertEquals(resolvedData.getHash(), data.getHash());
+//		assertEquals(resolvedData.getHash(), data.getHash());
 		assertEquals(resolvedData.getBlockHeight(), data.getBlockHeight());
 
 		// EndpointSignatures 验证
@@ -127,7 +125,6 @@ public class LedgerTransactionDataTest {
 
 		System.out.println("------Assert start ------");
 		assertEquals(resolvedData.getExecutionState(), data.getExecutionState());
-		assertEquals(resolvedData.getHash(), data.getHash());
 		assertEquals(resolvedData.getBlockHeight(), data.getBlockHeight());
 
 		// EndpointSignatures 验证
