@@ -101,7 +101,7 @@ public class LedgerEditorTest {
 	}
 
 	private LedgerTransactionContext createGenisisTx(LedgerEditor ldgEdt, BlockchainKeypair[] partis) {
-		TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest(partis);
+		TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest_SHA256(partis);
 
 		LedgerTransactionContext txCtx = ldgEdt.newTransaction(genesisTxReq);
 
@@ -153,7 +153,7 @@ public class LedgerEditorTest {
 		textValue = bytes.getBytes().toUTF8String();
 		assertEquals("abc", textValue);
 
-		LedgerTransaction tx_init = repo.getTransactionSet().get(tx.getTransactionContent().getHash());
+		LedgerTransaction tx_init = repo.getTransactionSet().get(tx.getTransactionHash());
 		assertNotNull(tx_init);
 	}
 
@@ -175,7 +175,7 @@ public class LedgerEditorTest {
 		LedgerTransaction tx = genisisTxCtx.commit(TransactionState.SUCCESS);
 
 		TransactionRequest genesisTxReq = genisisTxCtx.getTransactionRequest();
-		assertEquals(genesisTxReq.getTransactionContent().getHash(), tx.getTransactionContent().getHash());
+		assertEquals(genesisTxReq.getTransactionHash(), tx.getTransactionHash());
 		assertEquals(0, tx.getBlockHeight());
 
 		LedgerBlock block = ldgEdt.prepare();
@@ -222,26 +222,26 @@ public class LedgerEditorTest {
 		// 创建交易连续交易，验证中间的交易回滚是否影响前后的交易；
 		BlockchainKeypair user1 = LedgerTestUtils.createKeyPair("7VeRKf3GFLFcBfzvtzmtyMXEoX2HYGEJ4j7CmHcnRV99W5Dp",
 				"7VeRYQjeAaQY5Po8MMtmGNHA2SniqLXmJaZwBS5K8zTtMAU1");
-		TransactionRequest req1 = LedgerTestUtils.createTxRequest_UserReg(user1, ledgerHash, 1580315317127L, parti0,
+		TransactionRequest req1 = LedgerTestUtils.createTxRequest_UserReg_SHA256(user1, ledgerHash, 1580315317127L, parti0,
 				parti0);
 		// 引发错误的参数：ts=1580315317127;
 		// txhash=j5wPGKT5CUzwi8j6VfCWaP2p9YZ6WVWtMANp9HbHWzvhgG
 		System.out.printf("\r\n ===||=== transactionRequest1.getTransactionContent().getHash()=[%s]\r\n",
-				req1.getTransactionContent().getHash().toBase58());
+				req1.getTransactionHash().toBase58());
 
 		BlockchainKeypair user2 = LedgerTestUtils.createKeyPair("7VeRKSnDFveTfLLMsLZDmmhGmgf7i142XHgBFjnrKuS95tY3",
 				"7VeRTiJ2TpQD9aBi29ajnqdntgoVBANmC3oCbHThKb5tzfTJ");
-		TransactionRequest req2 = LedgerTestUtils.createTxRequest_MultiOPs_WithNotExistedDataAccount(user2, ledgerHash,
+		TransactionRequest req2 = LedgerTestUtils.createTxRequest_MultiOPs_WithNotExistedDataAccount_SHA256(user2, ledgerHash,
 				202001202020L, parti0, parti0);
 		System.out.printf("\r\n ===||=== transactionRequest2.getTransactionContent().getHash()=[%s]\r\n",
-				req2.getTransactionContent().getHash().toBase58());
+				req2.getTransactionHash().toBase58());
 
 		BlockchainKeypair user3 = LedgerTestUtils.createKeyPair("7VeRDoaSexqLWKkaZyrQwdwSuE9n5nszduMrYBfYRfEkREQV",
 				"7VeRdFtTuLfrzCYJzQ6enQUkGTc83ATgjr8WbmfjBQuTFpHt");
-		TransactionRequest req3 = LedgerTestUtils.createTxRequest_UserReg(user3, ledgerHash, 202001202020L, parti0,
+		TransactionRequest req3 = LedgerTestUtils.createTxRequest_UserReg_SHA256(user3, ledgerHash, 202001202020L, parti0,
 				parti0);
 		System.out.printf("\r\n ===||=== transactionRequest3.getTransactionContent().getHash()=[%s]\r\n",
-				req3.getTransactionContent().getHash().toBase58());
+				req3.getTransactionHash().toBase58());
 
 		System.out.println("\r\n--------------- Start new Block 1 --------------\r\n");
 		// 创建交易；
@@ -251,20 +251,20 @@ public class LedgerEditorTest {
 		LedgerTransactionContext txctx1 = editor.newTransaction(req1);
 		txctx1.getDataset().getUserAccountSet().register(user1.getAddress(), user1.getPubKey());
 		LedgerTransaction tx1 = txctx1.commit(TransactionState.SUCCESS);
-		HashDigest txHash1 = tx1.getTransactionContent().getHash();
+		HashDigest txHash1 = tx1.getTransactionHash();
 
 		System.out.println("\r\n--------------- Start new tx2 --------------\r\n");
 
 		LedgerTransactionContext txctx2 = editor.newTransaction(req2);
 		txctx2.getDataset().getUserAccountSet().register(user2.getAddress(), user2.getPubKey());
 		LedgerTransaction tx2 = txctx2.discardAndCommit(TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
-		HashDigest txHash2 = tx2.getTransactionContent().getHash();
+		HashDigest txHash2 = tx2.getTransactionHash();
 
 		System.out.println("\r\n--------------- Start new tx3 --------------\r\n");
 		LedgerTransactionContext txctx3 = editor.newTransaction(req3);
 		txctx3.getDataset().getUserAccountSet().register(user3.getAddress(), user3.getPubKey());
 		LedgerTransaction tx3 = txctx3.commit(TransactionState.SUCCESS);
-		HashDigest txHash3 = tx3.getTransactionContent().getHash();
+		HashDigest txHash3 = tx3.getTransactionHash();
 
 		System.out.println("\r\n--------------- Start preparing new block 1 --------------\r\n");
 

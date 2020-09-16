@@ -22,7 +22,7 @@ public class GatewayInterceptServiceHandler implements GatewayInterceptService {
     @Override
     public void intercept(HttpServletRequest request, TransactionRequest txRequest) {
         LOGGER.info("TxRequest[{}:{}] -> [{} -> {}]", request.getRemoteAddr(), request.getRemotePort(),
-                txRequest.getTransactionHash().toBase58(), txRequest.getTransactionContent().getHash().toBase58());
+                txRequest.getTransactionHash().toBase58(), txRequest.getTransactionHash().toBase58());
         // 当前仅处理合约发布的请求
         Operation[] operations = txRequest.getTransactionContent().getOperations();
         if (operations != null && operations.length > 0) {

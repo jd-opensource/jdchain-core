@@ -82,7 +82,7 @@ public class LedgerManagerTest {
 		LedgerEditor ldgEdt = LedgerInitializer.createLedgerEditor(initSetting, storage);
 
 		// 创建一个模拟的创世交易；
-		TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest(participants);
+		TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest_SHA256(participants);
 
 		// 记录交易，注册用户；
 		LedgerTransactionContext txCtx = ldgEdt.newTransaction(genesisTxReq);
@@ -98,7 +98,7 @@ public class LedgerManagerTest {
 		// 提交交易结果；
 		LedgerTransaction tx = txCtx.commit(TransactionState.SUCCESS);
 
-		assertEquals(genesisTxReq.getTransactionContent().getHash(), tx.getTransactionContent().getHash());
+		assertEquals(genesisTxReq.getTransactionHash(), tx.getTransactionHash());
 		assertEquals(0, tx.getBlockHeight());
 
 		// 生成区块；
@@ -132,7 +132,8 @@ public class LedgerManagerTest {
 
 		LedgerEditor editor1 = reloadLedgerRepo.createNextBlock();
 
-		TxBuilder txBuilder = new TxBuilder(ledgerHash);
+		CryptoSetting cryptoSetting = reloadLedgerRepo.getAdminInfo().getSettings().getCryptoSetting();
+		TxBuilder txBuilder = new TxBuilder(ledgerHash, cryptoSetting.getHashAlgorithm());
 		BlockchainKeypair dataKey = BlockchainKeyGenerator.getInstance().generate();
 		txBuilder.dataAccounts().register(dataKey.getIdentity());
 		TransactionRequestBuilder txReqBuilder = txBuilder.prepareRequest();

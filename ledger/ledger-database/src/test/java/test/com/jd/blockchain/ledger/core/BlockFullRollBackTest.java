@@ -21,7 +21,6 @@ public class BlockFullRollBackTest {
 
     static {
         DataContractRegistry.register(TransactionContent.class);
-        DataContractRegistry.register(TransactionContentBody.class);
         DataContractRegistry.register(TransactionRequest.class);
         DataContractRegistry.register(NodeRequest.class);
         DataContractRegistry.register(EndpointRequest.class);
@@ -153,7 +152,7 @@ public class BlockFullRollBackTest {
         // 创建账本；
         LedgerEditor ldgEdt = LedgerTransactionalEditor.createEditor(initSetting, LEDGER_KEY_PREFIX, storage, storage);
 
-        TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest(partiKeys);
+        TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest_SHA256(partiKeys);
         LedgerTransactionContext genisisTxCtx = ldgEdt.newTransaction(genesisTxReq);
         LedgerDataset ldgDS = genisisTxCtx.getDataset();
 
@@ -166,7 +165,7 @@ public class BlockFullRollBackTest {
 
         LedgerTransaction tx = genisisTxCtx.commit(TransactionState.SUCCESS);
 
-        assertEquals(genesisTxReq.getTransactionContent().getHash(), tx.getTransactionContent().getHash());
+        assertEquals(genesisTxReq.getTransactionHash(), tx.getTransactionHash());
         assertEquals(0, tx.getBlockHeight());
 
         LedgerBlock block = ldgEdt.prepare();

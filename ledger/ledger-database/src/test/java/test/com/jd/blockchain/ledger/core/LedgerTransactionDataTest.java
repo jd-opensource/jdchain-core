@@ -8,6 +8,7 @@
  */
 package test.com.jd.blockchain.ledger.core;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 import java.util.UUID;
@@ -18,6 +19,7 @@ import org.junit.Test;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.Crypto;
+import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.crypto.SignatureDigest;
@@ -39,9 +41,9 @@ import com.jd.blockchain.ledger.core.LedgerTransactionData;
 import com.jd.blockchain.ledger.core.TransactionStagedSnapshot;
 import com.jd.blockchain.transaction.BlockchainOperationFactory;
 import com.jd.blockchain.transaction.DigitalSignatureBlob;
+import com.jd.blockchain.transaction.TxBuilder;
 import com.jd.blockchain.transaction.TxContentBlob;
 import com.jd.blockchain.transaction.TxRequestMessage;
-import com.jd.blockchain.utils.io.ByteArray;
 
 /**
  *
@@ -64,7 +66,7 @@ public class LedgerTransactionDataTest {
 		DataContractRegistry.register(HashObject.class);
 		DataContractRegistry.register(DataAccountKVSetOperation.class);
 
-		TransactionRequest txRequestMessage = initTxRequestMessage();
+		TransactionRequest txRequestMessage = initTxRequestMessage(ClassicAlgorithm.SHA256);
 
 		long blockHeight = 9986L;
 		data = new LedgerTransactionData(blockHeight, txRequestMessage, TransactionState.SUCCESS,
@@ -205,8 +207,14 @@ public class LedgerTransactionDataTest {
 	}
 
 	private void assertEqual(TransactionContent dataTxContent, TransactionContent resolvedTxContent) {
-		assertEquals(dataTxContent.getHash(), resolvedTxContent.getHash());
 		assertEquals(dataTxContent.getLedgerHash(), resolvedTxContent.getLedgerHash());
+
+		byte[] txBytes1 = BinaryProtocol.encode(dataTxContent, TransactionContent.class);
+		byte[] txBytes2 = BinaryProtocol.encode(resolvedTxContent, TransactionContent.class);
+		assertArrayEquals(txBytes1, txBytes2);
+
+//		assertEquals(dataTxContent.getHash(), resolvedTxContent.getHash());
+
 		// assertEquals(dataTxContent.getSequenceNumber(),
 		// resolvedTxContent.getSequenceNumber());
 		// assertEquals(dataTxContent.getSubjectAccount(),
@@ -222,8 +230,10 @@ public class LedgerTransactionDataTest {
 		return transactionStagedSnapshot;
 	}
 
-	private TxRequestMessage initTxRequestMessage() throws Exception {
-		TxRequestMessage txRequestMessage = new TxRequestMessage(initTransactionContent());
+	private TxRequestMessage initTxRequestMessage(CryptoAlgorithm hashAlgorithm) throws Exception {
+		TransactionContent txContent = initTransactionContent();
+		HashDigest txHash = TxBuilder.computeTxContentHash(hashAlgorithm, txContent);
+		TxRequestMessage txRequestMessage = new TxRequestMessage(txHash, txContent);
 
 		SignatureDigest digest1 = new SignatureDigest(ClassicAlgorithm.ED25519, "zhangsan".getBytes());
 		SignatureDigest digest2 = new SignatureDigest(ClassicAlgorithm.ED25519, "lisi".getBytes());
@@ -249,15 +259,13 @@ public class LedgerTransactionDataTest {
 	private TransactionContent initTransactionContent() throws Exception {
 		TxContentBlob contentBlob = null;
 		BlockchainKeypair id = BlockchainKeyGenerator.getInstance().generate(ClassicAlgorithm.ED25519);
-		HashDigest ledgerHash = Crypto.getHashFunction("SHA256")
-				.hash(UUID.randomUUID().toString().getBytes("UTF-8"));
+		HashDigest ledgerHash = Crypto.getHashFunction("SHA256").hash(UUID.randomUUID().toString().getBytes("UTF-8"));
 		BlockchainOperationFactory opFactory = new BlockchainOperationFactory();
 		contentBlob = new TxContentBlob(ledgerHash);
-		contentBlob.setHash(new HashDigest(ClassicAlgorithm.SHA256, "jd.com".getBytes()));
 		// contentBlob.setSubjectAccount(id.getAddress());
 		// contentBlob.setSequenceNumber(1);
-		DataAccountKVSetOperation kvsetOP = opFactory.dataAccount(id.getAddress())
-				.setText("Name", "AAA", -1).getOperation();
+		DataAccountKVSetOperation kvsetOP = opFactory.dataAccount(id.getAddress()).setText("Name", "AAA", -1)
+				.getOperation();
 		contentBlob.addOperation(kvsetOP);
 		return contentBlob;
 	}

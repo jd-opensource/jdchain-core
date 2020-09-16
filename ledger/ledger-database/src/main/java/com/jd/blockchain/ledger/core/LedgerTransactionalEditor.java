@@ -233,14 +233,14 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		if (!isRequestMatched(txRequest)) {
 			throw new IllegalTransactionException(
 					"Transaction request is dispatched to a wrong ledger! --[TxHash="
-							+ txRequest.getTransactionContent().getHash() + "]!",
+							+ txRequest.getTransactionHash() + "]!",
 					TransactionState.IGNORED_BY_WRONG_LEDGER);
 		}
 
 		if (currentTxCtx != null) {
 			throw new IllegalStateException(
 					"Unable to open another new transaction before the current transaction is completed! --[TxHash="
-							+ txRequest.getTransactionContent().getHash() + "]!");
+							+ txRequest.getTransactionHash() + "]!");
 		}
 
 		// 检查状态是否允许创建新的交易请求；；
@@ -571,12 +571,12 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			checkTxState();
 
 			// capture snapshot
-			logger.debug("before dataset.commit(),[contentHash={}]",this.getTransactionRequest().getTransactionContent().getHash());
+			logger.debug("before dataset.commit(),[contentHash={}]",this.getTransactionRequest().getTransactionHash());
 			
 			this.dataset.commit();
 			this.eventSet.commit();
 			
-			logger.debug("after dataset.commit(),[contentHash={}]",this.getTransactionRequest().getTransactionContent().getHash());
+			logger.debug("after dataset.commit(),[contentHash={}]",this.getTransactionRequest().getTransactionHash());
 			TransactionStagedSnapshot txDataSnapshot = takeDataSnapshot();
 			EventStagedSnapshot eventSnapshot = takeEventSnapshot();
 
@@ -584,18 +584,18 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			try {
 				tx = new LedgerTransactionData(blockEditor.getBlockHeight(), txRequest, txResult, txDataSnapshot,
 						operationResultArray(operationResults));
-				logger.debug("before txset.add(),[contentHash={}]",this.getTransactionRequest().getTransactionContent().getHash());
+				logger.debug("before txset.add(),[contentHash={}]",this.getTransactionRequest().getTransactionHash());
 				this.txset.add(tx);
-				logger.debug("after txset.add(),[contentHash={}]",this.getTransactionRequest().getTransactionContent().getHash());
+				logger.debug("after txset.add(),[contentHash={}]",this.getTransactionRequest().getTransactionHash());
 				this.txset.commit();
-				logger.debug("after txset.commit(),[contentHash={}]",this.getTransactionRequest().getTransactionContent().getHash());
+				logger.debug("after txset.commit(),[contentHash={}]",this.getTransactionRequest().getTransactionHash());
 			} catch (Exception e) {
 				throw new TransactionRollbackException(e.getMessage(), e);
 			}
 
 			try {
 				this.storage.flush();
-				logger.debug("after storage.flush(),[contentHash={}]",this.getTransactionRequest().getTransactionContent().getHash());
+				logger.debug("after storage.flush(),[contentHash={}]",this.getTransactionRequest().getTransactionHash());
 			} catch (Exception e) {
 				throw new BlockRollbackException(e.getMessage(), e);
 			}

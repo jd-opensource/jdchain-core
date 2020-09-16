@@ -43,11 +43,9 @@ import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.ServerSettings;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 import com.jd.blockchain.crypto.AsymmetricKeypair;
-import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.CryptoProvider;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.PrivKey;
 import com.jd.blockchain.crypto.PubKey;
@@ -82,7 +80,6 @@ import com.jd.blockchain.ledger.RolesConfigureOperation;
 import com.jd.blockchain.ledger.SecurityInitSettings;
 import com.jd.blockchain.ledger.StartServerException;
 import com.jd.blockchain.ledger.TransactionContent;
-import com.jd.blockchain.ledger.TransactionContentBody;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionRequestBuilder;
 import com.jd.blockchain.ledger.TransactionResponse;
@@ -191,7 +188,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		DataContractRegistry.register(LedgerInitOperation.class);
 		DataContractRegistry.register(LedgerBlock.class);
 		DataContractRegistry.register(TransactionContent.class);
-		DataContractRegistry.register(TransactionContentBody.class);
 		DataContractRegistry.register(TransactionRequest.class);
 		DataContractRegistry.register(NodeRequest.class);
 		DataContractRegistry.register(EndpointRequest.class);
@@ -473,7 +469,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				viewId = ((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getViewId();
 
 				// 由本节点准备交易
-				TransactionRequest txRequest = prepareTx(ledgerHash, participants, consensusHost, consensusPort);
+				TransactionRequest txRequest = prepareTx(ledgerHash, ledgerAdminInfo.getSettings().getCryptoSetting(), participants, consensusHost, consensusPort);
 
 				// 验证本参与方是否已经被注册，没有被注册的参与方不能进行状态更新
 				if (!verifyState(ledgerRepo)) {
@@ -543,7 +539,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		OperationHandleRegisteration opReg = new DefaultOperationHandleRegisteration();
 
-
+		CryptoSetting cryptoSetting = ledgerRepository.getAdminInfo().getSettings().getCryptoSetting();
 		try {
 			providers.add(BFTSMART_PROVIDER);
 
@@ -562,19 +558,20 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					// transactions replay
 					try {
 						for (LedgerTransaction ledgerTransaction :blockchainServiceFactory.getBlockchainService().getTransactions(ledgerHash, height, 0, -1)) {
-
+							
 							TxContentBlob txContentBlob = new TxContentBlob(ledgerHash);
 
 							txContentBlob.setTime(ledgerTransaction.getTransactionContent().getTimestamp());
 
-							txContentBlob.setHash(ledgerTransaction.getTransactionContent().getHash());
+//							txContentBlob.setHash(ledgerTransaction.getTransactionContent().getHash());
 
 							// convert operation, from json to object
 							for (Operation operation : ledgerTransaction.getTransactionContent().getOperations()) {
 								txContentBlob.addOperation(ClientResolveUtil.read(operation));
 							}
-
-							TxRequestBuilder txRequestBuilder = new TxRequestBuilder(txContentBlob);
+							
+							HashDigest txHash = TxBuilder.computeTxContentHash(cryptoSetting.getHashAlgorithm(), txContentBlob);
+							TxRequestBuilder txRequestBuilder = new TxRequestBuilder(txHash, txContentBlob);
 							txRequestBuilder.addNodeSignature(ledgerTransaction.getNodeSignatures());
 							txRequestBuilder.addEndpointSignature(ledgerTransaction.getEndpointSignatures());
 							TransactionRequest transactionRequest = txRequestBuilder.buildRequest();
@@ -633,7 +630,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	}
 
 	// 在指定的账本上准备一笔激活参与方状态及系统配置参数的操作
-	private TransactionRequest prepareTx(HashDigest ledgerHash, ParticipantNode[] participants, String host, String port) {
+	private TransactionRequest prepareTx(HashDigest ledgerHash, CryptoSetting cryptoSetting, ParticipantNode[] participants, String host, String port) {
 		PubKey activePubKey = ledgerKeypairs.get(ledgerHash).getPubKey();
 		int activeID = 0;
 
@@ -647,7 +644,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		// organize system config properties
 		Property[] properties = createActiveProperties(host, port, activePubKey, activeID);
 
-		TxBuilder txbuilder = new TxBuilder(ledgerHash);
+		TxBuilder txbuilder = new TxBuilder(ledgerHash, cryptoSetting.getHashAlgorithm());
 
 		// This transaction contains participant state update and settings update two ops
 		txbuilder.states().update(new BlockchainIdentityData(activePubKey), ParticipantNodeState.CONSENSUS);
@@ -825,16 +822,15 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		HashDigest ledgerHash = txRequest.getTransactionContent().getLedgerHash();
 		AsymmetricKeypair peerKeypair = ledgerKeypairs.get(ledgerHash);
-		CryptoSetting cryptoSetting = ledgerCryptoSettings.get(ledgerHash);
-		DigitalSignature nodeSigner = SignatureUtils.sign(txRequest.getTransactionContent(), peerKeypair);
+		DigitalSignature nodeSigner = SignatureUtils.sign(txRequest.getTransactionHash(), peerKeypair);
 
 		txMessage.addNodeSignatures(nodeSigner);
 
 		// 计算交易哈希；
-		byte[] nodeRequestBytes = BinaryProtocol.encode(txMessage, TransactionRequest.class);
-		HashFunction hashFunc = Crypto.getHashFunction(cryptoSetting.getHashAlgorithm());
-		HashDigest txHash = hashFunc.hash(nodeRequestBytes);
-		txMessage.setTransactionHash(txHash);
+//		byte[] nodeRequestBytes = BinaryProtocol.encode(txMessage, TransactionRequest.class);
+//		HashFunction hashFunc = Crypto.getHashFunction(cryptoSetting.getHashAlgorithm());
+//		HashDigest txHash = hashFunc.hash(nodeRequestBytes);
+//		txMessage.setTransactionHash(txHash);
 
 		return txMessage;
 	}

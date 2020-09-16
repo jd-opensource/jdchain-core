@@ -7,10 +7,13 @@ import com.jd.blockchain.ledger.OperationResult;
 import com.jd.blockchain.ledger.TransactionContent;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.transaction.TxBuilder;
 
 public class LedgerTransactionData implements LedgerTransaction {
 
 	private TransactionStagedSnapshot txSnapshot;
+	
+	private HashDigest transactionHash;
 
 	private TransactionContent transactionContent;
 
@@ -43,6 +46,7 @@ public class LedgerTransactionData implements LedgerTransaction {
 			TransactionStagedSnapshot txSnapshot, OperationResult... opResults) {
 		this.blockHeight = blockHeight;
 		this.txSnapshot = txSnapshot;
+		this.transactionHash = txReq.getTransactionHash();
 		this.transactionContent = txReq.getTransactionContent();
 		this.endpointSignatures = txReq.getEndpointSignatures();
 		this.nodeSignatures = txReq.getNodeSignatures();
@@ -70,6 +74,11 @@ public class LedgerTransactionData implements LedgerTransaction {
 		return operationResults;
 	}
 
+	@Override
+	public HashDigest getTransactionHash() {
+		return transactionHash;
+	}
+	
 	@Override
 	public TransactionContent getTransactionContent() {
 		return this.transactionContent;
@@ -112,7 +121,8 @@ public class LedgerTransactionData implements LedgerTransaction {
 		this.txSnapshot = txSnapshot;
 	}
 
-	public void setTransactionContent(TransactionContent content) {
+	public void setTransactionContent(HashDigest transactionHash, TransactionContent content) {
+		this.transactionHash = transactionHash;
 		this.transactionContent = content;
 	}
 
@@ -174,9 +184,4 @@ public class LedgerTransactionData implements LedgerTransaction {
 		txSnapshot.setContractAccountSetHash(contractAccountSetHash);
 	}
 	
-	@Override
-	public HashDigest getTransactionHash() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }

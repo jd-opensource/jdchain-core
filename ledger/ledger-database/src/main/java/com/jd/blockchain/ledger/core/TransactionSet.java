@@ -103,7 +103,7 @@ public class TransactionSet implements Transactional, TransactionQuery {
 		byte[] txBytes = serialize(tx);
 		// 以交易内容的 hash 为 key；
 		// String key = tx.getTransactionContent().getHash().toBase58();
-		Bytes key = new Bytes(tx.getTransactionContent().getHash().toBytes());
+		Bytes key = new Bytes(tx.getTransactionHash().toBytes());
 		// 交易只有唯一的版本；
 		long v = txSet.setValue(key, txBytes, -1);
 		if (v < 0) {

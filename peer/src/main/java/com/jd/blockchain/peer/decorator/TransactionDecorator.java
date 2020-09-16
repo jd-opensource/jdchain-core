@@ -23,6 +23,8 @@ public class TransactionDecorator implements LedgerTransaction {
     private HashDigest contractAccountSetHash;
 
     private HashDigest hash;
+    
+    private HashDigest transactionHash;
 
     private long blockHeight;
 
@@ -44,7 +46,8 @@ public class TransactionDecorator implements LedgerTransaction {
         this.dataAccountSetHash = ledgerTransaction.getDataAccountSetHash();
         this.contractAccountSetHash = ledgerTransaction.getContractAccountSetHash();
         this.executionState = ledgerTransaction.getExecutionState();
-
+        this.transactionHash = ledgerTransaction.getTransactionHash();
+        
         initTxContent(ledgerTransaction.getTransactionContent());
         initEndpointSignatures(ledgerTransaction.getEndpointSignatures());
         initNodeSignatures(ledgerTransaction.getNodeSignatures());
@@ -84,7 +87,7 @@ public class TransactionDecorator implements LedgerTransaction {
 
     private void initTxContent(TransactionContent txContent) {
         TxContentBlob txContentBlob = new TxContentBlob(txContent.getLedgerHash());
-        txContentBlob.setHash(txContent.getHash());
+//        txContentBlob.setHash(txContent.getHash());
         txContentBlob.setTime(txContent.getTimestamp());
         Operation[] operations = txContent.getOperations();
         if (operations != null && operations.length > 0) {
@@ -125,6 +128,11 @@ public class TransactionDecorator implements LedgerTransaction {
     @Override
     public HashDigest getHash() {
         return this.hash;
+    }
+    
+    @Override
+    public HashDigest getTransactionHash() {
+    	return transactionHash;
     }
 
     @Override
