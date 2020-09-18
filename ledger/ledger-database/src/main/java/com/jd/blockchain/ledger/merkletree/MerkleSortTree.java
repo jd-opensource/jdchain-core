@@ -11,7 +11,6 @@ import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
-import com.jd.blockchain.utils.AbstractSkippingIterator;
 import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.MathUtils;
@@ -74,7 +73,10 @@ public class MerkleSortTree<T> implements Transactional {
 
 	private MerkleNode root;
 
-	private Long maxId;
+	/**
+	 * 最大的编号；当树为空时，maxId 为 -1;
+	 */
+	private long maxId;
 
 	/**
 	 * 构建空的树；
@@ -162,6 +164,8 @@ public class MerkleSortTree<T> implements Transactional {
 		this.DATA_POLICY = dataPolicy;
 
 		this.root = createTopRoot();
+
+		this.maxId = -1;
 	}
 
 	/**
@@ -335,6 +339,15 @@ public class MerkleSortTree<T> implements Transactional {
 	}
 
 	/**
+	 * 返回最大数量；
+	 * 
+	 * @return
+	 */
+	public long getMaxCount() {
+		return MAX_COUNT;
+	}
+
+	/**
 	 * 数据节点的总数；
 	 * 
 	 * <br>
@@ -350,7 +363,7 @@ public class MerkleSortTree<T> implements Transactional {
 	/**
 	 * 设置指定 id 的数据；
 	 * 
-	 * @param id   数据的编号；
+	 * @param id   数据的编号；要求大于等于 0，小于最大数量 {@link #getMaxCount()}；
 	 * @param data 数据；
 	 * @return true 表示数据已设置； false 表示数据未设置；当内部的数据写入策略有可能阻止设置数据，此时将返回 false；
 	 */
@@ -362,15 +375,15 @@ public class MerkleSortTree<T> implements Transactional {
 		}
 		root = newRoot;
 		// 更新 maxId；
-		if (maxId == null || id > maxId.longValue()) {
-			maxId = Long.valueOf(id);
+		if (id > maxId) {
+			maxId = id;
 		}
 		return true;
 	}
 
 	/**
 	 * 最大的编码；<br>
-	 * 如果默克尔没有数据，则返回 null；
+	 * 如果默克尔树为空时，返回 -1；
 	 * <p>
 	 * 
 	 * 该属性会实时反映默克尔树的状态，包括未提交的状态，有新的数据写入之后立即更新该属性；<br>
@@ -379,10 +392,16 @@ public class MerkleSortTree<T> implements Transactional {
 	 * 
 	 * @return
 	 */
-	public Long getMaxId() {
+	public long getMaxId() {
 		return maxId;
 	}
 
+	/**
+	 * 返回指定编码的数据；
+	 * 
+	 * @param id
+	 * @return
+	 */
 	public T get(long id) {
 		return seekData(root, id, NullSelector.INSTANCE);
 	}
@@ -450,10 +469,15 @@ public class MerkleSortTree<T> implements Transactional {
 		}
 	}
 
-	private Long refreshMaxId() {
+	/**
+	 * 刷新 maxId 属性；
+	 * 
+	 * @return
+	 */
+	private long refreshMaxId() {
 		if (getCount() == 0) {
 			// 空的默克尔树；
-			maxId = null;
+			maxId = -1;
 		} else {
 			// 默克尔树不为空 ；
 			SkippingIterator<MerkleValue<T>> itr = iterator();
@@ -937,68 +961,6 @@ public class MerkleSortTree<T> implements Transactional {
 	}
 
 	// ----------------------------- inner types --------------------------
-
-	/**
-	 * 默认的数据策略；
-	 * 
-	 * @author huanghaiquan
-	 *
-	 * @param <T>
-	 */
-	public static class DefaultDataPolicy<T> implements DataPolicy<T> {
-
-		/**
-		 * 更新指定 id 的数据节点；
-		 * 
-		 * <p>
-		 * 默认实现并不允许更新相同 id 的数据，并抛出 {@link MerkleProofException} 异常;
-		 * 
-		 * @param origValue 原数据；如果为 null，则表明是新增数据；
-		 * @param newValue  新数据；
-		 * @return 更新后的新节点的数据； 如果返回 null，则忽略此次操作；
-		 */
-		@Override
-		public T updateData(long id, T origData, T newData) {
-			if (origData != null) {
-				throw new MerkleTreeKeyExistException("Unsupport updating datas with the same id!");
-			}
-			return newData;
-		}
-
-		/**
-		 * 准备提交指定 id 的数据，保存至存储服务；<br>
-		 * 
-		 * 此方法在对指定数据节点进行序列化并进行哈希计算之前被调用；
-		 * 
-		 * @param id
-		 * @param data
-		 */
-		@Override
-		public T beforeCommitting(long id, T data) {
-			return data;
-		}
-
-		@Override
-		public long count(long id, T data) {
-			return 1;
-		}
-
-		/**
-		 * 已经取消指定 id 的数据；
-		 * 
-		 * @param id
-		 * @param child
-		 */
-		@Override
-		public void afterCanceled(long id, T data) {
-		}
-
-		@Override
-		public SkippingIterator<MerkleValue<T>> iterator(long id, byte[] bytesData, long count,
-				BytesConverter<T> converter) {
-			return new MerkleDataIteratorWrapper<T>(id, bytesData, converter);
-		}
-	}
 
 	private static class NullSelector implements MerkleEntrySelector {
 
@@ -1553,37 +1515,6 @@ public class MerkleSortTree<T> implements Transactional {
 		@Override
 		public long getCursor() {
 			return cursor;
-		}
-
-	}
-
-	private static class MerkleDataIteratorWrapper<T> extends AbstractSkippingIterator<MerkleValue<T>> {
-
-		private long id;
-
-		private byte[] valueBytes;
-
-		private BytesConverter<T> converter;
-
-		public MerkleDataIteratorWrapper(long id, byte[] valueBytes, BytesConverter<T> converter) {
-			this.id = id;
-			this.valueBytes = valueBytes;
-			this.converter = converter;
-		}
-
-		@Override
-		public long getTotalCount() {
-			return 1;
-		}
-
-		@Override
-		public MerkleValue<T> next() {
-			if (hasNext()) {
-				cursor++;
-				T value = converter.fromBytes(valueBytes);
-				return new IDValue<T>(id, value);
-			}
-			return null;
 		}
 
 	}

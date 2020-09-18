@@ -268,7 +268,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
 
-		return ledger.getTransactionSet(ledgerBlock).getTxs(fromIndex, count);
+		return ledger.getTransactionSet(ledgerBlock).getTransactions(fromIndex, count);
 
 //		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 //		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
@@ -301,7 +301,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
 
-		return ledger.getTransactionSet(ledgerBlock).getTxs(fromIndex, count);
+		return ledger.getTransactionSet(ledgerBlock).getTransactions(fromIndex, count);
 
 //		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 //		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
@@ -331,7 +331,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		TransactionQuery txset = ledger.getTransactionSet(block);
-		LedgerTransaction transaction = txset.get(contentHash);
+		LedgerTransaction transaction = txset.getTransaction(contentHash);
 		return txDecorator(transaction);
 	}
 

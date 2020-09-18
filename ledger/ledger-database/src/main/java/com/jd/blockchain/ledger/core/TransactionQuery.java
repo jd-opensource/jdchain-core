@@ -6,9 +6,9 @@ import com.jd.blockchain.ledger.TransactionState;
 
 public interface TransactionQuery extends MerkleProvable {
 
-	LedgerTransaction[] getTxs(int fromIndex, int count);
+	LedgerTransaction[] getTransactions(int fromIndex, int count);
 
-	byte[][] getValuesByIndex(int fromIndex, int count);
+//	byte[][] getValuesByIndex(int fromIndex, int count);
 
 	long getTotalCount();
 
@@ -17,7 +17,7 @@ public interface TransactionQuery extends MerkleProvable {
 	 *            Base58 编码的交易内容的哈希；
 	 * @return
 	 */
-	LedgerTransaction get(HashDigest txContentHash);
+	LedgerTransaction getTransaction(HashDigest txContentHash);
 
 	TransactionState getState(HashDigest txContentHash);
 

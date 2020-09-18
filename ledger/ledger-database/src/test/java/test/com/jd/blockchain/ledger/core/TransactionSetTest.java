@@ -1,6 +1,5 @@
 package test.com.jd.blockchain.ledger.core;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -9,13 +8,29 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Random;
 
-import com.jd.blockchain.ledger.*;
 import org.junit.Test;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.DataAccountKVSetOperation.KVWriteEntry;
+import com.jd.blockchain.ledger.BlockchainKeyGenerator;
+import com.jd.blockchain.ledger.BlockchainKeypair;
+import com.jd.blockchain.ledger.BytesDataList;
+import com.jd.blockchain.ledger.ConsensusSettingsUpdateOperation;
+import com.jd.blockchain.ledger.ContractCodeDeployOperation;
+import com.jd.blockchain.ledger.ContractEventSendOperation;
+import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.DataAccountKVSetOperation;
+import com.jd.blockchain.ledger.DataAccountRegisterOperation;
+import com.jd.blockchain.ledger.LedgerTransaction;
+import com.jd.blockchain.ledger.Operation;
+import com.jd.blockchain.ledger.OperationResult;
+import com.jd.blockchain.ledger.ParticipantRegisterOperation;
+import com.jd.blockchain.ledger.ParticipantStateUpdateOperation;
+import com.jd.blockchain.ledger.TransactionContent;
+import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.TransactionRequestBuilder;
+import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.core.LedgerTransactionData;
 import com.jd.blockchain.ledger.core.TransactionQuery;
 import com.jd.blockchain.ledger.core.TransactionSet;
@@ -23,8 +38,9 @@ import com.jd.blockchain.ledger.core.TransactionStagedSnapshot;
 import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.transaction.TxBuilder;
+import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.codec.Base58Utils;
-import com.jd.blockchain.utils.io.BytesUtils;
+import com.strobel.core.ArrayUtilities;
 
 public class TransactionSetTest {
 
@@ -44,48 +60,156 @@ public class TransactionSetTest {
 	}
 
 	@Test
-	public void test() {
-
-		CryptoSetting defCryptoSetting = LedgerTestUtils.createDefaultCryptoSetting();
+	public void testSingleTransactionGetAndSet() {
+		CryptoSetting cryptoSetting = LedgerTestUtils.createDefaultCryptoSetting();
 
 		MemoryKVStorage testStorage = new MemoryKVStorage();
 
 		// Create a new TransactionSet, it's empty;
-		TransactionSet txset = new TransactionSet(defCryptoSetting, keyPrefix, testStorage, testStorage);
+		TransactionSet txset = new TransactionSet(cryptoSetting, keyPrefix, testStorage, testStorage);
 		assertTrue(txset.isUpdated());
 		assertFalse(txset.isReadonly());
 		assertNull(txset.getRootHash());
 
-		// Build transaction request;
 		HashDigest ledgerHash = LedgerTestUtils.generateRandomHash();
-		TxBuilder txBuilder = new TxBuilder(ledgerHash, defCryptoSetting.getHashAlgorithm());
+		TransactionRequest txReq = buildTransactionRequest_RandomOperation(ledgerHash, cryptoSetting);
 
-		BlockchainKeypair userKey = BlockchainKeyGenerator.getInstance().generate();
-		UserRegisterOperation userRegOp = txBuilder.users().register(userKey.getIdentity());
+		long blockHeight = 8922L;
+		TransactionState txState = TransactionState.SUCCESS;
+		LedgerTransaction tx = buildTransactionResult(txReq, blockHeight, txState);
 
-		BlockchainKeypair dataKey = BlockchainKeyGenerator.getInstance().generate();
-		DataAccountRegisterOperation dataAccRegOp = txBuilder.dataAccounts().register(dataKey.getIdentity());
+		txset.addTransaction(txReq, tx);
 
-		DataAccountKVSetOperation kvsetOP = txBuilder.dataAccount(dataKey.getAddress()).setText("A", "Value_A_0", -1)
-				.setText("B", "Value_B_0", -1).getOperation();
+		assertTrue(txset.isUpdated());
 
-		byte[] chainCode = new byte[128];
-		rand.nextBytes(chainCode);
-		BlockchainKeypair contractKey = BlockchainKeyGenerator.getInstance().generate();
-		ContractCodeDeployOperation contractDplOP = txBuilder.contracts().deploy(contractKey.getIdentity(), chainCode);
+		txset.commit();
 
-		ContractEventSendOperation contractEvtSendOP = txBuilder.contractEvents().send(contractKey.getAddress(), "test",
-				BytesDataList.singleText("TestContractArgs"));
+		HashDigest txsetRootHash = txset.getRootHash();
+		assertNotNull(txsetRootHash);
+		assertEquals(1, txset.getTotalCount());
+		assertEquals(blockHeight, tx.getBlockHeight());
+		assertEquals(ledgerHash, txReq.getTransactionContent().getLedgerHash());
 
-		TransactionRequestBuilder txReqBuilder = txBuilder.prepareRequest();
+		// Reload ;
+		TransactionSet reloadTxset = new TransactionSet(txsetRootHash, cryptoSetting, keyPrefix, testStorage,
+				testStorage, true);
 
-		BlockchainKeypair sponsorKey = BlockchainKeyGenerator.getInstance().generate();
-		txReqBuilder.signAsEndpoint(sponsorKey);
-		BlockchainKeypair gatewayKey = BlockchainKeyGenerator.getInstance().generate();
-		txReqBuilder.signAsNode(gatewayKey);
+		assertEquals(1, reloadTxset.getTotalCount());
 
-		TransactionRequest txReq = txReqBuilder.buildRequest();
+		LedgerTransaction reloadTx = reloadTxset.getTransaction(txReq.getTransactionHash());
 
+		assertNotNull(reloadTx);
+		assertEquals(txState, reloadTx.getExecutionState());
+
+		TransactionState state = reloadTxset.getState(txReq.getTransactionHash());
+		assertEquals(txState, state);
+
+		assertTransactionEquals(tx, reloadTx);
+	}
+
+	@Test
+	public void testTransactionSequence() {
+		CryptoSetting cryptoSetting = LedgerTestUtils.createDefaultCryptoSetting();
+		MemoryKVStorage testStorage = new MemoryKVStorage();
+		// Create a new TransactionSet;
+		TransactionSet txset = new TransactionSet(cryptoSetting, keyPrefix, testStorage, testStorage);
+
+		HashDigest ledgerHash = LedgerTestUtils.generateRandomHash();
+		long blockHeight = 8922L;
+
+		// 生成指定数量的测试数据：交易请求和交易执行结果；
+		int txCount0 = 10;
+		TransactionRequest[] txRequests_0 = new TransactionRequest[txCount0];
+		LedgerTransaction[] txResults_0 = new LedgerTransaction[txCount0];
+		buildRequestAndResult(ledgerHash, blockHeight, cryptoSetting, txCount0, txRequests_0, txResults_0);
+
+		// add tx to trasaction set;
+		for (int i = 0; i < txCount0; i++) {
+			txset.addTransaction(txRequests_0[i], txResults_0[i]);
+		}
+		txset.commit();
+
+		// 验证交易集合中记录的交易顺序；
+		assertEquals(txCount0, txset.getTotalCount());
+		LedgerTransaction[] actualTxResults = txset.getTransactions(0, txCount0);
+		assertEquals(txCount0, actualTxResults.length);
+		for (int i = 0; i < txCount0; i++) {
+			assertTransactionEquals(txResults_0[i], actualTxResults[i]);
+		}
+
+		// 重新加载交易集合；
+		HashDigest txsetRootHash = txset.getRootHash();
+		TransactionSet reloadTxset = new TransactionSet(txsetRootHash, cryptoSetting, keyPrefix, testStorage,
+				testStorage, true);
+
+		// 验证重新加载之后的交易集合中记录的交易顺序；
+		assertEquals(txCount0, reloadTxset.getTotalCount());
+		LedgerTransaction[] actualTxResults_reload = reloadTxset.getTransactions(0, txCount0);
+		assertEquals(txCount0, actualTxResults_reload.length);
+		for (int i = 0; i < txCount0; i++) {
+			assertTransactionEquals(txResults_0[i], actualTxResults_reload[i]);
+		}
+
+		// 生成指定数量的测试数据：交易请求和交易执行结果；
+		int txCount1 = new Random().nextInt(200) + 1;
+		TransactionRequest[] txRequests_1 = new TransactionRequest[txCount1];
+		LedgerTransaction[] txResults_1 = new LedgerTransaction[txCount1];
+		buildRequestAndResult(ledgerHash, blockHeight, cryptoSetting, txCount1, txRequests_1, txResults_1);
+
+		// add tx to trasaction set;
+		TransactionSet newTxset = new TransactionSet(txsetRootHash, cryptoSetting, keyPrefix, testStorage,
+				testStorage, false);
+		for (int i = 0; i < txCount1; i++) {
+			newTxset.addTransaction(txRequests_1[i], txResults_1[i]);
+		}
+		newTxset.commit();
+
+		// 验证交易集合中记录的交易顺序；
+		int totalCount = txCount0 + txCount1;
+		assertEquals(totalCount, newTxset.getTotalCount());
+		LedgerTransaction[] actualTxResults_reload_2 = newTxset.getTransactions(0, totalCount);
+		assertEquals(totalCount, actualTxResults_reload_2.length);
+		
+		TransactionRequest[] txRequests = ArrayUtils.concat(txRequests_0, txRequests_1, TransactionRequest.class);
+		LedgerTransaction[] txResults = ArrayUtils.concat(txResults_0, txResults_1, LedgerTransaction.class);
+		for (int i = 0; i < totalCount; i++) {
+			assertTransactionEquals(txResults[i], actualTxResults_reload_2[i]);
+		}
+	}
+
+	private void buildRequestAndResult(HashDigest ledgerHash, long blockHeight, CryptoSetting cryptoSetting,
+			int txCount, TransactionRequest[] txRequests, LedgerTransaction[] txResults) {
+		TransactionState[] TX_EXEC_STATES = TransactionState.values();
+		for (int i = 0; i < txCount; i++) {
+			TransactionRequest txRequest = buildTransactionRequest_RandomOperation(ledgerHash, cryptoSetting);
+			LedgerTransaction txResult = buildTransactionResult(txRequest, blockHeight,
+					TX_EXEC_STATES[i % TX_EXEC_STATES.length]);
+
+			txRequests[i] = txRequest;
+			txResults[i] = txResult;
+		}
+	}
+
+	private void assertTransactionEquals(LedgerTransaction txExpected, LedgerTransaction txActual) {
+		assertEquals(txExpected.getTransactionHash(), txActual.getTransactionHash());
+		assertEquals(txExpected.getExecutionState(), txActual.getExecutionState());
+		assertEquals(txExpected.getBlockHeight(), txActual.getBlockHeight());
+
+		assertEquals(txExpected.getOperationResults().length, txActual.getOperationResults().length);
+
+		assertEquals(txExpected.getDataSnapshot().getAdminAccountHash(),
+				txActual.getDataSnapshot().getAdminAccountHash());
+		assertEquals(txExpected.getDataSnapshot().getContractAccountSetHash(),
+				txActual.getDataSnapshot().getContractAccountSetHash());
+		assertEquals(txExpected.getDataSnapshot().getDataAccountSetHash(),
+				txActual.getDataSnapshot().getDataAccountSetHash());
+		assertEquals(txExpected.getDataSnapshot().getUserAccountSetHash(),
+				txActual.getDataSnapshot().getUserAccountSetHash());
+
+	}
+
+	private LedgerTransaction buildTransactionResult(TransactionRequest txReq, long blockHeight,
+			TransactionState txState) {
 		TransactionStagedSnapshot txSnapshot = new TransactionStagedSnapshot();
 		HashDigest adminAccountHash = LedgerTestUtils.generateRandomHash();
 		txSnapshot.setAdminAccountHash(adminAccountHash);
@@ -96,107 +220,64 @@ public class TransactionSetTest {
 		HashDigest contractAccountSetHash = LedgerTestUtils.generateRandomHash();
 		txSnapshot.setContractAccountSetHash(contractAccountSetHash);
 
-		long blockHeight = 8922L;
-		LedgerTransactionData tx = new LedgerTransactionData(blockHeight, txReq, TransactionState.SUCCESS, txSnapshot);
-		txset.addTransaction(tx);
+		OperationResult[] opResults = new OperationResult[0];
+		LedgerTransactionData tx = new LedgerTransactionData(blockHeight, txReq, txState, txSnapshot, opResults);
 
-		assertTrue(txset.isUpdated());
-
-		txset.commit();
-		HashDigest txsetRootHash = txset.getRootHash();
-		assertNotNull(txsetRootHash);
-		assertEquals(1, txset.getTotalCount());
-		assertEquals(blockHeight, tx.getBlockHeight());
-		assertEquals(ledgerHash, tx.getTransactionContent().getLedgerHash());
-		assertEquals(5, tx.getTransactionContent().getOperations().length);
-
-		// Reload ;
-		TransactionQuery reloadTxset = new TransactionSet(txsetRootHash, defCryptoSetting, keyPrefix, testStorage,
-				testStorage, true);
-
-		assertEquals(1, reloadTxset.getTotalCount());
-
-		HashDigest txCtnHash = txReq.getTransactionHash();
-		LedgerTransaction reloadTx = reloadTxset.get(txCtnHash);
-		TransactionState state = reloadTxset.getState(txCtnHash);
-		assertNotNull(reloadTx);
-		assertEquals(0, state.CODE);
-
-		assertEquals(tx.getBlockHeight(), reloadTx.getBlockHeight());
-		assertEquals(tx.getAdminAccountHash(), reloadTx.getAdminAccountHash());
-		assertEquals(tx.getContractAccountSetHash(), reloadTx.getContractAccountSetHash());
-		assertEquals(tx.getDataAccountSetHash(), reloadTx.getDataAccountSetHash());
-		assertEquals(tx.getUserAccountSetHash(), reloadTx.getUserAccountSetHash());
-		assertEquals(TransactionState.SUCCESS, reloadTx.getExecutionState());
-
-		DigitalSignature[] expEndpointSignatures = tx.getEndpointSignatures();
-		DigitalSignature[] actualEndpointSignatures = reloadTx.getEndpointSignatures();
-		assertEquals(expEndpointSignatures.length, actualEndpointSignatures.length);
-		for (int i = 0; i < actualEndpointSignatures.length; i++) {
-			assertEquals(expEndpointSignatures[i].getPubKey(), actualEndpointSignatures[i].getPubKey());
-			assertEquals(expEndpointSignatures[i].getDigest(), actualEndpointSignatures[i].getDigest());
-		}
-
-		DigitalSignature[] expNodeSignatures = tx.getNodeSignatures();
-		DigitalSignature[] actualNodeSignatures = reloadTx.getNodeSignatures();
-		assertEquals(expNodeSignatures.length, actualNodeSignatures.length);
-		for (int i = 0; i < actualNodeSignatures.length; i++) {
-			assertEquals(expNodeSignatures[i].getPubKey(), actualNodeSignatures[i].getPubKey());
-			assertEquals(expNodeSignatures[i].getDigest(), actualNodeSignatures[i].getDigest());
-		}
-
-		Operation[] expOperations = tx.getTransactionContent().getOperations();
-		Operation[] actualOperations = reloadTx.getTransactionContent().getOperations();
-		assertEquals(expOperations.length, actualOperations.length);
-		assertEquals(5, actualOperations.length);
-		assertTrue(actualOperations[0] instanceof UserRegisterOperation);
-		assertTrue(actualOperations[1] instanceof DataAccountRegisterOperation);
-		assertTrue(actualOperations[2] instanceof DataAccountKVSetOperation);
-		assertTrue(actualOperations[3] instanceof ContractCodeDeployOperation);
-		assertTrue(actualOperations[4] instanceof ContractEventSendOperation);
-
-		UserRegisterOperation actualUserRegOp = (UserRegisterOperation) actualOperations[0];
-		assertEquals(userRegOp.getUserID().getAddress(), actualUserRegOp.getUserID().getAddress());
-		assertEquals(userRegOp.getUserID().getPubKey(), actualUserRegOp.getUserID().getPubKey());
-
-		DataAccountRegisterOperation actualDataAccRegOp = (DataAccountRegisterOperation) actualOperations[1];
-		assertEquals(dataAccRegOp.getAccountID().getAddress(), actualDataAccRegOp.getAccountID().getAddress());
-		assertEquals(dataAccRegOp.getAccountID().getPubKey(), actualDataAccRegOp.getAccountID().getPubKey());
-
-		DataAccountKVSetOperation actualKVSetOp = (DataAccountKVSetOperation) actualOperations[2];
-		assertEquals(kvsetOP.getAccountAddress(), actualKVSetOp.getAccountAddress());
-
-		KVWriteEntry[] expKVWriteSet = kvsetOP.getWriteSet();
-		KVWriteEntry[] acutualKVWriteSet = actualKVSetOp.getWriteSet();
-		assertEquals(expKVWriteSet.length, acutualKVWriteSet.length);
-		for (int i = 0; i < acutualKVWriteSet.length; i++) {
-			assertEquals(expKVWriteSet[i].getKey(), acutualKVWriteSet[i].getKey());
-			assertEquals(expKVWriteSet[i].getExpectedVersion(), acutualKVWriteSet[i].getExpectedVersion());
-			assertTrue(BytesUtils.equals(expKVWriteSet[i].getValue().getBytes().toBytes(),
-					acutualKVWriteSet[i].getValue().getBytes().toBytes()));
-		}
-
-		ContractCodeDeployOperation actualContractDplOp = (ContractCodeDeployOperation) actualOperations[3];
-		assertEquals(contractDplOP.getContractID().getAddress(), actualContractDplOp.getContractID().getAddress());
-		assertEquals(contractDplOP.getContractID().getPubKey(), actualContractDplOp.getContractID().getPubKey());
-		assertTrue(BytesUtils.equals(contractDplOP.getChainCode(), actualContractDplOp.getChainCode()));
-
-		ContractEventSendOperation actualContractEvtSendOp = (ContractEventSendOperation) actualOperations[4];
-		assertEquals(contractEvtSendOP.getContractAddress(), actualContractEvtSendOp.getContractAddress());
-		assertEquals(contractEvtSendOP.getEvent(), actualContractEvtSendOp.getEvent());
-		assertEquals("test", actualContractEvtSendOp.getEvent());
-
-		byte[] expectedBytes = BinaryProtocol.encode(contractEvtSendOP.getArgs(), BytesValueList.class);
-		byte[] actualBytes = BinaryProtocol.encode(actualContractEvtSendOp.getArgs(), BytesValueList.class);
-		assertArrayEquals(expectedBytes, actualBytes);
-
-		expectedBytes = BinaryProtocol.encode(BytesDataList.singleText("TestContractArgs"), BytesValueList.class);
-		actualBytes = BinaryProtocol.encode(actualContractEvtSendOp.getArgs(), BytesValueList.class);
-		assertArrayEquals(expectedBytes, actualBytes);
+		return tx;
 	}
 
 	/**
-	 * 利用一个随机出现的错误中采用的特殊值来验证正确性；
+	 * 创建交易请求；以随机生成的数据作为交易的操作参数；
+	 * 
+	 * @param ledgerHash
+	 * @param defCryptoSetting
+	 * @return
+	 */
+	private TransactionRequest buildTransactionRequest_RandomOperation(HashDigest ledgerHash,
+			CryptoSetting defCryptoSetting) {
+		// Build transaction request;
+		TxBuilder txBuilder = new TxBuilder(ledgerHash, defCryptoSetting.getHashAlgorithm());
+
+		Operation[] operations = new Operation[5];
+
+		// register user;
+		BlockchainKeypair userKey = BlockchainKeyGenerator.getInstance().generate();
+		operations[0] = txBuilder.users().register(userKey.getIdentity());
+
+		// register data account;
+		BlockchainKeypair dataKey = BlockchainKeyGenerator.getInstance().generate();
+		operations[1] = txBuilder.dataAccounts().register(dataKey.getIdentity());
+
+		// set data after registering data account immediately;
+		operations[2] = txBuilder.dataAccount(dataKey.getAddress()).setText("A", "Value_A_0", -1)
+				.setText("B", "Value_B_0", -1).getOperation();
+
+		// generate random bytes as the bytes of ChainCode to deploy as a smart
+		// contract；
+		byte[] chainCode = new byte[128];
+		rand.nextBytes(chainCode);
+		BlockchainKeypair contractKey = BlockchainKeyGenerator.getInstance().generate();
+		operations[3] = txBuilder.contracts().deploy(contractKey.getIdentity(), chainCode);
+
+		// invoke smart contract;
+		operations[4] = txBuilder.contractEvents().send(contractKey.getAddress(), "test",
+				BytesDataList.singleText("TestContractArgs"));
+
+		// build transaction request;
+		TransactionRequestBuilder txReqBuilder = txBuilder.prepareRequest();
+
+		BlockchainKeypair sponsorKey = BlockchainKeyGenerator.getInstance().generate();
+		txReqBuilder.signAsEndpoint(sponsorKey);
+		BlockchainKeypair gatewayKey = BlockchainKeyGenerator.getInstance().generate();
+		txReqBuilder.signAsNode(gatewayKey);
+
+		TransactionRequest txReq = txReqBuilder.buildRequest();
+
+		return txReq;
+	}
+
+	/**
+	 * 根据实际运行中一个随机出现的错误中提取到的数据来建立的测试用例，可以更简化地验证正确性；
 	 * 
 	 * <p>
 	 * 
@@ -242,15 +323,15 @@ public class TransactionSetTest {
 				new HashDigest(Base58Utils.decode("j5oQDSob92mCoGSHtrXa9soqgAtMyjwfRMt2kj7igXXJrP")));
 
 		LedgerTransaction tx = new LedgerTransactionData(1, transactionRequest1, TransactionState.SUCCESS, txSnapshot);
-		txset.addTransaction(tx);
+		txset.addTransaction(transactionRequest1, tx);
 
-		LedgerTransaction tx_query = txset.get(transactionRequest1.getTransactionHash());
+		LedgerTransaction tx_query = txset.getTransaction(transactionRequest1.getTransactionHash());
 		assertNotNull(tx_query);
 
 		txset.commit();
 		bufferStorage.commit();
 
-		tx_query = txset.get(transactionRequest1.getTransactionHash());
+		tx_query = txset.getTransaction(transactionRequest1.getTransactionHash());
 		TransactionState tx_state = txset.getState(transactionRequest1.getTransactionHash());
 		assertNotNull(tx_query);
 		assertEquals(0, tx_state.CODE);
@@ -258,7 +339,7 @@ public class TransactionSetTest {
 		HashDigest txsetRootHash = txset.getRootHash();
 
 		txset = new TransactionSet(txsetRootHash, defCryptoSetting, keyPrefix, testStorage, testStorage, false);
-		tx_query = txset.get(transactionRequest1.getTransactionHash());
+		tx_query = txset.getTransaction(transactionRequest1.getTransactionHash());
 		tx_state = txset.getState(transactionRequest1.getTransactionHash());
 
 		assertNotNull(tx_query);

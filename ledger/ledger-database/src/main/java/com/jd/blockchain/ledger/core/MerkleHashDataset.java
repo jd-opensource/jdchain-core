@@ -88,23 +88,6 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 	 */
 	public MerkleHashDataset(CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage versioningStorage) {
-//		// 缓冲对KV的写入；
-//		this.bufferedStorage = new BufferedKVStorage(exPolicyStorage, versioningStorage, false);
-//
-//		// 把存储数据值、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
-//		dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
-//		this.valueStorage = bufferedStorage;
-//		
-//		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
-//
-//		// MerkleTree 本身是可缓冲的；
-//		merkleKeyPrefix = keyPrefix.concat(MERKLE_TREE_PREFIX);
-//		ExPolicyKVStorage merkleTreeStorage = exPolicyStorage;
-////		this.merkleTree = new MerkleHashTrie(setting, merkleKeyPrefix, merkleTreeStorage);
-//		
-//		TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(setting.getHashAlgorithm()).setVerifyHashOnLoad(setting.getAutoVerifyHash());
-//		this.merkleTree = new MerkleHashSortTree(options, merkleKeyPrefix, merkleTreeStorage);
-		
 		this(null, setting, keyPrefix, exPolicyStorage, versioningStorage, false);
 	}
 
@@ -232,23 +215,23 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		return null;
 	}
 
-	/**
-	 * get the data at the specific index;
-	 *
-	 * @param fromIndex
-	 * @return
-	 */
-	public byte[] getValuesAt(int fromIndex) {
-		SkippingIterator<KVEntry> iterator = merkleTree.iterator();
-		iterator.skip(fromIndex);
-		if (iterator.hasNext()) {
-			KVEntry dataNode = iterator.next();
-			Bytes dataKey = encodeDataKey(dataNode.getKey());
-			return valueStorage.get(dataKey, dataNode.getVersion());
-		}
-
-		return null;
-	}
+//	/**
+//	 * get the data at the specific index;
+//	 *
+//	 * @param fromIndex
+//	 * @return
+//	 */
+//	public byte[] getValuesAt(int fromIndex) {
+//		SkippingIterator<KVEntry> iterator = merkleTree.iterator();
+//		iterator.skip(fromIndex);
+//		if (iterator.hasNext()) {
+//			KVEntry dataNode = iterator.next();
+//			Bytes dataKey = encodeDataKey(dataNode.getKey());
+//			return valueStorage.get(dataKey, dataNode.getVersion());
+//		}
+//
+//		return null;
+//	}
 
 	// 去掉不合理的接口定义； by huanghaiquan 2020-07-10;
 //	// 获得两个默克尔数据集之间的数据节点差异
@@ -349,11 +332,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 	 * @return 返回指定的键的版本；如果不存在，则返回 -1；
 	 */
 	private long getMerkleVersion(Bytes key) {
-		KVEntry mdn = merkleTree.getData(key.toBytes());
-		if (mdn == null) {
-			return -1;
-		}
-		return mdn.getVersion();
+		return merkleTree.getVersion(key.toBytes());
 	}
 
 	/**
@@ -417,9 +396,17 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 
 	@Override
 	public DataEntry<Bytes, byte[]> getDataEntry(Bytes key, long version) {
-		byte[] value = getValue(key, version);
-		if (value == null) {
+		long latestVersion = getMerkleVersion(key);
+		if (latestVersion < 0 || version > latestVersion) {
+			// key not exist, or the specified version is out of the latest version indexed
+			// by the current merkletree;
 			return null;
+		}
+		version = version < 0 ? latestVersion : version;
+		Bytes dataKey = encodeDataKey(key);
+		byte[] value = valueStorage.get(dataKey, version);
+		if (value == null) {
+			throw new MerkleProofException("Expected value does not exist!");
 		}
 		return new VersioningKVData<Bytes, byte[]>(key, version, value);
 	}

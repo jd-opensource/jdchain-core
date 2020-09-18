@@ -1,9 +1,12 @@
 package com.jd.blockchain.peer.decorator;
 
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.*;
-import com.jd.blockchain.transaction.DigitalSignatureBlob;
-import com.jd.blockchain.transaction.TxContentBlob;
+import com.jd.blockchain.ledger.LedgerDataSnapshot;
+import com.jd.blockchain.ledger.LedgerTransaction;
+import com.jd.blockchain.ledger.OperationResult;
+import com.jd.blockchain.ledger.OperationResultData;
+import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.ledger.TypedValue;
 
 /**
  * 交易包装类
@@ -14,40 +17,22 @@ import com.jd.blockchain.transaction.TxContentBlob;
  */
 public class TransactionDecorator implements LedgerTransaction {
 
-    private HashDigest adminAccountHash;
-
-    private HashDigest userAccountSetHash;
-
-    private HashDigest dataAccountSetHash;
-
-    private HashDigest contractAccountSetHash;
-
     private HashDigest transactionHash;
 
     private long blockHeight;
 
     private TransactionState executionState;
 
-    private TransactionContent transactionContent;
-
-    private DigitalSignature[] endpointSignatures;
-
-    private DigitalSignature[] nodeSignatures;
-
     private OperationResult[] operationResults;
+
+	private LedgerDataSnapshot dataSnapshot;
 
     public TransactionDecorator(LedgerTransaction ledgerTransaction) {
         this.blockHeight = ledgerTransaction.getBlockHeight();
-        this.adminAccountHash = ledgerTransaction.getAdminAccountHash();
-        this.userAccountSetHash = ledgerTransaction.getUserAccountSetHash();
-        this.dataAccountSetHash = ledgerTransaction.getDataAccountSetHash();
-        this.contractAccountSetHash = ledgerTransaction.getContractAccountSetHash();
+        this.dataSnapshot = ledgerTransaction.getDataSnapshot();
         this.executionState = ledgerTransaction.getExecutionState();
         this.transactionHash = ledgerTransaction.getTransactionHash();
         
-        initTxContent(ledgerTransaction.getTransactionContent());
-        initEndpointSignatures(ledgerTransaction.getEndpointSignatures());
-        initNodeSignatures(ledgerTransaction.getNodeSignatures());
         initOperationResults(ledgerTransaction.getOperationResults());
     }
 
@@ -62,84 +47,19 @@ public class TransactionDecorator implements LedgerTransaction {
         }
     }
 
-    private void initNodeSignatures(DigitalSignature[] nodeSigns) {
-        if (nodeSigns != null && nodeSigns.length > 0) {
-            this.nodeSignatures = new DigitalSignature[nodeSigns.length];
-            for (int i = 0; i < nodeSigns.length; i++) {
-                this.nodeSignatures[i] = new DigitalSignatureBlob(
-                        nodeSigns[i].getPubKey(), nodeSigns[i].getDigest());
-            }
-        }
-    }
-
-    private void initEndpointSignatures(DigitalSignature[] endpointSigns) {
-        if (endpointSigns != null && endpointSigns.length > 0) {
-            this.endpointSignatures = new DigitalSignature[endpointSigns.length];
-            for (int i = 0; i < endpointSigns.length; i++) {
-                this.endpointSignatures[i] = new DigitalSignatureBlob(
-                        endpointSigns[i].getPubKey(), endpointSigns[i].getDigest());
-            }
-        }
-    }
-
-    private void initTxContent(TransactionContent txContent) {
-        TxContentBlob txContentBlob = new TxContentBlob(txContent.getLedgerHash());
-//        txContentBlob.setHash(txContent.getHash());
-        txContentBlob.setTime(txContent.getTimestamp());
-        Operation[] operations = txContent.getOperations();
-        if (operations != null && operations.length > 0) {
-            for (Operation op : operations) {
-                Operation opDecorator = initOperation(op);
-                if (opDecorator != null) {
-                    txContentBlob.addOperation(opDecorator);
-                }
-            }
-        }
-        this.transactionContent = txContentBlob;
-    }
-
-    private Operation initOperation(Operation op) {
-        return OperationDecoratorFactory.decorate(op);
-    }
-
-    @Override
-    public HashDigest getAdminAccountHash() {
-        return this.adminAccountHash;
-    }
-
-    @Override
-    public HashDigest getUserAccountSetHash() {
-        return this.userAccountSetHash;
-    }
-
-    @Override
-    public HashDigest getDataAccountSetHash() {
-        return this.dataAccountSetHash;
-    }
-
-    @Override
-    public HashDigest getContractAccountSetHash() {
-        return this.contractAccountSetHash;
-    }
-
     @Override
     public HashDigest getTransactionHash() {
     	return transactionHash;
     }
 
     @Override
-    public TransactionContent getTransactionContent() {
-        return this.transactionContent;
-    }
-
-    @Override
-    public DigitalSignature[] getEndpointSignatures() {
-        return this.endpointSignatures;
-    }
-
-    @Override
     public long getBlockHeight() {
         return this.blockHeight;
+    }
+    
+    @Override
+    public LedgerDataSnapshot getDataSnapshot() {
+    	return dataSnapshot;
     }
 
     @Override
@@ -152,41 +72,8 @@ public class TransactionDecorator implements LedgerTransaction {
         return this.operationResults;
     }
 
-    @Override
-    public DigitalSignature[] getNodeSignatures() {
-        return this.nodeSignatures;
-    }
-
-    public void setAdminAccountHash(HashDigest adminAccountHash) {
-        this.adminAccountHash = adminAccountHash;
-    }
-
-    public void setUserAccountSetHash(HashDigest userAccountSetHash) {
-        this.userAccountSetHash = userAccountSetHash;
-    }
-
-    public void setDataAccountSetHash(HashDigest dataAccountSetHash) {
-        this.dataAccountSetHash = dataAccountSetHash;
-    }
-
-    public void setContractAccountSetHash(HashDigest contractAccountSetHash) {
-        this.contractAccountSetHash = contractAccountSetHash;
-    }
-
     public void setBlockHeight(long blockHeight) {
         this.blockHeight = blockHeight;
-    }
-
-    public void setTransactionContent(TransactionContent transactionContent) {
-        this.transactionContent = transactionContent;
-    }
-
-    public void setEndpointSignatures(DigitalSignature[] endpointSignatures) {
-        this.endpointSignatures = endpointSignatures;
-    }
-
-    public void setNodeSignatures(DigitalSignature[] nodeSignatures) {
-        this.nodeSignatures = nodeSignatures;
     }
 
     public void setExecutionState(TransactionState executionState) {

@@ -1,24 +1,23 @@
 package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.DigitalSignature;
+import com.jd.blockchain.ledger.LedgerDataSnapshot;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.OperationResult;
-import com.jd.blockchain.ledger.TransactionContent;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionState;
 
 public class LedgerTransactionData implements LedgerTransaction {
 
-	private TransactionStagedSnapshot txSnapshot;
+	private LedgerDataSnapshot txSnapshot;
 	
 	private HashDigest transactionHash;
 
-	private TransactionContent transactionContent;
-
-	private DigitalSignature[] endpointSignatures;
-
-	private DigitalSignature[] nodeSignatures;
+//	private TransactionContent transactionContent;
+//
+//	private DigitalSignature[] endpointSignatures;
+//
+//	private DigitalSignature[] nodeSignatures;
 
 	private TransactionState executionState;
 
@@ -44,9 +43,9 @@ public class LedgerTransactionData implements LedgerTransaction {
 		this.blockHeight = blockHeight;
 		this.txSnapshot = txSnapshot;
 		this.transactionHash = txReq.getTransactionHash();
-		this.transactionContent = txReq.getTransactionContent();
-		this.endpointSignatures = txReq.getEndpointSignatures();
-		this.nodeSignatures = txReq.getNodeSignatures();
+//		this.transactionContent = txReq.getTransactionContent();
+//		this.endpointSignatures = txReq.getEndpointSignatures();
+//		this.nodeSignatures = txReq.getNodeSignatures();
 		this.executionState = execState;
 		this.operationResults = opResults;
 	}
@@ -71,70 +70,75 @@ public class LedgerTransactionData implements LedgerTransaction {
 		return transactionHash;
 	}
 	
+//	@Override
+//	public TransactionContent getTransactionContent() {
+//		return this.transactionContent;
+//	}
+//
+//	@Override
+//	public DigitalSignature[] getEndpointSignatures() {
+//		return this.endpointSignatures;
+//	}
+//
+//	@Override
+//	public DigitalSignature[] getNodeSignatures() {
+//		return nodeSignatures;
+//	}
+//
+//	@Override
+//	public HashDigest getAdminAccountHash() {
+//		return txSnapshot == null ? null : txSnapshot.getAdminAccountHash();
+//	}
+//
+//	@Override
+//	public HashDigest getUserAccountSetHash() {
+//		return txSnapshot == null ? null : txSnapshot.getUserAccountSetHash();
+//	}
+//
+//	@Override
+//	public HashDigest getDataAccountSetHash() {
+//		return txSnapshot == null ? null : txSnapshot.getDataAccountSetHash();
+//	}
+//
+//	@Override
+//	public HashDigest getContractAccountSetHash() {
+//		return txSnapshot == null ? null : txSnapshot.getContractAccountSetHash();
+//	}
+	
 	@Override
-	public TransactionContent getTransactionContent() {
-		return this.transactionContent;
+	public LedgerDataSnapshot getDataSnapshot() {
+		return txSnapshot;
 	}
 
-	@Override
-	public DigitalSignature[] getEndpointSignatures() {
-		return this.endpointSignatures;
-	}
-
-	@Override
-	public DigitalSignature[] getNodeSignatures() {
-		return nodeSignatures;
-	}
-
-	@Override
-	public HashDigest getAdminAccountHash() {
-		return txSnapshot == null ? null : txSnapshot.getAdminAccountHash();
-	}
-
-	@Override
-	public HashDigest getUserAccountSetHash() {
-		return txSnapshot == null ? null : txSnapshot.getUserAccountSetHash();
-	}
-
-	@Override
-	public HashDigest getDataAccountSetHash() {
-		return txSnapshot == null ? null : txSnapshot.getDataAccountSetHash();
-	}
-
-	@Override
-	public HashDigest getContractAccountSetHash() {
-		return txSnapshot == null ? null : txSnapshot.getContractAccountSetHash();
-	}
-
-	public void setTxSnapshot(TransactionStagedSnapshot txSnapshot) {
+	public void setDataSnapshot(TransactionStagedSnapshot txSnapshot) {
 		if (txSnapshot == null) {
 			throw new IllegalArgumentException("Transaction snapshot argument is null!");
 		}
 		this.txSnapshot = txSnapshot;
 	}
 
-	public void setTransactionContent(HashDigest transactionHash, TransactionContent content) {
-		this.transactionHash = transactionHash;
-		this.transactionContent = content;
-	}
-
-	public void setEndpointSignatures(DigitalSignature[] participantSignatures) {
-		this.endpointSignatures = participantSignatures;
-//		int length = participantSignatures.length;
-//		this.endpointSignatures = new DigitalSignature[length];
-//		for (int i = 0; i < length; i++) {
-//			this.endpointSignatures[i] = (DigitalSignature) participantSignatures[i];
-//		}
-	}
-
-	public void setNodeSignatures(DigitalSignature[] nodeSignatures) {
-		this.nodeSignatures = nodeSignatures;
-//		int length = nodeSignatures.length;
-//		this.nodeSignatures = new DigitalSignature[length];
-//		for (int i = 0; i < length; i++) {
-//			this.nodeSignatures[i] = (DigitalSignature) nodeSignatures[i];
-//		}
-	}
+//	public void setTransactionContent(HashDigest transactionHash, TransactionContent content) {
+//		this.transactionHash = transactionHash;
+//		this.transactionContent = content;
+//	}
+//
+//	public void setEndpointSignatures(DigitalSignature[] participantSignatures) {
+//		this.endpointSignatures = participantSignatures;
+////		int length = participantSignatures.length;
+////		this.endpointSignatures = new DigitalSignature[length];
+////		for (int i = 0; i < length; i++) {
+////			this.endpointSignatures[i] = (DigitalSignature) participantSignatures[i];
+////		}
+//	}
+//
+//	public void setNodeSignatures(DigitalSignature[] nodeSignatures) {
+//		this.nodeSignatures = nodeSignatures;
+////		int length = nodeSignatures.length;
+////		this.nodeSignatures = new DigitalSignature[length];
+////		for (int i = 0; i < length; i++) {
+////			this.nodeSignatures[i] = (DigitalSignature) nodeSignatures[i];
+////		}
+//	}
 
 	public void setExecutionState(TransactionState executionState) {
 		this.executionState = executionState;
@@ -144,32 +148,32 @@ public class LedgerTransactionData implements LedgerTransaction {
 		this.blockHeight = blockHeight;
 	}
 
-	public void setAdminAccountHash(HashDigest adminAccountHash) {
-		if (txSnapshot == null) {
-			txSnapshot = new TransactionStagedSnapshot();
-		}
-		txSnapshot.setAdminAccountHash(adminAccountHash);
-	}
-
-	public void setUserAccountSetHash(HashDigest userAccountSetHash) {
-		if (txSnapshot == null) {
-			txSnapshot = new TransactionStagedSnapshot();
-		}
-		txSnapshot.setUserAccountSetHash(userAccountSetHash);
-	}
-
-	public void setDataAccountSetHash(HashDigest dataAccountSetHash) {
-		if (txSnapshot == null) {
-			txSnapshot = new TransactionStagedSnapshot();
-		}
-		txSnapshot.setDataAccountSetHash(dataAccountSetHash);
-	}
-
-	public void setContractAccountSetHash(HashDigest contractAccountSetHash) {
-		if (txSnapshot == null) {
-			txSnapshot = new TransactionStagedSnapshot();
-		}
-		txSnapshot.setContractAccountSetHash(contractAccountSetHash);
-	}
+//	public void setAdminAccountHash(HashDigest adminAccountHash) {
+//		if (txSnapshot == null) {
+//			txSnapshot = new TransactionStagedSnapshot();
+//		}
+//		txSnapshot.setAdminAccountHash(adminAccountHash);
+//	}
+//
+//	public void setUserAccountSetHash(HashDigest userAccountSetHash) {
+//		if (txSnapshot == null) {
+//			txSnapshot = new TransactionStagedSnapshot();
+//		}
+//		txSnapshot.setUserAccountSetHash(userAccountSetHash);
+//	}
+//
+//	public void setDataAccountSetHash(HashDigest dataAccountSetHash) {
+//		if (txSnapshot == null) {
+//			txSnapshot = new TransactionStagedSnapshot();
+//		}
+//		txSnapshot.setDataAccountSetHash(dataAccountSetHash);
+//	}
+//
+//	public void setContractAccountSetHash(HashDigest contractAccountSetHash) {
+//		if (txSnapshot == null) {
+//			txSnapshot = new TransactionStagedSnapshot();
+//		}
+//		txSnapshot.setContractAccountSetHash(contractAccountSetHash);
+//	}
 	
 }

@@ -153,7 +153,7 @@ public class LedgerEditorTest {
 		textValue = bytes.getBytes().toUTF8String();
 		assertEquals("abc", textValue);
 
-		LedgerTransaction tx_init = repo.getTransactionSet().get(tx.getTransactionHash());
+		LedgerTransaction tx_init = repo.getTransactionSet().getTransaction(tx.getTransactionHash());
 		assertNotNull(tx_init);
 	}
 
@@ -282,9 +282,9 @@ public class LedgerEditorTest {
 		manager = new LedgerManager();
 		repo = manager.register(ledgerHash, STORAGE);
 
-		LedgerTransaction act_tx1 = repo.getTransactionSet().get(txHash1);
-		LedgerTransaction act_tx2 = repo.getTransactionSet().get(txHash2);
-		LedgerTransaction act_tx3 = repo.getTransactionSet().get(txHash3);
+		LedgerTransaction act_tx1 = repo.getTransactionSet().getTransaction(txHash1);
+		LedgerTransaction act_tx2 = repo.getTransactionSet().getTransaction(txHash2);
+		LedgerTransaction act_tx3 = repo.getTransactionSet().getTransaction(txHash3);
 
 		assertNotNull(act_tx3);
 		assertNotNull(act_tx2);

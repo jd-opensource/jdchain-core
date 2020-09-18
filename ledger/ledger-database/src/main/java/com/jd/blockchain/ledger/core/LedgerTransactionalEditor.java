@@ -581,7 +581,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 				tx = new LedgerTransactionData(blockEditor.getBlockHeight(), txRequest, txResult, txDataSnapshot,
 						operationResultArray(operationResults));
 				logger.debug("before txset.add(),[contentHash={}]",this.getTransactionRequest().getTransactionHash());
-				this.txset.addTransaction(tx);
+				this.txset.addTransaction(txRequest, tx);
 				logger.debug("after txset.add(),[contentHash={}]",this.getTransactionRequest().getTransactionHash());
 				this.txset.commit();
 				logger.debug("after txset.commit(),[contentHash={}]",this.getTransactionRequest().getTransactionHash());
@@ -624,7 +624,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			try {
 				tx = new LedgerTransactionData(blockEditor.getBlockHeight(), txRequest, txResult, txDataSnapshot,
 						operationResultArray(operationResults));
-				this.txset.addTransaction(tx);
+				this.txset.addTransaction(txRequest, tx);
 				this.txset.commit();
 			} catch (Exception e) {
 				//to reset currentTxCtx

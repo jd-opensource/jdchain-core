@@ -257,6 +257,15 @@ public class MerkleHashTrie implements Iterable<KVEntry>, MerkleTree {
 		MerkleTrieData dataEntry = seekDataEntry(key, version, keyHash, root, 0, NULL_SELECTOR);
 		return dataEntry;
 	}
+	
+	@Override
+	public long getVersion(byte[] key) {
+		MerkleTrieData data = getData(key);
+		if (data == null) {
+			return -1L;
+		}
+		return data.getVersion();
+	}
 
 //	@Override
 //	public MerkleTrieData getData(Bytes key) {

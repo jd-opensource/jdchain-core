@@ -18,11 +18,9 @@ import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.DataAccountRegisterOperation;
 import com.jd.blockchain.ledger.DataVersionConflictException;
-import com.jd.blockchain.ledger.EndpointRequest;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerTransaction;
-import com.jd.blockchain.ledger.NodeRequest;
 import com.jd.blockchain.ledger.TransactionContent;
 import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.TransactionRequest;
@@ -47,8 +45,6 @@ public class TransactionBatchProcessorTest {
 	static {
 		DataContractRegistry.register(TransactionContent.class);
 		DataContractRegistry.register(TransactionRequest.class);
-		DataContractRegistry.register(NodeRequest.class);
-		DataContractRegistry.register(EndpointRequest.class);
 		DataContractRegistry.register(TransactionResponse.class);
 		DataContractRegistry.register(UserRegisterOperation.class);
 		DataContractRegistry.register(DataAccountRegisterOperation.class);
@@ -296,11 +292,11 @@ public class TransactionBatchProcessorTest {
 		assertEquals(TransactionState.SUCCESS, txResp3.getExecutionState());
 
 		LedgerTransaction tx1 = ledgerRepo.getTransactionSet()
-				.get(transactionRequest1.getTransactionHash());
+				.getTransaction(transactionRequest1.getTransactionHash());
 		LedgerTransaction tx2 = ledgerRepo.getTransactionSet()
-				.get(transactionRequest2.getTransactionHash());
+				.getTransaction(transactionRequest2.getTransactionHash());
 		LedgerTransaction tx3 = ledgerRepo.getTransactionSet()
-				.get(transactionRequest3.getTransactionHash());
+				.getTransaction(transactionRequest3.getTransactionHash());
 
 		assertNotNull(tx3);
 		assertEquals(TransactionState.SUCCESS, tx3.getExecutionState());
@@ -314,9 +310,9 @@ public class TransactionBatchProcessorTest {
 		// 单独加载交易集合；
 		TransactionSet txset = new TransactionSet(txsetRootHash, cryptoSetting, "LDG://3A3dP4", STORAGE, STORAGE,
 				false);
-		tx1 = txset.get(transactionRequest1.getTransactionHash());
+		tx1 = txset.getTransaction(transactionRequest1.getTransactionHash());
 //		tx2 = txset.get(transactionRequest2.getTransactionHash());
-		tx3 = txset.get(transactionRequest3.getTransactionHash());
+		tx3 = txset.getTransaction(transactionRequest3.getTransactionHash());
 		
 		assertNotNull(tx3);
 //		assertNotNull(tx2);
@@ -332,9 +328,9 @@ public class TransactionBatchProcessorTest {
 
 		assertEquals(txsetRootHash, ledgerRepo.getTransactionSet().getRootHash());
 
-		tx1 = ledgerRepo.getTransactionSet().get(transactionRequest1.getTransactionHash());
-		tx2 = ledgerRepo.getTransactionSet().get(transactionRequest2.getTransactionHash());
-		tx3 = ledgerRepo.getTransactionSet().get(transactionRequest3.getTransactionHash());
+		tx1 = ledgerRepo.getTransactionSet().getTransaction(transactionRequest1.getTransactionHash());
+		tx2 = ledgerRepo.getTransactionSet().getTransaction(transactionRequest2.getTransactionHash());
+		tx3 = ledgerRepo.getTransactionSet().getTransaction(transactionRequest3.getTransactionHash());
 
 		assertNotNull(tx1);
 		assertEquals(TransactionState.SUCCESS, tx1.getExecutionState());

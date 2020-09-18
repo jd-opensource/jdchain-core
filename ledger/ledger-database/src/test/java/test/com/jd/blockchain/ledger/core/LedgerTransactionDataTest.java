@@ -28,12 +28,9 @@ import com.jd.blockchain.ledger.BlockchainKeyGenerator;
 import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.ledger.DataAccountKVSetOperation;
 import com.jd.blockchain.ledger.DigitalSignature;
-import com.jd.blockchain.ledger.EndpointRequest;
 import com.jd.blockchain.ledger.HashObject;
 import com.jd.blockchain.ledger.LedgerDataSnapshot;
 import com.jd.blockchain.ledger.LedgerTransaction;
-import com.jd.blockchain.ledger.NodeRequest;
-import com.jd.blockchain.ledger.Transaction;
 import com.jd.blockchain.ledger.TransactionContent;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionState;
@@ -55,22 +52,22 @@ import com.jd.blockchain.transaction.TxRequestMessage;
 public class LedgerTransactionDataTest {
 
 	private LedgerTransactionData data;
+	
+	private TransactionRequest txRequest;
 
 	@Before
 	public void initLedgerTransactionImpl() throws Exception {
 		DataContractRegistry.register(LedgerTransaction.class);
-		DataContractRegistry.register(Transaction.class);
 		DataContractRegistry.register(LedgerDataSnapshot.class);
-		DataContractRegistry.register(NodeRequest.class);
-		DataContractRegistry.register(EndpointRequest.class);
 		DataContractRegistry.register(HashObject.class);
 		DataContractRegistry.register(DataAccountKVSetOperation.class);
 
-		TransactionRequest txRequestMessage = initTxRequestMessage(ClassicAlgorithm.SHA256);
+		txRequest = initTxRequestMessage(ClassicAlgorithm.SHA256);
 
 		long blockHeight = 9986L;
-		data = new LedgerTransactionData(blockHeight, txRequestMessage, TransactionState.SUCCESS,
-				initTransactionStagedSnapshot(), null);
+		TransactionStagedSnapshot snapshot = initTransactionStagedSnapshot();
+		data = new LedgerTransactionData(blockHeight, txRequest, TransactionState.SUCCESS,
+				snapshot, null);
 
 		HashDigest hash = new HashDigest(ClassicAlgorithm.SHA256, "zhangsan".getBytes());
 		HashDigest adminAccountHash = new HashDigest(ClassicAlgorithm.SHA256, "lisi".getBytes());
@@ -78,10 +75,10 @@ public class LedgerTransactionDataTest {
 		HashDigest dataAccountSetHash = new HashDigest(ClassicAlgorithm.SHA256, "zhaoliu".getBytes());
 		HashDigest contractAccountSetHash = new HashDigest(ClassicAlgorithm.SHA256, "sunqi".getBytes());
 
-		data.setAdminAccountHash(adminAccountHash);
-		data.setUserAccountSetHash(userAccountSetHash);
-		data.setDataAccountSetHash(dataAccountSetHash);
-		data.setContractAccountSetHash(contractAccountSetHash);
+		snapshot.setAdminAccountHash(adminAccountHash);
+		snapshot.setUserAccountSetHash(userAccountSetHash);
+		snapshot.setDataAccountSetHash(dataAccountSetHash);
+		snapshot.setContractAccountSetHash(contractAccountSetHash);
 	}
 
 	@Test
@@ -90,45 +87,47 @@ public class LedgerTransactionDataTest {
 		LedgerTransaction resolvedData = BinaryProtocol.decode(serialBytes);
 
 		System.out.println("------Assert start ------");
-		assertEquals(resolvedData.getAdminAccountHash(), data.getAdminAccountHash());
-		assertEquals(resolvedData.getContractAccountSetHash(), data.getContractAccountSetHash());
-		assertEquals(resolvedData.getDataAccountSetHash(), data.getDataAccountSetHash());
-		assertEquals(resolvedData.getUserAccountSetHash(), data.getUserAccountSetHash());
+		assertEquals(resolvedData.getExecutionState(), data.getExecutionState());
+		assertEquals(resolvedData.getBlockHeight(), data.getBlockHeight());
+
+		assertEquals(resolvedData.getDataSnapshot().getAdminAccountHash(), data.getDataSnapshot().getAdminAccountHash());
+		assertEquals(resolvedData.getDataSnapshot().getContractAccountSetHash(), data.getDataSnapshot().getContractAccountSetHash());
+		assertEquals(resolvedData.getDataSnapshot().getDataAccountSetHash(), data.getDataSnapshot().getDataAccountSetHash());
+		assertEquals(resolvedData.getDataSnapshot().getUserAccountSetHash(), data.getDataSnapshot().getUserAccountSetHash());
 		assertEquals(resolvedData.getExecutionState(), data.getExecutionState());
 //		assertEquals(resolvedData.getHash(), data.getHash());
 		assertEquals(resolvedData.getBlockHeight(), data.getBlockHeight());
 
 		// EndpointSignatures 验证
-		DigitalSignature[] dataEndpointSignatures = data.getEndpointSignatures();
-		DigitalSignature[] resolvedEndpointSignatures = resolvedData.getEndpointSignatures();
-		for (int i = 0; i < dataEndpointSignatures.length; i++) {
-			assertEquals(dataEndpointSignatures[i].getPubKey(), resolvedEndpointSignatures[i].getPubKey());
-			assertEquals(dataEndpointSignatures[i].getDigest(), resolvedEndpointSignatures[i].getDigest());
-		}
+//		DigitalSignature[] dataEndpointSignatures = data.getEndpointSignatures();
+//		DigitalSignature[] resolvedEndpointSignatures = resolvedData.getEndpointSignatures();
+//		for (int i = 0; i < dataEndpointSignatures.length; i++) {
+//			assertEquals(dataEndpointSignatures[i].getPubKey(), resolvedEndpointSignatures[i].getPubKey());
+//			assertEquals(dataEndpointSignatures[i].getDigest(), resolvedEndpointSignatures[i].getDigest());
+//		}
 
 		// NodeSignatures 验证
-		DigitalSignature[] dataNodeSignatures = data.getNodeSignatures();
-		DigitalSignature[] resolvedNodeSignatures = resolvedData.getNodeSignatures();
-		for (int i = 0; i < dataNodeSignatures.length; i++) {
-			assertEquals(dataNodeSignatures[i].getPubKey(), resolvedNodeSignatures[i].getPubKey());
-			assertEquals(dataNodeSignatures[i].getDigest(), resolvedNodeSignatures[i].getDigest());
-		}
-
-		assertEqual(data.getTransactionContent(), resolvedData.getTransactionContent());
+//		DigitalSignature[] dataNodeSignatures = data.getNodeSignatures();
+//		DigitalSignature[] resolvedNodeSignatures = resolvedData.getNodeSignatures();
+//		for (int i = 0; i < dataNodeSignatures.length; i++) {
+//			assertEquals(dataNodeSignatures[i].getPubKey(), resolvedNodeSignatures[i].getPubKey());
+//			assertEquals(dataNodeSignatures[i].getDigest(), resolvedNodeSignatures[i].getDigest());
+//		}
+//
+//		assertEqual(data.getTransactionContent(), resolvedData.getTransactionContent());
 		System.out.println("------Assert OK ------");
 	}
 
 	@Test
 	public void testSerialize_Transaction() throws Exception {
-		byte[] serialBytes = BinaryProtocol.encode(data, Transaction.class);
-		Transaction resolvedData = BinaryProtocol.decode(serialBytes);
+		byte[] serialBytes = BinaryProtocol.encode(txRequest, TransactionRequest.class);
+		TransactionRequest resolvedData = BinaryProtocol.decode(serialBytes);
 
 		System.out.println("------Assert start ------");
-		assertEquals(resolvedData.getExecutionState(), data.getExecutionState());
-		assertEquals(resolvedData.getBlockHeight(), data.getBlockHeight());
+		
 
 		// EndpointSignatures 验证
-		DigitalSignature[] dataEndpointSignatures = data.getEndpointSignatures();
+		DigitalSignature[] dataEndpointSignatures = txRequest.getEndpointSignatures();
 		DigitalSignature[] resolvedEndpointSignatures = resolvedData.getEndpointSignatures();
 		for (int i = 0; i < dataEndpointSignatures.length; i++) {
 			assertEquals(dataEndpointSignatures[i].getPubKey(), resolvedEndpointSignatures[i].getPubKey());
@@ -136,74 +135,19 @@ public class LedgerTransactionDataTest {
 		}
 
 		// NodeSignatures 验证
-		DigitalSignature[] dataNodeSignatures = data.getNodeSignatures();
+		DigitalSignature[] dataNodeSignatures = txRequest.getNodeSignatures();
 		DigitalSignature[] resolvedNodeSignatures = resolvedData.getNodeSignatures();
 		for (int i = 0; i < dataNodeSignatures.length; i++) {
 			assertEquals(dataNodeSignatures[i].getPubKey(), resolvedNodeSignatures[i].getPubKey());
 			assertEquals(dataNodeSignatures[i].getDigest(), resolvedNodeSignatures[i].getDigest());
 		}
 
-		assertEqual(data.getTransactionContent(), resolvedData.getTransactionContent());
+		assertTransactionEqual(txRequest.getTransactionContent(), resolvedData.getTransactionContent());
 		System.out.println("------Assert OK ------");
 	}
 
-	@Test
-	public void testSerialize_LedgerDataSnapshot() throws Exception {
-		byte[] serialBytes = BinaryProtocol.encode(data, LedgerDataSnapshot.class);
-		LedgerDataSnapshot resolvedData = BinaryProtocol.decode(serialBytes);
 
-		System.out.println("------Assert start ------");
-		assertEquals(resolvedData.getAdminAccountHash(), data.getAdminAccountHash());
-		assertEquals(resolvedData.getContractAccountSetHash(), data.getContractAccountSetHash());
-		assertEquals(resolvedData.getDataAccountSetHash(), data.getDataAccountSetHash());
-		assertEquals(resolvedData.getUserAccountSetHash(), data.getUserAccountSetHash());
-		System.out.println("------Assert OK ------");
-	}
-
-	@Test
-	public void testSerialize_NodeRequest() throws Exception {
-		byte[] serialBytes = BinaryProtocol.encode(data, NodeRequest.class);
-		NodeRequest resolvedData = BinaryProtocol.decode(serialBytes);
-
-		System.out.println("------Assert start ------");
-		// EndpointSignatures 验证
-		DigitalSignature[] dataEndpointSignatures = data.getEndpointSignatures();
-		DigitalSignature[] resolvedEndpointSignatures = resolvedData.getEndpointSignatures();
-		for (int i = 0; i < dataEndpointSignatures.length; i++) {
-			assertEquals(dataEndpointSignatures[i].getPubKey(), resolvedEndpointSignatures[i].getPubKey());
-			assertEquals(dataEndpointSignatures[i].getDigest(), resolvedEndpointSignatures[i].getDigest());
-		}
-
-		// NodeSignatures 验证
-		DigitalSignature[] dataNodeSignatures = data.getNodeSignatures();
-		DigitalSignature[] resolvedNodeSignatures = resolvedData.getNodeSignatures();
-		for (int i = 0; i < dataNodeSignatures.length; i++) {
-			assertEquals(dataNodeSignatures[i].getPubKey(), resolvedNodeSignatures[i].getPubKey());
-			assertEquals(dataNodeSignatures[i].getDigest(), resolvedNodeSignatures[i].getDigest());
-		}
-
-		assertEqual(data.getTransactionContent(), resolvedData.getTransactionContent());
-		System.out.println("------Assert OK ------");
-	}
-
-	@Test
-	public void testSerialize_EndpointRequest() throws Exception {
-		byte[] serialBytes = BinaryProtocol.encode(data, EndpointRequest.class);
-		EndpointRequest resolvedData = BinaryProtocol.decode(serialBytes);
-
-		System.out.println("------Assert start ------");
-		// EndpointSignatures 验证
-		DigitalSignature[] dataEndpointSignatures = data.getEndpointSignatures();
-		DigitalSignature[] resolvedEndpointSignatures = resolvedData.getEndpointSignatures();
-		for (int i = 0; i < dataEndpointSignatures.length; i++) {
-			assertEquals(dataEndpointSignatures[i].getPubKey(), resolvedEndpointSignatures[i].getPubKey());
-			assertEquals(dataEndpointSignatures[i].getDigest(), resolvedEndpointSignatures[i].getDigest());
-		}
-		assertEqual(data.getTransactionContent(), resolvedData.getTransactionContent());
-		System.out.println("------Assert OK ------");
-	}
-
-	private void assertEqual(TransactionContent dataTxContent, TransactionContent resolvedTxContent) {
+	private void assertTransactionEqual(TransactionContent dataTxContent, TransactionContent resolvedTxContent) {
 		assertEquals(dataTxContent.getLedgerHash(), resolvedTxContent.getLedgerHash());
 
 		byte[] txBytes1 = BinaryProtocol.encode(dataTxContent, TransactionContent.class);

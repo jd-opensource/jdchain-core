@@ -171,6 +171,16 @@ public class MerkleHashSortTree implements MerkleTree {
 		return bucket.iterator(key, version);
 	}
 
+	@Override
+	public long getVersion(byte[] key) {
+		// 从哈希桶加载指定版本；
+		MerkleHashBucket hashBucket = getBucket(key);
+		if (hashBucket == null) {
+			return -1L;
+		}
+		return hashBucket.getVersion(key);
+	}
+
 	public KVEntry getData(String key) {
 		return getData(BytesUtils.toBytes(key));
 	}

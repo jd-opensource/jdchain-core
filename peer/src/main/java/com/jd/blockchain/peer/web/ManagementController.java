@@ -58,7 +58,6 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.DataAccountKVSetOperation;
 import com.jd.blockchain.ledger.DataAccountRegisterOperation;
 import com.jd.blockchain.ledger.DigitalSignature;
-import com.jd.blockchain.ledger.EndpointRequest;
 import com.jd.blockchain.ledger.EventAccountRegisterOperation;
 import com.jd.blockchain.ledger.EventPublishOperation;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
@@ -67,7 +66,6 @@ import com.jd.blockchain.ledger.LedgerInitOperation;
 import com.jd.blockchain.ledger.LedgerMetadata_V2;
 import com.jd.blockchain.ledger.LedgerSettings;
 import com.jd.blockchain.ledger.LedgerTransaction;
-import com.jd.blockchain.ledger.NodeRequest;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.ParticipantNodeState;
@@ -103,7 +101,6 @@ import com.jd.blockchain.peer.ConsensusRealm;
 import com.jd.blockchain.peer.LedgerBindingConfigAware;
 import com.jd.blockchain.peer.PeerManage;
 import com.jd.blockchain.peer.consensus.LedgerStateManager;
-import com.jd.blockchain.sdk.converters.ClientResolveUtil;
 import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
 import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.setting.GatewayIncomingSetting;
@@ -189,8 +186,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		DataContractRegistry.register(LedgerBlock.class);
 		DataContractRegistry.register(TransactionContent.class);
 		DataContractRegistry.register(TransactionRequest.class);
-		DataContractRegistry.register(NodeRequest.class);
-		DataContractRegistry.register(EndpointRequest.class);
 		DataContractRegistry.register(TransactionResponse.class);
 		DataContractRegistry.register(DataAccountKVSetOperation.class);
 		DataContractRegistry.register(DataAccountKVSetOperation.KVWriteEntry.class);
@@ -559,21 +554,23 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					try {
 						for (LedgerTransaction ledgerTransaction :blockchainServiceFactory.getBlockchainService().getTransactions(ledgerHash, height, 0, -1)) {
 							
+							//TODO: 重构：执行交易；
+							
 							TxContentBlob txContentBlob = new TxContentBlob(ledgerHash);
 
-							txContentBlob.setTime(ledgerTransaction.getTransactionContent().getTimestamp());
-
-//							txContentBlob.setHash(ledgerTransaction.getTransactionContent().getHash());
-
-							// convert operation, from json to object
-							for (Operation operation : ledgerTransaction.getTransactionContent().getOperations()) {
-								txContentBlob.addOperation(ClientResolveUtil.read(operation));
-							}
+//							txContentBlob.setTime(ledgerTransaction.getTransactionContent().getTimestamp());
+//
+////							txContentBlob.setHash(ledgerTransaction.getTransactionContent().getHash());
+//
+//							// convert operation, from json to object
+//							for (Operation operation : ledgerTransaction.getTransactionContent().getOperations()) {
+//								txContentBlob.addOperation(ClientResolveUtil.read(operation));
+//							}
 							
 							HashDigest txHash = TxBuilder.computeTxContentHash(cryptoSetting.getHashAlgorithm(), txContentBlob);
 							TxRequestBuilder txRequestBuilder = new TxRequestBuilder(txHash, txContentBlob);
-							txRequestBuilder.addNodeSignature(ledgerTransaction.getNodeSignatures());
-							txRequestBuilder.addEndpointSignature(ledgerTransaction.getEndpointSignatures());
+//							txRequestBuilder.addNodeSignature(ledgerTransaction.getNodeSignatures());
+//							txRequestBuilder.addEndpointSignature(ledgerTransaction.getEndpointSignatures());
 							TransactionRequest transactionRequest = txRequestBuilder.buildRequest();
 
 							txbatchProcessor.schedule(transactionRequest);

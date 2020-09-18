@@ -110,4 +110,12 @@ public interface MerkleTree extends Transactional {
 	 */
 	SkippingIterator<KVEntry> iterator(byte[] key, long version);
 
+	/**
+	 * 返回指定 key 的版本； 如果不存在，则返回 -1；
+	 * 
+	 * @param key
+	 * @return
+	 */
+	long getVersion(byte[] key);
+
 }

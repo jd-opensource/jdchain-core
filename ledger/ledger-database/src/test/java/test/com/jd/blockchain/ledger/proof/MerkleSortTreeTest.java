@@ -27,11 +27,11 @@ import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.ledger.merkletree.BytesConverter;
 import com.jd.blockchain.ledger.merkletree.DataPolicy;
+import com.jd.blockchain.ledger.merkletree.DefaultDataPolicy;
 import com.jd.blockchain.ledger.merkletree.MerkleSortTree;
-import com.jd.blockchain.ledger.merkletree.MerkleSortTree.DefaultDataPolicy;
 import com.jd.blockchain.ledger.merkletree.MerkleTreeKeyExistException;
-import com.jd.blockchain.ledger.merkletree.TreeOptions;
 import com.jd.blockchain.ledger.merkletree.MerkleValue;
+import com.jd.blockchain.ledger.merkletree.TreeOptions;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.AbstractSkippingIterator;
 import com.jd.blockchain.utils.ArrayUtils;
@@ -44,7 +44,6 @@ public class MerkleSortTreeTest {
 	private static final String DEFAULT_MKL_KEY_PREFIX = "";
 
 	private static final CryptoAlgorithm HASH_ALGORITHM = ClassicAlgorithm.SHA256;
-
 
 	/**
 	 * 测试顺序加入数据，是否能够得到
@@ -141,56 +140,56 @@ public class MerkleSortTreeTest {
 		// 验证未提交之前能够读取到对应的数据；
 		assertNull(mst.getRootHash());
 		assertEquals(0, mst.getCount());
-		assertEquals(ids[ids.length-1], mst.getMaxId().intValue());
+		assertEquals(ids[ids.length - 1], mst.getMaxId());
 
 		assertDataExists(mst, ids, datas);
-		
+
 		mst.commit();
-		
+
 		assertNotNull(mst.getRootHash());
 		assertDataEquals(mst, ids, datas);
-		
+
 		HashDigest rootHash = mst.getRootHash();
 		mst = MerkleSortTree.createBytesTree(rootHash, options, DEFAULT_MKL_KEY_PREFIX, storage);
 		assertDataEquals(mst, ids, datas);
-		
+
 		// 在已经有数据的默克尔树中以编码顺序递增的方式加入数据，验证在未提交之前能够读取到新加入的数据；
 		int count1 = 200;
 		byte[][] datas1 = generateRandomData(count1);
 		long[] ids1 = generateSeqenceIDs(count + 10, count1);
-		
+
 		addDatas(ids1, datas1, mst);
-		
-		assertEquals(ids1[ids1.length-1], mst.getMaxId().intValue());
-		
+
+		assertEquals(ids1[ids1.length - 1], mst.getMaxId());
+
 		assertDataExists(mst, ids, datas);
 		assertDataExists(mst, ids1, datas1);
-		
+
 		mst.commit();
 		assertDataExists(mst, ids1, datas1);
-		
+
 		// 在已经有数据的默克尔树中以编码随机不重复产生的方式加入数据，验证在未提交之前能够读取到新加入的数据；
 		Set<Long> excludingIDs = createIdSet(ids);
 		joinIdSet(ids1, excludingIDs);
-		
+
 		int count2 = 300;
 		byte[][] datas2 = generateRandomData(count2);
 		long[] ids2 = generateRandomIDs(count2, excludingIDs, true);
-		
+
 		HashDigest rootHash1 = mst.getRootHash();
 		mst = MerkleSortTree.createBytesTree(rootHash1, options, DEFAULT_MKL_KEY_PREFIX, storage);
-		
+
 		addDatas(ids2, datas2, mst);
-		
+
 		assertEquals(count + count1, mst.getCount());
-		
+
 		assertDataExists(mst, ids, datas);
 		assertDataExists(mst, ids1, datas1);
 		assertDataExists(mst, ids2, datas2);
-		
+
 		mst.commit();
 		assertEquals(count + count1 + count2, mst.getCount());
-		
+
 		assertDataExists(mst, ids, datas);
 		assertDataExists(mst, ids1, datas1);
 		assertDataExists(mst, ids2, datas2);
@@ -249,7 +248,7 @@ public class MerkleSortTreeTest {
 
 		assertEquals(0, mst.getCount());
 		assertNull(mst.getRootHash());
-		assertNull(mst.getMaxId());
+		assertEquals(-1L, mst.getMaxId());
 
 		addDatas(ids1, datas1, mst);
 
@@ -258,7 +257,7 @@ public class MerkleSortTreeTest {
 		assertNull(mst.getRootHash());
 		// “最大编码”会实时更新；
 		assertNotNull(mst.getMaxId());
-		assertEquals(expectedMaxId1, mst.getMaxId().longValue());
+		assertEquals(expectedMaxId1, mst.getMaxId());
 		// 迭代器不包含未提交的数据；预期迭代器为空；
 		SkippingIterator<MerkleValue<byte[]>> iter = mst.bytesIterator();
 		assertEquals(0, iter.getTotalCount());
@@ -270,7 +269,7 @@ public class MerkleSortTreeTest {
 		assertNotNull(mst.getRootHash());
 		assertNotNull(mst.getMaxId());
 
-		assertEquals(expectedMaxId1, mst.getMaxId().longValue());
+		assertEquals(expectedMaxId1, mst.getMaxId());
 
 		assertDataEquals(mst, ids1, datas1);
 
@@ -296,7 +295,7 @@ public class MerkleSortTreeTest {
 		// 预期未提交之前，总数不会变化；
 		assertEquals(count1, mst.getCount());
 		// 预期“最大编码”属性是实时变化的；
-		assertEquals(expectedMaxId2, mst.getMaxId().longValue());
+		assertEquals(expectedMaxId2, mst.getMaxId());
 		// 预期未提交之前，预期迭代器不会变化；
 		iter = mst.iterator();
 		assertIteratorSortedAndEquals(iter, count1, sortedIds1, dataMap);
@@ -309,7 +308,7 @@ public class MerkleSortTreeTest {
 		// 预期“总数”维持上次提交之后的结果；
 		assertEquals(count1, mst.getCount());
 		// 预期“最大编码”属性恢复到上次提交之后的结果；
-		assertEquals(expectedMaxId1, mst.getMaxId().longValue());
+		assertEquals(expectedMaxId1, mst.getMaxId());
 		// 预期迭代器不会变化，维持上次提交之后的结果；
 		iter = mst.iterator();
 		assertIteratorSortedAndEquals(iter, count1, sortedIds1, dataMap);
@@ -891,6 +890,7 @@ public class MerkleSortTreeTest {
 
 	/**
 	 * 断言默克尔树中的数据总数和内容与指定的 id 列表和数据列表一致；
+	 * 
 	 * @param mst
 	 * @param ids
 	 * @param datas
@@ -903,6 +903,7 @@ public class MerkleSortTreeTest {
 
 	/**
 	 * 断言默克尔树中存在指定的数据；
+	 * 
 	 * @param mst
 	 * @param ids
 	 * @param datas

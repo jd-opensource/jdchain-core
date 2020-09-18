@@ -202,7 +202,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 		if (block == null) {
 			return null;
 		}
-		return ledger.getTransactionSet(block).getTxs(fromIndex, count);
+		return ledger.getTransactionSet(block).getTransactions(fromIndex, count);
 		
 //		LedgerBlock ledgerBlock = ledger.getBlock(height);
 //		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
@@ -229,7 +229,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 		if (block == null) {
 			return null;
 		}
-		return ledger.getTransactionSet(block).getTxs(fromIndex, count);
+		return ledger.getTransactionSet(block).getTransactions(fromIndex, count);
 		
 //		long height = ledgerBlock.getHeight();
 //		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
@@ -254,7 +254,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		TransactionQuery txset = ledger.getTransactionSet(block);
-		return txset.get(contentHash);
+		return txset.getTransaction(contentHash);
 	}
 
 	@Override

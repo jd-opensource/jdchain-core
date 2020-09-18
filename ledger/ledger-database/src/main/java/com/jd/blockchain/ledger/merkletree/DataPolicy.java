@@ -71,7 +71,7 @@ public interface DataPolicy<T> {
 	void afterCanceled(long id, T data);
 
 	/**
-	 * 迭代指定的 id 的数据；
+	 * 创建指定的 id 的原始数据的迭代器；
 	 * 
 	 * @param id        数据的编码；
 	 * @param bytesData 字节数组形式的数据；
