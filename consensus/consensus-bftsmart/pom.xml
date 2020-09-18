@@ -48,6 +48,12 @@
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-collections4</artifactId>
 		</dependency>
+
+		<dependency>
+			<groupId>com.jd.blockchain</groupId>
+			<artifactId>runtime-context</artifactId>
+			<version>${project.version}</version>
+		</dependency>
         <!-- <dependency>
             <groupId>com.jd.blockchain</groupId>
             <artifactId>ledger-core</artifactId>

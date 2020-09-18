@@ -9,6 +9,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import bftsmart.consensus.app.BatchAppResultImpl;
 import bftsmart.consensus.app.ComputeCode;
+import bftsmart.reconfiguration.views.NodeNetwork;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.*;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
@@ -16,6 +17,7 @@ import com.jd.blockchain.consensus.BlockStateSnapshot;
 import com.jd.blockchain.consensus.service.*;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.runtime.RuntimeConstant;
 import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.StringUtils;
 import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
@@ -85,7 +87,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     private View latestView;
 
-    private List<InetSocketAddress> consensusAddresses = new ArrayList<>();
+    private List<NodeNetwork> consensusAddresses = new ArrayList<>();
 
     private final Lock batchHandleLock = new ReentrantLock();
 
@@ -133,7 +135,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     }
 
     protected void createConfig() {
-
+        int monitorPort = RuntimeConstant.MONITOR_PORT.get();
         setting = ((BftsmartServerSettings) serverSettings).getConsensusSettings();
 
         List<HostsConfig.Config> configList = new ArrayList<>();
@@ -141,9 +143,11 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         NodeSettings[] nodeSettingsArray = setting.getNodes();
         for (NodeSettings nodeSettings : nodeSettingsArray) {
             BftsmartNodeSettings node = (BftsmartNodeSettings)nodeSettings;
-            configList.add(new HostsConfig.Config(node.getId(), node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort()));
-            consensusAddresses.add(new InetSocketAddress(node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort()));
+            configList.add(new HostsConfig.Config(node.getId(), node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1));
+            consensusAddresses.add(new NodeNetwork(node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1));
         }
+
+        consensusAddresses.get(3);
 
         //create HostsConfig instance based on consensus realm nodes
         hostsConfig = new HostsConfig(configList.toArray(new HostsConfig.Config[configList.size()]));
@@ -165,16 +169,16 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             port = NumberUtils.parseNumber(preHostPort, Integer.class);
             LOGGER.info("###peer-startup.sh###,set up the -DhostPort="+port);
         }
-
+        int monitorPort = RuntimeConstant.MONITOR_PORT.get();
         String preHostIp = System.getProperty("hostIp");
         if(!StringUtils.isEmpty(preHostIp)){
-            hostConfig.add(id, preHostIp, port);
+            hostConfig.add(id, preHostIp, port, monitorPort);
             LOGGER.info("###peer-startup.sh###,set up the -DhostIp="+preHostIp);
         }
 
         this.tomConfig = new TOMConfiguration(id, systemsConfig, hostConfig);
 
-        this.latestView = new View(setting.getViewId(), tomConfig.getInitialView(), tomConfig.getF(), consensusAddresses.toArray(new InetSocketAddress[consensusAddresses.size()]));
+        this.latestView = new View(setting.getViewId(), tomConfig.getInitialView(), tomConfig.getF(), consensusAddresses.toArray(new NodeNetwork[consensusAddresses.size()]));
 
         this.outerTomConfig = new TOMConfiguration(id, sysConfClone, BinarySerializeUtils.deserialize(serialHostConf));
 
@@ -237,11 +241,12 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         int id = currView.getId();
         int f = currView.getF();
         int[] processes = currView.getProcesses();
-        InetSocketAddress[] addresses = new InetSocketAddress[processes.length];
+        NodeNetwork[] addresses = new NodeNetwork[processes.length];
         for (int i = 0; i < processes.length; i++) {
             int pid = processes[i];
             if (serverId == pid) {
-                addresses[i] = new InetSocketAddress(getTomConfig().getHost(pid), getTomConfig().getPort(pid));
+                addresses[i] = new NodeNetwork(getTomConfig().getHost(pid), getTomConfig().getPort(pid),
+                        getTomConfig().getMonitorPort(pid));
             } else {
                 addresses[i] = currView.getAddress(pid);
             }
@@ -250,7 +255,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
         for (int i = 0; i < returnView.getProcesses().length; i++) {
             LOGGER.info("[BftsmartNodeServer.getOuterTopology] PartiNode id = {}, host = {}, port = {}", returnView.getProcesses()[i],
-                    returnView.getAddress(returnView.getProcesses()[i]).getHostName(), returnView.getAddress(returnView.getProcesses()[i]).getPort());
+                    returnView.getAddress(returnView.getProcesses()[i]).getHost(), returnView.getAddress(returnView.getProcesses()[i]).getConsensusPort());
         }
         this.outerTopology = new BftsmartTopology(returnView);
 
@@ -725,25 +730,6 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
                 status = Status.STOPPED;
             }
         }
-    }
-
-    private void initOutTopology() {
-        View currView = this.topology.getView();
-        int id = currView.getId();
-        int curProcessId = tomConfig.getProcessId();
-        int f = currView.getF();
-        int[] processes = currView.getProcesses();
-        InetSocketAddress[] addresses = new InetSocketAddress[processes.length];
-        for (int i = 0; i < processes.length; i++) {
-            int pid = processes[i];
-            if (curProcessId == pid) {
-                addresses[i] = new InetSocketAddress(this.tomConfig.getHost(pid), this.tomConfig.getPort(pid));
-            } else {
-                addresses[i] = currView.getAddress(pid);
-            }
-        }
-        View returnView = new View(id, processes, f, addresses);
-        this.outerTopology = new BftsmartTopology(returnView);
     }
 
     enum Status {

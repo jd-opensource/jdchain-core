@@ -5,6 +5,7 @@ import bftsmart.reconfiguration.ReconfigureReply;
 import bftsmart.reconfiguration.util.HostsConfig;
 import bftsmart.reconfiguration.util.TOMConfiguration;
 import bftsmart.reconfiguration.views.MemoryBasedViewStorage;
+import bftsmart.reconfiguration.views.NodeNetwork;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.ServiceProxy;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
@@ -836,7 +837,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		HostsConfig hostsConfig;
 		List<NodeSettings> origConsensusNodes;
 		List<HostsConfig.Config> configList = new ArrayList<>();
-		List<InetSocketAddress> nodeAddresses = new ArrayList<>();
+		List<NodeNetwork> nodeAddresses = new ArrayList<>();
 
 		try {
 			// 排除未激活的共识节点，找到处于激活状态的共识节点，也就是新参与方注册前的原有共识网络
@@ -847,8 +848,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			for (int i = 0; i < origConsensusNodes.size(); i++) {
 				BftsmartNodeSettings node = (BftsmartNodeSettings) origConsensusNodes.get(i);
 				origConsensusProcesses[i] = node.getId();
-				configList.add(new HostsConfig.Config(node.getId(), node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort()));
-				nodeAddresses.add(new InetSocketAddress(node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort()));
+				configList.add(new HostsConfig.Config(node.getId(), node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1));
+				nodeAddresses.add(new NodeNetwork(node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1));
 			}
 
 			// 构建共识的代理客户端需要的主机配置和系统参数配置结构
@@ -859,7 +860,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			// 构建tom 配置
 			TOMConfiguration tomConfig = new TOMConfiguration((int) -System.nanoTime(), tempSystemConfig, hostsConfig);
 
-			View view = new View(viewId, origConsensusProcesses, tomConfig.getF(), nodeAddresses.toArray(new InetSocketAddress[nodeAddresses.size()]));
+			View view = new View(viewId, origConsensusProcesses, tomConfig.getF(), nodeAddresses.toArray(new NodeNetwork[nodeAddresses.size()]));
 
 			// 构建共识的代理客户端，连接目标共识节点，并递交交易进行共识过程
 			return new ServiceProxy(tomConfig, new MemoryBasedViewStorage(view), null, null);

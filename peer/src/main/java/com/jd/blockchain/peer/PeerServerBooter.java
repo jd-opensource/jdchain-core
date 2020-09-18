@@ -2,6 +2,7 @@ package com.jd.blockchain.peer;
 
 import com.jd.blockchain.consts.Global;
 import com.jd.blockchain.peer.web.LedgerLoadTimer;
+import com.jd.blockchain.runtime.RuntimeConstant;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
 import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
@@ -174,7 +175,10 @@ public class PeerServerBooter {
 		if (port > 0) {
 			String argServerPort = String.format("--server.port=%s", port);
 			argList.add(argServerPort);
+			RuntimeConstant.MONITOR_PORT.set(port);
 		}
+		// 设置默认的管理口信息
+		RuntimeConstant.MONITOR_PORT.set(8080);
 
 		String[] args = argList.toArray(new String[argList.size()]);
 
