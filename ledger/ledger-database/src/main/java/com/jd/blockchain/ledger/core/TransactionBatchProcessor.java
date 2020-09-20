@@ -289,7 +289,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 			LOGGER.debug("after commit().  --[BlockHeight={}][TxHash={}]",
 					newBlockEditor.getBlockHeight(), request.getTransactionHash());
 		} catch (TransactionRollbackException e) {
-			//
+			//忽略交易；
 			result = TransactionState.IGNORED_BY_TX_FULL_ROLLBACK;
 			txCtx.rollback();
 			LOGGER.error(String.format(

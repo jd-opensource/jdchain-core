@@ -530,13 +530,13 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return newDataSet;
 	}
 
-	static LedgerEventSet newEventSet(LedgerInitSetting initSetting, String keyPrefix,
+	static LedgerEventSet newEventSet(CryptoSetting cryptoSetting, String keyPrefix,
 									ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
 
-		MerkleEventSet systemEventSet = new MerkleEventSet(initSetting.getCryptoSetting(),
+		MerkleEventSet systemEventSet = new MerkleEventSet(cryptoSetting,
 				keyPrefix + SYSTEM_EVENT_SET_PREFIX, ledgerExStorage, ledgerVerStorage);
 
-		EventAccountSet userEventSet = new EventAccountSet(initSetting.getCryptoSetting(),
+		EventAccountSet userEventSet = new EventAccountSet(cryptoSetting,
 				keyPrefix + USER_EVENT_SET_PREFIX, ledgerExStorage, ledgerVerStorage, DEFAULT_ACCESS_POLICY);
 
 		LedgerEventSet newEventSet = new LedgerEventSet(systemEventSet, userEventSet, false);
@@ -544,12 +544,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return newEventSet;
 	}
 
-	static TransactionSet newTransactionSet(LedgerSettings ledgerSetting, String keyPrefix,
+	static TransactionSet newTransactionSet(CryptoSetting cryptoSetting, String keyPrefix,
 			ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
 
 		String txsetKeyPrefix = keyPrefix + TRANSACTION_SET_PREFIX;
 
-		TransactionSet transactionSet = new TransactionSet(ledgerSetting.getCryptoSetting(), txsetKeyPrefix,
+		TransactionSet transactionSet = new TransactionSet(cryptoSetting, txsetKeyPrefix,
 				ledgerExStorage, ledgerVerStorage);
 		return transactionSet;
 	}

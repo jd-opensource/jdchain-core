@@ -49,9 +49,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 	private final Bytes dataKeyPrefix;
 	private final Bytes merkleKeyPrefix;
 
-	private BufferedKVStorage bufferedStorage;
-
-	private VersioningKVStorage valueStorage;
+	private BufferedKVStorage valueStorage;
 
 	private MerkleTree merkleTree;
 
@@ -116,25 +114,20 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 	 */
 	public MerkleHashDataset(HashDigest merkleRootHash, CryptoSetting setting, Bytes keyPrefix,
 			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
-		// 缓冲对KV的写入；
-		this.bufferedStorage = new BufferedKVStorage(exPolicyStorage, versioningStorage, false);
-
 		// 把存储数据值、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
-		dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
-		this.valueStorage = bufferedStorage;
+		this.dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
+		// 缓冲对KV的写入；
+		this.valueStorage = new BufferedKVStorage(exPolicyStorage, versioningStorage, false);
 		
 		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
 
 		// MerkleTree 本身是可缓冲的；
 		merkleKeyPrefix = keyPrefix.concat(MERKLE_TREE_PREFIX);
-		ExPolicyKVStorage merkleTreeStorage = exPolicyStorage;
-//		this.merkleTree = new MerkleHashTrie(merkleRootHash, setting, merkleKeyPrefix, merkleTreeStorage, readonly);
-		
 		TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(setting.getHashAlgorithm()).setVerifyHashOnLoad(setting.getAutoVerifyHash());
 		if (merkleRootHash == null) {
-			this.merkleTree = new MerkleHashSortTree(options, merkleKeyPrefix, merkleTreeStorage);
+			this.merkleTree = new MerkleHashSortTree(options, merkleKeyPrefix, exPolicyStorage);
 		}else {
-			this.merkleTree = new MerkleHashSortTree(merkleRootHash, options, merkleKeyPrefix, merkleTreeStorage);
+			this.merkleTree = new MerkleHashSortTree(merkleRootHash, options, merkleKeyPrefix, exPolicyStorage);
 		}
 
 		this.readonly = readonly;
@@ -297,8 +290,6 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 				return -1;
 			}
 		} else {
-			// TODO: 未在当前实例的层面，实现对输入键-值的缓冲，而直接写入了存储，而 MerkleTree 在未调用 commit
-			// 之前是缓冲的，这使得在存储层面的数据会不一致，而未来需要优化；
 			newVersion = valueStorage.set(dataKey, value, version);
 			if (newVersion < 0) {
 				return -1;
@@ -306,8 +297,6 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 
 		}
 
-		// TODO: 未在当前实例的层面，实现对输入键-值的缓冲，而直接写入了存储，而 MerkleTree 在未调用 commit
-		// 之前是缓冲的，这使得在存储层面的数据会不一致，而未来需要优化；
 		// update merkle tree;
 		HashDigest valueHash = DEFAULT_HASH_FUNCTION.hash(value);
 		merkleTree.setData(key.toBytes(), newVersion, valueHash.toBytes());
@@ -483,20 +472,19 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 
 	@Override
 	public boolean isUpdated() {
-		return bufferedStorage.isUpdated() || merkleTree.isUpdated();
+		return valueStorage.isUpdated() || merkleTree.isUpdated();
 	}
 
 	@Override
 	public void commit() {
 		merkleTree.commit();
-		bufferedStorage.commit();
+		valueStorage.commit();
 	}
 
 	@Override
 	public void cancel() {
 		merkleTree.cancel();
-		bufferedStorage.cancel();
-//		snGenerator = new MerkleSequenceSNGenerator(merkleTree);
+		valueStorage.cancel();
 	}
 
 	// ----------------------------------------------------------
