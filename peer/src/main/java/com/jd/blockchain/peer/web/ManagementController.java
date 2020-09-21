@@ -691,7 +691,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		// organize system config properties
 		Property[] properties = createDeactiveProperties(deActivePubKey, deActiveID);
 
-		TxBuilder txbuilder = new TxBuilder(ledgerHash);
+		TxBuilder txbuilder = new TxBuilder(ledgerHash, deActivePubKey.getAlgorithm());
 
 		// This transaction contains participant state update and settings update two ops
 		txbuilder.states().update(new BlockchainIdentityData(deActivePubKey), ParticipantNodeState.DECONSENSUS);
@@ -753,25 +753,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				try {
 					HashDigest pullBlockHash = blockchainServiceFactory.getBlockchainService().getBlock(ledgerHash, height).getHash();
 
-					for (LedgerTransaction ledgerTransaction :blockchainServiceFactory.getBlockchainService().getTransactions(ledgerHash, height, 0, -1)) {
-
-						TxContentBlob txContentBlob = new TxContentBlob(ledgerHash);
-
-						txContentBlob.setTime(ledgerTransaction.getTransactionContent().getTimestamp());
-
-						// convert operation, from json to object
-						for (Operation operation : ledgerTransaction.getTransactionContent().getOperations()) {
-							txContentBlob.addOperation(ClientResolveUtil.read(operation));
-						}
-
-						txContentBlob.setHash(TxBuilder.computeTxContentHash(txContentBlob));
-
-						TxRequestBuilder txRequestBuilder = new TxRequestBuilder(txContentBlob);
-						txRequestBuilder.addNodeSignature(ledgerTransaction.getNodeSignatures());
-						txRequestBuilder.addEndpointSignature(ledgerTransaction.getEndpointSignatures());
-						TransactionRequest transactionRequest = txRequestBuilder.buildRequest();
-
-						txbatchProcessor.schedule(transactionRequest);
+					for (LedgerTransaction ledgerTransaction :blockchainServiceFactory.getBlockchainService().getTransactions(ledgerHash, height, 0, 10)) {
+						txbatchProcessor.schedule(ledgerTransaction.getRequest());
 					}
 
 					handle = txbatchProcessor.prepare();
@@ -796,16 +779,16 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	}
 
 	// order transactions by timestamp in block
-	private LedgerTransaction[] orderTransactions(LedgerTransaction[] transactions) {
-		List<LedgerTransaction> transactionList = Arrays.asList(transactions);
-		transactionList.sort(new Comparator<LedgerTransaction>() {
-			@Override
-			public int compare(LedgerTransaction t1, LedgerTransaction t2) {
-				return (int)(t1.getTransactionContent().getTimestamp() - t2.getTransactionContent().getTimestamp());
-			}
-		});
-		return transactionList.toArray(new LedgerTransaction[transactions.length]);
-	}
+//	private LedgerTransaction[] orderTransactions(LedgerTransaction[] transactions) {
+//		List<LedgerTransaction> transactionList = Arrays.asList(transactions);
+//		transactionList.sort(new Comparator<LedgerTransaction>() {
+//			@Override
+//			public int compare(LedgerTransaction t1, LedgerTransaction t2) {
+//				return (int)(t1.getTransactionContent().getTimestamp() - t2.getTransactionContent().getTimestamp());
+//			}
+//		});
+//		return transactionList.toArray(new LedgerTransaction[transactions.length]);
+//	}
 
 	private static String keyOfNode(String pattern, int id) {
 		return String.format(pattern, id);
@@ -902,7 +885,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		// organize system config properties
 		Property[] properties = createActiveProperties(host, port, activePubKey, activeID);
 
-		TxBuilder txbuilder = new TxBuilder(ledgerHash);
+		TxBuilder txbuilder = new TxBuilder(ledgerHash, activePubKey.getAlgorithm());
 
 		// This transaction contains participant state update and settings update two ops
 		txbuilder.states().update(new BlockchainIdentityData(activePubKey), ParticipantNodeState.CONSENSUS);
@@ -1033,7 +1016,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		HashDigest ledgerHash = txRequest.getTransactionContent().getLedgerHash();
 		AsymmetricKeypair peerKeypair = ledgerKeypairs.get(ledgerHash);
-		DigitalSignature nodeSigner = SignatureUtils.sign(txRequest.getTransactionContent(), peerKeypair);
+		DigitalSignature nodeSigner = SignatureUtils.sign(peerKeypair.getPubKey().getAlgorithm(), txRequest.getTransactionContent(), peerKeypair);
 
 		txMessage.addNodeSignatures(nodeSigner);
 
