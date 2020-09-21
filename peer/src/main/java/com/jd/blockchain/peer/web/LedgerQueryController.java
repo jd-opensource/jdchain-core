@@ -1,5 +1,16 @@
 package com.jd.blockchain.peer.web;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
@@ -17,7 +28,6 @@ import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.PrivilegeSet;
-import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVData;
 import com.jd.blockchain.ledger.TypedKVEntry;
@@ -31,14 +41,12 @@ import com.jd.blockchain.ledger.core.EventAccountQuery;
 import com.jd.blockchain.ledger.core.EventGroup;
 import com.jd.blockchain.ledger.core.EventPublishingAccount;
 import com.jd.blockchain.ledger.core.LedgerQuery;
-import com.jd.blockchain.ledger.core.LedgerQueryService;
 import com.jd.blockchain.ledger.core.LedgerRepository;
 import com.jd.blockchain.ledger.core.LedgerService;
 import com.jd.blockchain.ledger.core.ParticipantCertData;
 import com.jd.blockchain.ledger.core.TransactionQuery;
 import com.jd.blockchain.ledger.core.UserAccountQuery;
 import com.jd.blockchain.peer.decorator.LedgerAdminInfoDecorator;
-import com.jd.blockchain.peer.decorator.TransactionDecorator;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.Bytes;
@@ -46,16 +54,6 @@ import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.DataIterator;
 import com.jd.blockchain.utils.query.QueryArgs;
 import com.jd.blockchain.utils.query.QueryUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @RestController
 @RequestMapping(path = "/")
@@ -332,7 +330,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		TransactionQuery txset = ledger.getTransactionSet(block);
 		LedgerTransaction transaction = txset.getTransaction(contentHash);
-		return txDecorator(transaction);
+		
+		//TODO: 去掉包装类，通过修正针对代理对象的 JSON 序列化来解决； by huanghaiquan at 2020-09-21;
+		return transaction;
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/txs/state/{contentHash}")
@@ -733,22 +733,12 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerRepository ledger = ledgerService.getLedger(ledgerHash);
 		return ledger.getSecurityManager().getUserRolesPrivilegs(Bytes.fromBase58(userAddress));
 	}
-	private LedgerTransaction txDecorator(LedgerTransaction ledgerTransaction) {
-		if (ledgerTransaction == null) {
-			return null;
-		}
-		return new TransactionDecorator(ledgerTransaction);
-	}
-
-//	private LedgerTransaction[] txsDecorator(LedgerTransaction[] ledgerTransactions) {
-//		if (ledgerTransactions == null || ledgerTransactions.length == 0) {
-//			return ledgerTransactions;
+	
+//	private LedgerTransaction txDecorator(LedgerTransaction ledgerTransaction) {
+//		if (ledgerTransaction == null) {
+//			return null;
 //		}
-//		LedgerTransaction[] transactionDecorators = new LedgerTransaction[ledgerTransactions.length];
-//		for (int i = 0; i < ledgerTransactions.length; i++) {
-//			transactionDecorators[i] = txDecorator(ledgerTransactions[i]);
-//		}
-//		return transactionDecorators;
+//		return new TransactionDecorator(ledgerTransaction);
 //	}
 
 	private LedgerAdminInfo ledgerAdminInfoDecorator(LedgerAdminInfo ledgerAdministration) {

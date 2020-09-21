@@ -14,12 +14,11 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.IllegalTransactionException;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerDataSnapshot;
-import com.jd.blockchain.ledger.LedgerEventSnapshot;
 import com.jd.blockchain.ledger.LedgerInitSetting;
 import com.jd.blockchain.ledger.LedgerSettings;
-import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.OperationResult;
 import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.TransactionResult;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
@@ -144,7 +143,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		TransactionSet txset = LedgerRepositoryImpl.loadTransactionSet(previousBlock.getTransactionSetHash(),
 				ledgerSetting.getCryptoSetting(), ledgerKeyPrefix, txStagedStorage, txStagedStorage, false);
 
-		StagedSnapshot startingPoint = new TxSnapshot(null, previousBlock, previousBlock);
+		StagedSnapshot startingPoint = new TxSnapshot(null, previousBlock);
 
 		// instantiate editor;
 		return new LedgerTransactionalEditor(ledgerHash, ledgerSetting.getCryptoSetting(), currBlock, startingPoint,
@@ -392,7 +391,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 				// TxSnapshot; reload dataset and eventset;
 				TxSnapshot snpht = (TxSnapshot) startingPoint;
 				// load eventset
-				eventSet = LedgerRepositoryImpl.loadEventSet(snpht.eventSnapshot, cryptoSetting, ledgerKeyPrefix,
+				eventSet = LedgerRepositoryImpl.loadEventSet(snpht.dataSnapshot, cryptoSetting, ledgerKeyPrefix,
 						txBufferedStorage, txBufferedStorage, false);
 			} else {
 				// Unreachable;
@@ -401,7 +400,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 		} else {
 			// load eventset
-			eventSet = LedgerRepositoryImpl.loadEventSet(previousTxSnapshot.eventSnapshot, cryptoSetting,
+			eventSet = LedgerRepositoryImpl.loadEventSet(previousTxSnapshot.dataSnapshot, cryptoSetting,
 					ledgerKeyPrefix, txBufferedStorage, txBufferedStorage, false);
 		}
 		return eventSet;
@@ -569,10 +568,6 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		 */
 		private LedgerDataSnapshot dataSnapshot;
 
-		/**
-		 * 事件集合的快照（根哈希）；
-		 */
-		private LedgerEventSnapshot eventSnapshot;
 
 		public HashDigest getAdminAccountHash() {
 			return dataSnapshot.getAdminAccountHash();
@@ -595,11 +590,11 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		}
 
 		public HashDigest getSystemEventSetHash() {
-			return eventSnapshot.getSystemEventSetHash();
+			return dataSnapshot.getSystemEventSetHash();
 		}
 
 		public HashDigest getUserEventSetHash() {
-			return eventSnapshot.getUserEventSetHash();
+			return dataSnapshot.getUserEventSetHash();
 		}
 
 		/**
@@ -609,10 +604,9 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		 * @param dataSnapshot
 		 * @param eventSnapshot
 		 */
-		public TxSnapshot(HashDigest txHash, LedgerDataSnapshot dataSnapshot, LedgerEventSnapshot eventSnapshot) {
-			this.dataSnapshot = dataSnapshot;
+		public TxSnapshot(HashDigest txHash, LedgerDataSnapshot dataSnapshot) {
 			this.txHash = txHash;
-			this.eventSnapshot = eventSnapshot;
+			this.dataSnapshot = dataSnapshot;
 		}
 
 	}
@@ -675,12 +669,12 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		}
 
 		@Override
-		public LedgerTransaction commit(TransactionState txResult) {
+		public TransactionResult commit(TransactionState txResult) {
 			return commit(txResult, null);
 		}
 
 		@Override
-		public LedgerTransaction commit(TransactionState txResult, List<OperationResult> operationResults) {
+		public TransactionResult commit(TransactionState txExecState, List<OperationResult> operationResults) {
 			checkTxState();
 
 			// capture snapshot
@@ -702,16 +696,15 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 			logger.debug("after dataset.commit(),[contentHash={}]", this.getTransactionRequest().getTransactionHash());
 			TransactionStagedSnapshot txDataSnapshot = takeDataSnapshot();
-			EventStagedSnapshot eventSnapshot = takeEventSnapshot();
 
-			LedgerTransactionData tx;
+			TransactionResult txResult;
 			try {
-				tx = new LedgerTransactionData(ledgerEditor.getBlockHeight(), txRequest, txResult, txDataSnapshot,
+				txResult = new TransactionResultData(txRequest.getTransactionHash(), ledgerEditor.getBlockHeight(), txExecState, txDataSnapshot,
 						operationResultArray(operationResults));
 
 				logger.debug("before txset.add(),[contentHash={}]", this.getTransactionRequest().getTransactionHash());
 
-				ledgerEditor.txset.addTransaction(txRequest, tx);
+				ledgerEditor.txset.addTransaction(txRequest, txResult);
 
 				logger.debug("after txset.add(),[contentHash={}]", this.getTransactionRequest().getTransactionHash());
 
@@ -726,20 +719,20 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			}
 
 			// put snapshot into stack;
-			TxSnapshot snapshot = new TxSnapshot(txRequest.getTransactionHash(), txDataSnapshot, eventSnapshot);
+			TxSnapshot snapshot = new TxSnapshot(txRequest.getTransactionHash(), txDataSnapshot);
 			ledgerEditor.commitTxSnapshot(snapshot);
 
 			committed = true;
-			return tx;
+			return txResult;
 		}
 
 		@Override
-		public LedgerTransaction discardAndCommit(TransactionState txResult) {
+		public TransactionResult discardAndCommit(TransactionState txResult) {
 			return discardAndCommit(txResult, null);
 		}
 
 		@Override
-		public LedgerTransaction discardAndCommit(TransactionState txResult, List<OperationResult> operationResults) {
+		public TransactionResult discardAndCommit(TransactionState txExecState, List<OperationResult> operationResults) {
 			checkTxState();
 
 			// 未处理
@@ -758,14 +751,13 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			}
 
 			TransactionStagedSnapshot txDataSnapshot = takeDataSnapshot();
-			EventStagedSnapshot eventSnapshot = takeEventSnapshot();
 
-			LedgerTransactionData tx;
+			TransactionResult txResult;
 			try {
-				tx = new LedgerTransactionData(ledgerEditor.getBlockHeight(), txRequest, txResult, txDataSnapshot,
+				txResult = new TransactionResultData(txRequest.getTransactionHash(), ledgerEditor.getBlockHeight(), txExecState, txDataSnapshot,
 						operationResultArray(operationResults));
 
-				ledgerEditor.txset.addTransaction(txRequest, tx);
+				ledgerEditor.txset.addTransaction(txRequest, txResult);
 
 				// 不必每比交易完成后都计算交易集合的根哈希，只需要在最后生成区块时计算一次交易集合根哈希即可，如此可以优化性能；
 				// this.txset.commit();
@@ -778,11 +770,11 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			}
 
 			// put snapshot into stack;
-			TxSnapshot snapshot = new TxSnapshot(txRequest.getTransactionHash(), txDataSnapshot, eventSnapshot);
+			TxSnapshot snapshot = new TxSnapshot(txRequest.getTransactionHash(), txDataSnapshot);
 			ledgerEditor.commitTxSnapshot(snapshot);
 
 			committed = true;
-			return tx;
+			return txResult;
 		}
 
 		private TransactionStagedSnapshot takeDataSnapshot() {
@@ -792,11 +784,6 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 					.setContractAccountSetHash(ledgerEditor.latestLedgerDataset.getContractAccountset().getRootHash());
 			txDataSnapshot.setDataAccountSetHash(ledgerEditor.latestLedgerDataset.getDataAccountSet().getRootHash());
 			txDataSnapshot.setUserAccountSetHash(ledgerEditor.latestLedgerDataset.getUserAccountSet().getRootHash());
-			return txDataSnapshot;
-		}
-
-		private EventStagedSnapshot takeEventSnapshot() {
-			EventStagedSnapshot txDataSnapshot = new EventStagedSnapshot();
 			txDataSnapshot.setSystemEventSetHash(ledgerEditor.latestLedgerEventSet.getSystemEvents().getRootHash());
 			txDataSnapshot.setUserEventSetHash(ledgerEditor.latestLedgerEventSet.getUserEvents().getRootHash());
 			return txDataSnapshot;

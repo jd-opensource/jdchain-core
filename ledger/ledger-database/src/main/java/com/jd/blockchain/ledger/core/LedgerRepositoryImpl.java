@@ -10,7 +10,6 @@ import com.jd.blockchain.ledger.LedgerAdminInfo;
 import com.jd.blockchain.ledger.LedgerAdminSettings;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerDataSnapshot;
-import com.jd.blockchain.ledger.LedgerEventSnapshot;
 import com.jd.blockchain.ledger.LedgerInitSetting;
 import com.jd.blockchain.ledger.LedgerSettings;
 import com.jd.blockchain.ledger.TransactionRequest;
@@ -18,8 +17,6 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.codec.Base58Utils;
-
-import java.util.ArrayList;
 
 /**
  * 账本的存储结构： <br>
@@ -574,12 +571,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return dataset;
 	}
 
-	static LedgerEventSet loadEventSet(LedgerEventSnapshot eventSnapshot, CryptoSetting cryptoSetting, String keyPrefix,
+	static LedgerEventSet loadEventSet(LedgerDataSnapshot dataSnapshot, CryptoSetting cryptoSetting, String keyPrefix,
 									   ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, boolean readonly) {
 
-		MerkleEventSet systemEventSet = loadSystemEventSet(eventSnapshot.getSystemEventSetHash(), cryptoSetting,
+		MerkleEventSet systemEventSet = loadSystemEventSet(dataSnapshot.getSystemEventSetHash(), cryptoSetting,
 				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
-		EventAccountSet userEventSet = loadUserEventSet(eventSnapshot.getUserEventSetHash(), cryptoSetting,
+		EventAccountSet userEventSet = loadUserEventSet(dataSnapshot.getUserEventSetHash(), cryptoSetting,
 				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
 		LedgerEventSet newEventSet = new LedgerEventSet(systemEventSet, userEventSet, false);
 

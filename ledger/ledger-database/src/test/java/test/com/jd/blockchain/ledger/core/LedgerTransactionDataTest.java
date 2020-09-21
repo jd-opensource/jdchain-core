@@ -33,8 +33,9 @@ import com.jd.blockchain.ledger.LedgerDataSnapshot;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.TransactionContent;
 import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.TransactionResult;
 import com.jd.blockchain.ledger.TransactionState;
-import com.jd.blockchain.ledger.core.LedgerTransactionData;
+import com.jd.blockchain.ledger.core.TransactionResultData;
 import com.jd.blockchain.ledger.core.TransactionStagedSnapshot;
 import com.jd.blockchain.transaction.BlockchainOperationFactory;
 import com.jd.blockchain.transaction.DigitalSignatureBlob;
@@ -51,8 +52,8 @@ import com.jd.blockchain.transaction.TxRequestMessage;
 
 public class LedgerTransactionDataTest {
 
-	private LedgerTransactionData data;
-	
+	private TransactionResult data;
+
 	private TransactionRequest txRequest;
 
 	@Before
@@ -66,7 +67,7 @@ public class LedgerTransactionDataTest {
 
 		long blockHeight = 9986L;
 		TransactionStagedSnapshot snapshot = initTransactionStagedSnapshot();
-		data = new LedgerTransactionData(blockHeight, txRequest, TransactionState.SUCCESS,
+		data = new TransactionResultData(txRequest.getTransactionHash(), blockHeight, TransactionState.SUCCESS,
 				snapshot, null);
 
 		HashDigest hash = new HashDigest(ClassicAlgorithm.SHA256, "zhangsan".getBytes());
@@ -83,17 +84,21 @@ public class LedgerTransactionDataTest {
 
 	@Test
 	public void testSerialize_LedgerTransaction() throws Exception {
-		byte[] serialBytes = BinaryProtocol.encode(data, LedgerTransaction.class);
-		LedgerTransaction resolvedData = BinaryProtocol.decode(serialBytes);
+		byte[] serialBytes = BinaryProtocol.encode(data, TransactionResult.class);
+		TransactionResult resolvedData = BinaryProtocol.decode(serialBytes);
 
 		System.out.println("------Assert start ------");
 		assertEquals(resolvedData.getExecutionState(), data.getExecutionState());
 		assertEquals(resolvedData.getBlockHeight(), data.getBlockHeight());
 
-		assertEquals(resolvedData.getDataSnapshot().getAdminAccountHash(), data.getDataSnapshot().getAdminAccountHash());
-		assertEquals(resolvedData.getDataSnapshot().getContractAccountSetHash(), data.getDataSnapshot().getContractAccountSetHash());
-		assertEquals(resolvedData.getDataSnapshot().getDataAccountSetHash(), data.getDataSnapshot().getDataAccountSetHash());
-		assertEquals(resolvedData.getDataSnapshot().getUserAccountSetHash(), data.getDataSnapshot().getUserAccountSetHash());
+		assertEquals(resolvedData.getDataSnapshot().getAdminAccountHash(),
+				data.getDataSnapshot().getAdminAccountHash());
+		assertEquals(resolvedData.getDataSnapshot().getContractAccountSetHash(),
+				data.getDataSnapshot().getContractAccountSetHash());
+		assertEquals(resolvedData.getDataSnapshot().getDataAccountSetHash(),
+				data.getDataSnapshot().getDataAccountSetHash());
+		assertEquals(resolvedData.getDataSnapshot().getUserAccountSetHash(),
+				data.getDataSnapshot().getUserAccountSetHash());
 		assertEquals(resolvedData.getExecutionState(), data.getExecutionState());
 //		assertEquals(resolvedData.getHash(), data.getHash());
 		assertEquals(resolvedData.getBlockHeight(), data.getBlockHeight());
@@ -124,7 +129,6 @@ public class LedgerTransactionDataTest {
 		TransactionRequest resolvedData = BinaryProtocol.decode(serialBytes);
 
 		System.out.println("------Assert start ------");
-		
 
 		// EndpointSignatures 验证
 		DigitalSignature[] dataEndpointSignatures = txRequest.getEndpointSignatures();
@@ -145,7 +149,6 @@ public class LedgerTransactionDataTest {
 		assertTransactionEqual(txRequest.getTransactionContent(), resolvedData.getTransactionContent());
 		System.out.println("------Assert OK ------");
 	}
-
 
 	private void assertTransactionEqual(TransactionContent dataTxContent, TransactionContent resolvedTxContent) {
 		assertEquals(dataTxContent.getLedgerHash(), resolvedTxContent.getLedgerHash());

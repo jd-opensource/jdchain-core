@@ -47,7 +47,7 @@ public interface LedgerTransactionContext {
 	 *
 	 * @return
 	 */
-	LedgerTransaction commit(TransactionState txResult);
+	TransactionResult commit(TransactionState txResult);
 
 	/**
 	 * 提交对账本数据的修改，以指定的交易状态提交交易；
@@ -57,7 +57,7 @@ public interface LedgerTransactionContext {
 	 *
 	 * @return
 	 */
-	LedgerTransaction commit(TransactionState txResult, List<OperationResult> operationResults);
+	TransactionResult commit(TransactionState txResult, List<OperationResult> operationResults);
 
 	/**
 	 * 抛弃对账本数据的修改，以指定的交易状态提交交易；<br>
@@ -67,7 +67,7 @@ public interface LedgerTransactionContext {
 	 * @param txResult
 	 * @return
 	 */
-	LedgerTransaction discardAndCommit(TransactionState txResult);
+	TransactionResult discardAndCommit(TransactionState txResult);
 
 	/**
 	 * 抛弃对账本数据的修改，以指定的交易状态提交交易；<br>
@@ -77,7 +77,7 @@ public interface LedgerTransactionContext {
 	 * @param txResult
 	 * @return
 	 */
-	LedgerTransaction discardAndCommit(TransactionState txResult, List<OperationResult> operationResults);
+	TransactionResult discardAndCommit(TransactionState txResult, List<OperationResult> operationResults);
 
 	/**
 	 * 回滚事务，抛弃本次事务的所有数据更新；

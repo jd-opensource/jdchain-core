@@ -30,6 +30,16 @@ public class MerkleList<T> implements Transactional {
 		return tree.getRootHash();
 	}
 
+	public static MerkleList<byte[]> createByteArrayList(TreeOptions options, Bytes keyPrefix,
+			ExPolicyKVStorage kvStorage) {
+		return new MerkleList<byte[]>(options, keyPrefix, kvStorage, BytesToBytesConverter.INSTANCE);
+	}
+
+	public static MerkleList<byte[]> createByteArrayList(HashDigest rootHash, TreeOptions options, Bytes keyPrefix,
+			ExPolicyKVStorage kvStorage) {
+		return new MerkleList<byte[]>(rootHash, options, keyPrefix, kvStorage, BytesToBytesConverter.INSTANCE);
+	}
+
 	/**
 	 * 总数；
 	 * 
@@ -57,9 +67,9 @@ public class MerkleList<T> implements Transactional {
 	 */
 	public synchronized long add(T data) {
 		long newId = tree.getMaxId() + 1;
-		
+
 		tree.set(newId, data);
-		
+
 		return newId;
 	}
 

@@ -36,7 +36,7 @@ import com.jd.blockchain.utils.Transactional;
  */
 public class MerkleSortTree<T> implements Transactional {
 
-	public static final BytesConverter<byte[]> BYTES_TO_BYTES_CONVERTER = new BytesToBytesConverter();
+	private static final BytesConverter<byte[]> BYTES_TO_BYTES_CONVERTER = BytesToBytesConverter.INSTANCE;
 
 	@SuppressWarnings("rawtypes")
 	private static final DataPolicy DEFAULT_DATA_POLICY = new DefaultDataPolicy<>();
@@ -1517,19 +1517,6 @@ public class MerkleSortTree<T> implements Transactional {
 			return cursor;
 		}
 
-	}
-
-	private static class BytesToBytesConverter implements BytesConverter<byte[]> {
-
-		@Override
-		public byte[] toBytes(byte[] value) {
-			return value;
-		}
-
-		@Override
-		public byte[] fromBytes(byte[] bytes) {
-			return bytes;
-		}
 	}
 
 }

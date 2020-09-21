@@ -441,7 +441,7 @@ public class ContractInvokingTest {
 			userAccount.setProperty("Share", "" + (10 + i), -1);
 		}
 
-		LedgerTransaction tx = genisisTxCtx.commit(TransactionState.SUCCESS);
+		TransactionResult tx = genisisTxCtx.commit(TransactionState.SUCCESS);
 
 		assertEquals(genesisTxReq.getTransactionHash(), tx.getTransactionHash());
 		assertEquals(0, tx.getBlockHeight());

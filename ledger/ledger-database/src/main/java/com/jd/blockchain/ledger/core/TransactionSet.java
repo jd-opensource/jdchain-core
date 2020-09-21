@@ -8,6 +8,7 @@ import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.TransactionResult;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.merkletree.BytesConverter;
 import com.jd.blockchain.ledger.merkletree.MerkleList;
@@ -27,16 +28,21 @@ public class TransactionSet implements Transactional, TransactionQuery {
 		DataContractRegistry.register(LedgerTransaction.class);
 	}
 
-	private static final TransactionRequestConverter CONVERTER = new TransactionRequestConverter();
+//	private static final TransactionRequestConverter REQUEST_CONVERTER = new TransactionRequestConverter();
+	private static final HashDigestBytesConverter HASH_DIGEST_CONVERTER = new HashDigestBytesConverter();
 
 	private static final String TX_STATE_PREFIX = "STA" + LedgerConsts.KEY_SEPERATOR;
 
-	private static final String TX_REQUEST_PREFIX = "REQ" + LedgerConsts.KEY_SEPERATOR;
+	private static final String TX_SEQUENCE_PREFIX = "SEQ" + LedgerConsts.KEY_SEPERATOR;
 
 	/**
 	 * 交易请求列表的根哈希保存在交易状态集的 key ；
 	 */
 	private static final Bytes TX_REQUEST_ROOT_HASH = Bytes.fromString("TX-REQUEST-BLOCKS");
+
+	private static final Bytes TX_REQUEST_KEY_PREFIX = Bytes.fromString("REQ" + LedgerConsts.KEY_SEPERATOR);
+
+	private static final Bytes TX_RESULT_KEY_PREFIX = Bytes.fromString("RST" + LedgerConsts.KEY_SEPERATOR);
 
 	/**
 	 * 交易状态集合；用于记录交易执行结果；
@@ -46,7 +52,7 @@ public class TransactionSet implements Transactional, TransactionQuery {
 	/**
 	 * 交易请求列表；用于记录交易请求的顺序；
 	 */
-	private MerkleList<TransactionRequest> txRequests;
+	private MerkleList<HashDigest> txSequence;
 
 	/**
 	 * 交易请求列表的根哈希在交易状态集合中的版本；(key 为 {@link #TX_REQUEST_ROOT_HASH} );
@@ -69,10 +75,10 @@ public class TransactionSet implements Transactional, TransactionQuery {
 
 		this.txRequestBlockID = -1;
 
-		Bytes txRequestPrefix = Bytes.fromString(keyPrefix + TX_REQUEST_PREFIX);
+		Bytes txSequencePrefix = Bytes.fromString(keyPrefix + TX_SEQUENCE_PREFIX);
 		TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(setting.getHashAlgorithm())
 				.setVerifyHashOnLoad(setting.getAutoVerifyHash());
-		this.txRequests = new MerkleList<>(options, txRequestPrefix, merkleTreeStorage, CONVERTER);
+		this.txSequence = new MerkleList<>(options, txSequencePrefix, merkleTreeStorage, HASH_DIGEST_CONVERTER);
 
 	}
 
@@ -94,10 +100,11 @@ public class TransactionSet implements Transactional, TransactionQuery {
 		this.txRequestBlockID = txReqRootHashData.getVersion();
 		HashDigest txRequestRootHash = new HashDigest(txReqRootHashData.getValue());
 
-		Bytes txRequestPrefix = Bytes.fromString(keyPrefix + TX_REQUEST_PREFIX);
+		Bytes txRequestPrefix = Bytes.fromString(keyPrefix + TX_SEQUENCE_PREFIX);
 		TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(setting.getHashAlgorithm())
 				.setVerifyHashOnLoad(setting.getAutoVerifyHash());
-		this.txRequests = new MerkleList<>(txRequestRootHash, options, txRequestPrefix, merkleTreeStorage, CONVERTER);
+		this.txSequence = new MerkleList<>(txRequestRootHash, options, txRequestPrefix, merkleTreeStorage,
+				HASH_DIGEST_CONVERTER);
 	}
 
 	@Override
@@ -106,30 +113,39 @@ public class TransactionSet implements Transactional, TransactionQuery {
 			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
 		}
 
-		SkippingIterator<TransactionRequest> txReqIterator = txRequests.iterator();
+		SkippingIterator<HashDigest> txReqIterator = txSequence.iterator();
 
 		txReqIterator.skip(fromIndex);
 
 		int txCount = (int) Math.min(txReqIterator.getCount(), (long) count);
 		LedgerTransaction[] ledgerTransactions = new LedgerTransaction[txCount];
 
-		TransactionRequest txReq;
 		for (int i = 0; i < txCount; i++) {
-			txReq = txReqIterator.next();
-			ledgerTransactions[i] = getTransaction(txReq.getTransactionHash());
+			HashDigest txHash = txReqIterator.next();
+			ledgerTransactions[i] = getTransaction(txHash);
 		}
 		return ledgerTransactions;
 	}
+	
+	@Override
+	public TransactionResult[] getTransactionResults(int fromIndex, int count) {
+		if (count > LedgerConsts.MAX_LIST_COUNT) {
+			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
+		}
 
-//	@Override
-//	public byte[][] getValuesByIndex(int fromIndex, int count) {
-//		byte[][] values = new byte[count][];
-//		for (int i = 0; i < count; i++) {
-//			values[i] = txStateSet.getValuesAt(fromIndex * 2);
-//			fromIndex++;
-//		}
-//		return values;
-//	}
+		SkippingIterator<HashDigest> txReqIterator = txSequence.iterator();
+
+		txReqIterator.skip(fromIndex);
+
+		int txCount = (int) Math.min(txReqIterator.getCount(), (long) count);
+		TransactionResult[] ledgerTransactions = new TransactionResult[txCount];
+
+		for (int i = 0; i < txCount; i++) {
+			HashDigest txHash = txReqIterator.next();
+			ledgerTransactions[i] = loadResult(txHash);
+		}
+		return ledgerTransactions;
+	}
 
 	@Override
 	public HashDigest getRootHash() {
@@ -143,32 +159,18 @@ public class TransactionSet implements Transactional, TransactionQuery {
 
 	@Override
 	public long getTotalCount() {
-		return txRequests.size();
+		return txSequence.size();
 	}
 
 	/**
 	 * @param txRequest
 	 * @param result
 	 */
-	public void addTransaction(TransactionRequest txRequest, LedgerTransaction txResult) {
+	public void addTransaction(TransactionRequest txRequest, TransactionResult txResult) {
 		// TODO: 优化对交易内存存储的优化，应对大数据量单交易，共享操作的“写集”与实际写入账户的KV版本；
-		txRequests.add(txRequest);
-
-		// 序列化交易内容；
-		byte[] txResultBytes = serialize(txResult);
-		// 以交易内容的 hash 为 key；
-		Bytes key = txResult.getTransactionHash();
-		// 交易只有唯一的版本；
-		long v = txStateSet.setValue(key, txResultBytes, -1);
-		if (v < 0) {
-			throw new LedgerException("Transaction is persisted repeatly! --[" + key + "]");
-		}
-		// 以交易内容的hash值为key，单独记录交易结果的索引，以便快速查询交易结果；
-//		Bytes resultKey = encodeTxStateKey(key);
-//		v = txStateSet.setValue(resultKey, new byte[] { txResult.getExecutionState().CODE }, -1);
-//		if (v < 0) {
-//			throw new LedgerException("Transaction result is persisted repeatly! --[" + key + "]");
-//		}
+		txSequence.add(txRequest.getTransactionHash());
+		saveRequest(txRequest);
+		saveResult(txResult);
 	}
 
 	public LedgerTransaction getTransaction(String base58Hash) {
@@ -182,13 +184,20 @@ public class TransactionSet implements Transactional, TransactionQuery {
 	 */
 	@Override
 	public LedgerTransaction getTransaction(HashDigest txContentHash) {
-		// transaction has only one version;
-		byte[] txBytes = txStateSet.getValue(txContentHash, 0);
-		if (txBytes == null) {
-			return null;
-		}
-		LedgerTransaction tx = deserialize(txBytes);
-		return tx;
+		TransactionRequest txRequest = loadRequest(txContentHash);
+		TransactionResult txResult = loadResult(txContentHash);
+
+		return new LedgerTransactionData(txRequest, txResult);
+	}
+	
+	@Override
+	public TransactionRequest getTransactionRequest(HashDigest txContentHash) {
+		return loadRequest(txContentHash);
+	}
+	
+	@Override
+	public TransactionResult getTransactionResult(HashDigest txContentHash) {
+		return loadResult(txContentHash);
 	}
 
 	@Override
@@ -201,12 +210,56 @@ public class TransactionSet implements Transactional, TransactionQuery {
 		return tx.getExecutionState();
 	}
 
-	private LedgerTransaction deserialize(byte[] txBytes) {
-		return BinaryProtocol.decode(txBytes);
+	private TransactionResult loadResult(HashDigest txContentHash) {
+		// transaction has only one version;
+		Bytes key = encodeResultKey(txContentHash);
+		byte[] txBytes = txStateSet.getValue(key, 0);
+		if (txBytes == null) {
+			return null;
+		}
+		return BinaryProtocol.decode(txBytes, TransactionResult.class);
 	}
 
-	private byte[] serialize(LedgerTransaction txRequest) {
-		return BinaryProtocol.encode(txRequest, LedgerTransaction.class);
+	private void saveResult(TransactionResult txResult) {
+		// 序列化交易内容；
+		byte[] txResultBytes = BinaryProtocol.encode(txResult, TransactionResult.class);
+		// 以交易内容的 hash 为 key；
+		Bytes key = encodeResultKey(txResult.getTransactionHash());
+		// 交易只有唯一的版本；
+		long v = txStateSet.setValue(key, txResultBytes, -1);
+		if (v < 0) {
+			throw new LedgerException("Transaction Result is persisted repeatly! --[" + key + "]");
+		}
+	}
+	
+	private TransactionRequest loadRequest(HashDigest txContentHash) {
+		// transaction has only one version;
+		Bytes key = encodeRequestKey(txContentHash);
+		byte[] txBytes = txStateSet.getValue(key, 0);
+		if (txBytes == null) {
+			return null;
+		}
+		return BinaryProtocol.decode(txBytes, TransactionRequest.class);
+	}
+	
+	private void saveRequest(TransactionRequest txResult) {
+		// 序列化交易内容；
+		byte[] txResultBytes = BinaryProtocol.encode(txResult, TransactionRequest.class);
+		// 以交易内容的 hash 为 key；
+		Bytes key = encodeRequestKey(txResult.getTransactionHash());
+		// 交易只有唯一的版本；
+		long v = txStateSet.setValue(key, txResultBytes, -1);
+		if (v < 0) {
+			throw new LedgerException("Transaction Request is persisted repeatly! --[" + key + "]");
+		}
+	}
+
+	private Bytes encodeResultKey(HashDigest txContentHash) {
+		return TX_RESULT_KEY_PREFIX.concat(txContentHash);
+	}
+	
+	private Bytes encodeRequestKey(HashDigest txContentHash) {
+		return TX_REQUEST_KEY_PREFIX.concat(txContentHash);
 	}
 
 	public boolean isReadonly() {
@@ -224,8 +277,8 @@ public class TransactionSet implements Transactional, TransactionQuery {
 
 	@Override
 	public synchronized void commit() {
-		txRequests.commit();
-		HashDigest txReqRootHash = txRequests.getRootHash();
+		txSequence.commit();
+		HashDigest txReqRootHash = txSequence.getRootHash();
 		long v = txStateSet.setValue(TX_REQUEST_ROOT_HASH, txReqRootHash.toBytes(), txRequestBlockID);
 		if (v < 0) {
 			throw new LedgerException("Fail to save the root hash of transaction request!");
@@ -236,7 +289,7 @@ public class TransactionSet implements Transactional, TransactionQuery {
 
 	@Override
 	public void cancel() {
-		txRequests.cancel();
+		txSequence.cancel();
 		txStateSet.cancel();
 	}
 
@@ -250,6 +303,20 @@ public class TransactionSet implements Transactional, TransactionQuery {
 		@Override
 		public TransactionRequest fromBytes(byte[] bytes) {
 			return BinaryProtocol.decode(bytes, TransactionRequest.class);
+		}
+
+	}
+
+	private static class HashDigestBytesConverter implements BytesConverter<HashDigest> {
+
+		@Override
+		public byte[] toBytes(HashDigest value) {
+			return value.toBytes();
+		}
+
+		@Override
+		public HashDigest fromBytes(byte[] bytes) {
+			return new HashDigest(bytes);
 		}
 
 	}

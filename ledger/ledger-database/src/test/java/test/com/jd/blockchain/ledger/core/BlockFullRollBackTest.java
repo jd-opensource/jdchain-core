@@ -28,6 +28,7 @@ import com.jd.blockchain.ledger.TransactionContent;
 import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionResponse;
+import com.jd.blockchain.ledger.TransactionResult;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.core.DefaultOperationHandleRegisteration;
@@ -189,7 +190,7 @@ public class BlockFullRollBackTest {
             userAccount.setProperty("Share", "" + (10 + i), -1);
         }
 
-        LedgerTransaction tx = genisisTxCtx.commit(TransactionState.SUCCESS);
+        TransactionResult tx = genisisTxCtx.commit(TransactionState.SUCCESS);
 
         assertEquals(genesisTxReq.getTransactionHash(), tx.getTransactionHash());
         assertEquals(0, tx.getBlockHeight());

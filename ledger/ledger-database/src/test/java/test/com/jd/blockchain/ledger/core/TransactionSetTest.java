@@ -29,10 +29,10 @@ import com.jd.blockchain.ledger.ParticipantStateUpdateOperation;
 import com.jd.blockchain.ledger.TransactionContent;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionRequestBuilder;
+import com.jd.blockchain.ledger.TransactionResult;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.UserRegisterOperation;
-import com.jd.blockchain.ledger.core.LedgerTransactionData;
-import com.jd.blockchain.ledger.core.TransactionQuery;
+import com.jd.blockchain.ledger.core.TransactionResultData;
 import com.jd.blockchain.ledger.core.TransactionSet;
 import com.jd.blockchain.ledger.core.TransactionStagedSnapshot;
 import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
@@ -40,7 +40,6 @@ import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.transaction.TxBuilder;
 import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.codec.Base58Utils;
-import com.strobel.core.ArrayUtilities;
 
 public class TransactionSetTest {
 
@@ -76,7 +75,7 @@ public class TransactionSetTest {
 
 		long blockHeight = 8922L;
 		TransactionState txState = TransactionState.SUCCESS;
-		LedgerTransaction tx = buildTransactionResult(txReq, blockHeight, txState);
+		TransactionResult tx = buildTransactionResult(txReq, blockHeight, txState);
 
 		txset.addTransaction(txReq, tx);
 
@@ -96,7 +95,7 @@ public class TransactionSetTest {
 
 		assertEquals(1, reloadTxset.getTotalCount());
 
-		LedgerTransaction reloadTx = reloadTxset.getTransaction(txReq.getTransactionHash());
+		TransactionResult reloadTx = reloadTxset.getTransactionResult(txReq.getTransactionHash());
 
 		assertNotNull(reloadTx);
 		assertEquals(txState, reloadTx.getExecutionState());
@@ -120,7 +119,7 @@ public class TransactionSetTest {
 		// 生成指定数量的测试数据：交易请求和交易执行结果；
 		int txCount0 = 10;
 		TransactionRequest[] txRequests_0 = new TransactionRequest[txCount0];
-		LedgerTransaction[] txResults_0 = new LedgerTransaction[txCount0];
+		TransactionResult[] txResults_0 = new TransactionResult[txCount0];
 		buildRequestAndResult(ledgerHash, blockHeight, cryptoSetting, txCount0, txRequests_0, txResults_0);
 
 		// add tx to trasaction set;
@@ -131,7 +130,7 @@ public class TransactionSetTest {
 
 		// 验证交易集合中记录的交易顺序；
 		assertEquals(txCount0, txset.getTotalCount());
-		LedgerTransaction[] actualTxResults = txset.getTransactions(0, txCount0);
+		TransactionResult[] actualTxResults = txset.getTransactionResults(0, txCount0);
 		assertEquals(txCount0, actualTxResults.length);
 		for (int i = 0; i < txCount0; i++) {
 			assertTransactionEquals(txResults_0[i], actualTxResults[i]);
@@ -144,7 +143,7 @@ public class TransactionSetTest {
 
 		// 验证重新加载之后的交易集合中记录的交易顺序；
 		assertEquals(txCount0, reloadTxset.getTotalCount());
-		LedgerTransaction[] actualTxResults_reload = reloadTxset.getTransactions(0, txCount0);
+		TransactionResult[] actualTxResults_reload = reloadTxset.getTransactionResults(0, txCount0);
 		assertEquals(txCount0, actualTxResults_reload.length);
 		for (int i = 0; i < txCount0; i++) {
 			assertTransactionEquals(txResults_0[i], actualTxResults_reload[i]);
@@ -153,12 +152,12 @@ public class TransactionSetTest {
 		// 生成指定数量的测试数据：交易请求和交易执行结果；
 		int txCount1 = new Random().nextInt(200) + 1;
 		TransactionRequest[] txRequests_1 = new TransactionRequest[txCount1];
-		LedgerTransaction[] txResults_1 = new LedgerTransaction[txCount1];
+		TransactionResult[] txResults_1 = new TransactionResult[txCount1];
 		buildRequestAndResult(ledgerHash, blockHeight, cryptoSetting, txCount1, txRequests_1, txResults_1);
 
 		// add tx to trasaction set;
-		TransactionSet newTxset = new TransactionSet(txsetRootHash, cryptoSetting, keyPrefix, testStorage,
-				testStorage, false);
+		TransactionSet newTxset = new TransactionSet(txsetRootHash, cryptoSetting, keyPrefix, testStorage, testStorage,
+				false);
 		for (int i = 0; i < txCount1; i++) {
 			newTxset.addTransaction(txRequests_1[i], txResults_1[i]);
 		}
@@ -167,22 +166,22 @@ public class TransactionSetTest {
 		// 验证交易集合中记录的交易顺序；
 		int totalCount = txCount0 + txCount1;
 		assertEquals(totalCount, newTxset.getTotalCount());
-		LedgerTransaction[] actualTxResults_reload_2 = newTxset.getTransactions(0, totalCount);
+		TransactionResult[] actualTxResults_reload_2 = newTxset.getTransactionResults(0, totalCount);
 		assertEquals(totalCount, actualTxResults_reload_2.length);
-		
+
 		TransactionRequest[] txRequests = ArrayUtils.concat(txRequests_0, txRequests_1, TransactionRequest.class);
-		LedgerTransaction[] txResults = ArrayUtils.concat(txResults_0, txResults_1, LedgerTransaction.class);
+		TransactionResult[] txResults = ArrayUtils.concat(txResults_0, txResults_1, TransactionResult.class);
 		for (int i = 0; i < totalCount; i++) {
 			assertTransactionEquals(txResults[i], actualTxResults_reload_2[i]);
 		}
 	}
 
 	private void buildRequestAndResult(HashDigest ledgerHash, long blockHeight, CryptoSetting cryptoSetting,
-			int txCount, TransactionRequest[] txRequests, LedgerTransaction[] txResults) {
+			int txCount, TransactionRequest[] txRequests, TransactionResult[] txResults) {
 		TransactionState[] TX_EXEC_STATES = TransactionState.values();
 		for (int i = 0; i < txCount; i++) {
 			TransactionRequest txRequest = buildTransactionRequest_RandomOperation(ledgerHash, cryptoSetting);
-			LedgerTransaction txResult = buildTransactionResult(txRequest, blockHeight,
+			TransactionResult txResult = buildTransactionResult(txRequest, blockHeight,
 					TX_EXEC_STATES[i % TX_EXEC_STATES.length]);
 
 			txRequests[i] = txRequest;
@@ -190,7 +189,7 @@ public class TransactionSetTest {
 		}
 	}
 
-	private void assertTransactionEquals(LedgerTransaction txExpected, LedgerTransaction txActual) {
+	private void assertTransactionEquals(TransactionResult txExpected, TransactionResult txActual) {
 		assertEquals(txExpected.getTransactionHash(), txActual.getTransactionHash());
 		assertEquals(txExpected.getExecutionState(), txActual.getExecutionState());
 		assertEquals(txExpected.getBlockHeight(), txActual.getBlockHeight());
@@ -208,7 +207,7 @@ public class TransactionSetTest {
 
 	}
 
-	private LedgerTransaction buildTransactionResult(TransactionRequest txReq, long blockHeight,
+	private TransactionResult buildTransactionResult(TransactionRequest txReq, long blockHeight,
 			TransactionState txState) {
 		TransactionStagedSnapshot txSnapshot = new TransactionStagedSnapshot();
 		HashDigest adminAccountHash = LedgerTestUtils.generateRandomHash();
@@ -221,9 +220,10 @@ public class TransactionSetTest {
 		txSnapshot.setContractAccountSetHash(contractAccountSetHash);
 
 		OperationResult[] opResults = new OperationResult[0];
-		LedgerTransactionData tx = new LedgerTransactionData(blockHeight, txReq, txState, txSnapshot, opResults);
+		TransactionResultData txResult = new TransactionResultData(txReq.getTransactionHash(), blockHeight, txState,
+				txSnapshot, opResults);
 
-		return tx;
+		return txResult;
 	}
 
 	/**
@@ -322,7 +322,8 @@ public class TransactionSetTest {
 		txSnapshot.setUserAccountSetHash(
 				new HashDigest(Base58Utils.decode("j5oQDSob92mCoGSHtrXa9soqgAtMyjwfRMt2kj7igXXJrP")));
 
-		LedgerTransaction tx = new LedgerTransactionData(1, transactionRequest1, TransactionState.SUCCESS, txSnapshot);
+		TransactionResult tx = new TransactionResultData(transactionRequest1.getTransactionHash(), 1,
+				TransactionState.SUCCESS, txSnapshot);
 		txset.addTransaction(transactionRequest1, tx);
 
 		LedgerTransaction tx_query = txset.getTransaction(transactionRequest1.getTransactionHash());
