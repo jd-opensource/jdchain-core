@@ -1,15 +1,9 @@
 package test.com.jd.blockchain.ledger.core;
 
-import com.jd.blockchain.binaryproto.DataContractRegistry;
-import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.*;
-import com.jd.blockchain.ledger.core.*;
-import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
-import org.junit.Test;
-import org.mockito.Mockito;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
@@ -17,14 +11,46 @@ import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
+import org.junit.Test;
+import org.mockito.Mockito;
+
+import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.ledger.BlockRollbackException;
+import com.jd.blockchain.ledger.BlockchainKeyGenerator;
+import com.jd.blockchain.ledger.BlockchainKeypair;
+import com.jd.blockchain.ledger.DataAccountRegisterOperation;
+import com.jd.blockchain.ledger.LedgerBlock;
+import com.jd.blockchain.ledger.LedgerInitSetting;
+import com.jd.blockchain.ledger.LedgerPermission;
+import com.jd.blockchain.ledger.LedgerTransaction;
+import com.jd.blockchain.ledger.TransactionContent;
+import com.jd.blockchain.ledger.TransactionPermission;
+import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.TransactionResponse;
+import com.jd.blockchain.ledger.TransactionResult;
+import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.ledger.UserRegisterOperation;
+import com.jd.blockchain.ledger.core.DefaultOperationHandleRegisteration;
+import com.jd.blockchain.ledger.core.LedgerDataQuery;
+import com.jd.blockchain.ledger.core.LedgerDataset;
+import com.jd.blockchain.ledger.core.LedgerEditor;
+import com.jd.blockchain.ledger.core.LedgerManager;
+import com.jd.blockchain.ledger.core.LedgerRepository;
+import com.jd.blockchain.ledger.core.LedgerSecurityManager;
+import com.jd.blockchain.ledger.core.LedgerTransactionContext;
+import com.jd.blockchain.ledger.core.LedgerTransactionalEditor;
+import com.jd.blockchain.ledger.core.OperationHandleRegisteration;
+import com.jd.blockchain.ledger.core.SecurityPolicy;
+import com.jd.blockchain.ledger.core.TransactionBatchProcessor;
+import com.jd.blockchain.ledger.core.UserAccount;
+import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
+
 public class BlockFullRollBackTest {
 
     static {
         DataContractRegistry.register(TransactionContent.class);
-        DataContractRegistry.register(TransactionContentBody.class);
         DataContractRegistry.register(TransactionRequest.class);
-        DataContractRegistry.register(NodeRequest.class);
-        DataContractRegistry.register(EndpointRequest.class);
         DataContractRegistry.register(TransactionResponse.class);
         DataContractRegistry.register(UserRegisterOperation.class);
         DataContractRegistry.register(DataAccountRegisterOperation.class);
@@ -153,7 +179,7 @@ public class BlockFullRollBackTest {
         // 创建账本；
         LedgerEditor ldgEdt = LedgerTransactionalEditor.createEditor(initSetting, LEDGER_KEY_PREFIX, storage, storage);
 
-        TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest(partiKeys);
+        TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest_SHA256(partiKeys);
         LedgerTransactionContext genisisTxCtx = ldgEdt.newTransaction(genesisTxReq);
         LedgerDataset ldgDS = genisisTxCtx.getDataset();
 
@@ -164,9 +190,9 @@ public class BlockFullRollBackTest {
             userAccount.setProperty("Share", "" + (10 + i), -1);
         }
 
-        LedgerTransaction tx = genisisTxCtx.commit(TransactionState.SUCCESS);
+        TransactionResult tx = genisisTxCtx.commit(TransactionState.SUCCESS);
 
-        assertEquals(genesisTxReq.getTransactionContent().getHash(), tx.getTransactionContent().getHash());
+        assertEquals(genesisTxReq.getTransactionHash(), tx.getTransactionHash());
         assertEquals(0, tx.getBlockHeight());
 
         LedgerBlock block = ldgEdt.prepare();

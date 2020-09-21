@@ -105,8 +105,8 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 	public TransactionResponse schedule(TransactionRequest request) {
 		TransactionResponse resp;
 		try {
-			LOGGER.debug("Start handling transaction... --[BlockHeight={}][RequestHash={}][TxHash={}]",
-					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash());
+			LOGGER.debug("Start handling transaction... --[BlockHeight={}][TransactionHash={}]",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash());
 
 			TransactionRequestExtension reqExt = new TransactionRequestExtensionImpl(request);
 
@@ -120,51 +120,51 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 
 			// 验证交易请求；
 			checkRequest(reqExt);
-			LOGGER.debug("after checkRequest... --[BlockHeight={}][RequestHash={}][TxHash={}]",
-					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash());
+			LOGGER.debug("after checkRequest... --[BlockHeight={}][RequestHash={}]",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash());
 
 			// 创建交易上下文；
 			// 此调用将会验证交易签名，验签失败将会抛出异常，同时，不记录签名错误的交易到链上；
 			LedgerTransactionContext txCtx = newBlockEditor.newTransaction(request);
 
 			// 处理交易；
-			LOGGER.debug("before handleTx... --[BlockHeight={}][RequestHash={}][TxHash={}]",
-					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash());
+			LOGGER.debug("before handleTx... --[BlockHeight={}][TxHash={}]",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash());
 
 			resp = handleTx(reqExt, txCtx);
 
-			LOGGER.debug("Complete handling transaction.  --[BlockHeight={}][RequestHash={}][TxHash={}]",
-					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash());
+			LOGGER.debug("Complete handling transaction.  --[BlockHeight={}][TxHash={}]",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash());
 
 		} catch (IllegalTransactionException e) {
 			// 抛弃发生处理异常的交易请求；
 			resp = discard(request, e.getTxState());
 			LOGGER.error(String.format(
-					"Ignore transaction caused by IllegalTransactionException! --[BlockHeight=%s][RequestHash=%s][TxHash=%s] --%s",
-					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash(),
+					"Ignore transaction caused by IllegalTransactionException! --[BlockHeight=%s]TxHash=%s] --%s",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(),
 					e.getMessage()), e);
 
 		} catch (BlockRollbackException e) {
 			// 发生区块级别的处理异常，向上重新抛出异常进行处理，整个区块可能被丢弃；
 			resp = discard(request, e.getState());
 			LOGGER.error(String.format(
-					"Ignore transaction caused by BlockRollbackException! --[BlockHeight=%s][RequestHash=%s][TxHash=%s] --%s",
-					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash(),
+					"Ignore transaction caused by BlockRollbackException! --[BlockHeight=%s][TxHash=%s] --%s",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(), 
 					e.getMessage()), e);
 			throw e;
 		}catch (LedgerException e) {
 			// 发生账本级别的非回滚处理异常，只记录错误，不回滚；
 			resp = discard(request, e.getState());
 			LOGGER.error(String.format(
-					"Ignore transaction caused by LedgerException! --[BlockHeight=%s][RequestHash=%s][TxHash=%s] --%s",
-					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash(),
+					"Ignore transaction caused by LedgerException! --[BlockHeight=%s][TxHash=%s] --%s",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(),
 					e.getMessage()), e);
 		} catch (Throwable e) {
 			// 抛弃发生处理异常的交易请求；
 			resp = discard(request, TransactionState.SYSTEM_ERROR);
 			LOGGER.error(String.format(
-					"Ignore transaction caused by the system exception! --[BlockHeight=%s][RequestHash=%s][TxHash=%s] --%s",
-					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash(),
+					"Ignore transaction caused by the system exception! --[BlockHeight=%s][TxHash=%s] --%s",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(), 
 					e.getMessage()), e);
 
 		} finally {
@@ -198,10 +198,10 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 
 	private void checkTxContentHash(TransactionRequestExtension requestExt) {
 		TransactionContent txContent = requestExt.getTransactionContent();
-		if (!TxBuilder.verifyTxContentHash(txContent, txContent.getHash())) {
+		if (!TxBuilder.verifyTxContentHash(txContent, requestExt.getTransactionHash())) {
 			// 由于哈希校验失败，引发IllegalTransactionException，使外部调用抛弃此交易请求；
 			throw new IllegalTransactionException(
-					"Wrong  transaction content hash! --[TxHash=" + requestExt.getTransactionContent().getHash() + "]!",
+					"Wrong  transaction content hash! --[TxHash=" + requestExt.getTransactionHash() + "]!",
 					TransactionState.IGNORED_BY_INCONSISTENT_CONTENT_HASH);
 		}
 	}
@@ -211,12 +211,12 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 		Collection<Credential> nodes = request.getNodes();
 		if (nodes != null) {
 			for (Credential node : nodes) {
-				if (!SignatureUtils.verifyHashSignature(txContent.getHash(), node.getSignature().getDigest(),
+				if (!SignatureUtils.verifyHashSignature(request.getTransactionHash(), node.getSignature().getDigest(),
 						node.getPubKey())) {
 					// 由于签名校验失败，引发IllegalTransactionException，使外部调用抛弃此交易请求；
 					throw new IllegalTransactionException(
 							String.format("Wrong transaction node signature! --[Tx Hash=%s][Node Signer=%s]!",
-									request.getTransactionContent().getHash(), node.getAddress()),
+									request.getTransactionHash(), node.getAddress()),
 							TransactionState.IGNORED_BY_ILLEGAL_CONTENT_SIGNATURE);
 				}
 			}
@@ -228,12 +228,12 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 		Collection<Credential> endpoints = request.getEndpoints();
 		if (endpoints != null) {
 			for (Credential endpoint : endpoints) {
-				if (!SignatureUtils.verifyHashSignature(txContent.getHash(), endpoint.getSignature().getDigest(),
+				if (!SignatureUtils.verifyHashSignature(request.getTransactionHash(), endpoint.getSignature().getDigest(),
 						endpoint.getPubKey())) {
 					// 由于签名校验失败，引发IllegalTransactionException，使外部调用抛弃此交易请求；
 					throw new IllegalTransactionException(
 							String.format("Wrong transaction endpoint signature! --[Tx Hash=%s][Endpoint Signer=%s]!",
-									request.getTransactionContent().getHash(), endpoint.getAddress()),
+									request.getTransactionHash(), endpoint.getAddress()),
 							TransactionState.IGNORED_BY_ILLEGAL_CONTENT_SIGNATURE);
 				}
 			}
@@ -281,20 +281,20 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 
 			// 提交交易（事务）；
 			result = TransactionState.SUCCESS;
-			LOGGER.debug("before commit().  --[BlockHeight={}][RequestHash={}][TxHash={}]",
-					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash());
+			LOGGER.debug("before commit().  --[BlockHeight={}][TxHash={}]",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash());
 
 			txCtx.commit(result, operationResults);
 
-			LOGGER.debug("after commit().  --[BlockHeight={}][RequestHash={}][TxHash={}]",
-					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash());
+			LOGGER.debug("after commit().  --[BlockHeight={}][TxHash={}]",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash());
 		} catch (TransactionRollbackException e) {
-			//
+			//忽略交易；
 			result = TransactionState.IGNORED_BY_TX_FULL_ROLLBACK;
 			txCtx.rollback();
 			LOGGER.error(String.format(
-					"Transaction was full rolled back! --[BlockHeight=%s][RequestHash=%s][TxHash=%s] --%s",
-					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash(),
+					"Transaction was full rolled back! --[BlockHeight=%s][TxHash=%s] --%s",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(), 
 					e.getMessage()), e);
 		} catch (BlockRollbackException e) {
 			// rollback all the block；
@@ -302,9 +302,8 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 //			result = TransactionState.IGNORED_BY_BLOCK_FULL_ROLLBACK;
 			txCtx.rollback();
 			LOGGER.error(
-					String.format("Transaction was rolled back! --[BlockHeight=%s][RequestHash=%s][TxHash=%s] --%s",
-							newBlockEditor.getBlockHeight(), request.getHash(),
-							request.getTransactionContent().getHash(), e.getMessage()),
+					String.format("Transaction was rolled back! --[BlockHeight=%s][TxHash=%s] --%s",
+							newBlockEditor.getBlockHeight(), request.getTransactionHash(), e.getMessage()),
 					e);
 			// 重新抛出由上层错误处理；
 			throw e;
@@ -325,23 +324,23 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 //			}
 			txCtx.discardAndCommit(result, operationResults);
 			LOGGER.error(String.format(
-					"Due to ledger exception, the data changes resulting from transaction execution will be rolled back and the results of the transaction will be committed! --[BlockHeight=%s][RequestHash=%s][TxHash=%s] --%s",
-					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash(),
+					"Due to ledger exception, the data changes resulting from transaction execution will be rolled back and the results of the transaction will be committed! --[BlockHeight=%s][TxHash=%s] --%s",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(), 
 					e.getMessage()), e);
 		} catch (LedgerSecurityException e) {
 			// TODO: 识别更详细的异常类型以及执行对应的处理；
 			result = TransactionState.REJECTED_BY_SECURITY_POLICY;
 			txCtx.discardAndCommit(result, operationResults);
 			LOGGER.error(String.format(
-					"Due to ledger security exception, the data changes resulting from transaction execution will be rolled back and the results of the transaction will be committed! --[BlockHeight=%s][RequestHash=%s][TxHash=%s] --%s",
-					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash(),
+					"Due to ledger security exception, the data changes resulting from transaction execution will be rolled back and the results of the transaction will be committed! --[BlockHeight=%s][TxHash=%s] --%s",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(), 
 					e.getMessage()), e);
 		} catch (Throwable e) {
 			result = TransactionState.SYSTEM_ERROR;
 			txCtx.discardAndCommit(TransactionState.SYSTEM_ERROR, operationResults);
 			LOGGER.error(String.format(
-					"Due to system exception, the data changes resulting from transaction execution will be rolled back and the results of the transaction will be committed! --[BlockHeight=%s][RequestHash=%s][TxHash=%s] --%s",
-					newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash(),
+					"Due to system exception, the data changes resulting from transaction execution will be rolled back and the results of the transaction will be committed! --[BlockHeight=%s][TxHash=%s] --%s",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(),
 					e.getMessage()), e);
 		}
 		TxResponseHandle resp = new TxResponseHandle(request, result);
@@ -362,11 +361,11 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 	 */
 	private TransactionResponse discard(TransactionRequest request, TransactionState txState) {
 		// 丢弃交易的回复；只返回请求的交易内容哈希和交易被丢弃的原因，
-		TxResponseMessage resp = new TxResponseMessage(request.getTransactionContent().getHash());
+		TxResponseMessage resp = new TxResponseMessage(request.getTransactionHash());
 		resp.setExecutionState(txState);
 
-		LOGGER.error("Discard transaction request! --[BlockHeight={}][RequestHash={}][TxHash={}][ResponseState={}]",
-				newBlockEditor.getBlockHeight(), request.getHash(), request.getTransactionContent().getHash(),
+		LOGGER.error("Discard transaction request! --[BlockHeight={}][RequestHash={}][ResponseState={}]",
+				newBlockEditor.getBlockHeight(), request.getTransactionHash(), 
 				resp.getExecutionState());
 		return resp;
 	}
@@ -456,7 +455,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 
 		@Override
 		public HashDigest getContentHash() {
-			return request.getTransactionContent().getHash();
+			return request.getTransactionHash();
 		}
 
 		@Override

@@ -198,44 +198,55 @@ public class LedgerQueryService implements BlockchainQueryService {
 	@Override
 	public LedgerTransaction[] getTransactions(HashDigest ledgerHash, long height, int fromIndex, int count) {
 		checkLedgerHash(ledgerHash);
-		LedgerBlock ledgerBlock = ledger.getBlock(height);
-		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
-		TransactionQuery origTransactionSet = null;
-		int lastHeightTxTotalNums = 0;
-
-		if (height > 0) {
-			origTransactionSet = ledger.getTransactionSet(ledger.getBlock(height - 1));
-			lastHeightTxTotalNums = (int) origTransactionSet.getTotalCount();
+		LedgerBlock block = ledger.getBlock(height);
+		if (block == null) {
+			return null;
 		}
-
-		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(height)).getTotalCount();
-		// 取当前高度的增量交易数，在增量交易里进行查找
-		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
-
-		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
-		return transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), origTransactionSet);
+		return ledger.getTransactionSet(block).getTransactions(fromIndex, count);
+		
+//		LedgerBlock ledgerBlock = ledger.getBlock(height);
+//		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
+//		TransactionQuery origTransactionSet = null;
+//		int lastHeightTxTotalNums = 0;
+//
+//		if (height > 0) {
+//			origTransactionSet = ledger.getTransactionSet(ledger.getBlock(height - 1));
+//			lastHeightTxTotalNums = (int) origTransactionSet.getTotalCount();
+//		}
+//
+//		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(height)).getTotalCount();
+//		// 取当前高度的增量交易数，在增量交易里进行查找
+//		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
+//
+//		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
+//		return transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), origTransactionSet);
 	}
 
 	@Override
 	public LedgerTransaction[] getTransactions(HashDigest ledgerHash, HashDigest blockHash, int fromIndex, int count) {
 		checkLedgerHash(ledgerHash);
-		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
-		long height = ledgerBlock.getHeight();
-		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
-		TransactionQuery origTransactionSet = null;
-		int lastHeightTxTotalNums = 0;
-
-		if (height > 0) {
-			origTransactionSet = ledger.getTransactionSet(ledger.getBlock(height - 1));
-			lastHeightTxTotalNums = (int) origTransactionSet.getTotalCount();
+		LedgerBlock block = ledger.getBlock(blockHash);
+		if (block == null) {
+			return null;
 		}
-
-		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(height)).getTotalCount();
-		// 取当前块hash的增量交易数，在增量交易里进行查找
-		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
-
-		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
-		return transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), origTransactionSet);
+		return ledger.getTransactionSet(block).getTransactions(fromIndex, count);
+		
+//		long height = ledgerBlock.getHeight();
+//		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
+//		TransactionQuery origTransactionSet = null;
+//		int lastHeightTxTotalNums = 0;
+//
+//		if (height > 0) {
+//			origTransactionSet = ledger.getTransactionSet(ledger.getBlock(height - 1));
+//			lastHeightTxTotalNums = (int) origTransactionSet.getTotalCount();
+//		}
+//
+//		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(height)).getTotalCount();
+//		// 取当前块hash的增量交易数，在增量交易里进行查找
+//		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
+//
+//		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
+//		return transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), origTransactionSet);
 	}
 
 	@Override
@@ -243,7 +254,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		TransactionQuery txset = ledger.getTransactionSet(block);
-		return txset.get(contentHash);
+		return txset.getTransaction(contentHash);
 	}
 
 	@Override
@@ -436,7 +447,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		EventAccountQuery eventAccountSet = ledger.getUserEvents(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) eventAccountSet.getTotal());
-		return eventAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
+		return eventAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	@Override
@@ -509,7 +520,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		UserAccountQuery userAccountSet = ledger.getUserAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) userAccountSet.getTotal());
-		return userAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
+		return userAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	@Override
@@ -518,7 +529,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) dataAccountSet.getTotal());
-		return dataAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
+		return dataAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	@Override
@@ -527,7 +538,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		ContractAccountQuery contractAccountSet = ledger.getContractAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) contractAccountSet.getTotal());
-		return contractAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
+		return contractAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	@Override

@@ -51,10 +51,7 @@ import test.com.jd.blockchain.ledger.TxTestContractImpl;
 public class ContractInvokingTest {
 	static {
 		DataContractRegistry.register(TransactionContent.class);
-		DataContractRegistry.register(TransactionContentBody.class);
 		DataContractRegistry.register(TransactionRequest.class);
-		DataContractRegistry.register(NodeRequest.class);
-		DataContractRegistry.register(EndpointRequest.class);
 		DataContractRegistry.register(TransactionResponse.class);
 		DataContractRegistry.register(UserRegisterOperation.class);
 		DataContractRegistry.register(DataAccountRegisterOperation.class);
@@ -117,7 +114,8 @@ public class ContractInvokingTest {
 				ledgerRepo, opReg);
 
 		// 构建基于接口调用合约的交易请求，用于测试合约调用；
-		TxBuilder txBuilder = new TxBuilder(ledgerHash);
+		CryptoSetting cryptoSetting = ledgerRepo.getAdminInfo().getSettings().getCryptoSetting();
+		TxBuilder txBuilder = new TxBuilder(ledgerHash, cryptoSetting.getHashAlgorithm());
 		TestContract contractProxy = txBuilder.contract(contractAddress, TestContract.class);
 
 		// 构造调用合约的交易；
@@ -193,7 +191,8 @@ public class ContractInvokingTest {
 		String key = TxTestContractImpl.KEY;
 		String value = "VAL";
 
-		TxBuilder txBuilder = new TxBuilder(ledgerHash);
+		CryptoSetting cryptoSetting = ledgerRepo.getAdminInfo().getSettings().getCryptoSetting();
+		TxBuilder txBuilder = new TxBuilder(ledgerHash, cryptoSetting.getHashAlgorithm());
 		BlockchainKeypair kpDataAccount = BlockchainKeyGenerator.getInstance().generate();
 		contractInstance.setDataAddress(kpDataAccount.getAddress());
 
@@ -204,7 +203,7 @@ public class ContractInvokingTest {
 		TransactionRequest txReq1 = txReqBuilder1.buildRequest();
 
 		// 构建基于接口调用合约的交易请求，用于测试合约调用；
-		txBuilder = new TxBuilder(ledgerHash);
+		txBuilder = new TxBuilder(ledgerHash, cryptoSetting.getHashAlgorithm());
 		TxTestContract contractProxy = txBuilder.contract(contractAddress, TxTestContract.class);
 		BooleanValueHolder readableHolder = decode(contractProxy.testReadable());
 
@@ -220,8 +219,8 @@ public class ContractInvokingTest {
 		TransactionBatchResultHandle txResultHandle = txbatchProcessor.prepare();
 		txResultHandle.commit();
 
-		BytesValue latestValue = ledgerRepo.getDataAccountSet().getAccount(kpDataAccount.getAddress()).getDataset().getValue(key,
-				-1);
+		BytesValue latestValue = ledgerRepo.getDataAccountSet().getAccount(kpDataAccount.getAddress()).getDataset()
+				.getValue(key, -1);
 		System.out.printf("latest value=[%s] %s \r\n", latestValue.getType(), latestValue.getBytes().toUTF8String());
 
 		boolean readable = readableHolder.get();
@@ -280,10 +279,10 @@ public class ContractInvokingTest {
 			}
 		});
 		// 预期数据都能够正常写入；
-		DataEntry<String, TypedValue> kv1 = ledgerRepo.getDataAccountSet().getAccount(kpDataAccount.getAddress()).getDataset().getDataEntry("K1",
-				0);
-		DataEntry<String, TypedValue> kv2 = ledgerRepo.getDataAccountSet().getAccount(kpDataAccount.getAddress()).getDataset().getDataEntry("K2",
-				0);
+		DataEntry<String, TypedValue> kv1 = ledgerRepo.getDataAccountSet().getAccount(kpDataAccount.getAddress())
+				.getDataset().getDataEntry("K1", 0);
+		DataEntry<String, TypedValue> kv2 = ledgerRepo.getDataAccountSet().getAccount(kpDataAccount.getAddress())
+				.getDataset().getDataEntry("K2", 0);
 		assertEquals(0, kv1.getVersion());
 		assertEquals(0, kv2.getVersion());
 		assertEquals("V1-0", kv1.getValue().stringValue());
@@ -316,7 +315,7 @@ public class ContractInvokingTest {
 				contractProxy.testRollbackWhileVersionConfliction(kpDataAccount.getAddress().toBase58(), "K1", "V1-2",
 						1);
 				contractProxy.testRollbackWhileVersionConfliction(kpDataAccount.getAddress().toBase58(), "K2", "V2-2",
-						0);//预期会回滚；
+						0);// 预期会回滚；
 			}
 		});
 		// 预期数据回滚，账本没有发生变更；
@@ -338,7 +337,8 @@ public class ContractInvokingTest {
 		TransactionBatchProcessor txbatchProcessor = new TransactionBatchProcessor(getSecurityManager(), newBlockEditor,
 				ledgerRepo, opReg);
 
-		TxBuilder txBuilder = new TxBuilder(ledgerRepo.getHash());
+		CryptoSetting cryptoSetting = ledgerRepo.getAdminInfo().getSettings().getCryptoSetting();
+		TxBuilder txBuilder = new TxBuilder(ledgerRepo.getHash(), cryptoSetting.getHashAlgorithm());
 		txDefinitor.buildTx(txBuilder);
 
 		TransactionRequest txReq = buildAndSignRequest(txBuilder, parti0, parti0);
@@ -374,7 +374,8 @@ public class ContractInvokingTest {
 				ledgerRepo, opReg);
 
 		// 注册数据账户；
-		TxBuilder txBuilder = new TxBuilder(ledgerHash);
+		CryptoSetting cryptoSetting = ledgerRepo.getAdminInfo().getSettings().getCryptoSetting();
+		TxBuilder txBuilder = new TxBuilder(ledgerHash, cryptoSetting.getHashAlgorithm());
 
 		txBuilder.dataAccounts().register(kpDataAccount.getIdentity());
 		TransactionRequestBuilder txReqBuilder1 = txBuilder.prepareRequest();
@@ -405,7 +406,8 @@ public class ContractInvokingTest {
 				ledgerRepo, opReg);
 
 		// 构建基于接口调用合约的交易请求，用于测试合约调用；
-		TxBuilder txBuilder = new TxBuilder(ledgerHash);
+		CryptoSetting cryptoSetting = ledgerRepo.getAdminInfo().getSettings().getCryptoSetting();
+		TxBuilder txBuilder = new TxBuilder(ledgerHash, cryptoSetting.getHashAlgorithm());
 		txBuilder.contracts().deploy(contractKey.getIdentity(), chainCode());
 		TransactionRequestBuilder txReqBuilder = txBuilder.prepareRequest();
 		txReqBuilder.signAsEndpoint(parti0);
@@ -428,7 +430,7 @@ public class ContractInvokingTest {
 		// 创建账本；
 		LedgerEditor ldgEdt = LedgerTransactionalEditor.createEditor(initSetting, LEDGER_KEY_PREFIX, storage, storage);
 
-		TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest(partiKeys);
+		TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest_SHA256(partiKeys);
 		LedgerTransactionContext genisisTxCtx = ldgEdt.newTransaction(genesisTxReq);
 		LedgerDataset ldgDS = genisisTxCtx.getDataset();
 
@@ -439,9 +441,9 @@ public class ContractInvokingTest {
 			userAccount.setProperty("Share", "" + (10 + i), -1);
 		}
 
-		LedgerTransaction tx = genisisTxCtx.commit(TransactionState.SUCCESS);
+		TransactionResult tx = genisisTxCtx.commit(TransactionState.SUCCESS);
 
-		assertEquals(genesisTxReq.getTransactionContent().getHash(), tx.getTransactionContent().getHash());
+		assertEquals(genesisTxReq.getTransactionHash(), tx.getTransactionHash());
 		assertEquals(0, tx.getBlockHeight());
 
 		LedgerBlock block = ldgEdt.prepare();

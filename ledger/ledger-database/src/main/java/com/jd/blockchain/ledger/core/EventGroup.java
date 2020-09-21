@@ -2,8 +2,6 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.ledger.Event;
 
-import java.util.Iterator;
-
 /**
  * 事件组；
  * 

@@ -20,7 +20,7 @@ public class EmptyAccountSet<T> implements AccountQuery<T> {
 	}
 
 	@Override
-	public BlockchainIdentity[] getHeaders(int fromIndex, int count) {
+	public BlockchainIdentity[] getAccountIDs(int fromIndex, int count) {
 		return EMPTY;
 	}
 

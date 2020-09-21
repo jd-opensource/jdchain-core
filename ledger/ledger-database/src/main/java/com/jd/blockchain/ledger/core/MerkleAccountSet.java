@@ -33,7 +33,7 @@ public class MerkleAccountSet implements Transactional, MerkleProvable, AccountQ
 	/**
 	 * 账户根哈希的数据集；
 	 */
-	private MerkleDataSet merkleDataset;
+	private MerkleHashDataset merkleDataset;
 
 	/**
 	 * The cache of latest version accounts, including accounts getting by querying
@@ -73,7 +73,7 @@ public class MerkleAccountSet implements Transactional, MerkleProvable, AccountQ
 		this.cryptoSetting = cryptoSetting;
 		this.baseExStorage = exStorage;
 		this.baseVerStorage = verStorage;
-		this.merkleDataset = new MerkleDataSet(rootHash, cryptoSetting, keyPrefix, this.baseExStorage,
+		this.merkleDataset = new MerkleHashDataset(rootHash, cryptoSetting, keyPrefix, this.baseExStorage,
 				this.baseVerStorage, readonly);
 
 		this.accessPolicy = accessPolicy;
@@ -90,8 +90,8 @@ public class MerkleAccountSet implements Transactional, MerkleProvable, AccountQ
 	}
 
 	@Override
-	public BlockchainIdentity[] getHeaders(int fromIndex, int count) {
-		DataEntry<Bytes, byte[]>[] results = merkleDataset.getLatestDataEntries(fromIndex, count);
+	public BlockchainIdentity[] getAccountIDs(int fromIndex, int count) {
+		DataEntry<Bytes, byte[]>[] results = merkleDataset.getDataEntries(fromIndex, count);
 
 		BlockchainIdentity[] ids = new BlockchainIdentity[results.length];
 		for (int i = 0; i < results.length; i++) {

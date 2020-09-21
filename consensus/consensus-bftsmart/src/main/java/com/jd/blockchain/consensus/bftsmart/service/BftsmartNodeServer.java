@@ -527,7 +527,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     private byte[] createAppResponse(byte[] command, TransactionState transactionState) {
         TransactionRequest txRequest = BinaryProtocol.decode(command);
 
-        TxResponseMessage resp = new TxResponseMessage(txRequest.getTransactionContent().getHash());
+        TxResponseMessage resp = new TxResponseMessage(txRequest.getTransactionHash());
 
         resp.setExecutionState(transactionState);
 

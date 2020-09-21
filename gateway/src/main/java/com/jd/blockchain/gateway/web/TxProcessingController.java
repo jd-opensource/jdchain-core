@@ -1,8 +1,7 @@
 package com.jd.blockchain.gateway.web;
 
-import com.jd.blockchain.crypto.*;
-import com.jd.blockchain.gateway.service.GatewayInterceptService;
-import com.jd.blockchain.transaction.SignatureUtils;
+import javax.servlet.http.HttpServletRequest;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,17 +11,16 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.gateway.PeerService;
+import com.jd.blockchain.gateway.service.GatewayInterceptService;
 import com.jd.blockchain.ledger.DigitalSignature;
-import com.jd.blockchain.ledger.TransactionContent;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionResponse;
+import com.jd.blockchain.transaction.SignatureUtils;
 import com.jd.blockchain.transaction.TransactionService;
 import com.jd.blockchain.utils.BusinessException;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author huanghaiquan
@@ -68,16 +66,16 @@ public class TxProcessingController implements TransactionService {
 		} else {
 			// 验证签名；
 			for (DigitalSignature sign : partiSigns) {
-				if (!SignatureUtils.verifySignature(txRequest.getTransactionContent(), sign.getDigest(), sign.getPubKey())) {
+				if (!SignatureUtils.verifyHashSignature(txRequest.getTransactionHash(), sign.getDigest(), sign.getPubKey())) {
 					throw new BusinessException("The validation of participant signatures fail!");
 				}
 			}
 		}
 
 		// 注：转发前自动附加网关的签名并转发请求至共识节点；异步的处理方式
-		LOGGER.info("[contentHash={}],before peerService.getTransactionService().process(txRequest)",txRequest.getTransactionContent().getHash());
+		LOGGER.info("[contentHash={}],before peerService.getTransactionService().process(txRequest)",txRequest.getTransactionHash());
 		TransactionResponse transactionResponse =  peerService.getTransactionService().process(txRequest);
-		LOGGER.info("[contentHash={}],after peerService.getTransactionService().process(txRequest)",txRequest.getTransactionContent().getHash());
+		LOGGER.info("[contentHash={}],after peerService.getTransactionService().process(txRequest)",txRequest.getTransactionHash());
 		return transactionResponse;
 	}
 }

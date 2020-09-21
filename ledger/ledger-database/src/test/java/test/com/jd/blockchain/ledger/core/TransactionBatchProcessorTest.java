@@ -18,13 +18,10 @@ import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.DataAccountRegisterOperation;
 import com.jd.blockchain.ledger.DataVersionConflictException;
-import com.jd.blockchain.ledger.EndpointRequest;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerTransaction;
-import com.jd.blockchain.ledger.NodeRequest;
 import com.jd.blockchain.ledger.TransactionContent;
-import com.jd.blockchain.ledger.TransactionContentBody;
 import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionResponse;
@@ -47,10 +44,7 @@ import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 public class TransactionBatchProcessorTest {
 	static {
 		DataContractRegistry.register(TransactionContent.class);
-		DataContractRegistry.register(TransactionContentBody.class);
 		DataContractRegistry.register(TransactionRequest.class);
-		DataContractRegistry.register(NodeRequest.class);
-		DataContractRegistry.register(EndpointRequest.class);
 		DataContractRegistry.register(TransactionResponse.class);
 		DataContractRegistry.register(UserRegisterOperation.class);
 		DataContractRegistry.register(DataAccountRegisterOperation.class);
@@ -260,29 +254,29 @@ public class TransactionBatchProcessorTest {
 //		BlockchainKeypair userKeypair1 = BlockchainKeyGenerator.getInstance().generate();
 		BlockchainKeypair userKeypair1 = LedgerTestUtils.createKeyPair(
 				"7VeRKf3GFLFcBfzvtzmtyMXEoX2HYGEJ4j7CmHcnRV99W5Dp", "7VeRYQjeAaQY5Po8MMtmGNHA2SniqLXmJaZwBS5K8zTtMAU1");
-		TransactionRequest transactionRequest1 = LedgerTestUtils.createTxRequest_UserReg(userKeypair1, ledgerHash,
+		TransactionRequest transactionRequest1 = LedgerTestUtils.createTxRequest_UserReg_SHA256(userKeypair1, ledgerHash,
 				1580315317127L,parti0, parti0);
 		//错误参数：ts=1580315317127; txhash=j5wPGKT5CUzwi8j6VfCWaP2p9YZ6WVWtMANp9HbHWzvhgG
-		System.out.printf("\r\n ===||=== transactionRequest1.getTransactionContent().getHash()=[%s]\r\n",
-				 transactionRequest1.getTransactionContent().getHash().toBase58());
+		System.out.printf("\r\n ===||=== transactionRequest1.getTransactionHash()=[%s]\r\n",
+				 transactionRequest1.getTransactionHash().toBase58());
 		TransactionResponse txResp1 = txbatchProcessor.schedule(transactionRequest1);
 
 //		BlockchainKeypair userKeypair2 = BlockchainKeyGenerator.getInstance().generate();
 		BlockchainKeypair userKeypair2 = LedgerTestUtils.createKeyPair(
 				"7VeRKSnDFveTfLLMsLZDmmhGmgf7i142XHgBFjnrKuS95tY3", "7VeRTiJ2TpQD9aBi29ajnqdntgoVBANmC3oCbHThKb5tzfTJ");
-		TransactionRequest transactionRequest2 = LedgerTestUtils.createTxRequest_MultiOPs_WithNotExistedDataAccount(
+		TransactionRequest transactionRequest2 = LedgerTestUtils.createTxRequest_MultiOPs_WithNotExistedDataAccount_SHA256(
 				userKeypair2, ledgerHash, 202001202020L, parti0, parti0);
-		System.out.printf("\r\n ===||=== transactionRequest2.getTransactionContent().getHash()=[%s]\r\n",
-				transactionRequest2.getTransactionContent().getHash().toBase58());
+		System.out.printf("\r\n ===||=== transactionRequest2.getTransactionHash()=[%s]\r\n",
+				transactionRequest2.getTransactionHash().toBase58());
 		TransactionResponse txResp2 = txbatchProcessor.schedule(transactionRequest2);
 
 //		BlockchainKeypair userKeypair3 = BlockchainKeyGenerator.getInstance().generate();
 		BlockchainKeypair userKeypair3 = LedgerTestUtils.createKeyPair(
 				"7VeRDoaSexqLWKkaZyrQwdwSuE9n5nszduMrYBfYRfEkREQV", "7VeRdFtTuLfrzCYJzQ6enQUkGTc83ATgjr8WbmfjBQuTFpHt");
-		TransactionRequest transactionRequest3 = LedgerTestUtils.createTxRequest_UserReg(userKeypair3, ledgerHash,
+		TransactionRequest transactionRequest3 = LedgerTestUtils.createTxRequest_UserReg_SHA256(userKeypair3, ledgerHash,
 				202001202020L, parti0, parti0);
-		System.out.printf("\r\n ===||=== transactionRequest3.getTransactionContent().getHash()=[%s]\r\n",
-				transactionRequest3.getTransactionContent().getHash().toBase58());
+		System.out.printf("\r\n ===||=== transactionRequest3.getTransactionHash()=[%s]\r\n",
+				transactionRequest3.getTransactionHash().toBase58());
 		TransactionResponse txResp3 = txbatchProcessor.schedule(transactionRequest3);
 
 		LedgerBlock newBlock = newBlockEditor.prepare();
@@ -298,11 +292,11 @@ public class TransactionBatchProcessorTest {
 		assertEquals(TransactionState.SUCCESS, txResp3.getExecutionState());
 
 		LedgerTransaction tx1 = ledgerRepo.getTransactionSet()
-				.get(transactionRequest1.getTransactionContent().getHash());
+				.getTransaction(transactionRequest1.getTransactionHash());
 		LedgerTransaction tx2 = ledgerRepo.getTransactionSet()
-				.get(transactionRequest2.getTransactionContent().getHash());
+				.getTransaction(transactionRequest2.getTransactionHash());
 		LedgerTransaction tx3 = ledgerRepo.getTransactionSet()
-				.get(transactionRequest3.getTransactionContent().getHash());
+				.getTransaction(transactionRequest3.getTransactionHash());
 
 		assertNotNull(tx3);
 		assertEquals(TransactionState.SUCCESS, tx3.getExecutionState());
@@ -316,9 +310,9 @@ public class TransactionBatchProcessorTest {
 		// 单独加载交易集合；
 		TransactionSet txset = new TransactionSet(txsetRootHash, cryptoSetting, "LDG://3A3dP4", STORAGE, STORAGE,
 				false);
-		tx1 = txset.get(transactionRequest1.getTransactionContent().getHash());
-//		tx2 = txset.get(transactionRequest2.getTransactionContent().getHash());
-		tx3 = txset.get(transactionRequest3.getTransactionContent().getHash());
+		tx1 = txset.getTransaction(transactionRequest1.getTransactionHash());
+//		tx2 = txset.get(transactionRequest2.getTransactionHash());
+		tx3 = txset.getTransaction(transactionRequest3.getTransactionHash());
 		
 		assertNotNull(tx3);
 //		assertNotNull(tx2);
@@ -334,9 +328,9 @@ public class TransactionBatchProcessorTest {
 
 		assertEquals(txsetRootHash, ledgerRepo.getTransactionSet().getRootHash());
 
-		tx1 = ledgerRepo.getTransactionSet().get(transactionRequest1.getTransactionContent().getHash());
-		tx2 = ledgerRepo.getTransactionSet().get(transactionRequest2.getTransactionContent().getHash());
-		tx3 = ledgerRepo.getTransactionSet().get(transactionRequest3.getTransactionContent().getHash());
+		tx1 = ledgerRepo.getTransactionSet().getTransaction(transactionRequest1.getTransactionHash());
+		tx2 = ledgerRepo.getTransactionSet().getTransaction(transactionRequest2.getTransactionHash());
+		tx3 = ledgerRepo.getTransactionSet().getTransaction(transactionRequest3.getTransactionHash());
 
 		assertNotNull(tx1);
 		assertEquals(TransactionState.SUCCESS, tx1.getExecutionState());
@@ -382,7 +376,7 @@ public class TransactionBatchProcessorTest {
 				ledgerRepo, opReg);
 
 		BlockchainKeypair dataAccountKeypair = BlockchainKeyGenerator.getInstance().generate();
-		TransactionRequest transactionRequest1 = LedgerTestUtils.createTxRequest_DataAccountReg(dataAccountKeypair,
+		TransactionRequest transactionRequest1 = LedgerTestUtils.createTxRequest_DataAccountReg_SHA256(dataAccountKeypair,
 				ledgerHash, parti0, parti0);
 		TransactionResponse txResp1 = txbatchProcessor.schedule(transactionRequest1);
 		LedgerBlock newBlock = newBlockEditor.prepare();
@@ -393,15 +387,15 @@ public class TransactionBatchProcessorTest {
 		assertNotNull(dataAccount);
 
 		// 正确写入 KV 数据；
-		TransactionRequest txreq1 = LedgerTestUtils.createTxRequest_DataAccountWrite(dataAccountKeypair.getAddress(),
+		TransactionRequest txreq1 = LedgerTestUtils.createTxRequest_DataAccountWrite_SHA256(dataAccountKeypair.getAddress(),
 				"K1", "V-1-1", -1, ledgerHash, parti0, parti0);
-		TransactionRequest txreq2 = LedgerTestUtils.createTxRequest_DataAccountWrite(dataAccountKeypair.getAddress(),
+		TransactionRequest txreq2 = LedgerTestUtils.createTxRequest_DataAccountWrite_SHA256(dataAccountKeypair.getAddress(),
 				"K2", "V-2-1", -1, ledgerHash, parti0, parti0);
-		TransactionRequest txreq3 = LedgerTestUtils.createTxRequest_DataAccountWrite(dataAccountKeypair.getAddress(),
+		TransactionRequest txreq3 = LedgerTestUtils.createTxRequest_DataAccountWrite_SHA256(dataAccountKeypair.getAddress(),
 				"K3", "V-3-1", -1, ledgerHash, parti0, parti0);
 
 		// 连续写 K1，K1的版本将变为1；
-		TransactionRequest txreq4 = LedgerTestUtils.createTxRequest_DataAccountWrite(dataAccountKeypair.getAddress(),
+		TransactionRequest txreq4 = LedgerTestUtils.createTxRequest_DataAccountWrite_SHA256(dataAccountKeypair.getAddress(),
 				"K1", "V-1-2", 0, ledgerHash, parti0, parti0);
 
 		newBlockEditor = ledgerRepo.createNextBlock();
@@ -437,10 +431,10 @@ public class TransactionBatchProcessorTest {
 
 		// 提交多笔数据写入的交易，包含存在数据版本冲突的交易，验证交易是否正确回滚；
 		// 先写一笔正确的交易； k3 的版本将变为 1 ；
-		TransactionRequest txreq5 = LedgerTestUtils.createTxRequest_DataAccountWrite(dataAccountKeypair.getAddress(),
+		TransactionRequest txreq5 = LedgerTestUtils.createTxRequest_DataAccountWrite_SHA256(dataAccountKeypair.getAddress(),
 				"K3", "V-3-2", 0, ledgerHash, parti0, parti0);
 		// 指定冲突的版本号，正确的应该是版本1；
-		TransactionRequest txreq6 = LedgerTestUtils.createTxRequest_DataAccountWrite(dataAccountKeypair.getAddress(),
+		TransactionRequest txreq6 = LedgerTestUtils.createTxRequest_DataAccountWrite_SHA256(dataAccountKeypair.getAddress(),
 				"K1", "V-1-3", 0, ledgerHash, parti0, parti0);
 
 		newBlockEditor = ledgerRepo.createNextBlock();
@@ -487,7 +481,7 @@ public class TransactionBatchProcessorTest {
 //		assertEquals(1, newBlock.getHeight());
 //
 //		LedgerTransaction tx1 = ledgerRepo.getTransactionSet()
-//				.get(transactionRequest1.getTransactionContent().getHash());
+//				.get(transactionRequest1.getTransactionHash());
 //
 //		assertNotNull(tx1);
 //		assertEquals(TransactionState.SUCCESS, tx1.getExecutionState());

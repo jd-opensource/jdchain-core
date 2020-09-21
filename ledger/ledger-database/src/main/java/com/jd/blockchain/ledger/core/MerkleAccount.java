@@ -8,6 +8,7 @@ import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.MerkleProofBuilder;
 import com.jd.blockchain.ledger.MerkleSnapshot;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
@@ -38,11 +39,11 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 
 	private BlockchainIdentity accountID;
 
-	private MerkleDataSet rootDataset;
+	private MerkleHashDataset rootDataset;
 
-	private MerkleDataSet headerDataset;
+	private MerkleHashDataset headerDataset;
 
-	private MerkleDataSet dataDataset;
+	private MerkleHashDataset dataDataset;
 
 	private Dataset<String, TypedValue> typedHeader;
 
@@ -103,7 +104,7 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 	private void initializeDatasets(HashDigest rootHash, CryptoSetting cryptoSetting, Bytes keyPrefix,
 			ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
 		// 加载“根数据集”
-		this.rootDataset = new MerkleDataSet(rootHash, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
+		this.rootDataset = new MerkleHashDataset(rootHash, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
 
 		// 初始化数据修改监听器；
 		DataChangedListener<String, TypedValue> dataChangedListener = new DataChangedListener<String, TypedValue>() {
@@ -122,7 +123,7 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 
 			@Override
 			public TypedValue decode(byte[] t1) {
-				BytesValue v = BinaryProtocol.decodeAs(t1, BytesValue.class);
+				BytesValue v = BinaryProtocol.decode(t1, BytesValue.class);
 				return TypedValue.wrap(v);
 			}
 		};
@@ -130,14 +131,14 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 		// 加载“头数据集”；
 		HashDigest headerRoot = loadHeaderRoot();
 		Bytes headerPrefix = keyPrefix.concat(HEADER_PREFIX);
-		this.headerDataset = new MerkleDataSet(headerRoot, cryptoSetting, headerPrefix, exStorage, verStorage,
+		this.headerDataset = new MerkleHashDataset(headerRoot, cryptoSetting, headerPrefix, exStorage, verStorage,
 				readonly);
 		this.typedHeader = DatasetHelper.listen(DatasetHelper.map(headerDataset, valueMapper), dataChangedListener);
 
 		// 加载“主数据集”
 		HashDigest dataRoot = loadDataRoot();
 		Bytes dataPrefix = keyPrefix.concat(DATA_PREFIX);
-		this.dataDataset = new MerkleDataSet(dataRoot, cryptoSetting, dataPrefix, exStorage, verStorage, readonly);
+		this.dataDataset = new MerkleHashDataset(dataRoot, cryptoSetting, dataPrefix, exStorage, verStorage, readonly);
 		this.typedData = DatasetHelper.listen(DatasetHelper.map(dataDataset, valueMapper), dataChangedListener);
 	}
 
@@ -207,7 +208,7 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 		if (rootProof == null) {
 			return null;
 		}
-		HashArrayProof proof = new HashArrayProof(rootProof, dataProof);
+		MerkleProof proof = MerkleProofBuilder.combine(rootProof, dataProof);
 		return proof;
 	}
 

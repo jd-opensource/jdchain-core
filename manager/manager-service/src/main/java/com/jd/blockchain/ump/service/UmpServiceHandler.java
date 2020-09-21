@@ -6,11 +6,24 @@ import com.jd.blockchain.ump.dao.RocksDBConnection;
 import com.jd.blockchain.ump.model.MasterAddr;
 import com.jd.blockchain.ump.model.PeerSharedConfigs;
 import com.jd.blockchain.ump.model.UmpConstant;
-import com.jd.blockchain.ump.model.config.*;
-import com.jd.blockchain.ump.model.state.*;
+import com.jd.blockchain.ump.model.config.LedgerConfig;
+import com.jd.blockchain.ump.model.config.LedgerIdentification;
+import com.jd.blockchain.ump.model.config.LedgerInitConfig;
+import com.jd.blockchain.ump.model.config.MasterConfig;
+import com.jd.blockchain.ump.model.config.PeerLocalConfig;
+import com.jd.blockchain.ump.model.config.PeerSharedConfig;
+import com.jd.blockchain.ump.model.state.InstallProcess;
+import com.jd.blockchain.ump.model.state.InstallSchedule;
+import com.jd.blockchain.ump.model.state.LedgerBindingConf;
+import com.jd.blockchain.ump.model.state.LedgerMasterInstall;
+import com.jd.blockchain.ump.model.state.LedgerPeerInstall;
+import com.jd.blockchain.ump.model.state.PeerInstallSchedule;
+import com.jd.blockchain.ump.model.state.PeerInstallSchedules;
+import com.jd.blockchain.ump.model.state.PeerStartupSchedules;
+import com.jd.blockchain.ump.model.state.ScheduleState;
 import com.jd.blockchain.ump.service.consensus.ConsensusService;
-import com.jd.blockchain.ump.util.Base58Utils;
 import com.jd.blockchain.ump.util.CommandUtils;
+import com.jd.blockchain.utils.codec.Base58Utils;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +34,13 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 
@@ -608,7 +627,7 @@ public class UmpServiceHandler implements UmpService {
                 // 不存在，则需要再启动
                 String peerStartCmd = ledgerService.peerStartCommand(peerPath);
 
-                LOGGER.info("Execute Peer-Startup's Shell {}", peerStartCmd);
+                LOGGER.info("Execute Peer-Startup's Shell {}，peerVerify={}", peerStartCmd,peerVerify);
 
                 if (!CommandUtils.executeAndVerify(CommandUtils.toCommandList(peerStartCmd), peerVerify)) {
                     // Peer节点启动失败

@@ -1,11 +1,11 @@
 package com.jd.blockchain.storage.service.impl.redis;
 
+import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.Bytes;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import redis.clients.util.SafeEncoder;
 
 public class RedisExPolicyStorage implements ExPolicyKVStorage {
 

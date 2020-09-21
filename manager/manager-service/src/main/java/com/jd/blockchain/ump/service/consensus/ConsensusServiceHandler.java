@@ -1,11 +1,10 @@
 package com.jd.blockchain.ump.service.consensus;
 
 import com.jd.blockchain.ump.model.config.PeerLocalConfig;
-import com.jd.blockchain.ump.util.Base58Utils;
+import com.jd.blockchain.utils.codec.Base58Utils;
 import org.reflections.Reflections;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;

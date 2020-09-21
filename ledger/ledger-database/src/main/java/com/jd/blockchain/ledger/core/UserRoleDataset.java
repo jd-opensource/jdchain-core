@@ -26,16 +26,16 @@ import com.jd.blockchain.utils.DataEntry;
  */
 public class UserRoleDataset implements Transactional, MerkleProvable, UserAuthorizationSettings {
 
-	private MerkleDataSet dataset;
+	private MerkleHashDataset dataset;
 
 	public UserRoleDataset(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage verStorage) {
-		dataset = new MerkleDataSet(cryptoSetting, prefix, exPolicyStorage, verStorage);
+		dataset = new MerkleHashDataset(cryptoSetting, prefix, exPolicyStorage, verStorage);
 	}
 
 	public UserRoleDataset(HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
 			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new MerkleDataSet(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage, verStorage, readonly);
+		dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage, verStorage, readonly);
 	}
 
 	@Override
@@ -178,7 +178,7 @@ public class UserRoleDataset implements Transactional, MerkleProvable, UserAutho
 
 	@Override
 	public UserRoles[] getUserRoles() {
-		DataEntry<Bytes, byte[]>[] kvEntries = dataset.getLatestDataEntries(0, (int) dataset.getDataCount());
+		DataEntry<Bytes, byte[]>[] kvEntries = dataset.getDataEntries(0, (int) dataset.getDataCount());
 		UserRoles[] pns = new UserRoles[kvEntries.length];
 		RoleSet roleset;
 		for (int i = 0; i < pns.length; i++) {
