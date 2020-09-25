@@ -3,6 +3,7 @@ package com.jd.blockchain.peer.web;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jd.blockchain.peer.decorator.TransactionDecorator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -266,7 +267,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
 
-		return ledger.getTransactionSet(ledgerBlock).getTransactions(fromIndex, count);
+		LedgerTransaction[] txs = ledger.getTransactionSet(ledgerBlock).getTransactions(fromIndex, count);
+
+		return txsDecorator(txs);
 
 //		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 //		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
@@ -299,7 +302,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
 
-		return ledger.getTransactionSet(ledgerBlock).getTransactions(fromIndex, count);
+		LedgerTransaction[] txs = ledger.getTransactionSet(ledgerBlock).getTransactions(fromIndex, count);
+
+		return txsDecorator(txs);
 
 //		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 //		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
@@ -332,7 +337,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerTransaction transaction = txset.getTransaction(contentHash);
 		
 		//TODO: 去掉包装类，通过修正针对代理对象的 JSON 序列化来解决； by huanghaiquan at 2020-09-21;
-		return transaction;
+		return txDecorator(transaction);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/txs/state/{contentHash}")
@@ -746,5 +751,23 @@ public class LedgerQueryController implements BlockchainQueryService {
 			return null;
 		}
 		return new LedgerAdminInfoDecorator(ledgerAdministration);
+	}
+
+	private LedgerTransaction txDecorator(LedgerTransaction ledgerTransaction) {
+		if (ledgerTransaction == null) {
+			return null;
+		}
+		return new TransactionDecorator(ledgerTransaction);
+	}
+
+	private LedgerTransaction[] txsDecorator(LedgerTransaction[] ledgerTransactions) {
+		if (ledgerTransactions == null || ledgerTransactions.length == 0) {
+			return ledgerTransactions;
+		}
+		LedgerTransaction[] transactionDecorators = new LedgerTransaction[ledgerTransactions.length];
+		for (int i = 0; i < ledgerTransactions.length; i++) {
+			transactionDecorators[i] = txDecorator(ledgerTransactions[i]);
+		}
+		return transactionDecorators;
 	}
 }

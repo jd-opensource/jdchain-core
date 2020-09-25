@@ -8,6 +8,10 @@ import bftsmart.reconfiguration.views.MemoryBasedViewStorage;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.ServiceProxy;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.blockchain.ledger.merkletree.HashBucketEntry;
+import com.jd.blockchain.ledger.merkletree.KeyIndex;
+import com.jd.blockchain.ledger.merkletree.MerkleIndex;
+import com.jd.blockchain.ledger.proof.MerkleKey;
 import com.jd.blockchain.sdk.converters.ClientResolveUtil;
 import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
 import com.jd.blockchain.service.TransactionBatchResultHandle;
@@ -240,8 +244,12 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		// 注册默克尔树相关接口
 		DataContractRegistry.register(MerkleTrieData.class);
+		DataContractRegistry.register(MerkleKey.class);
 		DataContractRegistry.register(MerkleLeaf.class);
 		DataContractRegistry.register(MerklePath.class);
+		DataContractRegistry.register(MerkleIndex.class);
+		DataContractRegistry.register(KeyIndex.class);
+		DataContractRegistry.register(HashBucketEntry.class);
 
 		// 注册加解密相关接口
 		DataContractRegistry.register(CryptoSetting.class);
@@ -754,7 +762,21 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					HashDigest pullBlockHash = blockchainServiceFactory.getBlockchainService().getBlock(ledgerHash, height).getHash();
 
 					for (LedgerTransaction ledgerTransaction :blockchainServiceFactory.getBlockchainService().getTransactions(ledgerHash, height, 0, 10)) {
-						txbatchProcessor.schedule(ledgerTransaction.getRequest());
+
+						TxContentBlob txContentBlob = new TxContentBlob(ledgerHash);
+
+						txContentBlob.setTime(ledgerTransaction.getRequest().getTransactionContent().getTimestamp());
+
+						// convert operation, from json to object
+						for (Operation operation : ledgerTransaction.getRequest().getTransactionContent().getOperations()) {
+							txContentBlob.addOperation(ClientResolveUtil.read(operation));
+						}
+
+						TxRequestBuilder txRequestBuilder = new TxRequestBuilder(ledgerTransaction.getTransactionHash(), txContentBlob);
+						txRequestBuilder.addNodeSignature(ledgerTransaction.getRequest().getNodeSignatures());
+						txRequestBuilder.addEndpointSignature(ledgerTransaction.getRequest().getEndpointSignatures());
+						TransactionRequest transactionRequest = txRequestBuilder.buildRequest();
+						txbatchProcessor.schedule(transactionRequest);
 					}
 
 					handle = txbatchProcessor.prepare();
