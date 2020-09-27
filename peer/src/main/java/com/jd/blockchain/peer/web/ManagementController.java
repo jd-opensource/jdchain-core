@@ -699,7 +699,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		// organize system config properties
 		Property[] properties = createDeactiveProperties(deActivePubKey, deActiveID);
 
-		TxBuilder txbuilder = new TxBuilder(ledgerHash, deActivePubKey.getAlgorithm());
+		TxBuilder txbuilder = new TxBuilder(ledgerHash, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
 
 		// This transaction contains participant state update and settings update two ops
 		txbuilder.states().update(new BlockchainIdentityData(deActivePubKey), ParticipantNodeState.DECONSENSUS);
@@ -907,7 +907,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		// organize system config properties
 		Property[] properties = createActiveProperties(host, port, activePubKey, activeID);
 
-		TxBuilder txbuilder = new TxBuilder(ledgerHash, activePubKey.getAlgorithm());
+		TxBuilder txbuilder = new TxBuilder(ledgerHash, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
 
 		// This transaction contains participant state update and settings update two ops
 		txbuilder.states().update(new BlockchainIdentityData(activePubKey), ParticipantNodeState.CONSENSUS);
@@ -1038,7 +1038,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		HashDigest ledgerHash = txRequest.getTransactionContent().getLedgerHash();
 		AsymmetricKeypair peerKeypair = ledgerKeypairs.get(ledgerHash);
-		DigitalSignature nodeSigner = SignatureUtils.sign(peerKeypair.getPubKey().getAlgorithm(), txRequest.getTransactionContent(), peerKeypair);
+		DigitalSignature nodeSigner = SignatureUtils.sign(ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm(), txRequest.getTransactionContent(), peerKeypair);
 
 		txMessage.addNodeSignatures(nodeSigner);
 
