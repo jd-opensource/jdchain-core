@@ -233,7 +233,7 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 	public LedgerTransaction[] getTransactions(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 			@PathVariable(name = "blockHeight") long blockHeight,
 			@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
-			@RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+			@RequestParam(name = "count", required = false, defaultValue = "10") int count) {
 		return peerService.getQueryService(ledgerHash).getTransactions(ledgerHash, blockHeight, fromIndex, count);
 	}
 
@@ -242,7 +242,7 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 	public LedgerTransaction[] getTransactions(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 			@PathVariable(name = "blockHash") HashDigest blockHash,
 			@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
-			@RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+			@RequestParam(name = "count", required = false, defaultValue = "10") int count) {
 		return peerService.getQueryService(ledgerHash).getTransactions(ledgerHash, blockHash, fromIndex, count);
 	}
 
