@@ -1,13 +1,95 @@
 package com.jd.blockchain.peer;
 
+import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.blockchain.consensus.ClientIdentification;
+import com.jd.blockchain.consensus.ClientIdentifications;
+import com.jd.blockchain.consensus.ClientIncomingSettings;
+import com.jd.blockchain.consensus.ConsensusSettings;
+import com.jd.blockchain.consensus.NodeSettings;
+import com.jd.blockchain.consensus.action.ActionRequest;
+import com.jd.blockchain.consensus.action.ActionResponse;
+import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
+import com.jd.blockchain.consensus.mq.settings.MsgQueueBlockSettings;
+import com.jd.blockchain.consensus.mq.settings.MsgQueueClientIncomingSettings;
+import com.jd.blockchain.consensus.mq.settings.MsgQueueConsensusSettings;
+import com.jd.blockchain.consensus.mq.settings.MsgQueueNetworkSettings;
+import com.jd.blockchain.consensus.mq.settings.MsgQueueNodeSettings;
 import com.jd.blockchain.consts.Global;
+import com.jd.blockchain.crypto.CryptoAlgorithm;
+import com.jd.blockchain.crypto.CryptoProvider;
+import com.jd.blockchain.ledger.BlockBody;
+import com.jd.blockchain.ledger.BlockchainIdentity;
+import com.jd.blockchain.ledger.BytesValue;
+import com.jd.blockchain.ledger.BytesValueList;
+import com.jd.blockchain.ledger.ConsensusSettingsUpdateOperation;
+import com.jd.blockchain.ledger.ContractCodeDeployOperation;
+import com.jd.blockchain.ledger.ContractEventSendOperation;
+import com.jd.blockchain.ledger.ContractInfo;
+import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.DataAccountInfo;
+import com.jd.blockchain.ledger.DataAccountKVSetOperation;
+import com.jd.blockchain.ledger.DataAccountRegisterOperation;
+import com.jd.blockchain.ledger.DataType;
+import com.jd.blockchain.ledger.DigitalSignature;
+import com.jd.blockchain.ledger.DigitalSignatureBody;
+import com.jd.blockchain.ledger.Event;
+import com.jd.blockchain.ledger.EventAccountRegisterOperation;
+import com.jd.blockchain.ledger.EventPublishOperation;
+import com.jd.blockchain.ledger.HashObject;
+import com.jd.blockchain.ledger.LedgerAdminInfo;
+import com.jd.blockchain.ledger.LedgerBlock;
+import com.jd.blockchain.ledger.LedgerDataSnapshot;
+import com.jd.blockchain.ledger.LedgerInitOperation;
+import com.jd.blockchain.ledger.LedgerInitSetting;
+import com.jd.blockchain.ledger.LedgerMetadata;
+import com.jd.blockchain.ledger.LedgerMetadata_V2;
+import com.jd.blockchain.ledger.LedgerPermission;
+import com.jd.blockchain.ledger.LedgerSettings;
+import com.jd.blockchain.ledger.LedgerTransaction;
+import com.jd.blockchain.ledger.MerkleSnapshot;
+import com.jd.blockchain.ledger.Operation;
+import com.jd.blockchain.ledger.OperationResult;
+import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.ParticipantNodeState;
+import com.jd.blockchain.ledger.ParticipantRegisterOperation;
+import com.jd.blockchain.ledger.ParticipantStateUpdateInfo;
+import com.jd.blockchain.ledger.ParticipantStateUpdateOperation;
+import com.jd.blockchain.ledger.PrivilegeSet;
+import com.jd.blockchain.ledger.RoleInitSettings;
+import com.jd.blockchain.ledger.RoleSet;
+import com.jd.blockchain.ledger.RolesConfigureOperation;
+import com.jd.blockchain.ledger.RolesPolicy;
+import com.jd.blockchain.ledger.SecurityInitSettings;
+import com.jd.blockchain.ledger.TransactionContent;
+import com.jd.blockchain.ledger.TransactionPermission;
+import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.TransactionResponse;
+import com.jd.blockchain.ledger.TransactionResult;
+import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.ledger.UserAccountHeader;
+import com.jd.blockchain.ledger.UserAuthInitSettings;
+import com.jd.blockchain.ledger.UserAuthorizeOperation;
+import com.jd.blockchain.ledger.UserInfo;
+import com.jd.blockchain.ledger.UserInfoSetOperation;
+import com.jd.blockchain.ledger.UserRegisterOperation;
+import com.jd.blockchain.ledger.core.LedgerInitDecision;
+import com.jd.blockchain.ledger.core.LedgerInitProposal;
+import com.jd.blockchain.ledger.core.TransactionSetQuery;
+import com.jd.blockchain.ledger.merkletree.HashBucketEntry;
+import com.jd.blockchain.ledger.merkletree.KeyIndex;
+import com.jd.blockchain.ledger.merkletree.MerkleIndex;
+import com.jd.blockchain.ledger.proof.MerkleKey;
+import com.jd.blockchain.ledger.proof.MerkleLeaf;
+import com.jd.blockchain.ledger.proof.MerklePath;
+import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.peer.web.LedgerLoadTimer;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
 import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
 import com.jd.blockchain.utils.ArgumentSet;
 import com.jd.blockchain.utils.ConsoleUtils;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -26,7 +108,7 @@ import java.util.Map;
 
 /**
  * 节点服务实例的启动器；
- * 
+ *
  * @author huanghaiquan
  *
  */
@@ -46,10 +128,13 @@ public class PeerServerBooter {
 	public static final String LEDGER_BIND_CONFIG_NAME = "ledger-binding.conf";
 
 	public static String ledgerBindConfigFile;
-	
+
 	static {
 		// 加载 Global ，初始化全局设置；
 		Global.initialize();
+
+		// 注册数据契约
+		registerDataContracts();
 	}
 
 	public static void main(String[] args) {
@@ -153,7 +238,7 @@ public class PeerServerBooter {
 
 	/**
 	 * 启动服务；
-	 * 
+	 *
 	 * @param ledgerBindingConfig
 	 *            账本绑定配置；
 	 * @param hostAddress
@@ -210,5 +295,96 @@ public class PeerServerBooter {
 
 	public DbConnectionFactory getDBConnectionFactory() {
 		return appContext.getBean(DbConnectionFactory.class);
+	}
+
+	private static void registerDataContracts() {
+		DataContractRegistry.register(MerkleSnapshot.class);
+		DataContractRegistry.register(MerkleTrieData.class);
+		DataContractRegistry.register(MerkleLeaf.class);
+		DataContractRegistry.register(MerklePath.class);
+		DataContractRegistry.register(MerkleKey.class);
+		DataContractRegistry.register(MerkleIndex.class);
+		DataContractRegistry.register(KeyIndex.class);
+		DataContractRegistry.register(HashBucketEntry.class);
+		DataContractRegistry.register(BytesValue.class);
+		DataContractRegistry.register(BytesValueList.class);
+		DataContractRegistry.register(BlockchainIdentity.class);
+		DataContractRegistry.register(LedgerBlock.class);
+		DataContractRegistry.register(BlockBody.class);
+		DataContractRegistry.register(LedgerDataSnapshot.class);
+		DataContractRegistry.register(LedgerAdminInfo.class);
+		DataContractRegistry.register(TransactionContent.class);
+		DataContractRegistry.register(TransactionRequest.class);
+		DataContractRegistry.register(TransactionResult.class);
+		DataContractRegistry.register(LedgerTransaction.class);
+		DataContractRegistry.register(TransactionSetQuery.class);
+		DataContractRegistry.register(Operation.class);
+		DataContractRegistry.register(LedgerInitOperation.class);
+		DataContractRegistry.register(UserRegisterOperation.class);
+		DataContractRegistry.register(UserInfoSetOperation.class);
+		DataContractRegistry.register(UserInfoSetOperation.KVEntry.class);
+		DataContractRegistry.register(DataAccountRegisterOperation.class);
+		DataContractRegistry.register(DataAccountKVSetOperation.class);
+		DataContractRegistry.register(DataAccountKVSetOperation.KVWriteEntry.class);
+		DataContractRegistry.register(ContractCodeDeployOperation.class);
+		DataContractRegistry.register(ContractEventSendOperation.class);
+		DataContractRegistry.register(ParticipantRegisterOperation.class);
+		DataContractRegistry.register(ParticipantStateUpdateOperation.class);
+		DataContractRegistry.register(TransactionResponse.class);
+		DataContractRegistry.register(OperationResult.class);
+		DataContractRegistry.register(RolesConfigureOperation.class);
+		DataContractRegistry.register(RolesConfigureOperation.RolePrivilegeEntry.class);
+		DataContractRegistry.register(UserAuthorizeOperation.class);
+		DataContractRegistry.register(UserAuthorizeOperation.UserRolesEntry.class);
+		DataContractRegistry.register(EventAccountRegisterOperation.class);
+		DataContractRegistry.register(EventPublishOperation.class);
+		DataContractRegistry.register(EventPublishOperation.EventEntry.class);
+		DataContractRegistry.register(ConsensusSettingsUpdateOperation.class);
+		DataContractRegistry.register(TransactionPermission.class);
+		DataContractRegistry.register(LedgerPermission.class);
+		DataContractRegistry.register(RolesPolicy.class);
+		DataContractRegistry.register(PrivilegeSet.class);
+		DataContractRegistry.register(RoleSet.class);
+		DataContractRegistry.register(SecurityInitSettings.class);
+		DataContractRegistry.register(RoleInitSettings.class);
+		DataContractRegistry.register(UserAuthInitSettings.class);
+		DataContractRegistry.register(Event.class);
+		DataContractRegistry.register(LedgerMetadata.class);
+		DataContractRegistry.register(LedgerMetadata_V2.class);
+		DataContractRegistry.register(LedgerInitSetting.class);
+		DataContractRegistry.register(LedgerInitProposal.class);
+		DataContractRegistry.register(LedgerInitDecision.class);
+		DataContractRegistry.register(LedgerSettings.class);
+		DataContractRegistry.register(ParticipantNode.class);
+		DataContractRegistry.register(ParticipantStateUpdateInfo.class);
+		DataContractRegistry.register(CryptoSetting.class);
+		DataContractRegistry.register(CryptoProvider.class);
+		DataContractRegistry.register(DataAccountInfo.class);
+		DataContractRegistry.register(UserAccountHeader.class);
+		DataContractRegistry.register(UserInfo.class);
+		DataContractRegistry.register(ContractInfo.class);
+		DataContractRegistry.register(HashObject.class);
+		DataContractRegistry.register(CryptoAlgorithm.class);
+		DataContractRegistry.register(TransactionState.class);
+		DataContractRegistry.register(DataType.class);
+		DataContractRegistry.register(ParticipantNodeState.class);
+		DataContractRegistry.register(DigitalSignature.class);
+		DataContractRegistry.register(DigitalSignatureBody.class);
+		DataContractRegistry.register(ClientIdentification.class);
+		DataContractRegistry.register(ClientIdentifications.class);
+		DataContractRegistry.register(ClientIdentifications.class);
+		DataContractRegistry.register(ActionRequest.class);
+		DataContractRegistry.register(ActionResponse.class);
+		DataContractRegistry.register(ConsensusSettings.class);
+		DataContractRegistry.register(NodeSettings.class);
+		DataContractRegistry.register(ClientIncomingSettings.class);
+		DataContractRegistry.register(BftsmartConsensusSettings.class);
+		DataContractRegistry.register(BftsmartNodeSettings.class);
+		DataContractRegistry.register(BftsmartClientIncomingSettings.class);
+		DataContractRegistry.register(MsgQueueConsensusSettings.class);
+		DataContractRegistry.register(MsgQueueNodeSettings.class);
+		DataContractRegistry.register(MsgQueueClientIncomingSettings.class);
+		DataContractRegistry.register(MsgQueueNetworkSettings.class);
+		DataContractRegistry.register(MsgQueueBlockSettings.class);
 	}
 }
