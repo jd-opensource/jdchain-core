@@ -26,7 +26,7 @@
 
 	<modules>
 		<module>../libs/bft-smart</module>
-		<module>../kvdb</module>
+		<module>../libs/kvdb</module>
 		<module>../framework</module>
 		<module>../explorer</module>
 
