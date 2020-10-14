@@ -3,6 +3,7 @@ package com.jd.blockchain.peer.web;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jd.blockchain.peer.decorator.TransactionDecorator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -261,12 +262,16 @@ public class LedgerQueryController implements BlockchainQueryService {
 	public LedgerTransaction[] getTransactions(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 			@PathVariable(name = "blockHeight") long blockHeight,
 			@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
-			@RequestParam(name = "count", required = false, defaultValue = "10") int count) {
+			@RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
 
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
 
-		return ledger.getTransactionSet(ledgerBlock).getTransactions(fromIndex, count);
+        QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int)ledger.getTransactionSet(ledgerBlock).getTotalCount());
+
+		LedgerTransaction[] txs = ledger.getTransactionSet(ledgerBlock).getTransactions(queryArgs.getFrom(), queryArgs.getCount());
+
+		return txsDecorator(txs);
 
 //		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 //		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
@@ -294,12 +299,16 @@ public class LedgerQueryController implements BlockchainQueryService {
 	public LedgerTransaction[] getTransactions(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 			@PathVariable(name = "blockHash") HashDigest blockHash,
 			@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
-			@RequestParam(name = "count", required = false, defaultValue = "10") int count) {
+			@RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
 
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
 
-		return ledger.getTransactionSet(ledgerBlock).getTransactions(fromIndex, count);
+        QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int)ledger.getTransactionSet(ledgerBlock).getTotalCount());
+
+		LedgerTransaction[] txs = ledger.getTransactionSet(ledgerBlock).getTransactions(queryArgs.getFrom(), queryArgs.getCount());
+
+		return txsDecorator(txs);
 
 //		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 //		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
@@ -322,6 +331,62 @@ public class LedgerQueryController implements BlockchainQueryService {
 //		return txsDecorator(txs);
 	}
 
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/height/{blockHeight}/txs/additional-txs")
+	@Override
+	public LedgerTransaction[] getAdditionalTransactions(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+											   @PathVariable(name = "blockHeight") long blockHeight,
+											   @RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+											   @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
+		TransactionQuery currTransactionSet = ledger.getTransactionSet(ledgerBlock);
+		TransactionQuery lastTransactionSet = null;
+
+		int lastHeightTxTotalNums = 0;
+
+		if (blockHeight > 0) {
+			lastTransactionSet = ledger.getTransactionSet(ledger.getBlock(blockHeight - 1));
+			lastHeightTxTotalNums = (int) lastTransactionSet.getTotalCount();
+		}
+
+		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(blockHeight)).getTotalCount();
+		// 取当前高度的增量交易数，在增量交易里进行查找
+		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
+
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
+		LedgerTransaction[] txs = currTransactionSet.getTransactions(lastHeightTxTotalNums + queryArgs.getFrom(), queryArgs.getCount());
+		return txsDecorator(txs);
+
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/hash/{blockHash}/txs/additional-txs")
+	@Override
+	public LedgerTransaction[] getAdditionalTransactions(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+											   @PathVariable(name = "blockHash") HashDigest blockHash,
+											   @RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+											   @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
+		long height = ledgerBlock.getHeight();
+		TransactionQuery currTransactionSet = ledger.getTransactionSet(ledgerBlock);
+		TransactionQuery lastTransactionSet = null;
+		int lastHeightTxTotalNums = 0;
+
+		if (height > 0) {
+			lastTransactionSet = ledger.getTransactionSet(ledger.getBlock(height - 1));
+			lastHeightTxTotalNums = (int) lastTransactionSet.getTotalCount();
+		}
+
+		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(height)).getTotalCount();
+		// 取当前块hash的增量交易数，在增量交易里进行查找
+		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
+
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
+		LedgerTransaction[] txs = currTransactionSet.getTransactions(lastHeightTxTotalNums + queryArgs.getFrom(), queryArgs.getCount());
+		return txsDecorator(txs);
+	}
+
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/txs/hash/{contentHash}")
 	@Override
 	public LedgerTransaction getTransactionByContentHash(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
@@ -332,7 +397,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerTransaction transaction = txset.getTransaction(contentHash);
 		
 		//TODO: 去掉包装类，通过修正针对代理对象的 JSON 序列化来解决； by huanghaiquan at 2020-09-21;
-		return transaction;
+		return txDecorator(transaction);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/txs/state/{contentHash}")
@@ -746,5 +811,23 @@ public class LedgerQueryController implements BlockchainQueryService {
 			return null;
 		}
 		return new LedgerAdminInfoDecorator(ledgerAdministration);
+	}
+
+	private LedgerTransaction txDecorator(LedgerTransaction ledgerTransaction) {
+		if (ledgerTransaction == null) {
+			return null;
+		}
+		return new TransactionDecorator(ledgerTransaction);
+	}
+
+	private LedgerTransaction[] txsDecorator(LedgerTransaction[] ledgerTransactions) {
+		if (ledgerTransactions == null || ledgerTransactions.length == 0) {
+			return ledgerTransactions;
+		}
+		LedgerTransaction[] transactionDecorators = new LedgerTransaction[ledgerTransactions.length];
+		for (int i = 0; i < ledgerTransactions.length; i++) {
+			transactionDecorators[i] = txDecorator(ledgerTransactions[i]);
+		}
+		return transactionDecorators;
 	}
 }

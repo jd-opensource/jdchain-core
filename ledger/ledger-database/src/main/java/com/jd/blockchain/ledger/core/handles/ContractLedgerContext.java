@@ -163,6 +163,16 @@ public class ContractLedgerContext implements LedgerContext {
 	}
 
 	@Override
+	public LedgerTransaction[] getAdditionalTransactions(HashDigest ledgerHash, long height, int fromIndex, int count) {
+		return innerQueryService.getAdditionalTransactions(ledgerHash, height, fromIndex, count);
+	}
+
+	@Override
+	public LedgerTransaction[] getAdditionalTransactions(HashDigest ledgerHash, HashDigest blockHash, int fromIndex, int count) {
+		return innerQueryService.getAdditionalTransactions(ledgerHash, blockHash, fromIndex, count);
+	}
+
+	@Override
 	public LedgerTransaction getTransactionByContentHash(HashDigest ledgerHash, HashDigest contentHash) {
 		return innerQueryService.getTransactionByContentHash(ledgerHash, contentHash);
 	}

@@ -250,6 +250,61 @@ public class LedgerQueryService implements BlockchainQueryService {
 	}
 
 	@Override
+	public LedgerTransaction[] getAdditionalTransactions(HashDigest ledgerHash, long height, int fromIndex, int count) {
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getBlock(height);
+		if (block == null) {
+			return null;
+		}
+
+		LedgerBlock ledgerBlock = ledger.getBlock(height);
+		TransactionQuery currTransactionSet = ledger.getTransactionSet(ledgerBlock);
+		TransactionQuery lastTransactionSet = null;
+		int lastHeightTxTotalNums = 0;
+
+		if (height > 0) {
+			lastTransactionSet = ledger.getTransactionSet(ledger.getBlock(height - 1));
+			lastHeightTxTotalNums = (int) lastTransactionSet.getTotalCount();
+		}
+
+		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(height)).getTotalCount();
+		// 取当前高度的增量交易数，在增量交易里进行查找
+		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
+
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
+
+		return currTransactionSet.getTransactions(lastHeightTxTotalNums + queryArgs.getFrom(), queryArgs.getCount());
+	}
+
+	@Override
+	public LedgerTransaction[] getAdditionalTransactions(HashDigest ledgerHash, HashDigest blockHash, int fromIndex, int count) {
+		checkLedgerHash(ledgerHash);
+		LedgerBlock block = ledger.getBlock(blockHash);
+		if (block == null) {
+			return null;
+		}
+
+		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
+		long height = ledgerBlock.getHeight();
+		TransactionQuery currTransactionSet = ledger.getTransactionSet(ledgerBlock);
+		TransactionQuery lastTransactionSet = null;
+		int lastHeightTxTotalNums = 0;
+
+		if (height > 0) {
+			lastTransactionSet = ledger.getTransactionSet(ledger.getBlock(height - 1));
+			lastHeightTxTotalNums = (int) lastTransactionSet.getTotalCount();
+		}
+
+		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(height)).getTotalCount();
+		// 取当前块hash的增量交易数，在增量交易里进行查找
+		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
+
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
+
+		return currTransactionSet.getTransactions(lastHeightTxTotalNums + queryArgs.getFrom(), queryArgs.getCount());
+	}
+
+	@Override
 	public LedgerTransaction getTransactionByContentHash(HashDigest ledgerHash, HashDigest contentHash) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
