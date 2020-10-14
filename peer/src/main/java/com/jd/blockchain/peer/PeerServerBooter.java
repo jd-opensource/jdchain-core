@@ -340,9 +340,9 @@ public class PeerServerBooter {
 		DataContractRegistry.register(EventPublishOperation.class);
 		DataContractRegistry.register(EventPublishOperation.EventEntry.class);
 		DataContractRegistry.register(ConsensusSettingsUpdateOperation.class);
-		DataContractRegistry.register(TransactionPermission.class);
-		DataContractRegistry.register(LedgerPermission.class);
-		DataContractRegistry.register(RolesPolicy.class);
+//		DataContractRegistry.register(TransactionPermission.class);
+//		DataContractRegistry.register(LedgerPermission.class);
+//		DataContractRegistry.register(RolesPolicy.class);
 		DataContractRegistry.register(PrivilegeSet.class);
 		DataContractRegistry.register(RoleSet.class);
 		DataContractRegistry.register(SecurityInitSettings.class);
@@ -365,9 +365,9 @@ public class PeerServerBooter {
 		DataContractRegistry.register(ContractInfo.class);
 		DataContractRegistry.register(HashObject.class);
 		DataContractRegistry.register(CryptoAlgorithm.class);
-		DataContractRegistry.register(TransactionState.class);
-		DataContractRegistry.register(DataType.class);
-		DataContractRegistry.register(ParticipantNodeState.class);
+//		DataContractRegistry.register(TransactionState.class);
+//		DataContractRegistry.register(DataType.class);
+//		DataContractRegistry.register(ParticipantNodeState.class);
 		DataContractRegistry.register(DigitalSignature.class);
 		DataContractRegistry.register(DigitalSignatureBody.class);
 		DataContractRegistry.register(ClientIdentification.class);
