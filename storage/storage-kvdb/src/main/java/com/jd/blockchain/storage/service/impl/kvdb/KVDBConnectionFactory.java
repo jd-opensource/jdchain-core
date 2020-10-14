@@ -1,11 +1,11 @@
 package com.jd.blockchain.storage.service.impl.kvdb;
 
 import com.jd.blockchain.kvdb.protocol.KVDBURI;
+import com.jd.blockchain.kvdb.protocol.exception.KVDBException;
 import com.jd.blockchain.storage.service.DbConnection;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 
 import javax.annotation.PreDestroy;
-import java.net.URI;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -28,7 +28,11 @@ public class KVDBConnectionFactory implements DbConnectionFactory {
             return conn;
         }
 
-        conn = new KVDBConnection(new KVDBURI(dbConnection));
+        try {
+            conn = new KVDBConnection(new KVDBURI(dbConnection));
+        } catch (KVDBException e) {
+            e.printStackTrace();
+        }
         connections.put(dbConnection, conn);
 
         return conn;
