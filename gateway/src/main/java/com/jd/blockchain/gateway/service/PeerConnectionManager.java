@@ -7,9 +7,8 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.gateway.event.EventListener;
 import com.jd.blockchain.gateway.event.EventListenerService;
 import com.jd.blockchain.gateway.event.PullEventListener;
-import com.jd.blockchain.sdk.BlockchainService;
 import com.jd.blockchain.sdk.PeerBlockchainService;
-import com.jd.blockchain.sdk.service.PeerServiceProxy;
+import com.jd.blockchain.transaction.MonitorService;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +19,7 @@ import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.transaction.TransactionService;
 import com.jd.blockchain.utils.net.NetworkAddress;
+import sun.nio.ch.Net;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -34,7 +34,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 	/**
 	 * 30秒更新一次最新的情况
 	 */
-	private static final long PERIOD_SECONDS = 30L;
+	private static final long LEDGER_REFRESH_PERIOD_SECONDS = 30L;
 
 	private final ScheduledThreadPoolExecutor peerConnectExecutor;
 
@@ -57,7 +57,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 	private volatile EventListener eventListener;
 
 	public PeerConnectionManager() {
-		peerConnectExecutor = scheduledThreadPoolExecutor();
+		peerConnectExecutor = scheduledThreadPoolExecutor("peer-connect-%d");
 		executorStart();
 	}
 
@@ -193,7 +193,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 
 	@Override
 	public TransactionService getTransactionService() {
-		// 交易始终使用第一个连接成功的即可
+		// 交易始终使用连接账本最多的那个Factory
 		PeerServiceFactory peerServiceFactory = mostLedgerPeerServiceFactory;
 		if (peerServiceFactory == null) {
 			throw new IllegalStateException("Peer connection was closed!");
@@ -242,21 +242,26 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 
 	/**
 	 * 创建定时线程池
+	 *
 	 * @return
 	 */
-	private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor() {
+	private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor(final String nameFormat) {
 		ThreadFactory threadFactory = new ThreadFactoryBuilder()
-				.setNameFormat("peer-connect-%d").build();
+				.setNameFormat(nameFormat).build();
 		return new ScheduledThreadPoolExecutor(1,
 				threadFactory,
 				new ThreadPoolExecutor.AbortPolicy());
 	}
 
+	/**
+	 * 定时任务处理器启动
+	 *
+	 */
 	private void executorStart() {
 		// 定时任务处理线程
-		peerConnectExecutor.scheduleAtFixedRate(new PeerConnectRunner(), 0, PERIOD_SECONDS, TimeUnit.SECONDS);
+		peerConnectExecutor.scheduleAtFixedRate(new PeerConnectRunner(), 0,
+				LEDGER_REFRESH_PERIOD_SECONDS, TimeUnit.SECONDS);
 	}
-
 
 	private class PeerServiceFactory {
 
@@ -280,6 +285,9 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 			// 3、根据目前的情况更新缓存
 			ledgerHashLock.lock();
 			try {
+				// 更新远端Peer管理网络列表
+				updatePeerAddresses();
+				// 将远端的列表重新进行连接
 				reconnect();
 				// 更新账本数量最多的节点连接
 				HashDigest[] ledgerHashs = updateMostLedgerPeerServiceFactory();
@@ -294,6 +302,39 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 				ledgerHashLock.unlock();
 			}
 		}
+
+		/**
+		 * 更新Peer远端的地址集合
+		 *
+		 */
+		private void updatePeerAddresses() {
+			if (peerBlockchainServiceFactories != null && !peerBlockchainServiceFactories.isEmpty()) {
+				Set<NetworkAddress> totalRemotePeerAddresses = new HashSet<>();
+				// 遍历该factory
+				for (Map.Entry<NetworkAddress, PeerBlockchainServiceFactory> entry : peerBlockchainServiceFactories.entrySet()) {
+					totalRemotePeerAddresses.add(entry.getKey());
+					PeerBlockchainServiceFactory peerBlockchainServiceFactory = entry.getValue();
+					Map<HashDigest, MonitorService> monitorServiceMap = peerBlockchainServiceFactory.getMonitorServiceMap();
+					if (monitorServiceMap != null && !monitorServiceMap.isEmpty()) {
+						for (Map.Entry<HashDigest, MonitorService> ey : monitorServiceMap.entrySet()) {
+							MonitorService monitorService = ey.getValue();
+							List<NetworkAddress> addressList = monitorService.loadMonitors();
+							if (addressList != null && !addressList.isEmpty()) {
+								// 打印获取到的地址信息
+								for (NetworkAddress address : addressList) {
+									LOGGER.info("Load remote peer network -> {} !", address);
+								}
+								// 将该值加入到远端节点集合中
+								totalRemotePeerAddresses.addAll(addressList);
+							}
+						}
+					}
+				}
+				// 更新peerAddress
+				peerAddresses = totalRemotePeerAddresses;
+			}
+		}
+
 
 		/**
 		 * 更新可获取最新区块的连接工厂

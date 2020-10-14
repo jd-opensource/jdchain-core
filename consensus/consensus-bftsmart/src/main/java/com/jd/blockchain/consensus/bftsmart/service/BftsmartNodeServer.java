@@ -2,6 +2,7 @@ package com.jd.blockchain.consensus.bftsmart.service;
 
 import java.io.ByteArrayOutputStream;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
@@ -12,14 +13,17 @@ import bftsmart.consensus.app.ComputeCode;
 import bftsmart.reconfiguration.views.NodeNetwork;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.*;
+import com.alibaba.fastjson.JSON;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.BlockStateSnapshot;
 import com.jd.blockchain.consensus.service.*;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.runtime.RuntimeConstant;
+import com.jd.blockchain.transaction.MonitorService;
 import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.StringUtils;
+import com.jd.blockchain.utils.net.NetworkAddress;
 import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
@@ -273,7 +277,25 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     @Override
     public byte[] appExecuteUnordered(byte[] bytes, MessageContext messageContext) {
+        if (Arrays.equals(MonitorService.LOAD_MONITOR, bytes)) {
+            // 获取加载管理端口的信息
+            View currView = this.replica.getReplicaContext().getCurrentView();
+            Map<Integer, NodeNetwork> addresses = currView.getAddresses();
+            TreeMap<Integer, NetworkAddress> tree = new TreeMap<>();
+            for (Map.Entry<Integer, NodeNetwork> entry : addresses.entrySet()) {
+                tree.put(entry.getKey(), networkAddress(entry.getValue()));
+            }
+            Collection<NetworkAddress> nodeNetworks = tree.values();
+            String jsonString = JSON.toJSONString(new ArrayList<>(nodeNetworks));
+            return jsonString.getBytes(StandardCharsets.UTF_8);
+        }
+
         return messageHandle.processUnordered(bytes).get();
+    }
+
+    private NetworkAddress networkAddress(NodeNetwork nodeNetwork) {
+        // 只需要管理口信息即可
+        return new NetworkAddress(nodeNetwork.getHost(), nodeNetwork.getMonitorPort());
     }
 
     /**
