@@ -1,5 +1,17 @@
 package com.jd.blockchain.peer.web;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.jd.blockchain.peer.decorator.TransactionDecorator;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
@@ -17,7 +29,6 @@ import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.PrivilegeSet;
-import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVData;
 import com.jd.blockchain.ledger.TypedKVEntry;
@@ -31,14 +42,12 @@ import com.jd.blockchain.ledger.core.EventAccountQuery;
 import com.jd.blockchain.ledger.core.EventGroup;
 import com.jd.blockchain.ledger.core.EventPublishingAccount;
 import com.jd.blockchain.ledger.core.LedgerQuery;
-import com.jd.blockchain.ledger.core.LedgerQueryService;
 import com.jd.blockchain.ledger.core.LedgerRepository;
 import com.jd.blockchain.ledger.core.LedgerService;
 import com.jd.blockchain.ledger.core.ParticipantCertData;
 import com.jd.blockchain.ledger.core.TransactionQuery;
 import com.jd.blockchain.ledger.core.UserAccountQuery;
 import com.jd.blockchain.peer.decorator.LedgerAdminInfoDecorator;
-import com.jd.blockchain.peer.decorator.TransactionDecorator;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.Bytes;
@@ -46,16 +55,6 @@ import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.DataIterator;
 import com.jd.blockchain.utils.query.QueryArgs;
 import com.jd.blockchain.utils.query.QueryUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @RestController
 @RequestMapping(path = "/")
@@ -267,23 +266,32 @@ public class LedgerQueryController implements BlockchainQueryService {
 
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
-		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
-		TransactionQuery origTransactionSet = null;
 
-		int lastHeightTxTotalNums = 0;
+        QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int)ledger.getTransactionSet(ledgerBlock).getTotalCount());
 
-		if (blockHeight > 0) {
-			origTransactionSet = ledger.getTransactionSet(ledger.getBlock(blockHeight - 1));
-			lastHeightTxTotalNums = (int) origTransactionSet.getTotalCount();
-		}
+		LedgerTransaction[] txs = ledger.getTransactionSet(ledgerBlock).getTransactions(queryArgs.getFrom(), queryArgs.getCount());
 
-		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(blockHeight)).getTotalCount();
-		// 取当前高度的增量交易数，在增量交易里进行查找
-		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
-
-		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
-		LedgerTransaction[] txs = transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), origTransactionSet);
 		return txsDecorator(txs);
+
+//		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+//		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
+//		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
+//		TransactionQuery origTransactionSet = null;
+//
+//		int lastHeightTxTotalNums = 0;
+//
+//		if (blockHeight > 0) {
+//			origTransactionSet = ledger.getTransactionSet(ledger.getBlock(blockHeight - 1));
+//			lastHeightTxTotalNums = (int) origTransactionSet.getTotalCount();
+//		}
+//
+//		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(blockHeight)).getTotalCount();
+//		// 取当前高度的增量交易数，在增量交易里进行查找
+//		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
+//
+//		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
+//		LedgerTransaction[] txs = transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), origTransactionSet);
+//		return txsDecorator(txs);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/hash/{blockHash}/txs")
@@ -292,16 +300,82 @@ public class LedgerQueryController implements BlockchainQueryService {
 			@PathVariable(name = "blockHash") HashDigest blockHash,
 			@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
 			@RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
+
+        QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int)ledger.getTransactionSet(ledgerBlock).getTotalCount());
+
+		LedgerTransaction[] txs = ledger.getTransactionSet(ledgerBlock).getTransactions(queryArgs.getFrom(), queryArgs.getCount());
+
+		return txsDecorator(txs);
+
+//		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+//		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
+//		long height = ledgerBlock.getHeight();
+//		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
+//		TransactionQuery origTransactionSet = null;
+//		int lastHeightTxTotalNums = 0;
+//
+//		if (height > 0) {
+//			origTransactionSet = ledger.getTransactionSet(ledger.getBlock(height - 1));
+//			lastHeightTxTotalNums = (int) origTransactionSet.getTotalCount();
+//		}
+//
+//		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(height)).getTotalCount();
+//		// 取当前块hash的增量交易数，在增量交易里进行查找
+//		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
+//
+//		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
+//		LedgerTransaction[] txs = transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), origTransactionSet);
+//		return txsDecorator(txs);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/height/{blockHeight}/txs/additional-txs")
+	@Override
+	public LedgerTransaction[] getAdditionalTransactions(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+											   @PathVariable(name = "blockHeight") long blockHeight,
+											   @RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+											   @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+
+		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
+		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
+		TransactionQuery currTransactionSet = ledger.getTransactionSet(ledgerBlock);
+		TransactionQuery lastTransactionSet = null;
+
+		int lastHeightTxTotalNums = 0;
+
+		if (blockHeight > 0) {
+			lastTransactionSet = ledger.getTransactionSet(ledger.getBlock(blockHeight - 1));
+			lastHeightTxTotalNums = (int) lastTransactionSet.getTotalCount();
+		}
+
+		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(blockHeight)).getTotalCount();
+		// 取当前高度的增量交易数，在增量交易里进行查找
+		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
+
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
+		LedgerTransaction[] txs = currTransactionSet.getTransactions(lastHeightTxTotalNums + queryArgs.getFrom(), queryArgs.getCount());
+		return txsDecorator(txs);
+
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/hash/{blockHash}/txs/additional-txs")
+	@Override
+	public LedgerTransaction[] getAdditionalTransactions(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+											   @PathVariable(name = "blockHash") HashDigest blockHash,
+											   @RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+											   @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
 		long height = ledgerBlock.getHeight();
-		TransactionQuery transactionSet = ledger.getTransactionSet(ledgerBlock);
-		TransactionQuery origTransactionSet = null;
+		TransactionQuery currTransactionSet = ledger.getTransactionSet(ledgerBlock);
+		TransactionQuery lastTransactionSet = null;
 		int lastHeightTxTotalNums = 0;
 
 		if (height > 0) {
-			origTransactionSet = ledger.getTransactionSet(ledger.getBlock(height - 1));
-			lastHeightTxTotalNums = (int) origTransactionSet.getTotalCount();
+			lastTransactionSet = ledger.getTransactionSet(ledger.getBlock(height - 1));
+			lastHeightTxTotalNums = (int) lastTransactionSet.getTotalCount();
 		}
 
 		int currentHeightTxTotalNums = (int) ledger.getTransactionSet(ledger.getBlock(height)).getTotalCount();
@@ -309,7 +383,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
 
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
-		LedgerTransaction[] txs = transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), origTransactionSet);
+		LedgerTransaction[] txs = currTransactionSet.getTransactions(lastHeightTxTotalNums + queryArgs.getFrom(), queryArgs.getCount());
 		return txsDecorator(txs);
 	}
 
@@ -320,7 +394,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		TransactionQuery txset = ledger.getTransactionSet(block);
-		LedgerTransaction transaction = txset.get(contentHash);
+		LedgerTransaction transaction = txset.getTransaction(contentHash);
+		
+		//TODO: 去掉包装类，通过修正针对代理对象的 JSON 序列化来解决； by huanghaiquan at 2020-09-21;
 		return txDecorator(transaction);
 	}
 
@@ -347,12 +423,12 @@ public class LedgerQueryController implements BlockchainQueryService {
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/accounts/address/{address}")
 	@Override
 	public DataAccountInfo getDataAccount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-										  @PathVariable(name = "address") String address) {
+			@PathVariable(name = "address") String address) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
 		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
-		if(dataAccount == null){
+		if (dataAccount == null) {
 			throw new LedgerException("数据账户不存在", TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
 		}
 		return dataAccount;
@@ -455,7 +531,8 @@ public class LedgerQueryController implements BlockchainQueryService {
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
 		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
 
-		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) dataAccount.getDataset().getDataCount());
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count,
+				(int) dataAccount.getDataset().getDataCount());
 		fromIndex = queryArgs.getFrom();
 		count = queryArgs.getCount();
 
@@ -492,9 +569,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names/{eventName}")
 	@Override
 	public Event[] getSystemEvents(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-								   @PathVariable(name = "eventName") String eventName,
-								   @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
-								   @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+			@PathVariable(name = "eventName") String eventName,
+			@RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
+			@RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
 
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
@@ -514,8 +591,8 @@ public class LedgerQueryController implements BlockchainQueryService {
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names")
 	@Override
 	public String[] getSystemEventNames(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-										@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
-										@RequestParam(name = "maxCount", required = false, defaultValue = "-1") int count) {
+			@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+			@RequestParam(name = "maxCount", required = false, defaultValue = "-1") int count) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventGroup systemEvents = ledger.getSystemEvents(block);
@@ -526,7 +603,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names/{eventName}/latest")
 	@Override
 	public Event getLatestEvent(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-								@PathVariable(name = "eventName") String eventName) {
+			@PathVariable(name = "eventName") String eventName) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventGroup systemEvents = ledger.getSystemEvents(block);
@@ -536,7 +613,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names/{eventName}/count")
 	@Override
 	public long getSystemEventsTotalCount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-										  @PathVariable(name = "eventName") String eventName) {
+			@PathVariable(name = "eventName") String eventName) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventGroup systemEvents = ledger.getSystemEvents(block);
@@ -545,24 +622,24 @@ public class LedgerQueryController implements BlockchainQueryService {
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts")
 	@Override
-	public BlockchainIdentity[] getUserEventAccounts(@PathVariable(name = "ledgerHash")  HashDigest ledgerHash,
-													 @RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
-													 @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+	public BlockchainIdentity[] getUserEventAccounts(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+			@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+			@RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		EventAccountQuery eventAccountSet = ledger.getUserEvents(ledger.getLatestBlock());
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) eventAccountSet.getTotal());
-		return eventAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
+		return eventAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}")
 	@Override
 	public BlockchainIdentity getUserEventAccount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-												  @PathVariable(name = "address") String address) {
+			@PathVariable(name = "address") String address) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		EventAccountQuery eventAccountSet = ledger.getUserEvents(ledger.getLatestBlock());
 		EventPublishingAccount account = eventAccountSet.getAccount(address);
-		if(null == account) {
-			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		if (null == account) {
+			throw new IllegalArgumentException("Event account:[" + address + "] not exists");
 		}
 		return account.getID();
 	}
@@ -578,12 +655,12 @@ public class LedgerQueryController implements BlockchainQueryService {
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/count")
 	@Override
 	public long getUserEventNameTotalCount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-										   @PathVariable(name = "address") String address) {
+			@PathVariable(name = "address") String address) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		EventAccountQuery eventAccountSet = ledger.getUserEvents(ledger.getLatestBlock());
 		EventPublishingAccount account = eventAccountSet.getAccount(address);
-		if(null == account) {
-			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		if (null == account) {
+			throw new IllegalArgumentException("Event account:[" + address + "] not exists");
 		}
 		return account.totalEventNames();
 	}
@@ -591,14 +668,14 @@ public class LedgerQueryController implements BlockchainQueryService {
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names")
 	@Override
 	public String[] getUserEventNames(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-									  @PathVariable(name = "address") String address,
-									  @RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
-									  @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+			@PathVariable(name = "address") String address,
+			@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+			@RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventPublishingAccount account = ledger.getUserEvents(block).getAccount(address);
-		if(null == account) {
-			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		if (null == account) {
+			throw new IllegalArgumentException("Event account:[" + address + "] not exists");
 		}
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) account.totalEventNames());
 		return account.getEventNames(queryArgs.getFrom(), queryArgs.getCount());
@@ -607,12 +684,11 @@ public class LedgerQueryController implements BlockchainQueryService {
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/{eventName}/latest")
 	@Override
 	public Event getLatestEvent(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-								@PathVariable(name = "address") String address,
-								@PathVariable(name = "eventName") String eventName) {
+			@PathVariable(name = "address") String address, @PathVariable(name = "eventName") String eventName) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		EventPublishingAccount account = ledger.getUserEvents(ledger.getLatestBlock()).getAccount(address);
-		if(null == account) {
-			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		if (null == account) {
+			throw new IllegalArgumentException("Event account:[" + address + "] not exists");
 		}
 		return account.getLatest(eventName);
 	}
@@ -620,12 +696,11 @@ public class LedgerQueryController implements BlockchainQueryService {
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/{eventName}/count")
 	@Override
 	public long getUserEventsTotalCount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-										@PathVariable(name = "address") String address,
-										@PathVariable(name = "eventName") String eventName) {
+			@PathVariable(name = "address") String address, @PathVariable(name = "eventName") String eventName) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		EventPublishingAccount account = ledger.getUserEvents(ledger.getLatestBlock()).getAccount(address);
-		if(null == account) {
-			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		if (null == account) {
+			throw new IllegalArgumentException("Event account:[" + address + "] not exists");
 		}
 		return account.totalEvents(eventName);
 	}
@@ -633,24 +708,22 @@ public class LedgerQueryController implements BlockchainQueryService {
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/{eventName}")
 	@Override
 	public Event[] getUserEvents(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-								 @PathVariable(name = "address") String address,
-								 @PathVariable(name = "eventName") String eventName,
-								 @RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
-								 @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+			@PathVariable(name = "address") String address, @PathVariable(name = "eventName") String eventName,
+			@RequestParam(name = "fromSequence", required = false, defaultValue = "0") long fromSequence,
+			@RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventPublishingAccount account = ledger.getUserEvents(block).getAccount(address);
-		if(null == account) {
-			throw new IllegalArgumentException("Event account:["+ address +"] not exists");
+		if (null == account) {
+			throw new IllegalArgumentException("Event account:[" + address + "] not exists");
 		}
 		return account.getEvents(eventName, fromSequence, count);
 	}
 
-
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/contracts/address/{address}/version/{version}")
 	@Override
 	public ContractInfo getContract(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-									@PathVariable(name = "address") String address, @PathVariable(name = "version") long version) {
+			@PathVariable(name = "address") String address, @PathVariable(name = "version") long version) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		ContractAccountQuery contractAccountSet = ledger.getContractAccountSet(block);
@@ -674,7 +747,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		UserAccountQuery userAccountSet = ledger.getUserAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) userAccountSet.getTotal());
-		return userAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
+		return userAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	/**
@@ -694,7 +767,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) dataAccountSet.getTotal());
-		return dataAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
+		return dataAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/contracts")
@@ -705,8 +778,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		ContractAccountQuery contractAccountSet = ledger.getContractAccountSet(block);
-		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) contractAccountSet.getTotal());
-		return contractAccountSet.getHeaders(queryArgs.getFrom(), queryArgs.getCount());
+		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count,
+				(int) contractAccountSet.getTotal());
+		return contractAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/authorization/role/{roleName}")
@@ -723,6 +797,20 @@ public class LedgerQueryController implements BlockchainQueryService {
 											  @PathVariable(name = "userAddress") String userAddress) {
 		LedgerRepository ledger = ledgerService.getLedger(ledgerHash);
 		return ledger.getSecurityManager().getUserRolesPrivilegs(Bytes.fromBase58(userAddress));
+	}
+	
+//	private LedgerTransaction txDecorator(LedgerTransaction ledgerTransaction) {
+//		if (ledgerTransaction == null) {
+//			return null;
+//		}
+//		return new TransactionDecorator(ledgerTransaction);
+//	}
+
+	private LedgerAdminInfo ledgerAdminInfoDecorator(LedgerAdminInfo ledgerAdministration) {
+		if (ledgerAdministration == null) {
+			return null;
+		}
+		return new LedgerAdminInfoDecorator(ledgerAdministration);
 	}
 
 	private LedgerTransaction txDecorator(LedgerTransaction ledgerTransaction) {
@@ -741,12 +829,5 @@ public class LedgerQueryController implements BlockchainQueryService {
 			transactionDecorators[i] = txDecorator(ledgerTransactions[i]);
 		}
 		return transactionDecorators;
-	}
-
-	private LedgerAdminInfo ledgerAdminInfoDecorator(LedgerAdminInfo ledgerAdministration) {
-		if (ledgerAdministration == null) {
-			return null;
-		}
-		return new LedgerAdminInfoDecorator(ledgerAdministration);
 	}
 }

@@ -9,11 +9,11 @@ import com.jd.blockchain.crypto.HashFunction;
  * @author huanghaiquan
  *
  */
-abstract class MerkleTreeNode implements MerkleElement {
+abstract class MerkleTreeNode implements MerkleTrieEntry {
 
 	protected HashDigest nodeHash;
 
-	protected MerkleTreeNode parent;
+	private MerkleTreeNode parent;
 
 	private boolean modified;
 
@@ -29,6 +29,14 @@ abstract class MerkleTreeNode implements MerkleElement {
 				parent.setModified();
 			}
 		}
+	}
+	
+	public MerkleTreeNode getParent() {
+		return parent;
+	}
+	
+	public void setParent(MerkleTreeNode parent) {
+		this.parent = parent;
 	}
 	
 	protected void clearModified() {

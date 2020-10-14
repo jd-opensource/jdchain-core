@@ -6,6 +6,7 @@ import com.jd.blockchain.crypto.SignatureDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BlockchainIdentityData;
 import com.jd.blockchain.ledger.BlockchainKeypair;
+import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.DigitalSignature;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
 import com.jd.blockchain.ledger.LedgerAdminSettings;
@@ -75,6 +76,10 @@ public class LedgerInitializer {
 		this.initSetting = initSetting;
 		this.initTxContent = initTxContent;
 	}
+	
+	public CryptoSetting getCryptoSetting() {
+		return initSetting.getCryptoSetting();
+	}
 
 	public TransactionContent getTransactionContent() {
 		return initTxContent;
@@ -105,7 +110,7 @@ public class LedgerInitializer {
 	public static TransactionContent buildGenesisTransaction(LedgerInitSetting initSetting,
 			SecurityInitSettings securityInitSettings) {
 		// 账本初始化交易的账本 hash 为 null；
-		TransactionBuilder initTxBuilder = new TxBuilder(null);
+		TransactionBuilder initTxBuilder = new TxBuilder(null, initSetting.getCryptoSetting().getHashAlgorithm());
 
 		// 定义账本初始化操作；
 		initTxBuilder.ledgers().create(initSetting);
@@ -137,11 +142,11 @@ public class LedgerInitializer {
 	}
 
 	public SignatureDigest signTransaction(PrivKey privKey) {
-		return SignatureUtils.sign(initTxContent, privKey);
+		return SignatureUtils.sign(initSetting.getCryptoSetting().getHashAlgorithm(), initTxContent, privKey);
 	}
 	
 	public DigitalSignature signTransaction(BlockchainKeypair key) {
-		return SignatureUtils.sign(initTxContent, key);
+		return SignatureUtils.sign(initSetting.getCryptoSetting().getHashAlgorithm(),initTxContent, key);
 	}
 
 	/**
@@ -198,7 +203,8 @@ public class LedgerInitializer {
 	 */
 	private LedgerBlock prepareLedger(LedgerEditor ledgerEditor, DigitalSignature... nodeSignatures) {
 		// 初始化时，自动将参与方注册为账本的用户；
-		TxRequestBuilder txReqBuilder = new TxRequestBuilder(this.initTxContent);
+		HashDigest txHash = TxBuilder.computeTxContentHash(initSetting.getCryptoSetting().getHashAlgorithm(), this.initTxContent);
+		TxRequestBuilder txReqBuilder = new TxRequestBuilder(txHash, this.initTxContent);
 		txReqBuilder.addNodeSignature(nodeSignatures);
 
 		TransactionRequest txRequest = txReqBuilder.buildRequest();

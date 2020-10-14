@@ -163,6 +163,16 @@ public class ContractLedgerContext implements LedgerContext {
 	}
 
 	@Override
+	public LedgerTransaction[] getAdditionalTransactions(HashDigest ledgerHash, long height, int fromIndex, int count) {
+		return innerQueryService.getAdditionalTransactions(ledgerHash, height, fromIndex, count);
+	}
+
+	@Override
+	public LedgerTransaction[] getAdditionalTransactions(HashDigest ledgerHash, HashDigest blockHash, int fromIndex, int count) {
+		return innerQueryService.getAdditionalTransactions(ledgerHash, blockHash, fromIndex, count);
+	}
+
+	@Override
 	public LedgerTransaction getTransactionByContentHash(HashDigest ledgerHash, HashDigest contentHash) {
 		return innerQueryService.getTransactionByContentHash(ledgerHash, contentHash);
 	}
@@ -526,6 +536,22 @@ public class ContractLedgerContext implements LedgerContext {
 		}
 
 		@Override
+		public EventPublishOperationBuilder publish(String name, byte[] content, long sequence) {
+			BytesValue bytesValue = TypedValue.fromBytes(content);
+			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
+			handle(op);
+			return this;
+		}
+
+		@Override
+		public EventPublishOperationBuilder publish(String name, Bytes content, long sequence) {
+			BytesValue bytesValue = TypedValue.fromBytes(content);
+			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
+			handle(op);
+			return this;
+		}
+
+		@Override
 		public EventPublishOperationBuilder publish(String name, String content, long sequence) {
 			BytesValue bytesValue = TypedValue.fromText(content);
 			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
@@ -536,6 +562,38 @@ public class ContractLedgerContext implements LedgerContext {
 		@Override
 		public EventPublishOperationBuilder publish(String name, long content, long sequence) {
 			BytesValue bytesValue = TypedValue.fromInt64(content);
+			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
+			handle(op);
+			return this;
+		}
+
+		@Override
+		public EventPublishOperationBuilder publishTimestamp(String name, long content, long sequence) {
+			BytesValue bytesValue = TypedValue.fromTimestamp(content);
+			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
+			handle(op);
+			return this;
+		}
+
+		@Override
+		public EventPublishOperationBuilder publishImage(String name, byte[] content, long sequence) {
+			BytesValue bytesValue = TypedValue.fromImage(content);
+			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
+			handle(op);
+			return this;
+		}
+
+		@Override
+		public EventPublishOperationBuilder publishJSON(String name, String content, long sequence) {
+			BytesValue bytesValue = TypedValue.fromJSON(content);
+			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
+			handle(op);
+			return this;
+		}
+
+		@Override
+		public EventPublishOperationBuilder publishXML(String name, String content, long sequence) {
+			BytesValue bytesValue = TypedValue.fromXML(content);
 			this.op = new EventPublishOperationExecBuilder.SingleEventPublishOpTemplate(name, bytesValue, sequence);
 			handle(op);
 			return this;

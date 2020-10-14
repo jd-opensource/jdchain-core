@@ -23,6 +23,7 @@ import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerInitSetting;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.TransactionResult;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.core.DataAccount;
@@ -32,11 +33,10 @@ import com.jd.blockchain.ledger.core.LedgerManager;
 import com.jd.blockchain.ledger.core.LedgerRepository;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.LedgerTransactionalEditor;
-import com.jd.blockchain.ledger.core.MerkleDataSet;
-import com.jd.blockchain.ledger.core.TransactionQuery;
+import com.jd.blockchain.ledger.core.MerkleHashDataset;
 import com.jd.blockchain.ledger.core.UserAccount;
-import com.jd.blockchain.ledger.proof.HashSortingMerkleTree;
-import com.jd.blockchain.ledger.proof.MerkleData;
+import com.jd.blockchain.ledger.proof.MerkleHashTrie;
+import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.storage.service.KVStorageService;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.Bytes;
@@ -102,7 +102,7 @@ public class LedgerEditorTest {
 	}
 
 	private LedgerTransactionContext createGenisisTx(LedgerEditor ldgEdt, BlockchainKeypair[] partis) {
-		TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest(partis);
+		TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest_SHA256(partis);
 
 		LedgerTransactionContext txCtx = ldgEdt.newTransaction(genesisTxReq);
 
@@ -126,7 +126,7 @@ public class LedgerEditorTest {
 
 		dataAccount.getDataset().setValue("A", TypedValue.fromText("abc"), -1);
 
-		LedgerTransaction tx = genisisTxCtx.commit(TransactionState.SUCCESS);
+		TransactionResult tx = genisisTxCtx.commit(TransactionState.SUCCESS);
 		LedgerBlock block = ldgEdt.prepare();
 		// 提交数据，写入存储；
 		ldgEdt.commit();
@@ -154,7 +154,7 @@ public class LedgerEditorTest {
 		textValue = bytes.getBytes().toUTF8String();
 		assertEquals("abc", textValue);
 
-		LedgerTransaction tx_init = repo.getTransactionSet().get(tx.getTransactionContent().getHash());
+		LedgerTransaction tx_init = repo.getTransactionSet().getTransaction(tx.getTransactionHash());
 		assertNotNull(tx_init);
 	}
 
@@ -173,10 +173,10 @@ public class LedgerEditorTest {
 		userAccount.setProperty("Name", "孙悟空", -1);
 		userAccount.setProperty("Age", "10000", -1);
 
-		LedgerTransaction tx = genisisTxCtx.commit(TransactionState.SUCCESS);
+		TransactionResult tx = genisisTxCtx.commit(TransactionState.SUCCESS);
 
 		TransactionRequest genesisTxReq = genisisTxCtx.getTransactionRequest();
-		assertEquals(genesisTxReq.getTransactionContent().getHash(), tx.getTransactionContent().getHash());
+		assertEquals(genesisTxReq.getTransactionHash(), tx.getTransactionHash());
 		assertEquals(0, tx.getBlockHeight());
 
 		LedgerBlock block = ldgEdt.prepare();
@@ -223,26 +223,26 @@ public class LedgerEditorTest {
 		// 创建交易连续交易，验证中间的交易回滚是否影响前后的交易；
 		BlockchainKeypair user1 = LedgerTestUtils.createKeyPair("7VeRKf3GFLFcBfzvtzmtyMXEoX2HYGEJ4j7CmHcnRV99W5Dp",
 				"7VeRYQjeAaQY5Po8MMtmGNHA2SniqLXmJaZwBS5K8zTtMAU1");
-		TransactionRequest req1 = LedgerTestUtils.createTxRequest_UserReg(user1, ledgerHash, 1580315317127L, parti0,
+		TransactionRequest req1 = LedgerTestUtils.createTxRequest_UserReg_SHA256(user1, ledgerHash, 1580315317127L, parti0,
 				parti0);
 		// 引发错误的参数：ts=1580315317127;
 		// txhash=j5wPGKT5CUzwi8j6VfCWaP2p9YZ6WVWtMANp9HbHWzvhgG
 		System.out.printf("\r\n ===||=== transactionRequest1.getTransactionContent().getHash()=[%s]\r\n",
-				req1.getTransactionContent().getHash().toBase58());
+				req1.getTransactionHash().toBase58());
 
 		BlockchainKeypair user2 = LedgerTestUtils.createKeyPair("7VeRKSnDFveTfLLMsLZDmmhGmgf7i142XHgBFjnrKuS95tY3",
 				"7VeRTiJ2TpQD9aBi29ajnqdntgoVBANmC3oCbHThKb5tzfTJ");
-		TransactionRequest req2 = LedgerTestUtils.createTxRequest_MultiOPs_WithNotExistedDataAccount(user2, ledgerHash,
+		TransactionRequest req2 = LedgerTestUtils.createTxRequest_MultiOPs_WithNotExistedDataAccount_SHA256(user2, ledgerHash,
 				202001202020L, parti0, parti0);
 		System.out.printf("\r\n ===||=== transactionRequest2.getTransactionContent().getHash()=[%s]\r\n",
-				req2.getTransactionContent().getHash().toBase58());
+				req2.getTransactionHash().toBase58());
 
 		BlockchainKeypair user3 = LedgerTestUtils.createKeyPair("7VeRDoaSexqLWKkaZyrQwdwSuE9n5nszduMrYBfYRfEkREQV",
 				"7VeRdFtTuLfrzCYJzQ6enQUkGTc83ATgjr8WbmfjBQuTFpHt");
-		TransactionRequest req3 = LedgerTestUtils.createTxRequest_UserReg(user3, ledgerHash, 202001202020L, parti0,
+		TransactionRequest req3 = LedgerTestUtils.createTxRequest_UserReg_SHA256(user3, ledgerHash, 202001202020L, parti0,
 				parti0);
 		System.out.printf("\r\n ===||=== transactionRequest3.getTransactionContent().getHash()=[%s]\r\n",
-				req3.getTransactionContent().getHash().toBase58());
+				req3.getTransactionHash().toBase58());
 
 		System.out.println("\r\n--------------- Start new Block 1 --------------\r\n");
 		// 创建交易；
@@ -251,21 +251,21 @@ public class LedgerEditorTest {
 		System.out.println("\r\n--------------- Start new tx1 --------------\r\n");
 		LedgerTransactionContext txctx1 = editor.newTransaction(req1);
 		txctx1.getDataset().getUserAccountSet().register(user1.getAddress(), user1.getPubKey());
-		LedgerTransaction tx1 = txctx1.commit(TransactionState.SUCCESS);
-		HashDigest txHash1 = tx1.getTransactionContent().getHash();
+		TransactionResult tx1 = txctx1.commit(TransactionState.SUCCESS);
+		HashDigest txHash1 = tx1.getTransactionHash();
 
 		System.out.println("\r\n--------------- Start new tx2 --------------\r\n");
 
 		LedgerTransactionContext txctx2 = editor.newTransaction(req2);
 		txctx2.getDataset().getUserAccountSet().register(user2.getAddress(), user2.getPubKey());
-		LedgerTransaction tx2 = txctx2.discardAndCommit(TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
-		HashDigest txHash2 = tx2.getTransactionContent().getHash();
+		TransactionResult tx2 = txctx2.discardAndCommit(TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
+		HashDigest txHash2 = tx2.getTransactionHash();
 
 		System.out.println("\r\n--------------- Start new tx3 --------------\r\n");
 		LedgerTransactionContext txctx3 = editor.newTransaction(req3);
 		txctx3.getDataset().getUserAccountSet().register(user3.getAddress(), user3.getPubKey());
-		LedgerTransaction tx3 = txctx3.commit(TransactionState.SUCCESS);
-		HashDigest txHash3 = tx3.getTransactionContent().getHash();
+		TransactionResult tx3 = txctx3.commit(TransactionState.SUCCESS);
+		HashDigest txHash3 = tx3.getTransactionHash();
 
 		System.out.println("\r\n--------------- Start preparing new block 1 --------------\r\n");
 
@@ -283,9 +283,9 @@ public class LedgerEditorTest {
 		manager = new LedgerManager();
 		repo = manager.register(ledgerHash, STORAGE);
 
-		LedgerTransaction act_tx1 = repo.getTransactionSet().get(txHash1);
-		LedgerTransaction act_tx2 = repo.getTransactionSet().get(txHash2);
-		LedgerTransaction act_tx3 = repo.getTransactionSet().get(txHash3);
+		LedgerTransaction act_tx1 = repo.getTransactionSet().getTransaction(txHash1);
+		LedgerTransaction act_tx2 = repo.getTransactionSet().getTransaction(txHash2);
+		LedgerTransaction act_tx3 = repo.getTransactionSet().getTransaction(txHash3);
 
 		assertNotNull(act_tx3);
 		assertNotNull(act_tx2);
@@ -296,7 +296,7 @@ public class LedgerEditorTest {
 	public void testMerkleDataSet1() {
 		CryptoSetting setting = LedgerTestUtils.createDefaultCryptoSetting();
 
-		Bytes keyPrefix = Bytes.fromString(LedgerTestUtils.LEDGER_KEY_PREFIX).concat(MerkleDataSet.MERKLE_TREE_PREFIX);
+		Bytes keyPrefix = Bytes.fromString(LedgerTestUtils.LEDGER_KEY_PREFIX).concat(MerkleHashDataset.MERKLE_TREE_PREFIX);
 
 		MemoryKVStorage storage = new MemoryKVStorage();
 
@@ -304,16 +304,16 @@ public class LedgerEditorTest {
 		HashDigest valueHash = new HashDigest(Base58Utils.decode("j5o6mMnMQqE5fJKJ93FzXPnu4vFCfpBKp7u4r8tUUaFRK8"));
 		long version = 0;
 
-		HashSortingMerkleTree merkleTree = new HashSortingMerkleTree(setting, keyPrefix, storage);
+		MerkleHashTrie merkleTree = new MerkleHashTrie(setting, keyPrefix, storage);
 		
-		merkleTree.setData(key, version, valueHash);
+		merkleTree.setData(key, version, valueHash.toBytes());
 		
 		merkleTree.commit();
 		
-		MerkleData data = merkleTree.getData(key);
+		MerkleTrieData data = merkleTree.getData(key);
 		assertNotNull(data);
 		
-		merkleTree = new HashSortingMerkleTree(merkleTree.getRootHash(), setting, keyPrefix, storage, false);
+		merkleTree = new MerkleHashTrie(merkleTree.getRootHash(), setting, keyPrefix, storage, false);
 		data = merkleTree.getData(key);
 		assertNotNull(data);
 		

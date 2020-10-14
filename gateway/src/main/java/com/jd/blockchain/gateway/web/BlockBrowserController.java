@@ -240,10 +240,28 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/hash/{blockHash}/txs")
 	@Override
 	public LedgerTransaction[] getTransactions(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-			@PathVariable(name = "blockHash") HashDigest blockHash,
-			@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
-			@RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+											   @PathVariable(name = "blockHash") HashDigest blockHash,
+											   @RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+											   @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
 		return peerService.getQueryService(ledgerHash).getTransactions(ledgerHash, blockHash, fromIndex, count);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/height/{blockHeight}/txs/additional-txs")
+	@Override
+	public LedgerTransaction[] getAdditionalTransactions(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+														 @PathVariable(name = "blockHeight") long blockHeight,
+														 @RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+														 @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+		return peerService.getQueryService(ledgerHash).getAdditionalTransactions(ledgerHash, blockHeight, fromIndex, count);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/hash/{blockHash}/txs/additional-txs")
+	@Override
+	public LedgerTransaction[] getAdditionalTransactions(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+														 @PathVariable(name = "blockHash") HashDigest blockHash,
+														 @RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+														 @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+		return peerService.getQueryService(ledgerHash).getAdditionalTransactions(ledgerHash, blockHash, fromIndex, count);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/txs/hash/{contentHash}")

@@ -107,8 +107,8 @@ public class LedgerTestUtils {
 //		return createTxRequest_UserReg(userKeypair, ledgerHash, null, null);
 //	}
 
-	public static TransactionRequest createLedgerInitTxRequest(BlockchainKeypair... participants) {
-		TxBuilder txBuilder = new TxBuilder(null);
+	public static TransactionRequest createLedgerInitTxRequest_SHA256(BlockchainKeypair... participants) {
+		TxBuilder txBuilder = new TxBuilder(null, ClassicAlgorithm.SHA256);
 
 		for (BlockchainKeypair parti : participants) {
 			txBuilder.users().register(parti.getIdentity());
@@ -135,12 +135,12 @@ public class LedgerTestUtils {
 
 	public static TransactionRequest createTxRequest_UserReg(BlockchainKeypair userKeypair, HashDigest ledgerHash,
 			BlockchainKeypair nodeKeypair, BlockchainKeypair... signers) {
-		return createTxRequest_UserReg(userKeypair, ledgerHash, System.currentTimeMillis(), nodeKeypair, signers);
+		return createTxRequest_UserReg_SHA256(userKeypair, ledgerHash, System.currentTimeMillis(), nodeKeypair, signers);
 	}
 
-	public static TransactionRequest createTxRequest_UserReg(BlockchainKeypair userKeypair, HashDigest ledgerHash,
+	public static TransactionRequest createTxRequest_UserReg_SHA256(BlockchainKeypair userKeypair, HashDigest ledgerHash,
 			long ts, BlockchainKeypair nodeKeypair, BlockchainKeypair... signers) {
-		TxBuilder txBuilder = new TxBuilder(ledgerHash);
+		TxBuilder txBuilder = new TxBuilder(ledgerHash, ClassicAlgorithm.SHA256);
 
 		txBuilder.users().register(userKeypair.getIdentity());
 
@@ -156,9 +156,9 @@ public class LedgerTestUtils {
 		return txReqBuilder.buildRequest();
 	}
 
-	public static TransactionRequest createTxRequest_DataAccountReg(BlockchainKeypair dataAccountID,
+	public static TransactionRequest createTxRequest_DataAccountReg_SHA256(BlockchainKeypair dataAccountID,
 			HashDigest ledgerHash, BlockchainKeypair nodeKeypair, BlockchainKeypair... signers) {
-		TxBuilder txBuilder = new TxBuilder(ledgerHash);
+		TxBuilder txBuilder = new TxBuilder(ledgerHash, ClassicAlgorithm.SHA256);
 
 		txBuilder.dataAccounts().register(dataAccountID.getIdentity());
 
@@ -175,10 +175,10 @@ public class LedgerTestUtils {
 		return txReqBuilder.buildRequest();
 	}
 
-	public static TransactionRequest createTxRequest_DataAccountWrite(Bytes dataAccountAddress, String key,
+	public static TransactionRequest createTxRequest_DataAccountWrite_SHA256(Bytes dataAccountAddress, String key,
 			String value, long version, HashDigest ledgerHash, BlockchainKeypair nodeKeypair,
 			BlockchainKeypair... signers) {
-		TxBuilder txBuilder = new TxBuilder(ledgerHash);
+		TxBuilder txBuilder = new TxBuilder(ledgerHash, ClassicAlgorithm.SHA256);
 
 		txBuilder.dataAccount(dataAccountAddress).setText(key, value, version);
 
@@ -213,7 +213,7 @@ public class LedgerTestUtils {
 	 */
 	public static TransactionRequest createTxRequest_MultiOPs_WithNotExistedDataAccount(BlockchainKeypair userKeypair,
 			HashDigest ledgerHash, BlockchainKeypair nodeKeypair, BlockchainKeypair... signers) {
-		return createTxRequest_MultiOPs_WithNotExistedDataAccount(userKeypair, ledgerHash, System.currentTimeMillis(),
+		return createTxRequest_MultiOPs_WithNotExistedDataAccount_SHA256(userKeypair, ledgerHash, System.currentTimeMillis(),
 				nodeKeypair, signers);
 	}
 
@@ -226,9 +226,9 @@ public class LedgerTestUtils {
 	 * @param signers     签名者列表；
 	 * @return
 	 */
-	public static TransactionRequest createTxRequest_MultiOPs_WithNotExistedDataAccount(BlockchainKeypair userKeypair,
+	public static TransactionRequest createTxRequest_MultiOPs_WithNotExistedDataAccount_SHA256(BlockchainKeypair userKeypair,
 			HashDigest ledgerHash, long ts, BlockchainKeypair nodeKeypair, BlockchainKeypair... signers) {
-		TxBuilder txBuilder = new TxBuilder(ledgerHash);
+		TxBuilder txBuilder = new TxBuilder(ledgerHash, ClassicAlgorithm.SHA256);
 
 		txBuilder.users().register(userKeypair.getIdentity());
 
@@ -255,7 +255,7 @@ public class LedgerTestUtils {
 		// 创建账本；
 		LedgerEditor ldgEdt = LedgerTransactionalEditor.createEditor(initSetting, LEDGER_KEY_PREFIX, storage, storage);
 
-		TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest(partiKeys);
+		TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest_SHA256(partiKeys);
 		LedgerTransactionContext genisisTxCtx = ldgEdt.newTransaction(genesisTxReq);
 		LedgerDataset ldgDS = genisisTxCtx.getDataset();
 
@@ -266,9 +266,9 @@ public class LedgerTestUtils {
 			userAccount.setProperty("Share", "" + (10 + i), -1);
 		}
 
-		LedgerTransaction tx = genisisTxCtx.commit(TransactionState.SUCCESS);
+		TransactionResult tx = genisisTxCtx.commit(TransactionState.SUCCESS);
 
-		assertEquals(genesisTxReq.getTransactionContent().getHash(), tx.getTransactionContent().getHash());
+		assertEquals(genesisTxReq.getTransactionHash(), tx.getTransactionHash());
 		assertEquals(0, tx.getBlockHeight());
 
 		LedgerBlock block = ldgEdt.prepare();

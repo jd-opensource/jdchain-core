@@ -33,8 +33,8 @@ public class UserAccountSet implements Transactional, UserAccountQuery {
 	}
 
 	@Override
-	public BlockchainIdentity[] getHeaders(int fromIndex, int count) {
-		return accountSet.getHeaders(fromIndex, count);
+	public BlockchainIdentity[] getAccountIDs(int fromIndex, int count) {
+		return accountSet.getAccountIDs(fromIndex, count);
 	}
 
 	/**

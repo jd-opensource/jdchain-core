@@ -19,16 +19,16 @@ public class ParticipantDataset implements Transactional, MerkleProvable, Partic
 		DataContractRegistry.register(ParticipantNode.class);
 	}
 
-	private MerkleDataSet dataset;
+	private MerkleHashDataset dataset;
 
 	public ParticipantDataset(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage verStorage) {
-		dataset = new MerkleDataSet(cryptoSetting, prefix, exPolicyStorage, verStorage);
+		dataset = new MerkleHashDataset(cryptoSetting, prefix, exPolicyStorage, verStorage);
 	}
 
 	public ParticipantDataset(HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
 			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new MerkleDataSet(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage, verStorage, readonly);
+		dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage, verStorage, readonly);
 	}
 
 	@Override
@@ -127,7 +127,7 @@ public class ParticipantDataset implements Transactional, MerkleProvable, Partic
 
 	@Override
 	public ParticipantNode[] getParticipants() {
-		byte[][] bytes = dataset.getLatestValues(0, (int) dataset.getDataCount());
+		byte[][] bytes = dataset.getValues(0, (int) dataset.getDataCount());
 		ParticipantNode[] pns = new ParticipantNode[bytes.length];
 
 		for (int i = 0; i < pns.length; i++) {

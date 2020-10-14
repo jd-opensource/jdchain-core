@@ -1,9 +1,11 @@
 package com.jd.blockchain.ledger.core;
 
+import com.jd.blockchain.ledger.proof.MerkleSequenceTree;
+
 /**
  * 默克尔证明异常；
  * <p>
- * 表示 {@link MerkleTree} 在处理数据时数据无法通过校验，潜在的原因可能是数据已被修改或篡改；
+ * 表示 {@link MerkleSequenceTree} 在处理数据时数据无法通过校验，潜在的原因可能是数据已被修改或篡改；
  * 
  * @author huanghaiquan
  *

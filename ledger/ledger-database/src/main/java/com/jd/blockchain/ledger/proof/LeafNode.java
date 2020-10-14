@@ -4,6 +4,7 @@ import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.core.MerkleProofException;
+import com.jd.blockchain.utils.Bytes;
 
 /**
  * 叶子节点；
@@ -13,13 +14,19 @@ import com.jd.blockchain.ledger.core.MerkleProofException;
  */
 class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 
-	private static final MerkleData[] EMPTY_ENTRIES = {};
+	private static final MerkleKey[] EMPTY_KEYS = {};
+
+	private static final MerkleTrieData[] EMPTY_DATA_ENTRIES = {};
 
 	private long keyHash;
 
-	private MerkleData[] dataEntries;
-	
-	private MerkleLeaf origLeaf;
+	private volatile MerkleKey[] keys;
+
+	// 变更前的键列表；用于回滚数据；
+	private volatile MerkleKey[] previousKeys;
+
+	// 与 key 对应的数据项；用做缓存；
+	private volatile MerkleTrieData[] dataEntries;
 
 	/**
 	 * 创建一个新的叶子节点；
@@ -28,80 +35,113 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 	 */
 	LeafNode(long keyHash) {
 		this.keyHash = keyHash;
-		this.dataEntries = EMPTY_ENTRIES;
+		this.keys = EMPTY_KEYS;
+		this.dataEntries = EMPTY_DATA_ENTRIES;
+		this.previousKeys = EMPTY_KEYS;
+		// 新节点初始便标记为“已修改”状态；
 		setModified();
 	}
 
 	LeafNode(HashDigest nodeHash, MerkleLeaf leaf) {
 		this.nodeHash = nodeHash;
 		this.keyHash = leaf.getKeyHash();
-		this.dataEntries = leaf.getDataEntries();
-		this.origLeaf = leaf;
+
+		this.keys = leaf.getKeys();
+		this.dataEntries = (this.keys == null || this.keys.length == 0) ? EMPTY_DATA_ENTRIES
+				: new MerkleTrieData[keys.length];
+
+		this.previousKeys = (this.keys == null || this.keys.length == 0) ? EMPTY_KEYS : this.keys.clone();
 	}
 
-	public void addKeyNode(MerkleDataEntry dataEntry) {
-		if (dataEntries.length == 0) {
+	protected MerkleTrieData[] getDataEntries() {
+		return dataEntries;
+	}
+
+	/**
+	 * 插入数据；
+	 * 
+	 * @param index
+	 * @param dataEntry
+	 */
+	private void insertDataEntry(int index, MerkleTrieDataEntry dataEntry) {
+		if (index < 0 || index > keys.length) {
+			throw new IndexOutOfBoundsException("index of data entry is out of bounds!");
+		}
+		if (dataEntry.getVersion() != 0) {
+			throw new MerkleProofException("The version of the new key is not zero!");
+		}
+		int origLen = this.keys.length;
+		int newLen = origLen + 1;
+
+		MerkleKey[] newKeys = new MerkleKey[newLen];
+		MerkleTrieData[] newDatas = new MerkleTrieData[newLen];
+		if (index > 0) {
+			System.arraycopy(this.keys, 0, newKeys, 0, index);
+			System.arraycopy(this.dataEntries, 0, newDatas, 0, index);
+		}
+		newKeys[index] = new MerkleKeyEntry(dataEntry.getKey(), dataEntry.getVersion(), null);// 哈希置为 null 标记此项是待写入的数据；
+		newDatas[index] = dataEntry;
+		if (index < this.keys.length) {
+			System.arraycopy(this.keys, index, newKeys, index + 1, origLen - index);
+			System.arraycopy(this.dataEntries, index, newDatas, index + 1, origLen - index);
+		}
+		this.keys = newKeys;
+		this.dataEntries = newDatas;
+	}
+
+	/**
+	 * 更改指定位置的数据项；
+	 * 
+	 * @param index
+	 * @param dataEntry
+	 */
+	private void setDataEntry(int index, MerkleTrieDataEntry dataEntry) {
+		if (index < 0 || index >= keys.length) {
+			throw new IndexOutOfBoundsException("index of data entry is out of bounds!");
+		}
+		if (dataEntry.getVersion() != (keys[index].getVersion() + 1)) {
+			throw new IllegalArgumentException("The version of the key doesn't increase by 1!");
+		}
+		if (dataEntry.getVersion() > 0) {
+			dataEntry.setPreviousEntry(this.keys[index].getDataEntryHash(), this.dataEntries[index]);
+		}
+		this.keys[index] = new MerkleKeyEntry(dataEntry.getKey(), dataEntry.getVersion(), null);// 哈希置为 null
+		this.dataEntries[index] = dataEntry;
+	}
+
+	public void addKeyNode(MerkleTrieDataEntry dataEntry) {
+		// 在升序序列中查找合适的插入位置；
+		// 如果 key 已存在，则更新数据值；否则插入数据值到匹配的位置上，把该位置之后的数据项都后移 1 位；
+
+		if (keys.length == 0) {
 			if (dataEntry.getVersion() != 0) {
 				throw new MerkleProofException("The version of the new key is not zero!");
 			}
-			dataEntries = new MerkleData[] { dataEntry };
+			insertDataEntry(0, dataEntry);
 		} else {
 			// 按升序插入新元素；
-			byte[] newKey = dataEntry.getKey();
+			Bytes newKey = dataEntry.getKey();
+
 			int i = 0;
-			int count = dataEntries.length;
+			int count = keys.length;
 			int c = -1;
 			for (; i < count; i++) {
-				c = compare(dataEntries[i].getKey(), newKey);
+				c = keys[i].getKey().compare(newKey);
 				if (c >= 0) {
 					break;
 				}
 			}
+
 			if (c == 0) {
-				// 更新 key 的新版本；
-				dataEntry.setPreviousEntry(dataEntries[i]);
-				dataEntries[i] = dataEntry;
+				// 有相同的 key 存在，更新该 key 的新版本；
+				setDataEntry(i, dataEntry);
 			} else {
-				// 插入新的 key；
-				MerkleData[] newDataEntries = new MerkleData[count + 1];
-				if (i > 0) {
-					System.arraycopy(dataEntries, 0, newDataEntries, 0, i);
-				}
-				newDataEntries[i] = dataEntry;
-				if (i < count) {
-					System.arraycopy(dataEntries, i, newDataEntries, i + 1, count - i);
-				}
-				dataEntries = newDataEntries;
+				// 没有相同的 key 存在，插入新的 key；
+				insertDataEntry(i, dataEntry);
 			}
 		}
 
 		setModified();
-	}
-
-	/**
-	 * Compare this key and specified key;
-	 * 
-	 * @param otherKey
-	 * @return Values: -1, 0, 1. <br>
-	 *         Return -1 means that the current key is less than the specified
-	 *         key;<br>
-	 *         Return 0 means that the current key is equal to the specified
-	 *         key;<br>
-	 *         Return 1 means that the current key is great than the specified key;
-	 */
-	public int compare(byte[] key1, byte[] key2) {
-		int len = Math.min(key1.length, key2.length);
-		for (int i = 0; i < len; i++) {
-			if (key1[i] == key2[i]) {
-				continue;
-			}
-			return key1[i] < key2[i] ? -1 : 1;
-		}
-		if (key1.length == key2.length) {
-			return 0;
-		}
-
-		return key1.length < key2.length ? -1 : 1;
 	}
 
 	public static LeafNode create(HashDigest nodeHash, MerkleLeaf leaf) {
@@ -113,20 +153,20 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 	}
 
 	@Override
-	public MerkleData[] getDataEntries() {
-		return dataEntries;
+	public MerkleKey[] getKeys() {
+		return keys;
 	}
 
 	@Override
 	public long getTotalKeys() {
-		return dataEntries.length;
+		return keys.length;
 	}
 
 	@Override
 	public long getTotalRecords() {
 		long sum = 0;
-		for (MerkleData dataEntry : dataEntries) {
-			sum += dataEntry.getVersion() + 1;
+		for (MerkleKey key : keys) {
+			sum += key.getVersion() + 1;
 		}
 		return sum;
 	}
@@ -137,13 +177,11 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 			return;
 		}
 
-		for (MerkleData data : dataEntries) {
-			if (data instanceof MerkleDataEntry) {
-				MerkleDataEntry entry = (MerkleDataEntry) data;
-				if (entry.getPreviousEntryHash() == null && entry.getPreviousEntry() != null) {
-					HashDigest entryHash = updateDataEntry(entry.getPreviousEntry(), hashFunc, updatedListener);
-					entry.setPreviousEntryHash(entryHash);
-				}
+		for (int i = 0; i < keys.length; i++) {
+			if (keys[i].getDataEntryHash() == null) {
+				MerkleTrieDataEntry entry = (MerkleTrieDataEntry) dataEntries[i];
+				HashDigest entryHash = updateDataEntry(entry, hashFunc, updatedListener);
+				((MerkleKeyEntry) keys[i]).setDataEntryHash(entryHash);
 			}
 		}
 
@@ -153,35 +191,45 @@ class LeafNode extends MerkleTreeNode implements MerkleLeaf {
 
 		updatedListener.onUpdated(nodeHash, this, nodeBytes);
 
+		previousKeys = keys.clone();
 		clearModified();
 	}
 
-	private HashDigest updateDataEntry(MerkleData data, HashFunction hashFunc, NodeUpdatedListener updatedListener) {
-		if (data instanceof MerkleDataEntry) {
-			MerkleDataEntry entry = (MerkleDataEntry) data;
-			if (entry.getPreviousEntryHash() == null && entry.getPreviousEntry() != null) {
-				HashDigest entryHash = updateDataEntry(entry.getPreviousEntry(), hashFunc, updatedListener);
-				entry.setPreviousEntryHash(entryHash);
+	/**
+	 * 更新指定的数据节点，返回节点新的哈希；
+	 * @param data 数据节点；
+	 * @param hashFunc 哈希函数；
+	 * @param updatedListener 更新监听器；
+	 * @return
+	 */
+	private HashDigest updateDataEntry(MerkleTrieData data, HashFunction hashFunc, NodeUpdatedListener updatedListener) {
+		//检查指定的数据节点是否存在未更新的前版本数据节点；
+		if (data instanceof MerkleTrieDataEntry) {
+			MerkleTrieDataEntry entry = (MerkleTrieDataEntry) data;
+			MerkleTrieData previousDataEntry = entry.getPreviousEntry();
+			if (entry.getPreviousEntryHash() == null && previousDataEntry != null) {
+				//保存前版本数据节点；
+				HashDigest entryHash = updateDataEntry(previousDataEntry, hashFunc, updatedListener);
+				entry.setPreviousEntry(entryHash, previousDataEntry);
 			}
 		}
-
-		byte[] nodeBytes = BinaryProtocol.encode(data, MerkleData.class);
+		//更新指定的数据节点；
+		byte[] nodeBytes = BinaryProtocol.encode(data, MerkleTrieData.class);
 		HashDigest entryHash = hashFunc.hash(nodeBytes);
 		updatedListener.onUpdated(entryHash, this, nodeBytes);
 
 		return entryHash;
 	}
 
-	
 	@Override
 	protected void cancel() {
 		if (!isModified()) {
 			return;
 		}
-		if (origLeaf == null) {
-			dataEntries = EMPTY_ENTRIES;
-		}else {
-			dataEntries = origLeaf.getDataEntries();
+		if (previousKeys.length == 0) {
+			keys = EMPTY_KEYS;
+		} else {
+			keys = previousKeys.clone();
 		}
 		clearModified();
 	}

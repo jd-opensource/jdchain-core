@@ -6,10 +6,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import com.jd.blockchain.ledger.core.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,6 +29,11 @@ import com.jd.blockchain.ledger.LedgerInitProperties.ParticipantProperties;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.TransactionContent;
 import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.core.LedgerInitDecision;
+import com.jd.blockchain.ledger.core.LedgerInitProposal;
+import com.jd.blockchain.ledger.core.LedgerInitProposalData;
+import com.jd.blockchain.ledger.core.LedgerInitializer;
+import com.jd.blockchain.ledger.core.LedgerStructureConfig;
 import com.jd.blockchain.storage.service.DbConnection;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.DBConnectionConfig;
@@ -435,8 +438,8 @@ public class LedgerInitializeWebController implements LedgerInitProcess, LedgerI
 				continue;
 			}
 
-			if (!SignatureUtils.verifySignature(initializer.getTransactionContent(),
-					permission.getTransactionSignature(), pubKey)) {
+			if (!SignatureUtils.verifySignature(initializer.getCryptoSetting().getHashAlgorithm(),
+					initializer.getTransactionContent(), permission.getTransactionSignature(), pubKey)) {
 				prompter.error("Invalid permission from participant! --[Id=%s][name=%s]", participants[i].getAddress(),
 						participants[i].getName());
 				allPermitted = false;

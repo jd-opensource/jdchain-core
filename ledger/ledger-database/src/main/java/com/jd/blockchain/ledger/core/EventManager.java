@@ -30,7 +30,7 @@ public class EventManager implements EventOperationHandle {
     public void publish(Bytes address, EventPublishOperation.EventEntry[] events) {
         EventPublishingAccount account = txCtx.getEventSet().getUserEvents().getAccount(address);
         for (EventPublishOperation.EventEntry event : events) {
-            long v = account.publish(new EventInfo(address, event.getName(), event.getSequence()+1, event.getContent(), request.getTransactionContent().getHash(), txCtx.getBlockHeight()));
+            long v = account.publish(new EventInfo(address, event.getName(), event.getSequence()+1, event.getContent(), request.getTransactionHash(), txCtx.getBlockHeight()));
             if (v < 0) {
                 throw new DataVersionConflictException();
             }
@@ -39,7 +39,7 @@ public class EventManager implements EventOperationHandle {
 
     @Override
     public long publish(String eventName, BytesValue content, long latestSequence) {
-        long v = txCtx.getEventSet().getSystemEvents().publish(new EventInfo(eventName, latestSequence+1, content, request.getTransactionContent().getHash(), txCtx.getBlockHeight()));
+        long v = txCtx.getEventSet().getSystemEvents().publish(new EventInfo(eventName, latestSequence+1, content, request.getTransactionHash(), txCtx.getBlockHeight()));
         if (v < 0) {
             throw new DataVersionConflictException();
         }

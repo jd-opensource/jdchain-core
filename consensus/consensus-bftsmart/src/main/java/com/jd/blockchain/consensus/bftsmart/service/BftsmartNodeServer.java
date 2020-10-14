@@ -162,7 +162,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     }
 
     protected void initConfig(int id, Properties systemsConfig, HostsConfig hostConfig) {
-        byte[] serialHostConf = BinarySerializeUtils.serialize(hostConfig);
+        HostsConfig outerHostConfig = BinarySerializeUtils.deserialize(BinarySerializeUtils.serialize(hostConfig));
         Properties sysConfClone = (Properties)systemsConfig.clone();
         int port = hostConfig.getPort(id);
 //        hostConfig.add(id, DEFAULT_BINDING_HOST, port);
@@ -180,11 +180,11 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             LOGGER.info("###peer-startup.sh###,set up the -DhostIp="+preHostIp);
         }
 
-        this.tomConfig = new TOMConfiguration(id, systemsConfig, hostConfig);
+        this.tomConfig = new TOMConfiguration(id, systemsConfig, hostConfig, outerHostConfig);
 
         this.latestView = new View(setting.getViewId(), tomConfig.getInitialView(), tomConfig.getF(), consensusAddresses.toArray(new NodeNetwork[consensusAddresses.size()]));
 
-        this.outerTomConfig = new TOMConfiguration(id, sysConfClone, BinarySerializeUtils.deserialize(serialHostConf));
+        this.outerTomConfig = new TOMConfiguration(id, sysConfClone, outerHostConfig);
 
     }
 
@@ -571,7 +571,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     private byte[] createAppResponse(byte[] command, TransactionState transactionState) {
         TransactionRequest txRequest = BinaryProtocol.decode(command);
 
-        TxResponseMessage resp = new TxResponseMessage(txRequest.getTransactionContent().getHash());
+        TxResponseMessage resp = new TxResponseMessage(txRequest.getTransactionHash());
 
         resp.setExecutionState(transactionState);
 

@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>com.jd.blockchain</groupId>
 		<artifactId>jdchain-core</artifactId>
-		<version>1.3.0.RELEASE</version>
+		<version>1.4.0-SNAPSHOT</version>
 	</parent>
 	<artifactId>peer</artifactId>
 
@@ -23,6 +23,11 @@
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>utils-web</artifactId>
+			<version>${framework.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.jd.blockchain</groupId>
+			<artifactId>sdk-base</artifactId>
 			<version>${framework.version}</version>
 		</dependency>
 		<dependency>
@@ -50,7 +55,7 @@
 			<artifactId>tools-initializer</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-
+		
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -78,15 +83,9 @@
 			<artifactId>spring-boot-configuration-processor</artifactId>
 			<optional>true</optional>
 		</dependency>
-        <dependency>
-            <groupId>com.jd.blockchain</groupId>
-            <artifactId>sdk-base</artifactId>
-            <version>1.3.0.RELEASE</version>
-            <scope>compile</scope>
-        </dependency>
 
-        <!-- <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot-starter-test</artifactId>
-            </dependency> -->
+		<!-- <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot-starter-test</artifactId> 
+			</dependency> -->
 	</dependencies>
 
 

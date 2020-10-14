@@ -9,6 +9,21 @@ public class TransactionStagedSnapshot implements LedgerDataSnapshot {
 	private HashDigest userAccountSetHash;
 	private HashDigest dataAccountSetHash;
 	private HashDigest contractAccountSetHash;
+	private HashDigest systemEventSetHash;
+	private HashDigest userEventSetHash;
+	
+	public TransactionStagedSnapshot() {
+	}
+	
+	public TransactionStagedSnapshot(LedgerDataSnapshot snapshot) {
+		this.adminAccountHash = snapshot.getAdminAccountHash();
+		this.userAccountSetHash = snapshot.getUserAccountSetHash();
+		this.dataAccountSetHash = snapshot.getDataAccountSetHash();
+		this.contractAccountSetHash = snapshot.getContractAccountSetHash();
+		this.systemEventSetHash = snapshot.getSystemEventSetHash();
+		this.userEventSetHash = snapshot.getUserEventSetHash();
+	}
+	
 
 	@Override
 	public HashDigest getAdminAccountHash() {
@@ -44,6 +59,24 @@ public class TransactionStagedSnapshot implements LedgerDataSnapshot {
 
 	public void setContractAccountSetHash(HashDigest contractAccountSetHash) {
 		this.contractAccountSetHash = contractAccountSetHash;
+	}
+	
+	public void setSystemEventSetHash(HashDigest systemEventSetHash) {
+		this.systemEventSetHash = systemEventSetHash;
+	}
+	
+	public void setUserEventSetHash(HashDigest userEventSetHash) {
+		this.userEventSetHash = userEventSetHash;
+	}
+
+	@Override
+	public HashDigest getSystemEventSetHash() {
+		return systemEventSetHash;
+	}
+
+	@Override
+	public HashDigest getUserEventSetHash() {
+		return userEventSetHash;
 	}
 
 }

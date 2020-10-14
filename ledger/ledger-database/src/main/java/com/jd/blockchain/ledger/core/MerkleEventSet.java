@@ -18,15 +18,15 @@ import java.util.List;
 
 public class MerkleEventSet implements EventGroup, EventPublisher, Transactional {
 
-    private MerkleDataSet events;
+    private MerkleHashDataset events;
 
     public MerkleEventSet(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
-        events = new MerkleDataSet(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage);
+        events = new MerkleHashDataset(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage);
     }
 
     public MerkleEventSet(HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
                           ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
-        events = new MerkleDataSet(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, readonly);
+        events = new MerkleHashDataset(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, readonly);
     }
 
     /**
