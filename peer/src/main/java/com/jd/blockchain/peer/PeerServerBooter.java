@@ -1,11 +1,7 @@
 package com.jd.blockchain.peer;
 
 import com.jd.blockchain.binaryproto.DataContractRegistry;
-import com.jd.blockchain.consensus.ClientIdentification;
-import com.jd.blockchain.consensus.ClientIdentifications;
-import com.jd.blockchain.consensus.ClientIncomingSettings;
-import com.jd.blockchain.consensus.ConsensusSettings;
-import com.jd.blockchain.consensus.NodeSettings;
+import com.jd.blockchain.consensus.*;
 import com.jd.blockchain.consensus.action.ActionRequest;
 import com.jd.blockchain.consensus.action.ActionResponse;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
@@ -261,9 +257,10 @@ public class PeerServerBooter {
 			String argServerPort = String.format("--server.port=%s", port);
 			argList.add(argServerPort);
 			RuntimeConstant.MONITOR_PORT.set(port);
+		} else {
+			// 设置默认的管理口信息
+			RuntimeConstant.MONITOR_PORT.set(8080);
 		}
-		// 设置默认的管理口信息
-		RuntimeConstant.MONITOR_PORT.set(8080);
 
 		String[] args = argList.toArray(new String[argList.size()]);
 
@@ -344,9 +341,9 @@ public class PeerServerBooter {
 		DataContractRegistry.register(EventPublishOperation.class);
 		DataContractRegistry.register(EventPublishOperation.EventEntry.class);
 		DataContractRegistry.register(ConsensusSettingsUpdateOperation.class);
-		DataContractRegistry.register(TransactionPermission.class);
-		DataContractRegistry.register(LedgerPermission.class);
-		DataContractRegistry.register(RolesPolicy.class);
+//		DataContractRegistry.register(TransactionPermission.class);
+//		DataContractRegistry.register(LedgerPermission.class);
+//		DataContractRegistry.register(RolesPolicy.class);
 		DataContractRegistry.register(PrivilegeSet.class);
 		DataContractRegistry.register(RoleSet.class);
 		DataContractRegistry.register(SecurityInitSettings.class);
@@ -369,9 +366,9 @@ public class PeerServerBooter {
 		DataContractRegistry.register(ContractInfo.class);
 		DataContractRegistry.register(HashObject.class);
 		DataContractRegistry.register(CryptoAlgorithm.class);
-		DataContractRegistry.register(TransactionState.class);
-		DataContractRegistry.register(DataType.class);
-		DataContractRegistry.register(ParticipantNodeState.class);
+//		DataContractRegistry.register(TransactionState.class);
+//		DataContractRegistry.register(DataType.class);
+//		DataContractRegistry.register(ParticipantNodeState.class);
 		DataContractRegistry.register(DigitalSignature.class);
 		DataContractRegistry.register(DigitalSignatureBody.class);
 		DataContractRegistry.register(ClientIdentification.class);
@@ -390,5 +387,7 @@ public class PeerServerBooter {
 		DataContractRegistry.register(MsgQueueClientIncomingSettings.class);
 		DataContractRegistry.register(MsgQueueNetworkSettings.class);
 		DataContractRegistry.register(MsgQueueBlockSettings.class);
+		DataContractRegistry.register(NodeNetworkAddress.class);
+		DataContractRegistry.register(NodeNetworkAddresses.class);
 	}
 }

@@ -3,12 +3,14 @@ package com.jd.blockchain.gateway.service;
 import javax.annotation.PreDestroy;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.jd.blockchain.consensus.NodeNetworkAddress;
+import com.jd.blockchain.consensus.NodeNetworkAddresses;
+import com.jd.blockchain.consensus.service.MonitorService;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.gateway.event.EventListener;
 import com.jd.blockchain.gateway.event.EventListenerService;
 import com.jd.blockchain.gateway.event.PullEventListener;
 import com.jd.blockchain.sdk.PeerBlockchainService;
-import com.jd.blockchain.transaction.MonitorService;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
@@ -19,10 +21,10 @@ import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.transaction.TransactionService;
 import com.jd.blockchain.utils.net.NetworkAddress;
-import sun.nio.ch.Net;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -35,6 +37,12 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 	 * 30秒更新一次最新的情况
 	 */
 	private static final long LEDGER_REFRESH_PERIOD_SECONDS = 30L;
+
+	/**
+	 * Peer地址更新周期
+	 *         该值表示 ${@link PeerConnectionManager#LEDGER_REFRESH_PERIOD_SECONDS}的倍数
+	 */
+	private static final int PEER_NETWORK_UPDATE_PERIOD = 3;
 
 	private final ScheduledThreadPoolExecutor peerConnectExecutor;
 
@@ -259,7 +267,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 	 */
 	private void executorStart() {
 		// 定时任务处理线程
-		peerConnectExecutor.scheduleAtFixedRate(new PeerConnectRunner(), 0,
+		peerConnectExecutor.scheduleAtFixedRate(new PeerConnectRunner(new AtomicLong(-1L)), 0,
 				LEDGER_REFRESH_PERIOD_SECONDS, TimeUnit.SECONDS);
 	}
 
@@ -277,6 +285,12 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 
 	private class PeerConnectRunner implements Runnable {
 
+		private AtomicLong counter;
+
+		public PeerConnectRunner(AtomicLong counter) {
+			this.counter = counter;
+		}
+
 		@Override
 		public void run() {
 			// 包括几部分工作
@@ -285,8 +299,10 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 			// 3、根据目前的情况更新缓存
 			ledgerHashLock.lock();
 			try {
-				// 更新远端Peer管理网络列表
-				updatePeerAddresses();
+				if (counter.getAndIncrement() % PEER_NETWORK_UPDATE_PERIOD == 0) {
+					// 更新远端Peer管理网络列表
+					updatePeerAddresses();
+				}
 				// 将远端的列表重新进行连接
 				reconnect();
 				// 更新账本数量最多的节点连接
@@ -318,14 +334,18 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 					if (monitorServiceMap != null && !monitorServiceMap.isEmpty()) {
 						for (Map.Entry<HashDigest, MonitorService> ey : monitorServiceMap.entrySet()) {
 							MonitorService monitorService = ey.getValue();
-							List<NetworkAddress> addressList = monitorService.loadMonitors();
-							if (addressList != null && !addressList.isEmpty()) {
+							NodeNetworkAddresses nodeNetworkAddresses = monitorService.loadMonitors();
+							NodeNetworkAddress[] addressList = nodeNetworkAddresses.getNodeNetworkAddresses();
+
+							if (addressList != null && addressList.length > 0) {
+								List<NetworkAddress> addresses = new ArrayList<>();
 								// 打印获取到的地址信息
-								for (NetworkAddress address : addressList) {
-									LOGGER.info("Load remote peer network -> {} !", address);
+								for (NodeNetworkAddress address : addressList) {
+									LOGGER.info("Load remote peer network -> [{}:{}:{}] !", address.getHost(), address.getConsensusPort(), address.getMonitorPort());
+									addresses.add(new NetworkAddress(address.getHost(), address.getMonitorPort()));
 								}
 								// 将该值加入到远端节点集合中
-								totalRemotePeerAddresses.addAll(addressList);
+								totalRemotePeerAddresses.addAll(addresses);
 							}
 						}
 					}

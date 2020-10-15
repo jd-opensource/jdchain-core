@@ -1,35 +1,27 @@
 package com.jd.blockchain.consensus.bftsmart.service;
 
 import java.io.ByteArrayOutputStream;
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import bftsmart.consensus.app.BatchAppResultImpl;
-import bftsmart.consensus.app.ComputeCode;
 import bftsmart.reconfiguration.views.NodeNetwork;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.*;
-import com.alibaba.fastjson.JSON;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
-import com.jd.blockchain.consensus.BlockStateSnapshot;
+import com.jd.blockchain.consensus.*;
 import com.jd.blockchain.consensus.service.*;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.runtime.RuntimeConstant;
-import com.jd.blockchain.transaction.MonitorService;
 import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.StringUtils;
-import com.jd.blockchain.utils.net.NetworkAddress;
 import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.jd.blockchain.consensus.ConsensusManageService;
-import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
@@ -139,7 +131,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     }
 
     protected void createConfig() {
-        int monitorPort = RuntimeConstant.MONITOR_PORT.get();
+
         setting = ((BftsmartServerSettings) serverSettings).getConsensusSettings();
 
         List<HostsConfig.Config> configList = new ArrayList<>();
@@ -150,8 +142,6 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             configList.add(new HostsConfig.Config(node.getId(), node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1));
             consensusAddresses.add(new NodeNetwork(node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1));
         }
-
-        consensusAddresses.get(3);
 
         //create HostsConfig instance based on consensus realm nodes
         hostsConfig = new HostsConfig(configList.toArray(new HostsConfig.Config[configList.size()]));
@@ -179,6 +169,9 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             hostConfig.add(id, preHostIp, port, monitorPort);
             LOGGER.info("###peer-startup.sh###,set up the -DhostIp="+preHostIp);
         }
+
+        // 调整视图中的本节点端口号
+        consensusAddresses.get(id).setMonitorPort(monitorPort);
 
         this.tomConfig = new TOMConfiguration(id, systemsConfig, hostConfig, outerHostConfig);
 
@@ -281,21 +274,28 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             // 获取加载管理端口的信息
             View currView = this.replica.getReplicaContext().getCurrentView();
             Map<Integer, NodeNetwork> addresses = currView.getAddresses();
-            TreeMap<Integer, NetworkAddress> tree = new TreeMap<>();
+            TreeMap<Integer, NodeNetwork> tree = new TreeMap<>();
             for (Map.Entry<Integer, NodeNetwork> entry : addresses.entrySet()) {
-                tree.put(entry.getKey(), networkAddress(entry.getValue()));
+                tree.put(entry.getKey(), entry.getValue());
             }
-            Collection<NetworkAddress> nodeNetworks = tree.values();
-            String jsonString = JSON.toJSONString(new ArrayList<>(nodeNetworks));
-            return jsonString.getBytes(StandardCharsets.UTF_8);
+            Collection<NodeNetwork> nodeNetworks = tree.values();
+            LOGGER.info("I am {}, node's network address size = {} !", serverId, nodeNetworks.size());
+            NodeNetworkAddresses nodeNetworkAddresses = nodeNetworkAddresses(new ArrayList<>(nodeNetworks));
+            return BinaryProtocol.encode(nodeNetworkAddresses, NodeNetworkAddresses.class);
         }
-
         return messageHandle.processUnordered(bytes).get();
     }
 
-    private NetworkAddress networkAddress(NodeNetwork nodeNetwork) {
-        // 只需要管理口信息即可
-        return new NetworkAddress(nodeNetwork.getHost(), nodeNetwork.getMonitorPort());
+    private NodeNetworkAddresses nodeNetworkAddresses(List<NodeNetwork> nodeNetworks) {
+        NodeNetworkAddress[] nodeNetworkAddresses = new NodeNetworkAddress[nodeNetworks.size()];
+        for (int i = 0; i < nodeNetworks.size(); i++) {
+            nodeNetworkAddresses[i] = nodeNetworkAddress(nodeNetworks.get(i));
+        }
+        return new PeerNodeNetworkAddresses(nodeNetworkAddresses);
+    }
+
+    private NodeNetworkAddress nodeNetworkAddress(NodeNetwork networkAddress) {
+        return new PeerNodeNetwork(networkAddress.getHost(), networkAddress.getConsensusPort(), networkAddress.getMonitorPort());
     }
 
     /**
@@ -841,5 +841,76 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
          *
          */
         UN_EXECUTED,
+    }
+
+    private static class PeerNodeNetwork implements NodeNetworkAddress {
+
+        /**
+         * 域名
+         */
+        String host;
+
+        /**
+         * 共识端口
+         */
+        int consensusPort;
+
+        /**
+         * 管理口
+         */
+        int monitorPort;
+
+        public PeerNodeNetwork() {
+        }
+
+        public PeerNodeNetwork(String host, int consensusPort, int monitorPort) {
+            this.host = host;
+            this.consensusPort = consensusPort;
+            this.monitorPort = monitorPort;
+        }
+
+        @Override
+        public String getHost() {
+            return host;
+        }
+
+        @Override
+        public int getConsensusPort() {
+            return consensusPort;
+        }
+
+        @Override
+        public int getMonitorPort() {
+            return monitorPort;
+        }
+
+        public void setHost(String host) {
+            this.host = host;
+        }
+
+        public void setConsensusPort(int consensusPort) {
+            this.consensusPort = consensusPort;
+        }
+
+        public void setMonitorPort(int monitorPort) {
+            this.monitorPort = monitorPort;
+        }
+    }
+
+    private static class PeerNodeNetworkAddresses implements NodeNetworkAddresses {
+
+        private NodeNetworkAddress[] nodeNetworkAddresses = null;
+
+        public PeerNodeNetworkAddresses() {
+        }
+
+        public PeerNodeNetworkAddresses(NodeNetworkAddress[] nodeNetworkAddresses) {
+            this.nodeNetworkAddresses = nodeNetworkAddresses;
+        }
+
+        @Override
+        public NodeNetworkAddress[] getNodeNetworkAddresses() {
+            return nodeNetworkAddresses;
+        }
     }
 }
