@@ -760,14 +760,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				// transactions replay
 				try {
 					HashDigest pullBlockHash = blockchainServiceFactory.getBlockchainService().getBlock(ledgerHash, height).getHash();
-					int preTotalCount = (int) blockchainServiceFactory.getBlockchainService().getTransactionCount(ledgerHash, height - 1);
-					int curTotalCount = (int) blockchainServiceFactory.getBlockchainService().getTransactionCount(ledgerHash, height);
 					//获取区块内的增量交易
-					int addition_count = curTotalCount - preTotalCount;
+					LedgerTransaction[] addition_transactions = blockchainServiceFactory.getBlockchainService().getAdditionalTransactions(ledgerHash, height, 0, -1);
 
-					LedgerTransaction[] transactions = blockchainServiceFactory.getBlockchainService().getTransactions(ledgerHash, height, preTotalCount, addition_count);
-
-					for (LedgerTransaction ledgerTransaction : transactions) {
+					for (LedgerTransaction ledgerTransaction : addition_transactions) {
 
 						TxContentBlob txContentBlob = new TxContentBlob(ledgerHash);
 
