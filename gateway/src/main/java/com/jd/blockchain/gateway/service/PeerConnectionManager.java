@@ -342,7 +342,9 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 								// 打印获取到的地址信息
 								for (NodeNetworkAddress address : addressList) {
 									LOGGER.info("Load remote peer network -> [{}:{}:{}] !", address.getHost(), address.getConsensusPort(), address.getMonitorPort());
-									addresses.add(new NetworkAddress(address.getHost(), address.getMonitorPort()));
+									if (address.getMonitorPort() > 0) {
+										addresses.add(new NetworkAddress(address.getHost(), address.getMonitorPort()));
+									}
 								}
 								// 将该值加入到远端节点集合中
 								totalRemotePeerAddresses.addAll(addresses);
