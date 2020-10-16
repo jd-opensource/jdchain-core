@@ -507,6 +507,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
                 context.setBatchId(batchId);
                 contexts.put(batchId, context);
                 stateHolder.batchingID = batchId;
+                System.out.println("-----PreComputeApp = " + batchId);
                 // 获取前置区块快照状态
                 preStateSnapshot = messageHandle.getStateSnapshot(context);
                 if (preStateSnapshot instanceof BlockStateSnapshot) {
@@ -605,7 +606,8 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         try {
             BftsmartConsensusMessageContext context = contexts.get(batchId);
             if (context == null) {
-                throw new NoSuchElementException("no element by " + batchId);
+                LOGGER.warn("Can not load any context by {} !", batchId);
+                return;
             }
             // 判断该CID是否执行过
             PreComputeStatus computeStatus = stateHolder.getComputeStatus();
@@ -645,7 +647,8 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         try {
             BftsmartConsensusMessageContext context = contexts.get(batchId);
             if (context == null) {
-                throw new NoSuchElementException("no element by " + batchId);
+                LOGGER.warn("Can not load any context by {} !", batchId);
+                return;
             }
 //            long lastCid = stateHolder.lastCid;
 //            if (cid <= lastCid) {

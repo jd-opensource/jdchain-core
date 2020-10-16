@@ -482,6 +482,11 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 			return operationResults;
 		}
 
+		@Override
+		public long getBlockGenerateTime() {
+			return block == null ? -1 : block.getTimestamp();
+		}
+
 		public void setOperationResults(OperationResult[] operationResults) {
 			this.operationResults = operationResults;
 		}

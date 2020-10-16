@@ -260,8 +260,9 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 				batchResultHandle = getTxBatchProcess().prepare();
 				LedgerBlock currBlock = batchResultHandle.getBlock();
 				long blockHeight = currBlock.getHeight();
+				long blockTimestamp = currBlock.getTimestamp();
 				HashDigest blockHash = currBlock.getHash();
-				asyncBlExecute(new HashMap<>(txResponseMap), blockHeight, blockHash);
+				asyncBlExecute(new HashMap<>(txResponseMap), blockHeight, blockHash, blockTimestamp);
 				return new BlockStateSnapshot(blockHeight, currBlock.getTimestamp(), blockHash);
 			} finally {
 				LedgerEditor.TIMESTAMP_HOLDER.remove();
@@ -310,13 +311,14 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 		}
 
 		private void asyncBlExecute(Map<TransactionResponse, CompletableAsyncFuture<byte[]>> asyncMap,
-									long blockHeight, HashDigest blockHash) {
+									long blockHeight, HashDigest blockHash, long blockGenerateTime) {
 			asyncBlExecutor.execute(() -> {
 				// 填充应答结果
 				for (Map.Entry<TransactionResponse, CompletableAsyncFuture<byte[]>> entry : asyncMap.entrySet()) {
 					CompletableAsyncFuture<byte[]> asyncResult = entry.getValue();
 					TxResponse txResponse = new TxResponse(entry.getKey());
 					txResponse.setBlockHeight(blockHeight);
+					txResponse.setBlockGenerateTime(blockGenerateTime);
 					txResponse.setBlockHash(blockHash);
 					asyncResult.complete(BinaryProtocol.encode(txResponse, TransactionResponse.class));
 				}
@@ -326,6 +328,8 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 		private final class TxResponse implements TransactionResponse {
 
 			private long blockHeight;
+
+			private long blockGenerateTime;
 
 			private HashDigest blockHash;
 
@@ -337,6 +341,10 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 
 			public void setBlockHeight(long blockHeight) {
 				this.blockHeight = blockHeight;
+			}
+
+			public void setBlockGenerateTime(long blockGenerateTime) {
+				this.blockGenerateTime = blockGenerateTime;
 			}
 
 			public void setBlockHash(HashDigest blockHash) {
@@ -371,6 +379,11 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 			@Override
 			public OperationResult[] getOperationResults() {
 				return txResp.getOperationResults();
+			}
+
+			@Override
+			public long getBlockGenerateTime() {
+				return blockGenerateTime;
 			}
 		}
 	}

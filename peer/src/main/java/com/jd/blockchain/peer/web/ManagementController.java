@@ -9,6 +9,7 @@ import bftsmart.reconfiguration.views.NodeNetwork;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.ServiceProxy;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.blockchain.ledger.core.*;
 import com.jd.blockchain.ledger.merkletree.HashBucketEntry;
 import com.jd.blockchain.ledger.merkletree.KeyIndex;
 import com.jd.blockchain.ledger.merkletree.MerkleIndex;
@@ -45,7 +46,6 @@ import java.util.Map;
 
 import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.CryptoProvider;
-import com.jd.blockchain.ledger.core.TransactionSetQuery;
 import com.jd.blockchain.ledger.json.CryptoConfigInfo;
 import com.jd.blockchain.ledger.proof.MerkleLeaf;
 import com.jd.blockchain.ledger.proof.MerklePath;
@@ -125,12 +125,6 @@ import com.jd.blockchain.ledger.UserAuthInitSettings;
 import com.jd.blockchain.ledger.UserAuthorizeOperation;
 import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.ViewUpdateException;
-import com.jd.blockchain.ledger.core.DefaultOperationHandleRegisteration;
-import com.jd.blockchain.ledger.core.LedgerManage;
-import com.jd.blockchain.ledger.core.LedgerQuery;
-import com.jd.blockchain.ledger.core.LedgerRepository;
-import com.jd.blockchain.ledger.core.OperationHandleRegisteration;
-import com.jd.blockchain.ledger.core.TransactionBatchProcessor;
 
 import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.peer.ConsensusRealm;
@@ -520,14 +514,12 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 				txbatchProcessor.schedule(txRequest);
 
-				handle = txbatchProcessor.prepare();
-
 				// 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行新参与方的状态激活操作
 				remoteTxResponse = commitTxToOrigConsensus(ledgerRepo, txRequest);
 
 				// 保证原有共识网络账本状态与共识协议的视图更新信息一致
+				long blockGenerateTime = remoteTxResponse.getBlockGenerateTime();
 				if (remoteTxResponse.isSuccess()) {
-
 					try {
 						View newView = updateView(ledgerRepo, consensusHost, Integer.parseInt(consensusPort), Op.ACTIVE);
 						if (newView != null && newView.isMember(ledgerCurrNodes.get(ledgerRepo.getHash()).getId())) {
@@ -536,15 +528,16 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 							throw new IllegalStateException("[ManagementController] client recv response timeout, consensus may be stalemate, please restart all nodes!");
 						}
 					} catch (Exception e) {
-						handle.cancel(LEDGER_ERROR);
+						cancelBlock(blockGenerateTime, txbatchProcessor);
 						return WebResponse.createFailureResult(-1, "[ManagementController] commit tx to orig consensus, tx execute succ but view update failed, please restart all nodes and copy database for new participant node!");
 					}
-
 				} else {
-					handle.cancel(LEDGER_ERROR);
+					cancelBlock(remoteTxResponse.getBlockGenerateTime(), txbatchProcessor);
 					return WebResponse.createFailureResult(-1, "[ManagementController] commit tx to orig consensus, tx execute failed, please retry activate participant!");
 				}
-
+				// 进行Prepare
+				LedgerEditor.TIMESTAMP_HOLDER.set(blockGenerateTime);
+				handle = txbatchProcessor.prepare();
 				if (handle.getBlock().getHash().toBase58().equals(remoteTxResponse.getBlockHash().toBase58())) {
 					handle.commit();
 				} else {
@@ -565,6 +558,12 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		} catch (Exception e) {
 			return WebResponse.createFailureResult(-1, "[ManagementController] activate new particpant failed!" + e);
 		}
+	}
+
+	private void cancelBlock(long blockGenerateTime, TransactionBatchProcessor txBatchProcessor) {
+		LedgerEditor.TIMESTAMP_HOLDER.set(blockGenerateTime);
+		TransactionBatchResultHandle handle = txBatchProcessor.prepare();
+		handle.cancel(LEDGER_ERROR);
 	}
 
 	/**
