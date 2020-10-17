@@ -83,7 +83,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     private View latestView;
 
-    private List<NodeNetwork> consensusAddresses = new ArrayList<>();
+    private TreeMap<Integer, NodeNetwork> consensusAddresses = new TreeMap<>();
 
     private final Lock batchHandleLock = new ReentrantLock();
 
@@ -140,7 +140,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         for (NodeSettings nodeSettings : nodeSettingsArray) {
             BftsmartNodeSettings node = (BftsmartNodeSettings)nodeSettings;
             configList.add(new HostsConfig.Config(node.getId(), node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1));
-            consensusAddresses.add(new NodeNetwork(node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1));
+            consensusAddresses.put(node.getId(), new NodeNetwork(node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1));
         }
 
         //create HostsConfig instance based on consensus realm nodes
@@ -175,7 +175,10 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
         this.tomConfig = new TOMConfiguration(id, systemsConfig, hostConfig, outerHostConfig);
 
-        this.latestView = new View(setting.getViewId(), tomConfig.getInitialView(), tomConfig.getF(), consensusAddresses.toArray(new NodeNetwork[consensusAddresses.size()]));
+        Collection<NodeNetwork> nodeNetworks = consensusAddresses.values();
+        NodeNetwork[] nodeNetworksArray = new NodeNetwork[nodeNetworks.size()];
+
+        this.latestView = new View(setting.getViewId(), tomConfig.getInitialView(), tomConfig.getF(), nodeNetworks.toArray(nodeNetworksArray));
 
         this.outerTomConfig = new TOMConfiguration(id, sysConfClone, outerHostConfig);
 
