@@ -163,7 +163,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             port = NumberUtils.parseNumber(preHostPort, Integer.class);
             LOGGER.info("###peer-startup.sh###,set up the -DhostPort="+port);
         }
-        int monitorPort = RuntimeConstant.MONITOR_PORT.get();
+        int monitorPort = RuntimeConstant.getMonitorPort();
         String preHostIp = System.getProperty("hostIp");
         if(!StringUtils.isEmpty(preHostIp)){
             hostConfig.add(id, preHostIp, port, monitorPort);
@@ -282,7 +282,6 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
                 tree.put(entry.getKey(), entry.getValue());
             }
             Collection<NodeNetwork> nodeNetworks = tree.values();
-            LOGGER.info("I am {}, node's network address size = {} !", serverId, nodeNetworks.size());
             NodeNetworkAddresses nodeNetworkAddresses = nodeNetworkAddresses(new ArrayList<>(nodeNetworks));
             return BinaryProtocol.encode(nodeNetworkAddresses, NodeNetworkAddresses.class);
         }

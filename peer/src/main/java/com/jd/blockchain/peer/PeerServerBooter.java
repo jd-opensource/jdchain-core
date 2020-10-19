@@ -256,10 +256,10 @@ public class PeerServerBooter {
 		if (port > 0) {
 			String argServerPort = String.format("--server.port=%s", port);
 			argList.add(argServerPort);
-			RuntimeConstant.MONITOR_PORT.set(port);
+			RuntimeConstant.setMonitorPort(port);
 		} else {
 			// 设置默认的管理口信息
-			RuntimeConstant.MONITOR_PORT.set(8080);
+			RuntimeConstant.setMonitorPort(8080);
 		}
 
 		String[] args = argList.toArray(new String[argList.size()]);
