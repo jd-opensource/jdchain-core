@@ -510,7 +510,6 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
                 context.setBatchId(batchId);
                 contexts.put(batchId, context);
                 stateHolder.batchingID = batchId;
-                System.out.println("-----PreComputeApp = " + batchId);
                 // 获取前置区块快照状态
                 preStateSnapshot = messageHandle.getStateSnapshot(context);
                 if (preStateSnapshot instanceof BlockStateSnapshot) {
