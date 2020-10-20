@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.*;
 
-import com.jd.blockchain.utils.IllegalDataException;
 import com.jd.blockchain.utils.io.FileUtils;
 import com.jd.blockchain.utils.net.NetworkAddress;
 
@@ -21,14 +20,12 @@ public class GatewayConfigProperties {
 
 	// 共识相关配置项的键的前缀；
 	public static final String PEER_PREFIX = "peer.";
-	// 共识节点的数量
-	public static final String PEER_SIZE = PEER_PREFIX + "size";
 	// 共识节点的服务地址；
-	public static final String PEER_HOST_FORMAT = PEER_PREFIX + "%s.host";
+	public static final String PEER_HOST_FORMAT = PEER_PREFIX + "host";
 	// 共识节点的服务端口；
-	public static final String PEER_PORT_FORMAT = PEER_PREFIX + "%s.port";
+	public static final String PEER_PORT_FORMAT = PEER_PREFIX + "port";
 	// 共识节点的服务是否启用安全证书；
-	public static final String PEER_SECURE_FORMAT = PEER_PREFIX + "%s.secure";
+	public static final String PEER_SECURE_FORMAT = PEER_PREFIX + "secure";
 	// 支持共识的Provider列表，以英文逗号分隔
 	public static final String PEER_PROVIDERS = PEER_PREFIX + "providers";
 
@@ -54,7 +51,7 @@ public class GatewayConfigProperties {
 
 	private ProviderConfig providerConfig = new ProviderConfig();
 
-	private Set<NetworkAddress> masterPeerAddresses = new HashSet<>();
+	private NetworkAddress masterPeerAddress = null;
 
 	private String dataRetrievalUrl;
 	private String schemaRetrievalUrl;
@@ -65,8 +62,8 @@ public class GatewayConfigProperties {
 		return http;
 	}
 
-	public Set<NetworkAddress> masterPeerAddresses() {
-		return masterPeerAddresses;
+	public NetworkAddress masterPeerAddress() {
+		return masterPeerAddress;
 	}
 
 	public String dataRetrievalUrl() {
@@ -89,11 +86,11 @@ public class GatewayConfigProperties {
 		return providerConfig;
 	}
 
-	public void addMasterPeerAddress(NetworkAddress peerAddress) {
+	public void setMasterPeerAddress(NetworkAddress peerAddress) {
 		if (peerAddress == null) {
 			throw new IllegalArgumentException("peerAddress is null!");
 		}
-		this.masterPeerAddresses.add(peerAddress);
+		this.masterPeerAddress = peerAddress;
 	}
 
 	public KeysConfig keys() {
@@ -124,16 +121,11 @@ public class GatewayConfigProperties {
 		configProps.http.port = getInt(props, HTTP_PORT, true);
 		configProps.http.contextPath = getProperty(props, HTTP_CONTEXT_PATH, false);
 
-		int peerSize = getInt(props, PEER_SIZE, true);
-		if (peerSize <= 0) {
-			throw new IllegalDataException("Peer size is illegal !!!");
-		}
-		for (int i = 0; i < peerSize; i++) {
-			String peerHost = getProperty(props, String.format(PEER_HOST_FORMAT, i), true);
-			int peerPort = getInt(props, String.format(PEER_PORT_FORMAT, i), true);
-			boolean peerSecure = getBoolean(props, String.format(PEER_SECURE_FORMAT, i), false);
-			configProps.addMasterPeerAddress(new NetworkAddress(peerHost, peerPort, peerSecure));
-		}
+		String peerHost = getProperty(props, PEER_HOST_FORMAT, true);
+		int peerPort = getInt(props, PEER_PORT_FORMAT, true);
+		boolean peerSecure = getBoolean(props, PEER_SECURE_FORMAT, false);
+		configProps.setMasterPeerAddress(new NetworkAddress(peerHost, peerPort, peerSecure));
+
 		String dataRetrievalUrl = getProperty(props, DATA_RETRIEVAL_URL, true);
 		configProps.dataRetrievalUrl = dataRetrievalUrl;
 

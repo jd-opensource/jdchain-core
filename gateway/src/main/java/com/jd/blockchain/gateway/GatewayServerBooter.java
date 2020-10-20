@@ -133,19 +133,12 @@ public class GatewayServerBooter {
 		blockBrowserController.setSchemaRetrievalUrl(config.getSchemaRetrievalUrl());
 		PeerConnector peerConnector = appCtx.getBean(PeerConnector.class);
 
-		Set<NetworkAddress> peerAddresses = config.masterPeerAddresses();
-		StringBuilder peerAddressBuf = new StringBuilder();
-		for (NetworkAddress peerAddress : peerAddresses) {
-			peerConnector.connect(peerAddress, defaultKeyPair, config.providerConfig().getProviders());
-			if (peerAddressBuf.length() > 0) {
-				peerAddressBuf.append(",");
-			}
-			peerAddressBuf.append(peerAddress.toString());
-		}
+		NetworkAddress peerAddress = config.masterPeerAddress();
+		peerConnector.connect(peerAddress, defaultKeyPair, config.providerConfig().getProviders());
 		// 不管连接是否成功，都需要释放许可
 		GatewayLedgerLoadTimer loadTimer = appCtx.getBean(GatewayLedgerLoadTimer.class);
 		loadTimer.release();
-		ConsoleUtils.info("Peer[%s] is connected success!", peerAddressBuf.toString());
+		ConsoleUtils.info("Peer[%s] is connected success!", peerAddress.toString());
 	}
 
 	public synchronized void close() {

@@ -32,23 +32,9 @@ public class GatewayConfigPropertiesTest {
 			assertEquals(8081, configProps.http().getPort());
 			assertNull(configProps.http().getContextPath());
 
-			Set<NetworkAddress> networkAddresses = configProps.masterPeerAddresses();
-			assertEquals(2, networkAddresses.size());
-
-			List<NetworkAddress> networkAddressList = new ArrayList<>(networkAddresses);
-			networkAddressList.sort(new Comparator<NetworkAddress>() {
-				@Override
-				public int compare(NetworkAddress o1, NetworkAddress o2) {
-					return o1.getPort() - o2.getPort();
-				}
-			});
-			int index = 0;
-			for(NetworkAddress networkAddress : networkAddressList) {
-				assertEquals("127.0.0.1", networkAddress.getHost());
-				assertEquals(12000 + index, networkAddress.getPort());
-				assertTrue(networkAddress.isSecure());
-				index ++;
-			}
+			NetworkAddress networkAddress = configProps.masterPeerAddress();
+			assertEquals("127.0.0.1", networkAddress.getHost());
+			assertEquals(12000, networkAddress.getPort());
 
 			assertEquals("http://127.0.0.1:10001", configProps.dataRetrievalUrl());
 
