@@ -760,6 +760,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				// transactions replay
 				try {
 					HashDigest pullBlockHash = blockchainServiceFactory.getBlockchainService().getBlock(ledgerHash, height).getHash();
+					long pullBlockTime = blockchainServiceFactory.getBlockchainService().getBlock(ledgerHash, height).getTimestamp();
+
 					//获取区块内的增量交易
 					LedgerTransaction[] addition_transactions = blockchainServiceFactory.getBlockchainService().getAdditionalTransactions(ledgerHash, height, 0, -1);
 
@@ -781,6 +783,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 						txbatchProcessor.schedule(transactionRequest);
 					}
 
+					LedgerEditor.TIMESTAMP_HOLDER.set(pullBlockTime);
 					handle = txbatchProcessor.prepare();
 
 					if (!(handle.getBlock().getHash().toBase58().equals(pullBlockHash.toBase58()))) {
