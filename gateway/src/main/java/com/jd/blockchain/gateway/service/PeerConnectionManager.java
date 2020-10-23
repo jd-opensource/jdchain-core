@@ -185,6 +185,28 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 		// 查询选择最新的连接Factory
 		PeerServiceFactory serviceFactory = this.mostLedgerPeerServiceFactory;
 		if (serviceFactory == null) {
+			// 再次尝试，直到获取一个可用的为止
+			ledgerHashLock.lock();
+			try {
+				// double check
+				if (mostLedgerPeerServiceFactory == null) {
+					for (NetworkAddress peerAddress : peerAddresses) {
+						try {
+							PeerBlockchainServiceFactory peerServiceFactory = PeerBlockchainServiceFactory.connect(
+									gateWayKeyPair, peerAddress, peerProviders);
+							if (peerServiceFactory != null) {
+								mostLedgerPeerServiceFactory = new PeerServiceFactory(peerAddress, peerServiceFactory);
+								LOGGER.info("Most ledgers remote update to {}", peerAddress);
+								return mostLedgerPeerServiceFactory.serviceFactory.getBlockchainService();
+							}
+						} catch (Exception e) {
+							LOGGER.warn("Update remote connect error !", e);
+						}
+					}
+				}
+			} finally {
+				ledgerHashLock.unlock();
+			}
 			throw new IllegalStateException("Peer connection was closed!");
 		}
 		return serviceFactory.serviceFactory.getBlockchainService();
@@ -204,10 +226,31 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 		// 交易始终使用连接账本最多的那个Factory
 		PeerServiceFactory peerServiceFactory = mostLedgerPeerServiceFactory;
 		if (peerServiceFactory == null) {
+			// 再次尝试，直到获取一个可用的为止
+			ledgerHashLock.lock();
+			try {
+				// double check
+				if (mostLedgerPeerServiceFactory == null) {
+					for (NetworkAddress peerAddress : peerAddresses) {
+						try {
+							PeerBlockchainServiceFactory peerBlockchainServiceFactory = PeerBlockchainServiceFactory.connect(
+									gateWayKeyPair, peerAddress, peerProviders);
+							if (peerBlockchainServiceFactory != null) {
+								mostLedgerPeerServiceFactory = new PeerServiceFactory(peerAddress, peerBlockchainServiceFactory);
+								LOGGER.info("Most ledgers remote update to {}", peerAddress);
+								return mostLedgerPeerServiceFactory.serviceFactory.getTransactionService();
+							}
+						} catch (Exception e) {
+							LOGGER.warn("Update remote connect error !", e);
+						}
+					}
+				}
+			} finally {
+				ledgerHashLock.unlock();
+			}
 			throw new IllegalStateException("Peer connection was closed!");
 		}
-		PeerBlockchainServiceFactory serviceFactory = peerServiceFactory.serviceFactory;
-		return serviceFactory.getTransactionService();
+		return peerServiceFactory.serviceFactory.getTransactionService();
 	}
 
 	@PreDestroy
@@ -335,19 +378,21 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 						for (Map.Entry<HashDigest, MonitorService> ey : monitorServiceMap.entrySet()) {
 							MonitorService monitorService = ey.getValue();
 							NodeNetworkAddresses nodeNetworkAddresses = monitorService.loadMonitors();
-							NodeNetworkAddress[] addressList = nodeNetworkAddresses.getNodeNetworkAddresses();
+							if (nodeNetworkAddresses != null) {
+								NodeNetworkAddress[] addressList = nodeNetworkAddresses.getNodeNetworkAddresses();
 
-							if (addressList != null && addressList.length > 0) {
-								List<NetworkAddress> addresses = new ArrayList<>();
-								// 打印获取到的地址信息
-								for (NodeNetworkAddress address : addressList) {
-									LOGGER.info("Load remote peer network -> [{}:{}:{}] !", address.getHost(), address.getConsensusPort(), address.getMonitorPort());
-									if (address.getMonitorPort() > 0) {
-										addresses.add(new NetworkAddress(address.getHost(), address.getMonitorPort()));
+								if (addressList != null && addressList.length > 0) {
+									List<NetworkAddress> addresses = new ArrayList<>();
+									// 打印获取到的地址信息
+									for (NodeNetworkAddress address : addressList) {
+										LOGGER.info("Load remote peer network -> [{}:{}:{}] !", address.getHost(), address.getConsensusPort(), address.getMonitorPort());
+										if (address.getMonitorPort() > 0) {
+											addresses.add(new NetworkAddress(address.getHost(), address.getMonitorPort()));
+										}
 									}
+									// 将该值加入到远端节点集合中
+									totalRemotePeerAddresses.addAll(addresses);
 								}
-								// 将该值加入到远端节点集合中
-								totalRemotePeerAddresses.addAll(addresses);
 							}
 						}
 					}
@@ -462,7 +507,12 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 		private HashDigest[] updateMostLedgerPeerServiceFactory() {
 			int ledgerSize = -1;
 			if (mostLedgerPeerServiceFactory == null) {
-				return null;
+				// 更新一个最初级的
+				initMostLedgerPeerServiceFactory();
+				if (mostLedgerPeerServiceFactory == null) {
+					// 更新完后若仍未空，则退出
+					return null;
+				}
 			}
 			HashDigest[] ledgerHashs = null;
 			PeerBlockchainService blockchainService = mostLedgerPeerServiceFactory.serviceFactory.getBlockchainService();
@@ -507,6 +557,26 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 			// 更新mostLedgerPeerServiceFactory
 			mostLedgerPeerServiceFactory = tempMostLedgerPeerServiceFactory;
 			return ledgerHashs;
+		}
+
+		private void initMostLedgerPeerServiceFactory() {
+			// check
+			if (mostLedgerPeerServiceFactory == null) {
+				for (NetworkAddress peerAddress : peerAddresses) {
+					try {
+						PeerBlockchainServiceFactory peerBlockchainServiceFactory = PeerBlockchainServiceFactory.connect(
+								gateWayKeyPair, peerAddress, peerProviders);
+						if (peerBlockchainServiceFactory != null) {
+							mostLedgerPeerServiceFactory = new PeerServiceFactory(peerAddress, peerBlockchainServiceFactory);
+							LOGGER.info("Most ledgers remote update to {}", peerAddress);
+							// 默认使用第一个即可
+							break;
+						}
+					} catch (Exception e) {
+						LOGGER.warn("Update remote connect error !", e);
+					}
+				}
+			}
 		}
 	}
 }
