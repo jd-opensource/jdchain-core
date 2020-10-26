@@ -8,6 +8,7 @@ import bftsmart.reconfiguration.views.MemoryBasedViewStorage;
 import bftsmart.reconfiguration.views.NodeNetwork;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.ServiceProxy;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.ledger.core.*;
 import com.jd.blockchain.ledger.merkletree.HashBucketEntry;
@@ -56,7 +57,7 @@ import com.jd.blockchain.utils.net.NetworkAddress;
 import com.jd.blockchain.utils.web.model.WebResponse;
 
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -413,8 +414,14 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	@Override
 	public void runAllRealms() {
-		for (NodeServer peer : ledgerPeers.values()) {
-			runRealm(peer);
+		if (ledgerPeers != null && !ledgerPeers.isEmpty()) {
+			// 每个账本使用独立的线程启动
+			ThreadPoolExecutor executor = initLedgerLoadExecutor(ledgerPeers.size());
+			for (NodeServer peer : ledgerPeers.values()) {
+				executor.execute(() -> {
+					runRealm(peer);
+				});
+			}
 		}
 	}
 
@@ -1169,6 +1176,17 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			origConsensusNodes.add(nodeSettings);
 		}
 		return origConsensusNodes;
+	}
+
+	private static ThreadPoolExecutor initLedgerLoadExecutor(int coreSize) {
+		ThreadFactory threadFactory = new ThreadFactoryBuilder()
+				.setNameFormat("consensus-server-%d").build();
+
+		return new ThreadPoolExecutor(coreSize, coreSize,
+				60, TimeUnit.SECONDS,
+				new LinkedBlockingQueue<>(1024),
+				threadFactory,
+				new ThreadPoolExecutor.AbortPolicy());
 	}
 
 	enum Op {
