@@ -43,6 +43,7 @@ public class TxProcessingController implements TransactionService {
 	@RequestMapping(path = "rpc/tx", method = RequestMethod.POST, consumes = BinaryMessageConverter.CONTENT_TYPE_VALUE, produces = BinaryMessageConverter.CONTENT_TYPE_VALUE)
 	@Override
 	public @ResponseBody TransactionResponse process(@RequestBody TransactionRequest txRequest) {
+		LOGGER.info("receive transaction -> [contentHash={}, timestamp ={}]", txRequest.getTransactionHash(), txRequest.getTransactionContent().getTimestamp());
 		// 拦截请求进行校验
 		interceptService.intercept(request, txRequest);
 		// 检查交易请求的信息是否完整；

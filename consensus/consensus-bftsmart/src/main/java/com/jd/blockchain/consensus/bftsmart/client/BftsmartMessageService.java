@@ -38,12 +38,12 @@ public class BftsmartMessageService implements MessageService {
 
             byte[] result = asynchServiceProxy.invokeOrdered(message);
             asyncFuture.complete(result);
-
         } catch (Exception e) {
             throw new RuntimeException(e);
-
         } finally {
-            asyncPeerProxyPool.returnObject(asynchServiceProxy);
+            if (asynchServiceProxy != null) {
+                asyncPeerProxyPool.returnObject(asynchServiceProxy);
+            }
         }
 
         return asyncFuture;
@@ -71,5 +71,4 @@ public class BftsmartMessageService implements MessageService {
             }
         return asyncFuture;
     }
-
 }
