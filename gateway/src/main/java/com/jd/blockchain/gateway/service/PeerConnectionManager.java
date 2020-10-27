@@ -440,34 +440,39 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 							}
 							blockHeight = Math.max(latestBlockHeight, blockHeight);
 						} catch (Exception e) {
-							// 需要判断是否具有当前账本，有的话，进行重连，没有的话就算了
-							PeerBlockchainService blockchainService = sf.getBlockchainService();
-							boolean isNeedReconnect = false;
-							ledgerHashs = blockchainService.getLedgerHashsDirect();
-							if (ledgerHashs != null) {
-								for (HashDigest h : ledgerHashs) {
-									if (h.equals(ledgerHash)) {
-										// 确实存在对应的账本，则重连
-										isNeedReconnect = true;
+							try {
+								boolean isNeedReconnect = false;
+								// 需要判断是否具有当前账本，有的话，进行重连，没有的话就算了
+								PeerBlockchainService blockchainService = sf.getBlockchainService();
+								ledgerHashs = blockchainService.getLedgerHashsDirect();
+								if (ledgerHashs != null) {
+									for (HashDigest h : ledgerHashs) {
+										if (h.equals(ledgerHash)) {
+											// 确实存在对应的账本，则重连
+											isNeedReconnect = true;
+										}
 									}
 								}
-							}
-							if (isNeedReconnect) {
-								// 需要重连的话打印错误信息
+								if (isNeedReconnect) {
+									// 需要重连的话打印错误信息
+									LOGGER.error(String.format("Peer[%s] get ledger[%s]'s latest block height fail !!!",
+											entry.getKey(), ledgerHash.toBase58()), e);
+									// 此错误是由于对端的节点没有重连导致，需要进行重连操作
+									NetworkAddress peerAddress = entry.getKey();
+									try {
+										PeerBlockchainServiceFactory peerServiceFactory = PeerBlockchainServiceFactory.connect(
+												gateWayKeyPair, peerAddress, peerProviders);
+										if (peerServiceFactory != null) {
+											tmpEntries.put(peerAddress, peerServiceFactory);
+										}
+									} catch (Exception ee) {
+										LOGGER.error(String.format("Peer[%s] reconnect fail !!!",
+												entry.getKey()), e);
+									}
+								}
+							} catch (Exception ee) {
 								LOGGER.error(String.format("Peer[%s] get ledger[%s]'s latest block height fail !!!",
-										entry.getKey(), ledgerHash.toBase58()), e);
-								// 此错误是由于对端的节点没有重连导致，需要进行重连操作
-								NetworkAddress peerAddress = entry.getKey();
-								try {
-									PeerBlockchainServiceFactory peerServiceFactory = PeerBlockchainServiceFactory.connect(
-											gateWayKeyPair, peerAddress, peerProviders);
-									if (peerServiceFactory != null) {
-										tmpEntries.put(peerAddress, peerServiceFactory);
-									}
-								} catch (Exception ee) {
-									LOGGER.error(String.format("Peer[%s] reconnect fail !!!",
-											entry.getKey()), e);
-								}
+										entry.getKey(), ledgerHash.toBase58()), ee);
 							}
 						}
 					} else {
