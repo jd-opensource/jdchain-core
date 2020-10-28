@@ -279,6 +279,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		GatewayIncomingSetting setting = new GatewayIncomingSetting();
 		List<LedgerIncomingSetting> ledgerIncomingList = new ArrayList<LedgerIncomingSetting>();
 
+
 		for (HashDigest ledgerHash : ledgerPeers.keySet()) {
 
 			NodeServer peer = ledgerPeers.get(ledgerHash);
@@ -298,7 +299,11 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     clientIncomingSettings = peer.getConsensusManageService().authClientIncoming(authId);
                     break;
                 } catch (Exception e) {
-                    throw new AuthenticationServiceException(e.getMessage(), e);
+                	// 出现异常，打印日志即可
+					LOGGER.error(String.format("Load ledger[%s] error !", ledgerHash.toBase58()), e);
+					clientIncomingSettings = null;
+					break;
+//                    throw new AuthenticationServiceException(e.getMessage(), e);
                 }
             }
             if (clientIncomingSettings == null) {
