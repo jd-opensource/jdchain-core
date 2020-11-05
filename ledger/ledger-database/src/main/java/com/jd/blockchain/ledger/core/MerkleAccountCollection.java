@@ -4,7 +4,7 @@ import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.utils.Bytes;
 
-public interface AccountQuery<T> extends MerkleProvable {
+public interface MerkleAccountCollection<T> extends MerkleProvable {
 	
 	/**
 	 * 返回总数；

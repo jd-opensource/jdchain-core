@@ -21,7 +21,7 @@ import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.Transactional;
 
-public class MerkleAccountSet implements Transactional, MerkleProvable, AccountQuery<CompositeAccount> {
+public class MerkleAccountSet implements Transactional, MerkleProvable, MerkleAccountCollection<CompositeAccount> {
 
 	static {
 		DataContractRegistry.register(MerkleSnapshot.class);

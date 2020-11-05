@@ -5,5 +5,5 @@ package com.jd.blockchain.ledger.core;
  * @Date: 2020/6/2 11:26 AM
  * Version 1.0
  */
-public interface EventAccountQuery extends AccountQuery<EventPublishingAccount> {
+public interface EventAccountQuery extends MerkleAccountCollection<EventPublishingAccount> {
 }
