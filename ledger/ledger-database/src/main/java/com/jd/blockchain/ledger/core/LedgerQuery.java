@@ -107,29 +107,29 @@ public interface LedgerQuery {
 
 	TransactionQuery getTransactionSet(LedgerBlock block);
 
-	UserAccountQuery getUserAccountSet(LedgerBlock block);
+	UserAccountCollection getUserAccountSet(LedgerBlock block);
 
-	DataAccountQuery getDataAccountSet(LedgerBlock block);
+	DataAccountCollection getDataAccountSet(LedgerBlock block);
 
-	ContractAccountQuery getContractAccountSet(LedgerBlock block);
+	ContractAccountCollection getContractAccountSet(LedgerBlock block);
 
 	EventGroup getSystemEvents(LedgerBlock block);
 
-	EventAccountQuery getUserEvents(LedgerBlock block);
+	EventAccountCollection getUserEvents(LedgerBlock block);
 
 	default TransactionQuery getTransactionSet() {
 		return getTransactionSet(getLatestBlock());
 	}
 
-	default UserAccountQuery getUserAccountSet() {
+	default UserAccountCollection getUserAccountSet() {
 		return getUserAccountSet(getLatestBlock());
 	}
 
-	default DataAccountQuery getDataAccountSet() {
+	default DataAccountCollection getDataAccountSet() {
 		return getDataAccountSet(getLatestBlock());
 	}
 
-	default ContractAccountQuery getContractAccountset() {
+	default ContractAccountCollection getContractAccountset() {
 		return getContractAccountSet(getLatestBlock());
 	}
 

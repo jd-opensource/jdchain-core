@@ -4,8 +4,15 @@ import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.utils.Bytes;
 
+/**
+ * {@link MerkleAccountCollection} 是一种只读列表；
+ * 
+ * @author huanghaiquan
+ *
+ * @param <T>
+ */
 public interface MerkleAccountCollection<T> extends MerkleProvable {
-	
+
 	/**
 	 * 返回总数；
 	 * 
@@ -16,7 +23,7 @@ public interface MerkleAccountCollection<T> extends MerkleProvable {
 	BlockchainIdentity[] getAccountIDs(int fromIndex, int count);
 
 	boolean contains(Bytes address);
-	
+
 	/**
 	 * get proof of specified account;
 	 */

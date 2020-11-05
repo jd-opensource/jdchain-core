@@ -11,7 +11,7 @@ import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.Transactional;
 
-public class ContractAccountSet implements Transactional, ContractAccountQuery {
+public class ContractAccountSet implements Transactional, ContractAccountCollection {
 
 	private MerkleAccountSet accountSet;
 

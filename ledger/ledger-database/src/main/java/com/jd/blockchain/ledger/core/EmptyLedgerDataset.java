@@ -11,11 +11,11 @@ public class EmptyLedgerDataset implements LedgerDataQuery {
 	
 	private static final LedgerAdminDataQuery EMPTY_ADMIN_DATA = new EmptyAdminData();
 	
-	private static final UserAccountQuery EMPTY_USER_ACCOUNTS = new EmptyUserAccountSet();
+	private static final UserAccountCollection EMPTY_USER_ACCOUNTS = new EmptyUserAccountSet();
 	
-	private static final DataAccountQuery EMPTY_DATA_ACCOUNTS = new EmptyDataAccountSet();
+	private static final DataAccountCollection EMPTY_DATA_ACCOUNTS = new EmptyDataAccountSet();
 	
-	private static final ContractAccountQuery EMPTY_CONTRACT_ACCOUNTS = new EmptyContractAccountSet();
+	private static final ContractAccountCollection EMPTY_CONTRACT_ACCOUNTS = new EmptyContractAccountSet();
 
 	private static final ParticipantDataQuery EMPTY_PARTICIPANTS = new EmptyParticipantData();
 
@@ -25,17 +25,17 @@ public class EmptyLedgerDataset implements LedgerDataQuery {
 	}
 
 	@Override
-	public UserAccountQuery getUserAccountSet() {
+	public UserAccountCollection getUserAccountSet() {
 		return EMPTY_USER_ACCOUNTS;
 	}
 
 	@Override
-	public DataAccountQuery getDataAccountSet() {
+	public DataAccountCollection getDataAccountSet() {
 		return EMPTY_DATA_ACCOUNTS;
 	}
 
 	@Override
-	public ContractAccountQuery getContractAccountset() {
+	public ContractAccountCollection getContractAccountset() {
 		return EMPTY_CONTRACT_ACCOUNTS;
 	}
 
@@ -89,15 +89,15 @@ public class EmptyLedgerDataset implements LedgerDataQuery {
 		
 	}
 	
-	private static class EmptyUserAccountSet extends EmptyAccountSet<UserAccount> implements UserAccountQuery{
+	private static class EmptyUserAccountSet extends EmptyAccountSet<UserAccount> implements UserAccountCollection{
 
 	}
 	
-	private static class EmptyDataAccountSet extends EmptyAccountSet<DataAccount> implements DataAccountQuery{
+	private static class EmptyDataAccountSet extends EmptyAccountSet<DataAccount> implements DataAccountCollection{
 
 	}
 	
-	private static class EmptyContractAccountSet extends EmptyAccountSet<ContractAccount> implements ContractAccountQuery{
+	private static class EmptyContractAccountSet extends EmptyAccountSet<ContractAccount> implements ContractAccountCollection{
 		
 	}
 

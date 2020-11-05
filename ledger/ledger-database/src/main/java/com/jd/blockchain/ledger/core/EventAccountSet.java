@@ -19,7 +19,7 @@ import com.jd.blockchain.utils.Transactional;
  * @Date: 2020/6/2 11:10 AM
  * Version 1.0
  */
-public class EventAccountSet implements EventAccountQuery, Transactional {
+public class EventAccountSet implements EventAccountCollection, Transactional {
     static {
         DataContractRegistry.register(Event.class);
     }

@@ -4,6 +4,6 @@ public interface LedgerEventQuery {
 	
 	EventGroup getSystemEvents();
 
-	EventAccountQuery getUserEvents();
+	EventAccountCollection getUserEvents();
 	
 }

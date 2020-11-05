@@ -10,10 +10,10 @@ public interface LedgerDataQuery{
 	
 	LedgerAdminDataQuery getAdminDataset();
 
-	UserAccountQuery getUserAccountSet();
+	UserAccountCollection getUserAccountSet();
 
-	DataAccountQuery getDataAccountSet();
+	DataAccountCollection getDataAccountSet();
 
-	ContractAccountQuery getContractAccountset();
+	ContractAccountCollection getContractAccountset();
 
 }

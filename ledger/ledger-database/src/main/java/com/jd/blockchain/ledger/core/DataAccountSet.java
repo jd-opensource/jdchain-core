@@ -13,7 +13,7 @@ import com.jd.blockchain.utils.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DataAccountSet implements Transactional, DataAccountQuery {
+public class DataAccountSet implements Transactional, DataAccountCollection {
 	private Logger logger = LoggerFactory.getLogger(DataAccountSet.class);
 
 	private MerkleAccountSet accountSet;

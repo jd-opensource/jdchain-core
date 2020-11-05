@@ -21,7 +21,7 @@ import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.Transactional;
 
-public class MerkleAccountSet implements Transactional, MerkleProvable, MerkleAccountCollection<CompositeAccount> {
+public class MerkleAccountSet implements Transactional, MerkleAccountCollection<CompositeAccount> {
 
 	static {
 		DataContractRegistry.register(MerkleSnapshot.class);
@@ -207,7 +207,7 @@ public class MerkleAccountSet implements Transactional, MerkleProvable, MerkleAc
 		// Now, be sure that "acc == null", so get account from storage;
 		// Set readonly for the old version account;
 		boolean readonly = (version > -1 && version < latestVersion) || isReadonly();
-		
+
 		long qVersion = version == -1 ? latestVersion : version;
 		// load account from storage;
 		acc = loadAccount(address, readonly, qVersion);
@@ -253,11 +253,13 @@ public class MerkleAccountSet implements Transactional, MerkleProvable, MerkleAc
 				return cachedAcc;
 			}
 			// 相同的账户已经存在；
-			throw new LedgerException("The registering account already exist!", TransactionState.ACCOUNT_REGISTER_CONFLICT);
+			throw new LedgerException("The registering account already exist!",
+					TransactionState.ACCOUNT_REGISTER_CONFLICT);
 		}
 		long version = merkleDataset.getVersion(address);
 		if (version >= 0) {
-			throw new LedgerException("The registering account already exist!", TransactionState.ACCOUNT_REGISTER_CONFLICT);
+			throw new LedgerException("The registering account already exist!",
+					TransactionState.ACCOUNT_REGISTER_CONFLICT);
 		}
 
 		if (!accessPolicy.checkRegistering(address, pubKey)) {

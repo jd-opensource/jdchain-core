@@ -298,17 +298,17 @@ public class LedgerInitializer {
 		}
 
 		@Override
-		public UserAccountQuery getUserAccountSet(LedgerBlock block) {
+		public UserAccountCollection getUserAccountSet(LedgerBlock block) {
 			return dataset.getUserAccountSet();
 		}
 
 		@Override
-		public DataAccountQuery getDataAccountSet(LedgerBlock block) {
+		public DataAccountCollection getDataAccountSet(LedgerBlock block) {
 			return dataset.getDataAccountSet();
 		}
 
 		@Override
-		public ContractAccountQuery getContractAccountSet(LedgerBlock block) {
+		public ContractAccountCollection getContractAccountSet(LedgerBlock block) {
 			return dataset.getContractAccountset();
 		}
 
@@ -318,7 +318,7 @@ public class LedgerInitializer {
 		}
 
 		@Override
-		public EventAccountQuery getUserEvents(LedgerBlock block) {
+		public EventAccountCollection getUserEvents(LedgerBlock block) {
 			return null;
 		}
 

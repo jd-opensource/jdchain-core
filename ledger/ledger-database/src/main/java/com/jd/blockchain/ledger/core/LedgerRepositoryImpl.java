@@ -327,7 +327,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	@Override
-	public UserAccountQuery getUserAccountSet(LedgerBlock block) {
+	public UserAccountCollection getUserAccountSet(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
 			return latestState.getUserAccountSet();
@@ -342,7 +342,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	@Override
-	public DataAccountQuery getDataAccountSet(LedgerBlock block) {
+	public DataAccountCollection getDataAccountSet(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
 			return latestState.getDataAccountSet();
@@ -358,7 +358,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	@Override
-	public ContractAccountQuery getContractAccountSet(LedgerBlock block) {
+	public ContractAccountCollection getContractAccountSet(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
 			return latestState.getContractAccountSet();
@@ -385,7 +385,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	@Override
-	public EventAccountQuery getUserEvents(LedgerBlock block) {
+	public EventAccountCollection getUserEvents(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
 			return latestState.getLedgerEventSet().getUserEvents();
@@ -735,15 +735,15 @@ class LedgerRepositoryImpl implements LedgerRepository {
 			return ledgerDataset;
 		}
 
-		public ContractAccountQuery getContractAccountSet() {
+		public ContractAccountCollection getContractAccountSet() {
 			return ledgerDataset.getContractAccountset();
 		}
 
-		public DataAccountQuery getDataAccountSet() {
+		public DataAccountCollection getDataAccountSet() {
 			return ledgerDataset.getDataAccountSet();
 		}
 
-		public UserAccountQuery getUserAccountSet() {
+		public UserAccountCollection getUserAccountSet() {
 			return ledgerDataset.getUserAccountSet();
 		}
 

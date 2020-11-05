@@ -15,7 +15,7 @@ import com.jd.blockchain.utils.Transactional;
  * @author huanghaiquan
  *
  */
-public class UserAccountSet implements Transactional, UserAccountQuery {
+public class UserAccountSet implements Transactional, UserAccountCollection {
 
 	private MerkleAccountSet accountSet;
 

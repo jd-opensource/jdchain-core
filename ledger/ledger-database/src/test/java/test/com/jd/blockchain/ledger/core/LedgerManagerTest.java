@@ -20,9 +20,9 @@ import com.jd.blockchain.crypto.SignatureFunction;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.crypto.service.classic.ClassicCryptoService;
 import com.jd.blockchain.crypto.service.sm.SMCryptoService;
-import com.jd.blockchain.ledger.core.ContractAccountQuery;
+import com.jd.blockchain.ledger.core.ContractAccountCollection;
 import com.jd.blockchain.ledger.core.CryptoConfig;
-import com.jd.blockchain.ledger.core.DataAccountQuery;
+import com.jd.blockchain.ledger.core.DataAccountCollection;
 import com.jd.blockchain.ledger.core.LedgerDataset;
 import com.jd.blockchain.ledger.core.LedgerEditor;
 import com.jd.blockchain.ledger.core.LedgerInitializer;
@@ -30,7 +30,7 @@ import com.jd.blockchain.ledger.core.LedgerManager;
 import com.jd.blockchain.ledger.core.LedgerRepository;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.UserAccount;
-import com.jd.blockchain.ledger.core.UserAccountQuery;
+import com.jd.blockchain.ledger.core.UserAccountCollection;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.transaction.ConsensusParticipantData;
 import com.jd.blockchain.transaction.LedgerInitData;
@@ -163,9 +163,9 @@ public class LedgerManagerTest {
 		assertEquals(1, latestBlock.getHeight());
 		assertEquals(block1.getHash(), latestBlock.getHash());
 
-		DataAccountQuery dataAccountSet = reloadLedgerRepo.getDataAccountSet(latestBlock);
-		UserAccountQuery userAccountSet = reloadLedgerRepo.getUserAccountSet(latestBlock);
-		ContractAccountQuery contractAccountSet = reloadLedgerRepo.getContractAccountSet(latestBlock);
+		DataAccountCollection dataAccountSet = reloadLedgerRepo.getDataAccountSet(latestBlock);
+		UserAccountCollection userAccountSet = reloadLedgerRepo.getUserAccountSet(latestBlock);
+		ContractAccountCollection contractAccountSet = reloadLedgerRepo.getContractAccountSet(latestBlock);
 
 	}
 
