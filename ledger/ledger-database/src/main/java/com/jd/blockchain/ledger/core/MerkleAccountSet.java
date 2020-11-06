@@ -19,6 +19,7 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.DataEntry;
+import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 
 public class MerkleAccountSet implements Transactional, MerkleAccountCollection<CompositeAccount> {
@@ -33,7 +34,7 @@ public class MerkleAccountSet implements Transactional, MerkleAccountCollection<
 	/**
 	 * 账户根哈希的数据集；
 	 */
-	private MerkleHashDataset merkleDataset;
+	private MerkleDataset merkleDataset;
 
 	/**
 	 * The cache of latest version accounts, including accounts getting by querying
@@ -57,9 +58,9 @@ public class MerkleAccountSet implements Transactional, MerkleAccountCollection<
 		return merkleDataset.isReadonly();
 	}
 
-	void setReadonly() {
-		merkleDataset.setReadonly();
-	}
+//	void setReadonly() {
+//		merkleDataset.setReadonly();
+//	}
 
 	public MerkleAccountSet(CryptoSetting cryptoSetting, Bytes keyPrefix, ExPolicyKVStorage exStorage,
 			VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
@@ -89,18 +90,25 @@ public class MerkleAccountSet implements Transactional, MerkleAccountCollection<
 		return merkleDataset.getProof(key);
 	}
 
+//	@Override
+//	public BlockchainIdentity[] getAccountIDs(int fromIndex, int count) {
+//		DataEntry<Bytes, byte[]>[] results = merkleDataset.getDataEntries(fromIndex, count);
+//		
+//		BlockchainIdentity[] ids = new BlockchainIdentity[results.length];
+//		for (int i = 0; i < results.length; i++) {
+//			InnerMerkleAccount account = createAccount(results[i].getKey(), new HashDigest(results[i].getValue()),
+//					results[i].getVersion(), true);
+//			ids[i] = account.getID();
+//		}
+//		return ids;
+//	}
+	
 	@Override
-	public BlockchainIdentity[] getAccountIDs(int fromIndex, int count) {
-		DataEntry<Bytes, byte[]>[] results = merkleDataset.getDataEntries(fromIndex, count);
-
-		BlockchainIdentity[] ids = new BlockchainIdentity[results.length];
-		for (int i = 0; i < results.length; i++) {
-			InnerMerkleAccount account = createAccount(results[i].getKey(), new HashDigest(results[i].getValue()),
-					results[i].getVersion(), true);
-			ids[i] = account.getID();
-		}
-		return ids;
+	public SkippingIterator<BlockchainIdentity> identityIterator() {
+		
+		return null;
 	}
+	
 
 	/**
 	 * 返回账户的总数量；

@@ -3,6 +3,7 @@ package com.jd.blockchain.ledger.core;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.SkippingIterator;
 
 /**
  * {@link MerkleAccountCollection} 是一种只读列表；
@@ -19,8 +20,6 @@ public interface MerkleAccountCollection<T> extends MerkleProvable {
 	 * @return
 	 */
 	long getTotal();
-
-	BlockchainIdentity[] getAccountIDs(int fromIndex, int count);
 
 	boolean contains(Bytes address);
 
@@ -41,5 +40,7 @@ public interface MerkleAccountCollection<T> extends MerkleProvable {
 	T getAccount(Bytes address);
 
 	T getAccount(Bytes address, long version);
+	
+	SkippingIterator<BlockchainIdentity> identityIterator();
 
 }

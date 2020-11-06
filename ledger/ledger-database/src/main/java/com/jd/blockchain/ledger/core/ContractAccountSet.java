@@ -9,6 +9,7 @@ import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 
 public class ContractAccountSet implements Transactional, ContractAccountCollection {
@@ -26,19 +27,19 @@ public class ContractAccountSet implements Transactional, ContractAccountCollect
 		accountSet = new MerkleAccountSet(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
 				readonly, accessPolicy);
 	}
-
+	
 	@Override
-	public BlockchainIdentity[] getAccountIDs(int fromIndex, int count) {
-		return accountSet.getAccountIDs(fromIndex, count);
+	public SkippingIterator<BlockchainIdentity> identityIterator() {
+		return accountSet.identityIterator();
 	}
 
 	public boolean isReadonly() {
 		return accountSet.isReadonly();
 	}
 
-	void setReadonly() {
-		accountSet.setReadonly();
-	}
+//	void setReadonly() {
+//		accountSet.setReadonly();
+//	}
 
 	@Override
 	public HashDigest getRootHash() {

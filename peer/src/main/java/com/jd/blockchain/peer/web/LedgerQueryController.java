@@ -3,7 +3,6 @@ package com.jd.blockchain.peer.web;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.jd.blockchain.peer.decorator.TransactionDecorator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -48,11 +47,13 @@ import com.jd.blockchain.ledger.core.ParticipantCertData;
 import com.jd.blockchain.ledger.core.TransactionQuery;
 import com.jd.blockchain.ledger.core.UserAccountCollection;
 import com.jd.blockchain.peer.decorator.LedgerAdminInfoDecorator;
+import com.jd.blockchain.peer.decorator.TransactionDecorator;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.DataIterator;
+import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.query.QueryArgs;
 import com.jd.blockchain.utils.query.QueryUtils;
 
@@ -628,7 +629,10 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		EventAccountCollection eventAccountSet = ledger.getUserEvents(ledger.getLatestBlock());
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) eventAccountSet.getTotal());
-		return eventAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
+		
+		SkippingIterator<BlockchainIdentity> it = eventAccountSet.identityIterator();
+		it.skip(queryArgs.getFrom());
+		return it.next(queryArgs.getCount(), BlockchainIdentity.class);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}")
@@ -747,7 +751,10 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		UserAccountCollection userAccountSet = ledger.getUserAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) userAccountSet.getTotal());
-		return userAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
+		
+		SkippingIterator<BlockchainIdentity> it = userAccountSet.identityIterator();
+		it.skip(queryArgs.getFrom());
+		return it.next(queryArgs.getCount(), BlockchainIdentity.class);
 	}
 
 	/**
@@ -767,7 +774,10 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountCollection dataAccountSet = ledger.getDataAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) dataAccountSet.getTotal());
-		return dataAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
+		
+		SkippingIterator<BlockchainIdentity> it = dataAccountSet.identityIterator();
+		it.skip(queryArgs.getFrom());
+		return it.next(queryArgs.getCount(), BlockchainIdentity.class);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/contracts")
@@ -780,7 +790,10 @@ public class LedgerQueryController implements BlockchainQueryService {
 		ContractAccountCollection contractAccountSet = ledger.getContractAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count,
 				(int) contractAccountSet.getTotal());
-		return contractAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
+		
+		SkippingIterator<BlockchainIdentity> it = contractAccountSet.identityIterator();
+		it.skip(queryArgs.getFrom());
+		return it.next(queryArgs.getCount(), BlockchainIdentity.class);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/authorization/role/{roleName}")

@@ -55,9 +55,9 @@ public class LedgerEventSet implements LedgerEventQuery, Transactional {
 		return readonly;
 	}
 
-	void setReadonly() {
-		this.readonly = true;
-		this.systemEventSet.setReadonly();
-		this.userEventSet.setReadonly();
-	}
+//	void setReadonly() {
+//		this.readonly = true;
+//		this.systemEventSet.setReadonly();
+//		this.userEventSet.setReadonly();
+//	}
 }

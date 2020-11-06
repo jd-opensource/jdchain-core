@@ -1,5 +1,8 @@
 package com.jd.blockchain.ledger.core;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
@@ -17,7 +20,6 @@ import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.PrivilegeSet;
-import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVData;
 import com.jd.blockchain.ledger.TypedKVEntry;
@@ -29,11 +31,9 @@ import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.DataIterator;
+import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.query.QueryArgs;
 import com.jd.blockchain.utils.query.QueryUtils;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class LedgerQueryService implements BlockchainQueryService {
 
@@ -502,7 +502,10 @@ public class LedgerQueryService implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		EventAccountCollection eventAccountSet = ledger.getUserEvents(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) eventAccountSet.getTotal());
-		return eventAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
+		
+		SkippingIterator<BlockchainIdentity> it = eventAccountSet.identityIterator();
+		it.skip(queryArgs.getFrom());
+		return it.next(queryArgs.getCount(), BlockchainIdentity.class);
 	}
 
 	@Override
@@ -575,7 +578,10 @@ public class LedgerQueryService implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		UserAccountCollection userAccountSet = ledger.getUserAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) userAccountSet.getTotal());
-		return userAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
+		
+		SkippingIterator<BlockchainIdentity> it = userAccountSet.identityIterator();
+		it.skip(queryArgs.getFrom());
+		return it.next(queryArgs.getCount(), BlockchainIdentity.class);
 	}
 
 	@Override
@@ -584,7 +590,10 @@ public class LedgerQueryService implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountCollection dataAccountSet = ledger.getDataAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) dataAccountSet.getTotal());
-		return dataAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
+		
+		SkippingIterator<BlockchainIdentity> it = dataAccountSet.identityIterator();
+		it.skip(queryArgs.getFrom());
+		return it.next(queryArgs.getCount(), BlockchainIdentity.class);
 	}
 
 	@Override
@@ -593,7 +602,10 @@ public class LedgerQueryService implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		ContractAccountCollection contractAccountSet = ledger.getContractAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) contractAccountSet.getTotal());
-		return contractAccountSet.getAccountIDs(queryArgs.getFrom(), queryArgs.getCount());
+		
+		SkippingIterator<BlockchainIdentity> it = contractAccountSet.identityIterator();
+		it.skip(queryArgs.getFrom());
+		return it.next(queryArgs.getCount(), BlockchainIdentity.class);
 	}
 
 	@Override

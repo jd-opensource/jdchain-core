@@ -9,6 +9,7 @@ import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,16 +32,12 @@ public class DataAccountSet implements Transactional, DataAccountCollection {
 	}
 
 	@Override
-	public BlockchainIdentity[] getAccountIDs(int fromIndex, int count) {
-		return accountSet.getAccountIDs(fromIndex, count);
+	public SkippingIterator<BlockchainIdentity> identityIterator() {
+		return accountSet.identityIterator();
 	}
 
 	public boolean isReadonly() {
 		return accountSet.isReadonly();
-	}
-
-	void setReadonly() {
-		accountSet.setReadonly();
 	}
 
 	@Override

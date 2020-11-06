@@ -39,11 +39,11 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 
 	private BlockchainIdentity accountID;
 
-	private MerkleHashDataset rootDataset;
+	private MerkleDataset rootDataset;
 
-	private MerkleHashDataset headerDataset;
+	private MerkleDataset headerDataset;
 
-	private MerkleHashDataset dataDataset;
+	private MerkleDataset dataDataset;
 
 	private Dataset<String, TypedValue> typedHeader;
 

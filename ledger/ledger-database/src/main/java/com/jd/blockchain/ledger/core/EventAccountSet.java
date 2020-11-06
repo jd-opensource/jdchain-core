@@ -12,6 +12,7 @@ import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 
 /**
@@ -43,10 +44,10 @@ public class EventAccountSet implements EventAccountCollection, Transactional {
     public long getTotal() {
         return accountSet.getTotal();
     }
-
+    
     @Override
-    public BlockchainIdentity[] getAccountIDs(int fromIndex, int count) {
-        return accountSet.getAccountIDs(fromIndex, count);
+    public SkippingIterator<BlockchainIdentity> identityIterator() {
+    	return accountSet.identityIterator();
     }
 
     @Override
@@ -98,9 +99,9 @@ public class EventAccountSet implements EventAccountCollection, Transactional {
         accountSet.cancel();
     }
 
-    void setReadonly() {
-        accountSet.setReadonly();
-    }
+//    void setReadonly() {
+//        accountSet.setReadonly();
+//    }
 
     public DataAccount register(Bytes address, PubKey pubKey, DigitalSignature addressSignature) {
         // TODO: 未实现对地址签名的校验和记录；

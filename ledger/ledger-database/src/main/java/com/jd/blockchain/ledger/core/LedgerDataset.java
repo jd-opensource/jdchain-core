@@ -86,12 +86,12 @@ public class LedgerDataset implements LedgerDataQuery, Transactional {
 		return readonly;
 	}
 
-	void setReadonly() {
-		this.readonly = true;
-		this.adminDataset.setReadonly();
-		this.userAccountSet.setReadonly();
-		this.dataAccountSet.setReadonly();
-		this.contractAccountSet.setReadonly();
-	}
+//	void setReadonly() {
+//		this.readonly = true;
+//		this.adminDataset.setReadonly();
+//		this.userAccountSet.setReadonly();
+//		this.dataAccountSet.setReadonly();
+//		this.contractAccountSet.setReadonly();
+//	}
 
 }

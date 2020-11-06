@@ -4,11 +4,11 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.EmptySkippingIterator;
+import com.jd.blockchain.utils.SkippingIterator;
 
 public class EmptyAccountSet<T> implements MerkleAccountCollection<T> {
 	
-	private static final BlockchainIdentity[] EMPTY = {};
-
 	@Override
 	public HashDigest getRootHash() {
 		return null;
@@ -18,12 +18,12 @@ public class EmptyAccountSet<T> implements MerkleAccountCollection<T> {
 	public MerkleProof getProof(Bytes key) {
 		return null;
 	}
-
+	
 	@Override
-	public BlockchainIdentity[] getAccountIDs(int fromIndex, int count) {
-		return EMPTY;
+	public SkippingIterator<BlockchainIdentity> identityIterator() {
+		return EmptySkippingIterator.instance();
 	}
-
+	
 	@Override
 	public long getTotal() {
 		return 0;

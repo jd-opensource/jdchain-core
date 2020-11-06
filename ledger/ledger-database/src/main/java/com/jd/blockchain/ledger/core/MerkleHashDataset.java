@@ -29,7 +29,7 @@ import com.jd.blockchain.utils.Transactional;
  * @author huanghaiquan
  *
  */
-public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset<Bytes, byte[]> {
+public class MerkleHashDataset implements  MerkleDataset {
 
 	/**
 	 * 4 MB MaxSize of value;
@@ -133,6 +133,7 @@ public class MerkleHashDataset implements Transactional, MerkleProvable, Dataset
 		this.readonly = readonly;
 	}
 
+	@Override
 	public boolean isReadonly() {
 		return readonly;
 	}
