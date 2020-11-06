@@ -18,7 +18,6 @@ import com.jd.blockchain.ledger.BlockchainKeyGenerator;
 import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerPermission;
-import com.jd.blockchain.ledger.ParticipantDataQuery;
 import com.jd.blockchain.ledger.Privileges;
 import com.jd.blockchain.ledger.RolesPolicy;
 import com.jd.blockchain.ledger.TransactionPermission;
@@ -26,6 +25,7 @@ import com.jd.blockchain.ledger.core.CryptoConfig;
 import com.jd.blockchain.ledger.core.LedgerSecurityManager;
 import com.jd.blockchain.ledger.core.LedgerSecurityManagerImpl;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
+import com.jd.blockchain.ledger.core.ParticipantCollection;
 import com.jd.blockchain.ledger.core.RolePrivilegeDataset;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.UserAccountCollection;
@@ -127,7 +127,7 @@ public class LedgerSecurityManagerTest {
 		userRolesDataset.addUserRoles(kpPlatform.getAddress(), RolesPolicy.UNION, platformRoles);
 		userRolesDataset.commit();
 
-		ParticipantDataQuery partisQuery = Mockito.mock(ParticipantDataQuery.class);
+		ParticipantCollection partisQuery = Mockito.mock(ParticipantCollection.class);
 		UserAccountCollection usersQuery = Mockito.mock(UserAccountCollection.class);
 
 		// 创建安全管理器；

@@ -3,17 +3,19 @@ package com.jd.blockchain.ledger.core;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.ParticipantDataQuery;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
+import com.jd.blockchain.utils.AbstractSkippingIterator;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.DataIterator;
+import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 
-public class ParticipantDataset implements Transactional, MerkleProvable, ParticipantDataQuery {
+public class ParticipantDataset implements Transactional, MerkleProvable, ParticipantCollection {
 
 	static {
 		DataContractRegistry.register(ParticipantNode.class);
@@ -134,6 +136,30 @@ public class ParticipantDataset implements Transactional, MerkleProvable, Partic
 			pns[i] = BinaryProtocol.decode(bytes[i]);
 		}
 		return pns;
+	}
+
+	@Override
+	public SkippingIterator<ParticipantNode> getAllParticipants() {
+		DataIterator<Bytes, byte[]> dataIterator = dataset.iterator();
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	
+	private static class ParticipantIterator extends AbstractSkippingIterator<ParticipantNode>{
+		
+		private DataIterator<Bytes, byte[]> dataIterator;
+		
+		
+
+		@Override
+		public long getTotalCount() {
+			// TODO Auto-generated method stub
+			
+			return 0;
+		}
+
+		
 	}
 
 }

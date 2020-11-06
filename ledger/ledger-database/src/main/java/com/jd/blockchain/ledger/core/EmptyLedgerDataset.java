@@ -3,9 +3,10 @@ package com.jd.blockchain.ledger.core;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.LedgerAdminSettings;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.ParticipantDataQuery;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.EmptySkippingIterator;
+import com.jd.blockchain.utils.SkippingIterator;
 
 public class EmptyLedgerDataset implements LedgerDataQuery {
 	
@@ -17,7 +18,7 @@ public class EmptyLedgerDataset implements LedgerDataQuery {
 	
 	private static final ContractAccountCollection EMPTY_CONTRACT_ACCOUNTS = new EmptyContractAccountSet();
 
-	private static final ParticipantDataQuery EMPTY_PARTICIPANTS = new EmptyParticipantData();
+	private static final ParticipantCollection EMPTY_PARTICIPANTS = new EmptyParticipantData();
 
 	@Override
 	public LedgerAdminDataQuery getAdminDataset() {
@@ -49,13 +50,13 @@ public class EmptyLedgerDataset implements LedgerDataQuery {
 		}
 
 		@Override
-		public ParticipantDataQuery getParticipantDataset() {
+		public ParticipantCollection getParticipantDataset() {
 			return EMPTY_PARTICIPANTS;
 		}
 		
 	}
 	
-	private static class EmptyParticipantData implements ParticipantDataQuery{
+	private static class EmptyParticipantData implements ParticipantCollection{
 
 		@Override
 		public HashDigest getRootHash() {
@@ -85,6 +86,11 @@ public class EmptyLedgerDataset implements LedgerDataQuery {
 		@Override
 		public ParticipantNode[] getParticipants() {
 			return null;
+		}
+
+		@Override
+		public SkippingIterator<ParticipantNode> getAllParticipants() {
+			return EmptySkippingIterator.instance();
 		}
 		
 	}
