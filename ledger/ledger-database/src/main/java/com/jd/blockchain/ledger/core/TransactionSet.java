@@ -47,7 +47,7 @@ public class TransactionSet implements Transactional, TransactionCollection {
 	/**
 	 * 交易状态集合；用于记录交易执行结果；
 	 */
-	private MerkleHashDataset txStateSet;
+	private MerkleDataset<Bytes, byte[]> txStateSet;
 
 	/**
 	 * 交易请求列表；用于记录交易请求的顺序；
@@ -264,10 +264,6 @@ public class TransactionSet implements Transactional, TransactionCollection {
 
 	public boolean isReadonly() {
 		return txStateSet.isReadonly();
-	}
-
-	void setReadonly() {
-		txStateSet.setReadonly();
 	}
 
 	@Override

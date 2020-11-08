@@ -19,14 +19,15 @@ import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.SkippingIterator;
 
 /**
- * {@link MerkleHashDataset} 是基于默克尔树({@link MerkleHashSortTree})对数据的键维护一种数据集结构； <br>
+ * {@link MerkleHashDataset} 是基于默克尔树({@link MerkleHashSortTree})对数据的键维护一种数据集结构；
+ * <br>
  *
  * 注：此实现不是线程安全的；
  *
  * @author huanghaiquan
  *
  */
-public class MerkleHashDataset implements  MerkleDataset<Bytes, byte[]> {
+public class MerkleHashDataset implements MerkleDataset<Bytes, byte[]> {
 
 	/**
 	 * 4 MB MaxSize of value;
@@ -39,8 +40,7 @@ public class MerkleHashDataset implements  MerkleDataset<Bytes, byte[]> {
 
 	@SuppressWarnings("unchecked")
 	private static final DataEntry<Bytes, byte[]>[] EMPTY_ENTRIES = new DataEntry[0];
-	
-	
+
 	private final HashFunction DEFAULT_HASH_FUNCTION;
 
 	private final Bytes dataKeyPrefix;
@@ -115,15 +115,16 @@ public class MerkleHashDataset implements  MerkleDataset<Bytes, byte[]> {
 		this.dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
 		// 缓冲对KV的写入；
 		this.valueStorage = new BufferedKVStorage(exPolicyStorage, versioningStorage, false);
-		
+
 		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
 
 		// MerkleTree 本身是可缓冲的；
 		merkleKeyPrefix = keyPrefix.concat(MERKLE_TREE_PREFIX);
-		TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(setting.getHashAlgorithm()).setVerifyHashOnLoad(setting.getAutoVerifyHash());
+		TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(setting.getHashAlgorithm())
+				.setVerifyHashOnLoad(setting.getAutoVerifyHash());
 		if (merkleRootHash == null) {
 			this.merkleTree = new MerkleHashSortTree(options, merkleKeyPrefix, exPolicyStorage);
-		}else {
+		} else {
 			this.merkleTree = new MerkleHashSortTree(merkleRootHash, options, merkleKeyPrefix, exPolicyStorage);
 		}
 
@@ -490,7 +491,7 @@ public class MerkleHashDataset implements  MerkleDataset<Bytes, byte[]> {
 	private class AscDataInterator extends AbstractSkippingIterator<DataEntry<Bytes, byte[]>> {
 
 		private final long total;
-		
+
 		@Override
 		public long getTotalCount() {
 			return total;
@@ -499,12 +500,12 @@ public class MerkleHashDataset implements  MerkleDataset<Bytes, byte[]> {
 		public AscDataInterator(long total) {
 			this.total = total;
 		}
-		
+
 		@Override
 		protected DataEntry<Bytes, byte[]> get(long cursor) {
 			return getDataEntryAt(cursor);
 		}
-		
+
 //
 //		@Override
 //		public void skip(long count) {
@@ -557,15 +558,15 @@ public class MerkleHashDataset implements  MerkleDataset<Bytes, byte[]> {
 		public DescDataInterator(long total) {
 			this.total = total;
 		}
-		
+
 		@Override
 		public long getTotalCount() {
 			return total;
 		}
-		
+
 		@Override
 		protected DataEntry<Bytes, byte[]> get(long cursor) {
-			//倒序的迭代器从后往前返回；
+			// 倒序的迭代器从后往前返回；
 			return getDataEntryAt(total - cursor - 1);
 		}
 

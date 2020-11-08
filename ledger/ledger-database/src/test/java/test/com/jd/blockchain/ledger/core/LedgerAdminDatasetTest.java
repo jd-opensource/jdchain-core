@@ -43,6 +43,7 @@ import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.transaction.ConsensusParticipantData;
 import com.jd.blockchain.transaction.LedgerInitData;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.net.NetworkAddress;
 
 public class LedgerAdminDatasetTest {
@@ -235,11 +236,12 @@ public class LedgerAdminDatasetTest {
 			RolePrivilegeSettings expRolePrivilegeSettings, UserAuthorizationSettings expUserRoleSettings) {
 		// 验证基本信息；
 		RolePrivilegeSettings actualRolePrivileges = actualAccount.getRolePrivileges();
-		RolePrivileges[] expRPs = expRolePrivilegeSettings.getRolePrivileges();
+		SkippingIterator<RolePrivileges> expRPs = expRolePrivilegeSettings.rolePrivilegesIterator();
 
-		assertEquals(expRPs.length, actualRolePrivileges.getRoleCount());
-
-		for (RolePrivileges expRP : expRPs) {
+		assertEquals(expRPs.getTotalCount(), actualRolePrivileges.getRoleCount());
+		
+		while (expRPs.hasNext()) {
+			RolePrivileges expRP = expRPs.next();
 			RolePrivileges actualRP = actualRolePrivileges.getRolePrivilege(expRP.getRoleName());
 			assertNotNull(actualRP);
 			assertArrayEquals(expRP.getLedgerPrivilege().toBytes(), actualRP.getLedgerPrivilege().toBytes());

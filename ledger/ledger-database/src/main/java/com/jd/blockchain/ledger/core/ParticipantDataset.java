@@ -21,7 +21,7 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 		DataContractRegistry.register(ParticipantNode.class);
 	}
 
-	private MerkleHashDataset dataset;
+	private MerkleDataset<Bytes, byte[]> dataset;
 
 	public ParticipantDataset(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage verStorage) {
@@ -128,21 +128,20 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 		return BinaryProtocol.decode(bytes);
 	}
 
+	@Deprecated
 	@Override
 	public ParticipantNode[] getParticipants() {
-		byte[][] bytes = dataset.getValues(0, (int) dataset.getDataCount());
-		ParticipantNode[] pns = new ParticipantNode[bytes.length];
+		SkippingIterator<ParticipantNode> nodesIterator = getAllParticipants();
+		ParticipantNode[] nodes = new ParticipantNode[(int) nodesIterator.getCount()];
+		nodesIterator.next(nodes);
 
-		for (int i = 0; i < pns.length; i++) {
-			pns[i] = BinaryProtocol.decode(bytes[i]);
-		}
-		return pns;
+		return nodes;
 	}
 
 	@Override
 	public SkippingIterator<ParticipantNode> getAllParticipants() {
 		SkippingIterator<DataEntry<Bytes, byte[]>> dataIterator = dataset.iterator();
-		return dataIterator.iterateAs(new Mapper<DataEntry<Bytes,byte[]>, ParticipantNode>() {
+		return dataIterator.iterateAs(new Mapper<DataEntry<Bytes, byte[]>, ParticipantNode>() {
 
 			@Override
 			public ParticipantNode from(DataEntry<Bytes, byte[]> source) {

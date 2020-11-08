@@ -17,11 +17,13 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.DataEntry;
+import com.jd.blockchain.utils.Mapper;
+import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 
 public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes>, RolePrivilegeSettings {
 
-	private MerkleHashDataset dataset;
+	private MerkleDataset<Bytes, byte[]> dataset;
 
 	public RolePrivilegeDataset(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage verStorage) {
@@ -264,23 +266,39 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 		return new RolePrivileges(roleName, kv.getVersion(), privilege);
 	}
 
-	@Override
-	public RolePrivileges[] getRolePrivileges(int index, int count) {
-		DataEntry<Bytes, byte[]>[] kvEntries = dataset.getDataEntries(index, count);
-		RolePrivileges[] pns = new RolePrivileges[kvEntries.length];
-		PrivilegeSet privilege;
-		for (int i = 0; i < pns.length; i++) {
-			privilege = BinaryProtocol.decode(kvEntries[i].getValue());
-			pns[i] = new RolePrivileges(kvEntries[i].getKey().toUTF8String(), kvEntries[i].getVersion(), privilege);
-		}
-		return pns;
-	}
+//	@Override
+//	public RolePrivileges[] getRolePrivileges(int index, int count) {
+//		DataEntry<Bytes, byte[]>[] kvEntries = dataset.getDataEntries(index, count);
+//		RolePrivileges[] pns = new RolePrivileges[kvEntries.length];
+//		PrivilegeSet privilege;
+//		for (int i = 0; i < pns.length; i++) {
+//			privilege = BinaryProtocol.decode(kvEntries[i].getValue());
+//			pns[i] = new RolePrivileges(kvEntries[i].getKey().toUTF8String(), kvEntries[i].getVersion(), privilege);
+//		}
+//		return pns;
+//	}
+//
+//	@Override
+//	public RolePrivileges[] getRolePrivileges() {
+//		return getRolePrivileges(0, (int) getRoleCount());
+//	}
 
 	@Override
-	public RolePrivileges[] getRolePrivileges() {
-		return getRolePrivileges(0, (int) getRoleCount());
-	}
+	public SkippingIterator<RolePrivileges> rolePrivilegesIterator() {
+		SkippingIterator<DataEntry<Bytes, byte[]>> entriesIterator = dataset.iterator();
+		return entriesIterator.iterateAs(new Mapper<DataEntry<Bytes,byte[]>, RolePrivileges>() {
 
+			@Override
+			public RolePrivileges from(DataEntry<Bytes, byte[]> source) {
+				if (source == null) {
+					return null;
+				}
+				PrivilegeSet privilege = BinaryProtocol.decode(source.getValue());
+				return new RolePrivileges(source.getKey().toUTF8String(), source.getVersion(), privilege);
+			}
+		});
+	}
+	
 	@Override
 	public boolean isReadonly() {
 		return dataset.isReadonly();

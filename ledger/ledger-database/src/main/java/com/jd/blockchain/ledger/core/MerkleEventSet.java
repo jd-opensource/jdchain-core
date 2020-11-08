@@ -19,7 +19,7 @@ import com.jd.blockchain.utils.Transactional;
 
 public class MerkleEventSet implements EventGroup, EventPublisher, Transactional {
 
-    private MerkleHashDataset events;
+    private  MerkleDataset<Bytes, byte[]> events;
 
     public MerkleEventSet(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
         events = new MerkleHashDataset(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage);
@@ -96,10 +96,6 @@ public class MerkleEventSet implements EventGroup, EventPublisher, Transactional
 
     public boolean isReadonly() {
         return events.isReadonly();
-    }
-
-    void setReadonly() {
-        events.setReadonly();
     }
 
     @Override

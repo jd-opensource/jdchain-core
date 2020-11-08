@@ -14,9 +14,9 @@ public class MerkleDataCluster implements Transactional, MerkleSnapshot {
 
 	private boolean readonly;
 
-	private MerkleHashDataset rootDS;
+	private  MerkleDataset<Bytes, byte[]> rootDS;
 
-	private Map<Bytes, MerkleHashDataset> partitions;
+	private Map<Bytes,  MerkleDataset<Bytes, byte[]>> partitions;
 
 	/**
 	 * Create an empty readable {@link MerkleDataCluster} instance;
@@ -46,18 +46,6 @@ public class MerkleDataCluster implements Transactional, MerkleSnapshot {
 	public boolean isUpdated() {
 		return rootDS.isUpdated();
 	}
-
-//	public VersioningMap<Bytes, byte[]> getPartition(Bytes name) {
-//		return getPartition(name, false);
-//	}
-//
-//	public VersioningMap<Bytes, byte[]> getPartition(Bytes name, boolean create) {
-//		
-//	}
-//
-//	public VersioningMap<Bytes, byte[]> createPartition(Bytes name) {
-//
-//	}
 
 	@Override
 	public void commit() {
