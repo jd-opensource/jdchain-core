@@ -11,12 +11,10 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
 import com.jd.blockchain.storage.service.utils.VersioningKVData;
-import com.jd.blockchain.utils.ArrayUtils;
+import com.jd.blockchain.utils.AbstractSkippingIterator;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.DataIterator;
-import com.jd.blockchain.utils.Dataset;
-import com.jd.blockchain.utils.Transactional;
+import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.io.BytesUtils;
 
 /**
@@ -28,7 +26,7 @@ import com.jd.blockchain.utils.io.BytesUtils;
  * @author huanghaiquan
  *
  */
-public class MerkleSequenceDataset implements Transactional, MerkleProvable, Dataset<Bytes, byte[]> {
+public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
 
 	/**
 	 * 4 MB MaxSize of value;
@@ -533,13 +531,15 @@ public class MerkleSequenceDataset implements Transactional, MerkleProvable, Dat
 		return new VersioningKVData<Bytes, byte[]>(key, version, value);
 	}
 
+	
+	
 	@Override
-	public DataIterator<Bytes, byte[]> iterator() {
+	public SkippingIterator<DataEntry<Bytes, byte[]>> iterator() {
 		return new AscDataInterator(getDataCount());
 	}
 
 	@Override
-	public DataIterator<Bytes, byte[]> iteratorDesc() {
+	public SkippingIterator<DataEntry<Bytes, byte[]>> iteratorDesc() {
 		return new DescDataInterator(getDataCount());
 	}
 
@@ -627,116 +627,159 @@ public class MerkleSequenceDataset implements Transactional, MerkleProvable, Dat
 
 	// ----------------------------------------------------------
 
-	private class AscDataInterator implements DataIterator<Bytes, byte[]> {
+
+	private class AscDataInterator extends AbstractSkippingIterator<DataEntry<Bytes, byte[]>> {
 
 		private final long total;
-
-		private long cursor = 0;
+		
+		@Override
+		public long getTotalCount() {
+			return total;
+		}
 
 		public AscDataInterator(long total) {
 			this.total = total;
 		}
-
+		
 		@Override
-		public void skip(long count) {
-			cursor = nextCursor(count);
+		protected DataEntry<Bytes, byte[]> get(long cursor) {
+			return getLatestDataEntry(cursor);
 		}
-
-		private long nextCursor(long skippingCount) {
-			long c = cursor + skippingCount;
-			return c > total ? total : c;
-		}
-
-		@Override
-		public DataEntry<Bytes, byte[]> next() {
-			if (hasNext()) {
-				DataEntry<Bytes, byte[]> entry = getLatestDataEntry(cursor);
-				cursor = nextCursor(1);
-				return entry;
-			}
-			return null;
-		}
-
-		@Override
-		public DataEntry<Bytes, byte[]>[] next(int count) {
-			if (hasNext()) {
-				long from = cursor;
-				long nextCursor = nextCursor(count);
-				long c = nextCursor - cursor;
-				if (c > LedgerConsts.MAX_LIST_COUNT) {
-					throw new IllegalArgumentException(
-							"Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
-				}
-				DataEntry<Bytes, byte[]>[] entries = getLatestDataEntries(from, (int) c);
-				cursor = nextCursor;
-				return entries;
-			}
-			return EMPTY_ENTRIES;
-		}
-
-		@Override
-		public boolean hasNext() {
-			return cursor < total;
-		}
-
 	}
 
-	private class DescDataInterator implements DataIterator<Bytes, byte[]> {
+	private class DescDataInterator extends AbstractSkippingIterator<DataEntry<Bytes, byte[]>> {
 
 		private final long total;
 
-		private long cursor;
-
 		public DescDataInterator(long total) {
 			this.total = total;
-			this.cursor = total - 1;
 		}
-
+		
 		@Override
-		public void skip(long count) {
-			cursor = nextCursor(count);
+		public long getTotalCount() {
+			return total;
 		}
-
-		private long nextCursor(long skippingCount) {
-			long c = cursor - skippingCount;
-			return c < 0 ? -1 : c;
-		}
-
+		
 		@Override
-		public DataEntry<Bytes, byte[]> next() {
-			if (hasNext()) {
-				DataEntry<Bytes, byte[]> entry = getLatestDataEntry(cursor);
-				cursor = nextCursor(1);
-				return entry;
-			}
-			return null;
-		}
-
-		@Override
-		public DataEntry<Bytes, byte[]>[] next(int count) {
-			if (hasNext()) {
-				long nextCursor = nextCursor(count);
-				long from = nextCursor + 1;
-				long c = cursor - nextCursor;
-				if (c > LedgerConsts.MAX_LIST_COUNT) {
-					throw new IllegalArgumentException(
-							"Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
-				}
-				DataEntry<Bytes, byte[]>[] entries = getLatestDataEntries(from, (int) c);
-				// reverse;
-				ArrayUtils.reverse(entries);
-
-				cursor = nextCursor;
-				return entries;
-			}
-			return EMPTY_ENTRIES;
-		}
-
-		@Override
-		public boolean hasNext() {
-			return cursor < total;
+		protected DataEntry<Bytes, byte[]> get(long cursor) {
+			//倒序的迭代器从后往前返回；
+			return getLatestDataEntry(total - cursor - 1);
 		}
 
 	}
+	
+	
+	
+//	private class AscDataInterator implements DataIterator<Bytes, byte[]> {
+//
+//		private final long total;
+//
+//		private long cursor = 0;
+//
+//		public AscDataInterator(long total) {
+//			this.total = total;
+//		}
+//
+//		@Override
+//		public void skip(long count) {
+//			cursor = nextCursor(count);
+//		}
+//
+//		private long nextCursor(long skippingCount) {
+//			long c = cursor + skippingCount;
+//			return c > total ? total : c;
+//		}
+//
+//		@Override
+//		public DataEntry<Bytes, byte[]> next() {
+//			if (hasNext()) {
+//				DataEntry<Bytes, byte[]> entry = getLatestDataEntry(cursor);
+//				cursor = nextCursor(1);
+//				return entry;
+//			}
+//			return null;
+//		}
+//
+//		@Override
+//		public DataEntry<Bytes, byte[]>[] next(int count) {
+//			if (hasNext()) {
+//				long from = cursor;
+//				long nextCursor = nextCursor(count);
+//				long c = nextCursor - cursor;
+//				if (c > LedgerConsts.MAX_LIST_COUNT) {
+//					throw new IllegalArgumentException(
+//							"Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
+//				}
+//				DataEntry<Bytes, byte[]>[] entries = getLatestDataEntries(from, (int) c);
+//				cursor = nextCursor;
+//				return entries;
+//			}
+//			return EMPTY_ENTRIES;
+//		}
+//
+//		@Override
+//		public boolean hasNext() {
+//			return cursor < total;
+//		}
+//
+//	}
+//
+//	private class DescDataInterator implements DataIterator<Bytes, byte[]> {
+//
+//		private final long total;
+//
+//		private long cursor;
+//
+//		public DescDataInterator(long total) {
+//			this.total = total;
+//			this.cursor = total - 1;
+//		}
+//
+//		@Override
+//		public void skip(long count) {
+//			cursor = nextCursor(count);
+//		}
+//
+//		private long nextCursor(long skippingCount) {
+//			long c = cursor - skippingCount;
+//			return c < 0 ? -1 : c;
+//		}
+//
+//		@Override
+//		public DataEntry<Bytes, byte[]> next() {
+//			if (hasNext()) {
+//				DataEntry<Bytes, byte[]> entry = getLatestDataEntry(cursor);
+//				cursor = nextCursor(1);
+//				return entry;
+//			}
+//			return null;
+//		}
+//
+//		@Override
+//		public DataEntry<Bytes, byte[]>[] next(int count) {
+//			if (hasNext()) {
+//				long nextCursor = nextCursor(count);
+//				long from = nextCursor + 1;
+//				long c = cursor - nextCursor;
+//				if (c > LedgerConsts.MAX_LIST_COUNT) {
+//					throw new IllegalArgumentException(
+//							"Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
+//				}
+//				DataEntry<Bytes, byte[]>[] entries = getLatestDataEntries(from, (int) c);
+//				// reverse;
+//				ArrayUtils.reverse(entries);
+//
+//				cursor = nextCursor;
+//				return entries;
+//			}
+//			return EMPTY_ENTRIES;
+//		}
+//
+//		@Override
+//		public boolean hasNext() {
+//			return cursor < total;
+//		}
+//
+//	}
 
 }

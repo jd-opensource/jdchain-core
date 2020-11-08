@@ -11,13 +11,12 @@ import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.MerkleProofBuilder;
 import com.jd.blockchain.ledger.MerkleSnapshot;
 import com.jd.blockchain.ledger.TypedValue;
+import com.jd.blockchain.ledger.core.DatasetHelper.DataChangedListener;
+import com.jd.blockchain.ledger.core.DatasetHelper.TypeMapper;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.Dataset;
-import com.jd.blockchain.utils.DatasetHelper;
-import com.jd.blockchain.utils.DatasetHelper.DataChangedListener;
-import com.jd.blockchain.utils.DatasetHelper.TypeMapper;
 import com.jd.blockchain.utils.Transactional;
 
 /**
@@ -39,15 +38,15 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 
 	private BlockchainIdentity accountID;
 
-	private MerkleDataset rootDataset;
+	private MerkleDataset<Bytes, byte[]> rootDataset;
 
-	private MerkleDataset headerDataset;
+	private MerkleDataset<Bytes, byte[]> headerDataset;
 
-	private MerkleDataset dataDataset;
+	private MerkleDataset<Bytes, byte[]> dataDataset;
 
-	private Dataset<String, TypedValue> typedHeader;
+	private MerkleDataset<String, TypedValue> typedHeader;
 
-	private Dataset<String, TypedValue> typedData;
+	private MerkleDataset<String, TypedValue> typedData;
 
 //	private long version;
 
@@ -184,7 +183,7 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 	}
 
 	@Override
-	public Dataset<String, TypedValue> getDataset() {
+	public MerkleDataset<String, TypedValue> getDataset() {
 		return typedData;
 	}
 

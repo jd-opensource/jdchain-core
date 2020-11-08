@@ -9,13 +9,13 @@ import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
-import com.jd.blockchain.utils.AbstractSkippingIterator;
 import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataIterator;
+import com.jd.blockchain.utils.DataEntry;
+import com.jd.blockchain.utils.Mapper;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 
-public class ParticipantDataset implements Transactional, MerkleProvable, ParticipantCollection {
+public class ParticipantDataset implements Transactional, ParticipantCollection {
 
 	static {
 		DataContractRegistry.register(ParticipantNode.class);
@@ -30,7 +30,8 @@ public class ParticipantDataset implements Transactional, MerkleProvable, Partic
 
 	public ParticipantDataset(HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
 			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage, verStorage, readonly);
+		dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage,
+				verStorage, readonly);
 	}
 
 	@Override
@@ -140,26 +141,14 @@ public class ParticipantDataset implements Transactional, MerkleProvable, Partic
 
 	@Override
 	public SkippingIterator<ParticipantNode> getAllParticipants() {
-		DataIterator<Bytes, byte[]> dataIterator = dataset.iterator();
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	
-	private static class ParticipantIterator extends AbstractSkippingIterator<ParticipantNode>{
-		
-		private DataIterator<Bytes, byte[]> dataIterator;
-		
-		
+		SkippingIterator<DataEntry<Bytes, byte[]>> dataIterator = dataset.iterator();
+		return dataIterator.iterateAs(new Mapper<DataEntry<Bytes,byte[]>, ParticipantNode>() {
 
-		@Override
-		public long getTotalCount() {
-			// TODO Auto-generated method stub
-			
-			return 0;
-		}
-
-		
+			@Override
+			public ParticipantNode from(DataEntry<Bytes, byte[]> source) {
+				return source == null ? null : BinaryProtocol.decode(source.getValue());
+			}
+		});
 	}
 
 }

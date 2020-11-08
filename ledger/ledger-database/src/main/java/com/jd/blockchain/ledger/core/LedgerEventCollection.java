@@ -1,6 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
-public interface LedgerEventQuery {
+public interface LedgerEventCollection {
 	
 	EventGroup getSystemEvents();
 

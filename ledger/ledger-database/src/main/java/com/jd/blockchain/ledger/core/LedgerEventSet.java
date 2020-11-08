@@ -2,7 +2,7 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.utils.Transactional;
 
-public class LedgerEventSet implements LedgerEventQuery, Transactional {
+public class LedgerEventSet implements LedgerEventCollection, Transactional {
 
 	private MerkleEventSet systemEventSet;
 	private EventAccountSet userEventSet;

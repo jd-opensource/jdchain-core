@@ -21,7 +21,7 @@ import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 import com.jd.blockchain.utils.codec.Base58Utils;
 
-public class TransactionSet implements Transactional, TransactionQuery {
+public class TransactionSet implements Transactional, TransactionCollection {
 
 	static {
 		DataContractRegistry.register(TransactionRequest.class);

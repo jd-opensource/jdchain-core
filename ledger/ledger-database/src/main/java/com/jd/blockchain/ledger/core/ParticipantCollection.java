@@ -6,7 +6,7 @@ import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.SkippingIterator;
 
-public interface ParticipantCollection extends MerkleProvable {
+public interface ParticipantCollection extends MerkleProvable<Bytes> {
 
 	HashDigest getRootHash();
 

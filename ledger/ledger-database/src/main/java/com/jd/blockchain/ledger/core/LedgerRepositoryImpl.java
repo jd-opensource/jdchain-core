@@ -133,7 +133,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	private LedgerState retrieveLatestState() {
 		LedgerBlock latestBlock = innerGetBlock(innerGetLatestBlockHeight());
 		LedgerDataset ledgerDataset = innerGetLedgerDataset(latestBlock);
-		TransactionQuery txSet = loadTransactionSet(latestBlock.getTransactionSetHash(),
+		TransactionCollection txSet = loadTransactionSet(latestBlock.getTransactionSetHash(),
 				ledgerDataset.getAdminDataset().getSettings().getCryptoSetting(), keyPrefix, exPolicyStorage,
 				versioningStorage, true);
 		LedgerEventSet ledgerEventset = innerGetLedgerEventSet(latestBlock);
@@ -273,7 +273,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	@Override
-	public TransactionQuery getTransactionSet(LedgerBlock block) {
+	public TransactionCollection getTransactionSet(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
 			// 从缓存中返回最新区块的数据集；
@@ -417,7 +417,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	@Override
-	public LedgerEventQuery getLedgerEvents(LedgerBlock block) {
+	public LedgerEventCollection getLedgerEvents(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
 			return latestState.getLedgerEventSet();
@@ -713,13 +713,13 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 		private final LedgerBlock block;
 
-		private final TransactionQuery transactionSet;
+		private final TransactionCollection transactionSet;
 
 		private final LedgerDataset ledgerDataset;
 
 		private final LedgerEventSet ledgerEventSet;
 
-		public LedgerState(LedgerBlock block, LedgerDataset ledgerDataset, TransactionQuery transactionSet, LedgerEventSet ledgerEventSet) {
+		public LedgerState(LedgerBlock block, LedgerDataset ledgerDataset, TransactionCollection transactionSet, LedgerEventSet ledgerEventSet) {
 			this.block = block;
 			this.ledgerDataset = ledgerDataset;
 			this.transactionSet = transactionSet;
@@ -747,11 +747,11 @@ class LedgerRepositoryImpl implements LedgerRepository {
 			return ledgerDataset.getUserAccountSet();
 		}
 
-		public TransactionQuery getTransactionSet() {
+		public TransactionCollection getTransactionSet() {
 			return transactionSet;
 		}
 
-		public LedgerEventQuery getLedgerEventSet() {
+		public LedgerEventCollection getLedgerEventSet() {
 			return ledgerEventSet;
 		}
 

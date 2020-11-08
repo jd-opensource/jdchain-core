@@ -24,7 +24,7 @@ import com.jd.blockchain.utils.DataEntry;
  * @author huanghaiquan
  *
  */
-public class UserRoleDataset implements Transactional, MerkleProvable, UserAuthorizationSettings {
+public class UserRoleDataset implements Transactional, MerkleProvable<Bytes>, UserAuthorizationSettings {
 
 	private MerkleHashDataset dataset;
 

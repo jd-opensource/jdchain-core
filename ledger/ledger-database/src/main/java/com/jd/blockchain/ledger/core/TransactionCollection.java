@@ -5,8 +5,9 @@ import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionResult;
 import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.utils.Bytes;
 
-public interface TransactionQuery extends MerkleProvable {
+public interface TransactionCollection extends MerkleProvable<Bytes> {
 
 	LedgerTransaction[] getTransactions(int fromIndex, int count);
 	

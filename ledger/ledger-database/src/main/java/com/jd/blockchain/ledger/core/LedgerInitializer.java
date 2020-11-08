@@ -288,12 +288,12 @@ public class LedgerInitializer {
 		}
 
 		@Override
-		public LedgerEventQuery getLedgerEvents(LedgerBlock block) {
+		public LedgerEventCollection getLedgerEvents(LedgerBlock block) {
 			return null;
 		}
 
 		@Override
-		public TransactionQuery getTransactionSet(LedgerBlock block) {
+		public TransactionCollection getTransactionSet(LedgerBlock block) {
 			return null;
 		}
 

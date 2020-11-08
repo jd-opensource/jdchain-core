@@ -1,17 +1,17 @@
 package com.jd.blockchain.ledger.core;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.jd.blockchain.binaryproto.BinaryProtocol;
-import com.jd.blockchain.ledger.Account;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.EventInfo;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.DataIterator;
 import com.jd.blockchain.utils.Dataset;
-
-import java.util.ArrayList;
-import java.util.List;
+import com.jd.blockchain.utils.Mapper;
+import com.jd.blockchain.utils.SkippingIterator;
 
 public class EventPublishingAccount implements EventAccount, EventPublisher {
 
@@ -45,15 +45,17 @@ public class EventPublishingAccount implements EventAccount, EventPublisher {
 
     @Override
     public String[] getEventNames(long fromIndex, int count) {
-        DataIterator<String, TypedValue> iterator = account.getDataset().iterator();
+        SkippingIterator<DataEntry<String, TypedValue>> iterator = account.getDataset().iterator();
         iterator.skip(fromIndex);
-        DataEntry<String, TypedValue>[] entries = iterator.next(count);
-        String[] events = new String[entries.length];
-        for (int i = 0; i < entries.length; i++) {
-            events[i] = entries[i].getKey();
-        }
+        
+        String[] eventNames = iterator.next(count, String.class, new Mapper<DataEntry<String,TypedValue>, String>() {
+			@Override
+			public String from(DataEntry<String, TypedValue> source) {
+				return source.getKey();
+			}
+		});
 
-        return events;
+        return eventNames;
     }
 
     @Override

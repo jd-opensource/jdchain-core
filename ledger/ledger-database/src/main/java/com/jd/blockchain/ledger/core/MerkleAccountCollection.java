@@ -12,7 +12,7 @@ import com.jd.blockchain.utils.SkippingIterator;
  *
  * @param <T>
  */
-public interface MerkleAccountCollection<T> extends MerkleProvable {
+public interface MerkleAccountCollection<T> extends MerkleProvable<Bytes> {
 
 	/**
 	 * 返回总数；

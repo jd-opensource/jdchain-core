@@ -27,10 +27,9 @@ import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
 import com.jd.blockchain.ledger.UserPrivilegeSet;
 import com.jd.blockchain.transaction.BlockchainQueryService;
-import com.jd.blockchain.utils.ArrayUtils;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.DataIterator;
+import com.jd.blockchain.utils.Mapper;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.query.QueryArgs;
 import com.jd.blockchain.utils.query.QueryUtils;
@@ -103,7 +102,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public long getTransactionCount(HashDigest ledgerHash, long height) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getBlock(height);
-		TransactionQuery txset = ledger.getTransactionSet(block);
+		TransactionCollection txset = ledger.getTransactionSet(block);
 		return txset.getTotalCount();
 	}
 
@@ -111,7 +110,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public long getTransactionCount(HashDigest ledgerHash, HashDigest blockHash) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getBlock(blockHash);
-		TransactionQuery txset = ledger.getTransactionSet(block);
+		TransactionCollection txset = ledger.getTransactionSet(block);
 		return txset.getTotalCount();
 	}
 
@@ -119,7 +118,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public long getTransactionTotalCount(HashDigest ledgerHash) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
-		TransactionQuery txset = ledger.getTransactionSet(block);
+		TransactionCollection txset = ledger.getTransactionSet(block);
 		return txset.getTotalCount();
 	}
 
@@ -258,8 +257,8 @@ public class LedgerQueryService implements BlockchainQueryService {
 		}
 
 		LedgerBlock ledgerBlock = ledger.getBlock(height);
-		TransactionQuery currTransactionSet = ledger.getTransactionSet(ledgerBlock);
-		TransactionQuery lastTransactionSet = null;
+		TransactionCollection currTransactionSet = ledger.getTransactionSet(ledgerBlock);
+		TransactionCollection lastTransactionSet = null;
 		int lastHeightTxTotalNums = 0;
 
 		if (height > 0) {
@@ -286,8 +285,8 @@ public class LedgerQueryService implements BlockchainQueryService {
 
 		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
 		long height = ledgerBlock.getHeight();
-		TransactionQuery currTransactionSet = ledger.getTransactionSet(ledgerBlock);
-		TransactionQuery lastTransactionSet = null;
+		TransactionCollection currTransactionSet = ledger.getTransactionSet(ledgerBlock);
+		TransactionCollection lastTransactionSet = null;
 		int lastHeightTxTotalNums = 0;
 
 		if (height > 0) {
@@ -308,7 +307,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public LedgerTransaction getTransactionByContentHash(HashDigest ledgerHash, HashDigest contentHash) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
-		TransactionQuery txset = ledger.getTransactionSet(block);
+		TransactionCollection txset = ledger.getTransactionSet(block);
 		return txset.getTransaction(contentHash);
 	}
 
@@ -316,7 +315,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public TransactionState getTransactionStateByContentHash(HashDigest ledgerHash, HashDigest contentHash) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
-		TransactionQuery txset = ledger.getTransactionSet(block);
+		TransactionCollection txset = ledger.getTransactionSet(block);
 		return txset.getState(contentHash);
 	}
 
@@ -428,13 +427,17 @@ public class LedgerQueryService implements BlockchainQueryService {
 		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
 
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) dataAccount.getDataset().getDataCount());
-//		return dataAccount.getDataset().getDataEntry(key, version).getDataEntries(pages[0], pages[1]);
-		DataIterator<String, TypedValue> iterator = dataAccount.getDataset().iterator();
+		SkippingIterator<DataEntry<String, TypedValue>> iterator = dataAccount.getDataset().iterator();
 		iterator.skip(queryArgs.getFrom());
-		DataEntry<String, TypedValue>[] dataEntries = iterator.next(queryArgs.getCount());
+		
+		TypedKVEntry[] typedKVEntries = iterator.next(queryArgs.getCount(), TypedKVEntry.class, new Mapper<DataEntry<String,TypedValue>, TypedKVEntry>() {
 
-		TypedKVEntry[] typedKVEntries = ArrayUtils.cast(dataEntries, TypedKVEntry.class,
-				e -> e == null ? null : new TypedKVData(e.getKey(), e.getVersion(), e.getValue()));
+			@Override
+			public TypedKVEntry from(DataEntry<String, TypedValue> entry) {
+				return new TypedKVData(entry.getKey(), entry.getVersion(), entry.getValue());
+			}
+		});
+
 		return typedKVEntries;
 	}
 

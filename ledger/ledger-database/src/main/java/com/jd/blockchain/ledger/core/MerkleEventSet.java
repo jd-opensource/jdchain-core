@@ -1,5 +1,8 @@
 package com.jd.blockchain.ledger.core;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.CryptoSetting;
@@ -10,11 +13,9 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.DataIterator;
+import com.jd.blockchain.utils.Mapper;
+import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class MerkleEventSet implements EventGroup, EventPublisher, Transactional {
 
@@ -103,14 +104,16 @@ public class MerkleEventSet implements EventGroup, EventPublisher, Transactional
 
     @Override
     public String[] getEventNames(long fromIndex, int count) {
-        DataIterator<Bytes, byte[]> iterator = events.iterator();
+        SkippingIterator<DataEntry<Bytes, byte[]>> iterator = events.iterator();
         iterator.skip(fromIndex);
-        DataEntry<Bytes, byte[]>[] entries = iterator.next(count);
-        String[] events = new String[entries.length];
-        for (int i = 0; i < entries.length; i++) {
-            events[i] = decodeKey(entries[i].getKey());
-        }
-
+        
+        String[] events = iterator.next(count, String.class, new Mapper<DataEntry<Bytes,byte[]>, String>() {
+			@Override
+			public String from(DataEntry<Bytes, byte[]> source) {
+				return decodeKey(source.getKey());
+			}
+		});
+        
         return events;
     }
 

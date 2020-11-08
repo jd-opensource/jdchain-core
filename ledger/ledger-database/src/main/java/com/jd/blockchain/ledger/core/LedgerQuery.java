@@ -85,7 +85,7 @@ public interface LedgerQuery {
 	 * @param block
 	 * @return
 	 */
-	LedgerEventQuery getLedgerEvents(LedgerBlock block);
+	LedgerEventCollection getLedgerEvents(LedgerBlock block);
 
 	/**
 	 * 查询最新区块的账本数据；
@@ -101,11 +101,11 @@ public interface LedgerQuery {
 	 * 
 	 * @return
 	 */
-	default LedgerEventQuery getLedgerEvents() {
+	default LedgerEventCollection getLedgerEvents() {
 		return getLedgerEvents(getLatestBlock());
 	}
 
-	TransactionQuery getTransactionSet(LedgerBlock block);
+	TransactionCollection getTransactionSet(LedgerBlock block);
 
 	UserAccountCollection getUserAccountSet(LedgerBlock block);
 
@@ -117,7 +117,7 @@ public interface LedgerQuery {
 
 	EventAccountCollection getUserEvents(LedgerBlock block);
 
-	default TransactionQuery getTransactionSet() {
+	default TransactionCollection getTransactionSet() {
 		return getTransactionSet(getLatestBlock());
 	}
 

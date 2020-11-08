@@ -34,7 +34,7 @@ public class MerkleAccountSet implements Transactional, MerkleAccountCollection<
 	/**
 	 * 账户根哈希的数据集；
 	 */
-	private MerkleDataset merkleDataset;
+	private MerkleDataset<Bytes, byte[]> merkleDataset;
 
 	/**
 	 * The cache of latest version accounts, including accounts getting by querying
@@ -57,10 +57,6 @@ public class MerkleAccountSet implements Transactional, MerkleAccountCollection<
 	public boolean isReadonly() {
 		return merkleDataset.isReadonly();
 	}
-
-//	void setReadonly() {
-//		merkleDataset.setReadonly();
-//	}
 
 	public MerkleAccountSet(CryptoSetting cryptoSetting, Bytes keyPrefix, ExPolicyKVStorage exStorage,
 			VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {

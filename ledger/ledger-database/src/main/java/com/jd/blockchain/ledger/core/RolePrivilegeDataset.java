@@ -16,10 +16,10 @@ import com.jd.blockchain.ledger.TransactionPrivilegeBitset;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.Transactional;
 import com.jd.blockchain.utils.DataEntry;
+import com.jd.blockchain.utils.Transactional;
 
-public class RolePrivilegeDataset implements Transactional, MerkleProvable, RolePrivilegeSettings {
+public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes>, RolePrivilegeSettings {
 
 	private MerkleHashDataset dataset;
 
