@@ -623,8 +623,8 @@ public class LedgerQueryService implements BlockchainQueryService {
 //		LedgerSecurityManager securityManager = ledger.getSecurityManager();
 		LedgerDataQuery ledgerDataQuery = ledger.getLedgerData();
 		LedgerAdminDataQuery previousAdminDataset = ledgerDataQuery.getAdminDataset();
-		LedgerSecurityManager securityManager = new LedgerSecurityManagerImpl(previousAdminDataset.getAdminInfo().getRolePrivileges(),
-				previousAdminDataset.getAdminInfo().getAuthorizations(), previousAdminDataset.getParticipantDataset(),
+		LedgerSecurityManager securityManager = new LedgerSecurityManagerImpl(previousAdminDataset.getAdminSettings().getRolePrivileges(),
+				previousAdminDataset.getAdminSettings().getAuthorizations(), previousAdminDataset.getParticipantDataset(),
 				ledgerDataQuery.getUserAccountSet());
 		UserPrivilegeSet userPrivilegeSet = securityManager.getUserRolesPrivilegs(Bytes.fromBase58(userAddress));
 		return userPrivilegeSet;

@@ -66,12 +66,28 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 		return dataset.getDataCount();
 	}
 
-	@Override
+	/**
+	 * 加入新的角色权限； <br>
+	 * 
+	 * 如果指定的角色已经存在，则引发 {@link LedgerException} 异常；
+	 * 
+	 * @param roleName        角色名称；不能超过 {@link #MAX_ROLE_NAME_LENGTH} 个 Unicode 字符；
+	 * @param ledgerPrivilege
+	 * @param txPrivilege
+	 */
 	public long addRolePrivilege(String roleName, Privileges privileges) {
 		return addRolePrivilege(roleName, privileges.getLedgerPrivilege(), privileges.getTransactionPrivilege());
 	}
 
-	@Override
+	/**
+	 * 加入新的角色权限； <br>
+	 *
+	 * 如果指定的角色已经存在，则引发 {@link LedgerException} 异常；
+	 *
+	 * @param roleName        角色名称；不能超过 {@link #MAX_ROLE_NAME_LENGTH} 个 Unicode 字符；
+	 * @param ledgerPrivilege
+	 * @param txPrivilege
+	 */
 	public long addRolePrivilege(String roleName, LedgerPrivilegeBitset ledgerPrivilege, TransactionPrivilegeBitset txPrivilege) {
 		RolePrivileges roleAuth = new RolePrivileges(roleName, -1, ledgerPrivilege, txPrivilege);
 		long nv = setRolePrivilege(roleAuth);
@@ -81,7 +97,17 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 		return nv;
 	}
 
-	@Override
+	/**
+	 * 加入新的角色权限； <br>
+	 *
+	 * 如果指定的角色已经存在，则引发 {@link LedgerException} 异常；
+	 *
+	 * @param roleName          角色名称；不能超过 {@link #MAX_ROLE_NAME_LENGTH} 个 Unicode
+	 *                          字符；
+	 * @param ledgerPermissions 给角色授予的账本权限列表；
+	 * @param txPermissions     给角色授予的交易权限列表；
+	 * @return
+	 */
 	public long addRolePrivilege(String roleName, LedgerPermission[] ledgerPermissions,
 			TransactionPermission[] txPermissions) {
 		LedgerPrivilegeBitset ledgerPrivilege = new LedgerPrivilegeBitset();
@@ -117,7 +143,6 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	 * 
 	 * @param participant
 	 */
-	@Override
 	public void updateRolePrivilege(RolePrivileges roleAuth) {
 		long nv = setRolePrivilege(roleAuth);
 		if (nv < 0) {
@@ -134,7 +159,6 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	 * @param permissions 权限列表；
 	 * @return
 	 */
-	@Override
 	public long enablePermissions(String roleName, LedgerPermission... permissions) {
 		RolePrivileges roleAuth = getRolePrivilege(roleName);
 		if (roleAuth == null) {
@@ -152,7 +176,6 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	 * @param permissions 权限列表；
 	 * @return
 	 */
-	@Override
 	public long enablePermissions(String roleName, TransactionPermission... permissions) {
 		RolePrivileges roleAuth = getRolePrivilege(roleName);
 		if (roleAuth == null) {
@@ -170,7 +193,6 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	 * @param permissions 权限列表；
 	 * @return
 	 */
-	@Override
 	public long disablePermissions(String roleName, LedgerPermission... permissions) {
 		RolePrivileges roleAuth = getRolePrivilege(roleName);
 		if (roleAuth == null) {
@@ -188,7 +210,6 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	 * @param permissions 权限列表；
 	 * @return
 	 */
-	@Override
 	public long disablePermissions(String roleName, TransactionPermission... permissions) {
 		RolePrivileges roleAuth = getRolePrivilege(roleName);
 		if (roleAuth == null) {
@@ -207,7 +228,6 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	 * @param txPermissions
 	 * @return
 	 */
-	@Override
 	public long enablePermissions(String roleName, LedgerPermission[] ledgerPermissions,
 			TransactionPermission[] txPermissions) {
 		RolePrivileges roleAuth = getRolePrivilege(roleName);
@@ -228,7 +248,6 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	 * @param txPermissions
 	 * @return
 	 */
-	@Override
 	public long disablePermissions(String roleName, LedgerPermission[] ledgerPermissions,
 			TransactionPermission[] txPermissions) {
 		RolePrivileges roleAuth = getRolePrivilege(roleName);

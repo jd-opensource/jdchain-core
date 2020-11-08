@@ -16,7 +16,6 @@ import com.jd.blockchain.ledger.LedgerMetadata_V2;
 import com.jd.blockchain.ledger.LedgerSettings;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.RolePrivilegeSettings;
-import com.jd.blockchain.ledger.UserAuthorizationSettings;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
@@ -100,17 +99,17 @@ public class LedgerAdminDataset implements Transactional, LedgerAdminDataQuery, 
 	}
 
 	@Override
-	public RolePrivilegeSettings getRolePrivileges() {
+	public RolePrivilegeDataset getRolePrivileges() {
 		return rolePrivileges;
 	}
 
 	@Override
-	public UserAuthorizationSettings getAuthorizations() {
+	public UserRoleDataset getAuthorizations() {
 		return userRoles;
 	}
 
 	@Override
-	public LedgerAdminSettings getAdminInfo() {
+	public LedgerAdminSettings getAdminSettings() {
 		return this;
 	}
 

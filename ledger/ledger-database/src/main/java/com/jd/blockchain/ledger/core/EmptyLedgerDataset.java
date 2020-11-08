@@ -45,7 +45,7 @@ public class EmptyLedgerDataset implements LedgerDataQuery {
 		
 
 		@Override
-		public LedgerAdminSettings getAdminInfo() {
+		public LedgerAdminSettings getAdminSettings() {
 			return null;
 		}
 

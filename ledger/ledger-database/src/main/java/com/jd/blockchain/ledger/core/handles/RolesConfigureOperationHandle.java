@@ -1,18 +1,18 @@
 package com.jd.blockchain.ledger.core.handles;
 
 import com.jd.blockchain.ledger.LedgerPermission;
-import com.jd.blockchain.ledger.RolePrivilegeSettings;
 import com.jd.blockchain.ledger.RolePrivileges;
 import com.jd.blockchain.ledger.RolesConfigureOperation;
 import com.jd.blockchain.ledger.RolesConfigureOperation.RolePrivilegeEntry;
+import com.jd.blockchain.ledger.core.EventManager;
 import com.jd.blockchain.ledger.core.LedgerDataset;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
+import com.jd.blockchain.ledger.core.RolePrivilegeDataset;
 import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
-import com.jd.blockchain.ledger.core.EventManager;
 
 public class RolesConfigureOperationHandle extends AbstractLedgerOperationHandle<RolesConfigureOperation> {
 
@@ -29,7 +29,7 @@ public class RolesConfigureOperationHandle extends AbstractLedgerOperationHandle
 
 		// 操作账本；
 		RolePrivilegeEntry[] rpcfgs = operation.getRoles();
-		RolePrivilegeSettings rpSettings = newBlockDataset.getAdminDataset().getRolePrivileges();
+		RolePrivilegeDataset rpSettings = newBlockDataset.getAdminDataset().getRolePrivileges();
 		if (rpcfgs != null) {
 			for (RolePrivilegeEntry rpcfg : rpcfgs) {
 				RolePrivileges rp = rpSettings.getRolePrivilege(rpcfg.getRoleName());

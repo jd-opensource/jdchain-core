@@ -4,7 +4,7 @@ import com.jd.blockchain.ledger.LedgerAdminSettings;
 
 public interface LedgerAdminDataQuery {
 	
-	LedgerAdminSettings getAdminInfo();
+	LedgerAdminSettings getAdminSettings();
 
 	ParticipantCollection getParticipantDataset();
 

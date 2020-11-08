@@ -77,7 +77,6 @@ public class UserRoleDataset implements Transactional, MerkleProvable<Bytes>, Us
 	 * @param rolesPolicy
 	 * @param roles
 	 */
-	@Override
 	public void addUserRoles(Bytes userAddress, RolesPolicy rolesPolicy, String... roles) {
 		UserRoles roleAuth = new UserRoles(userAddress, -1, rolesPolicy);
 		roleAuth.addRoles(roles);
@@ -96,7 +95,6 @@ public class UserRoleDataset implements Transactional, MerkleProvable<Bytes>, Us
 	 * @param rolesPolicy
 	 * @param roles
 	 */
-	@Override
 	public void addUserRoles(Bytes userAddress, RolesPolicy rolesPolicy, Collection<String> roles) {
 		UserRoles roleAuth = new UserRoles(userAddress, -1, rolesPolicy);
 		roleAuth.addRoles(roles);
@@ -127,7 +125,6 @@ public class UserRoleDataset implements Transactional, MerkleProvable<Bytes>, Us
 	 * 
 	 * @param userRoles
 	 */
-	@Override
 	public void updateUserRoles(UserRoles userRoles) {
 		long nv = setUserRolesAuthorization(userRoles);
 		if (nv < 0) {
@@ -145,7 +142,6 @@ public class UserRoleDataset implements Transactional, MerkleProvable<Bytes>, Us
 	 * @param roles       角色列表；
 	 * @return
 	 */
-	@Override
 	public long setRoles(Bytes userAddress, RolesPolicy policy, String... roles) {
 		UserRoles userRoles = getUserRoles(userAddress);
 		if (userRoles == null) {

@@ -478,8 +478,8 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		
 		LedgerDataQuery ledgerDataQuery = getLedgerData(ledgerBlock);
 		LedgerAdminDataQuery previousAdminDataset = ledgerDataQuery.getAdminDataset();
-		LedgerSecurityManager securityManager = new LedgerSecurityManagerImpl(previousAdminDataset.getAdminInfo().getRolePrivileges(),
-				previousAdminDataset.getAdminInfo().getAuthorizations(), previousAdminDataset.getParticipantDataset(),
+		LedgerSecurityManager securityManager = new LedgerSecurityManagerImpl(previousAdminDataset.getAdminSettings().getRolePrivileges(),
+				previousAdminDataset.getAdminSettings().getAuthorizations(), previousAdminDataset.getParticipantDataset(),
 				ledgerDataQuery.getUserAccountSet());
 		return securityManager;
 	}
