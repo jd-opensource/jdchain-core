@@ -274,16 +274,21 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     @Override
     public byte[] appExecuteUnordered(byte[] bytes, MessageContext messageContext) {
         if (Arrays.equals(MonitorService.LOAD_MONITOR, bytes)) {
-            // 获取加载管理端口的信息
-            View currView = this.replica.getReplicaContext().getCurrentView();
-            Map<Integer, NodeNetwork> addresses = currView.getAddresses();
-            TreeMap<Integer, NodeNetwork> tree = new TreeMap<>();
-            for (Map.Entry<Integer, NodeNetwork> entry : addresses.entrySet()) {
-                tree.put(entry.getKey(), entry.getValue());
+            try {
+                // 获取加载管理端口的信息
+                View currView = this.replica.getReplicaContext().getCurrentView();
+                Map<Integer, NodeNetwork> addresses = currView.getAddresses();
+                TreeMap<Integer, NodeNetwork> tree = new TreeMap<>();
+                for (Map.Entry<Integer, NodeNetwork> entry : addresses.entrySet()) {
+                    tree.put(entry.getKey(), entry.getValue());
+                }
+                Collection<NodeNetwork> nodeNetworks = tree.values();
+                NodeNetworkAddresses nodeNetworkAddresses = nodeNetworkAddresses(new ArrayList<>(nodeNetworks));
+                return BinaryProtocol.encode(nodeNetworkAddresses, NodeNetworkAddresses.class);
+            } catch (Exception e) {
+                // 返回启动异常的错误
+                throw new IllegalStateException(String.format("BftSmartNodeServer[%s] is still not started !", serverId));
             }
-            Collection<NodeNetwork> nodeNetworks = tree.values();
-            NodeNetworkAddresses nodeNetworkAddresses = nodeNetworkAddresses(new ArrayList<>(nodeNetworks));
-            return BinaryProtocol.encode(nodeNetworkAddresses, NodeNetworkAddresses.class);
         }
         return messageHandle.processUnordered(bytes).get();
     }
