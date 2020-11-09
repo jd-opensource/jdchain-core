@@ -446,6 +446,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
 		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
+		if (dataAccount == null) {
+			throw new LedgerException("数据账户不存在", TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
+		}
 
 		TypedKVEntry[] entries = new TypedKVEntry[keys.length];
 		long ver;
@@ -495,6 +498,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
 		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
+		if (dataAccount == null) {
+			throw new LedgerException("数据账户不存在", TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
+		}
 
 		TypedKVEntry[] entries = new TypedKVEntry[keys.length];
 		long ver = -1;
@@ -530,6 +536,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
 		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
+		if (dataAccount == null) {
+			throw new LedgerException("数据账户不存在", TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
+		}
 
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count,
 				(int) dataAccount.getDataset().getDataCount());
@@ -552,6 +561,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountQuery dataAccountSet = ledger.getDataAccountSet(block);
 		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
+		if (dataAccount == null) {
+			throw new LedgerException("数据账户不存在", TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
+		}
 
 		return dataAccount.getDataset().getDataCount();
 	}
