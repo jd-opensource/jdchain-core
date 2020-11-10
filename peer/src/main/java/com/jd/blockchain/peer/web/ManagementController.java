@@ -673,6 +673,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 						View newView = updateView(ledgerRepo, null, -1, Op.DEACTIVE);
 						if (newView != null && !newView.isMember(ledgerCurrNodes.get(ledgerRepo.getHash()).getId())) {
 							LOGGER.info("[ManagementController] updateView SUCC!");
+							ledgerPeers.get(ledgerHash).stop();
 						} else if (newView == null) {
 							throw new IllegalStateException("[ManagementController] client recv response timeout, consensus may be stalemate, please restart all nodes!");
 						}
