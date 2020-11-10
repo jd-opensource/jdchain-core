@@ -187,7 +187,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		if (hashBytes == null || hashBytes.length == 0) {
 			return null;
 		}
-		return new HashDigest(hashBytes);
+		return Crypto.resolveAsHashDigest(hashBytes);
 	}
 
 	@Override

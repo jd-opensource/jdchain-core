@@ -150,11 +150,11 @@ public class MerkleHashTrieTest {
 	public void testDataSerialize() {
 		byte[] key = BytesUtils.toBytes("KEY-1");
 		HashDigest hashDigest = SHA256_HASH_FUNC.hash(key);
-		MerkleTrieData merkleData = new MerkleTrieDataEntry(key, 0, hashDigest);
+		MerkleTrieData merkleData = new MerkleTrieDataEntry(key, 0, hashDigest.toBytes());
 		testMerkleDataSerialize(merkleData);
-		merkleData = new MerkleTrieDataEntry(key, 1024, hashDigest);
+		merkleData = new MerkleTrieDataEntry(key, 1024, hashDigest.toBytes());
 		testMerkleDataSerialize(merkleData);
-		merkleData = new MerkleTrieDataEntry(key, NumberMask.LONG.MAX_BOUNDARY_SIZE - 1, hashDigest);
+		merkleData = new MerkleTrieDataEntry(key, NumberMask.LONG.MAX_BOUNDARY_SIZE - 1, hashDigest.toBytes());
 		testMerkleDataSerialize(merkleData);
 
 		// 数据大小；

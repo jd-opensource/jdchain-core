@@ -1,6 +1,7 @@
 package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BlockchainIdentity;
@@ -146,7 +147,7 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 		if (hashBytes == null) {
 			return null;
 		}
-		return new HashDigest(hashBytes);
+		return Crypto.resolveAsHashDigest(hashBytes);
 	}
 
 	private HashDigest loadDataRoot() {
@@ -154,7 +155,7 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 		if (hashBytes == null) {
 			return null;
 		}
-		return new HashDigest(hashBytes);
+		return Crypto.resolveAsHashDigest(hashBytes);
 	}
 
 	private long getHeaderRootVersion() {

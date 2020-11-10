@@ -16,6 +16,7 @@ import bftsmart.tom.core.messages.TOMMessage;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractException;
 import com.jd.blockchain.consensus.service.*;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.transaction.TxResponseMessage;
@@ -544,7 +545,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
                 resp = new TxResponseMessage(txResponse.getContentHash());
             }
             else {
-                resp = new TxResponseMessage(new HashDigest(commonHash));
+                resp = new TxResponseMessage(Crypto.resolveAsHashDigest(commonHash));
             }
             resp.setExecutionState(TransactionState.IGNORED_BY_BLOCK_FULL_ROLLBACK);
             updatedResponses.add(BinaryProtocol.encode(resp, TransactionResponse.class));

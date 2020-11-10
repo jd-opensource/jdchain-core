@@ -12,6 +12,7 @@ import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.ArrayUtils;
+import com.jd.blockchain.utils.ByteSequence;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.MathUtils;
 import com.jd.blockchain.utils.SkippingIterator;
@@ -923,7 +924,7 @@ public class MerkleSortTree<T> implements Transactional {
 	 * @param key 节点逻辑key；
 	 * @return 节点的存储key；
 	 */
-	private Bytes encodeStorageKey(Bytes key) {
+	private Bytes encodeStorageKey(ByteSequence key) {
 		return KEY_PREFIX.concat(key);
 	}
 
@@ -943,7 +944,7 @@ public class MerkleSortTree<T> implements Transactional {
 		return nodeBytes;
 	}
 
-	private byte[] loadBytes(Bytes key) {
+	private byte[] loadBytes(ByteSequence key) {
 		Bytes storageKey = encodeStorageKey(key);
 		byte[] nodeBytes = KV_STORAGE.get(storageKey);
 		if (nodeBytes == null) {
@@ -952,7 +953,7 @@ public class MerkleSortTree<T> implements Transactional {
 		return nodeBytes;
 	}
 
-	private void saveBytes(Bytes key, byte[] nodeBytes, boolean reportKeyStorageConfliction) {
+	private void saveBytes(ByteSequence key, byte[] nodeBytes, boolean reportKeyStorageConfliction) {
 		Bytes storageKey = encodeStorageKey(key);
 		boolean success = KV_STORAGE.set(storageKey, nodeBytes, ExPolicy.NOT_EXISTING);
 		if ((!success) && reportKeyStorageConfliction) {

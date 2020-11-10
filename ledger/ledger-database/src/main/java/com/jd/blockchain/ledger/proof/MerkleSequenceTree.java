@@ -1364,7 +1364,7 @@ public class MerkleSequenceTree implements Transactional {
 				h = new byte[hashSize];
 				System.arraycopy(bytes, offset, h, 0, hashSize);
 				offset += hashSize;
-				childrenHashes[i] = new HashDigest(h);
+				childrenHashes[i] = Crypto.resolveAsHashDigest(h);
 			}
 
 			int hashSize = (int) NumberMask.TINY.resolveMaskedNumber(bytes, offset);
@@ -1374,7 +1374,7 @@ public class MerkleSequenceTree implements Transactional {
 			System.arraycopy(bytes, offset, nodeHashBytes, 0, hashSize);
 			offset += hashSize;
 
-			HashDigest nodeHash = new HashDigest(nodeHashBytes);
+			HashDigest nodeHash = Crypto.resolveAsHashDigest(nodeHashBytes);
 
 			PathNode node = new PathNode(startingSN, level, dataCount, childrenHashes, nodeHash);
 			if (checkHash) {

@@ -15,8 +15,7 @@ import org.junit.Test;
 
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
-import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
+import com.jd.blockchain.crypto.service.classic.ClassicCryptoService;
 import com.jd.blockchain.ledger.LedgerDataSnapshot;
 import com.jd.blockchain.ledger.core.TransactionStagedSnapshot;
 
@@ -35,10 +34,10 @@ public class TransactionStagedSnapshotTest {
 	public void initTransactionStagedSnapshot() {
 		DataContractRegistry.register(LedgerDataSnapshot.class);
 		data = new TransactionStagedSnapshot();
-		data.setAdminAccountHash(new HashDigest(ClassicAlgorithm.SHA256, "zhangsan".getBytes()));
-		data.setContractAccountSetHash(new HashDigest(ClassicAlgorithm.SHA256, "lisi".getBytes()));
-		data.setDataAccountSetHash(new HashDigest(ClassicAlgorithm.SHA256, "wangwu".getBytes()));
-		data.setUserAccountSetHash(new HashDigest(ClassicAlgorithm.SHA256, "zhaoliu".getBytes()));
+		data.setAdminAccountHash(ClassicCryptoService.SHA256.hash( "zhangsan".getBytes()));
+		data.setContractAccountSetHash(ClassicCryptoService.SHA256.hash( "lisi".getBytes()));
+		data.setDataAccountSetHash(ClassicCryptoService.SHA256.hash( "wangwu".getBytes()));
+		data.setUserAccountSetHash(ClassicCryptoService.SHA256.hash( "zhaoliu".getBytes()));
 	}
 
 	@Test

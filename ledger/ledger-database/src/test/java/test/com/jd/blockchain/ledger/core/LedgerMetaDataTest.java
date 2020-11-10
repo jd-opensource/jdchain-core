@@ -2,12 +2,10 @@ package test.com.jd.blockchain.ledger.core;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Random;
 
-import com.jd.blockchain.ledger.*;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -15,13 +13,17 @@ import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.Crypto;
-import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.CryptoProvider;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.crypto.service.classic.ClassicCryptoService;
 import com.jd.blockchain.crypto.service.sm.SMCryptoService;
+import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.LedgerMetadata;
+import com.jd.blockchain.ledger.LedgerSettings;
+import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.ParticipantNodeState;
 import com.jd.blockchain.ledger.core.CryptoConfig;
 import com.jd.blockchain.ledger.core.LedgerAdminDataset;
 import com.jd.blockchain.ledger.core.LedgerConfiguration;
@@ -81,7 +83,7 @@ public class LedgerMetaDataTest {
 		ledgerMetadata.setSeed(seed);
 		ledgerMetadata.setSettingsHash(settingsHash);
 
-		HashDigest hashDigest = new HashDigest(ClassicAlgorithm.SHA256, rawDigestBytes);
+		HashDigest hashDigest = ClassicCryptoService.SHA256.hash(rawDigestBytes);
 		ledgerMetadata.setParticipantsHash(hashDigest);
 
 		// encode and decode
@@ -186,7 +188,8 @@ public class LedgerMetaDataTest {
 		// NetworkAddress consensusAddress = new NetworkAddress("192.168.1.1", 9001,
 		// false);
 		Bytes address = AddressEncoding.generateAddress(pubKey);
-		ParticipantCertData participantCertData = new ParticipantCertData(address, name, pubKey, ParticipantNodeState.CONSENSUS);
+		ParticipantCertData participantCertData = new ParticipantCertData(address, name, pubKey,
+				ParticipantNodeState.CONSENSUS);
 
 		// encode and decode
 		byte[] encodeBytes = BinaryProtocol.encode(participantCertData, ParticipantNode.class);

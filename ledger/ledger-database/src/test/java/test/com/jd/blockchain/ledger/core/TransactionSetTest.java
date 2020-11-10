@@ -11,6 +11,7 @@ import java.util.Random;
 import org.junit.Test;
 
 import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainKeyGenerator;
 import com.jd.blockchain.ledger.BlockchainKeypair;
@@ -298,7 +299,7 @@ public class TransactionSetTest {
 		assertFalse(txset.isReadonly());
 		assertNull(txset.getRootHash());
 
-		HashDigest ledgerHash = new HashDigest(Base58Utils.decode("j5iF5xJ7KN4kjRrhD3EUKVSPmHz2bExxp3h9avqxcnnzch"));
+		HashDigest ledgerHash = Crypto.resolveAsHashDigest(Base58Utils.decode("j5iF5xJ7KN4kjRrhD3EUKVSPmHz2bExxp3h9avqxcnnzch"));
 		assertEquals("j5iF5xJ7KN4kjRrhD3EUKVSPmHz2bExxp3h9avqxcnnzch", ledgerHash.toBase58());
 
 		BlockchainKeypair parti0 = LedgerTestUtils.createKeyPair("7VeRLBwqTAz8oRazEazeaEfqei46sk2FzvBgyHMUBJvrUEGT",
@@ -318,9 +319,9 @@ public class TransactionSetTest {
 
 		TransactionStagedSnapshot txSnapshot = new TransactionStagedSnapshot();
 		txSnapshot.setAdminAccountHash(
-				new HashDigest(Base58Utils.decode("j5taeK6cpmJGcn8QbEYCqadna6s7NDSheDTK6NJdU4mFhh")));
+				Crypto.resolveAsHashDigest(Base58Utils.decode("j5taeK6cpmJGcn8QbEYCqadna6s7NDSheDTK6NJdU4mFhh")));
 		txSnapshot.setUserAccountSetHash(
-				new HashDigest(Base58Utils.decode("j5oQDSob92mCoGSHtrXa9soqgAtMyjwfRMt2kj7igXXJrP")));
+				Crypto.resolveAsHashDigest(Base58Utils.decode("j5oQDSob92mCoGSHtrXa9soqgAtMyjwfRMt2kj7igXXJrP")));
 
 		TransactionResult tx = new TransactionResultData(transactionRequest1.getTransactionHash(), 1,
 				TransactionState.SUCCESS, txSnapshot);

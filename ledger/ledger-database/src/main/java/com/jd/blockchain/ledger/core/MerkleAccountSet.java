@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.AddressEncoding;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BlockchainIdentity;
@@ -18,7 +19,6 @@ import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 
@@ -302,7 +302,7 @@ public class MerkleAccountSet implements Transactional, MerkleAccountCollection<
 		if (rootHashBytes == null) {
 			return null;
 		}
-		HashDigest rootHash = new HashDigest(rootHashBytes);
+		HashDigest rootHash = Crypto.resolveAsHashDigest(rootHashBytes);
 
 		return createAccount(address, rootHash, version, readonly);
 	}

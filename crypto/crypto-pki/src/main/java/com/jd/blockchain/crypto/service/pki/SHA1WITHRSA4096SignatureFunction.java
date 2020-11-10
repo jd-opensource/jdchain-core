@@ -1,25 +1,44 @@
 package com.jd.blockchain.crypto.service.pki;
 
-import com.jd.blockchain.crypto.*;
-import org.bouncycastle.asn1.DERNull;
-import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
-import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
-import org.bouncycastle.jcajce.provider.asymmetric.util.KeyUtil;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import static com.jd.blockchain.crypto.BaseCryptoKey.KEY_TYPE_BYTES;
+import static com.jd.blockchain.crypto.CryptoBytes.ALGORYTHM_CODE_SIZE;
+import static com.jd.blockchain.crypto.CryptoKeyType.PRIVATE;
+import static com.jd.blockchain.crypto.CryptoKeyType.PUBLIC;
+import static com.jd.blockchain.crypto.service.pki.PKIAlgorithm.SHA1WITHRSA4096;
 
 import java.math.BigInteger;
-import java.security.*;
+import java.security.InvalidKeyException;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Security;
+import java.security.Signature;
+import java.security.SignatureException;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
-import static com.jd.blockchain.crypto.BaseCryptoKey.KEY_TYPE_BYTES;
-import static com.jd.blockchain.crypto.CryptoBytes.ALGORYTHM_CODE_SIZE;
-import static com.jd.blockchain.crypto.CryptoKeyType.PRIVATE;
-import static com.jd.blockchain.crypto.CryptoKeyType.PUBLIC;
-import static com.jd.blockchain.crypto.service.pki.PKIAlgorithm.SHA1WITHRSA4096;
+import org.bouncycastle.asn1.DERNull;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
+import org.bouncycastle.jcajce.provider.asymmetric.util.KeyUtil;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+import com.jd.blockchain.crypto.AsymmetricKeypair;
+import com.jd.blockchain.crypto.CryptoAlgorithm;
+import com.jd.blockchain.crypto.CryptoBytes;
+import com.jd.blockchain.crypto.CryptoException;
+import com.jd.blockchain.crypto.PrivKey;
+import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.crypto.SignatureDigest;
+import com.jd.blockchain.crypto.SignatureFunction;
+import com.jd.blockchain.crypto.base.DefaultCryptoEncoding;
 
 /**
  * @author zhanglin33
@@ -67,7 +86,7 @@ public class SHA1WITHRSA4096SignatureFunction implements SignatureFunction {
             throw new CryptoException(e.getMessage(), e);
         }
 
-        return new SignatureDigest(SHA1WITHRSA4096, signature);
+        return DefaultCryptoEncoding.encodeSignatureDigest(SHA1WITHRSA4096, signature);
     }
 
     @Override
@@ -182,7 +201,7 @@ public class SHA1WITHRSA4096SignatureFunction implements SignatureFunction {
     @Override
     public SignatureDigest resolveDigest(byte[] digestBytes) {
         if (supportDigest(digestBytes)) {
-            return new SignatureDigest(digestBytes);
+            return DefaultCryptoEncoding.createSignatureDigest(SHA1WITHRSA4096.code(), digestBytes);
         } else {
             throw new CryptoException("digestBytes are invalid!");
         }
@@ -217,4 +236,11 @@ public class SHA1WITHRSA4096SignatureFunction implements SignatureFunction {
     public CryptoAlgorithm getAlgorithm() {
         return SHA1WITHRSA4096;
     }
+    
+    @Override
+	public <T extends CryptoBytes> boolean support(Class<T> cryptoDataType, byte[] encodedCryptoBytes) {
+		return (SignatureDigest.class == cryptoDataType && supportDigest(encodedCryptoBytes))
+				|| (PubKey.class == cryptoDataType && supportPubKey(encodedCryptoBytes))
+				|| (PrivKey.class == cryptoDataType && supportPrivKey(encodedCryptoBytes));
+	}
 }

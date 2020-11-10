@@ -1,28 +1,5 @@
 package com.jd.blockchain.peer.web;
 
-import bftsmart.reconfiguration.Reconfiguration;
-import bftsmart.reconfiguration.ReconfigureReply;
-import bftsmart.reconfiguration.util.HostsConfig;
-import bftsmart.reconfiguration.util.TOMConfiguration;
-import bftsmart.reconfiguration.views.MemoryBasedViewStorage;
-import bftsmart.reconfiguration.views.View;
-import bftsmart.tom.ServiceProxy;
-import com.jd.blockchain.binaryproto.BinaryProtocol;
-import com.jd.blockchain.ledger.merkletree.HashBucketEntry;
-import com.jd.blockchain.ledger.merkletree.KeyIndex;
-import com.jd.blockchain.ledger.merkletree.MerkleIndex;
-import com.jd.blockchain.ledger.proof.MerkleKey;
-import com.jd.blockchain.sdk.converters.ClientResolveUtil;
-import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
-import com.jd.blockchain.service.TransactionBatchResultHandle;
-import com.jd.blockchain.transaction.SignatureUtils;
-import com.jd.blockchain.transaction.TxBuilder;
-import com.jd.blockchain.transaction.TxContentBlob;
-import com.jd.blockchain.transaction.TxRequestBuilder;
-import com.jd.blockchain.transaction.TxRequestMessage;
-import com.jd.blockchain.transaction.TxResponseMessage;
-import com.jd.blockchain.utils.PropertiesUtils;
-
 import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.ACTIVE_PARTICIPANT_ID_KEY;
 import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.CONSENSUS_HOST_PATTERN;
 import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.CONSENSUS_PORT_PATTERN;
@@ -37,23 +14,8 @@ import static com.jd.blockchain.ledger.TransactionState.LEDGER_ERROR;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-
-import com.jd.blockchain.crypto.CryptoAlgorithm;
-import com.jd.blockchain.crypto.CryptoProvider;
-import com.jd.blockchain.ledger.core.TransactionSetQuery;
-import com.jd.blockchain.ledger.json.CryptoConfigInfo;
-import com.jd.blockchain.ledger.proof.MerkleLeaf;
-import com.jd.blockchain.ledger.proof.MerklePath;
-import com.jd.blockchain.peer.consensus.LedgerStateManager;
-import com.jd.blockchain.utils.Property;
-import com.jd.blockchain.utils.codec.Base58Utils;
-import com.jd.blockchain.utils.net.NetworkAddress;
-import com.jd.blockchain.utils.web.model.WebResponse;
-
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -67,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.consensus.ClientIdentification;
 import com.jd.blockchain.consensus.ClientIdentifications;
@@ -83,6 +46,9 @@ import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.ServerSettings;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 import com.jd.blockchain.crypto.AsymmetricKeypair;
+import com.jd.blockchain.crypto.Crypto;
+import com.jd.blockchain.crypto.CryptoAlgorithm;
+import com.jd.blockchain.crypto.CryptoProvider;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.PrivKey;
@@ -130,20 +96,50 @@ import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.LedgerRepository;
 import com.jd.blockchain.ledger.core.OperationHandleRegisteration;
 import com.jd.blockchain.ledger.core.TransactionBatchProcessor;
-
+import com.jd.blockchain.ledger.core.TransactionSetQuery;
+import com.jd.blockchain.ledger.json.CryptoConfigInfo;
+import com.jd.blockchain.ledger.merkletree.HashBucketEntry;
+import com.jd.blockchain.ledger.merkletree.KeyIndex;
+import com.jd.blockchain.ledger.merkletree.MerkleIndex;
+import com.jd.blockchain.ledger.proof.MerkleKey;
+import com.jd.blockchain.ledger.proof.MerkleLeaf;
+import com.jd.blockchain.ledger.proof.MerklePath;
 import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.peer.ConsensusRealm;
 import com.jd.blockchain.peer.LedgerBindingConfigAware;
 import com.jd.blockchain.peer.PeerManage;
+import com.jd.blockchain.peer.consensus.LedgerStateManager;
+import com.jd.blockchain.sdk.converters.ClientResolveUtil;
+import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
+import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.setting.GatewayIncomingSetting;
 import com.jd.blockchain.setting.LedgerIncomingSetting;
 import com.jd.blockchain.storage.service.DbConnection;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig.BindingConfig;
+import com.jd.blockchain.transaction.SignatureUtils;
+import com.jd.blockchain.transaction.TxBuilder;
+import com.jd.blockchain.transaction.TxContentBlob;
+import com.jd.blockchain.transaction.TxRequestBuilder;
+import com.jd.blockchain.transaction.TxRequestMessage;
+import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.PropertiesUtils;
+import com.jd.blockchain.utils.Property;
+import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.ByteArray;
+import com.jd.blockchain.utils.net.NetworkAddress;
+import com.jd.blockchain.utils.web.model.WebResponse;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
+
+import bftsmart.reconfiguration.Reconfiguration;
+import bftsmart.reconfiguration.ReconfigureReply;
+import bftsmart.reconfiguration.util.HostsConfig;
+import bftsmart.reconfiguration.util.TOMConfiguration;
+import bftsmart.reconfiguration.views.MemoryBasedViewStorage;
+import bftsmart.reconfiguration.views.View;
+import bftsmart.tom.ServiceProxy;
 
 
 /**
@@ -471,7 +467,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		OperationHandleRegisteration opReg = new DefaultOperationHandleRegisteration();
 
 		try {
-			HashDigest ledgerHash = new HashDigest(Base58Utils.decode(base58LedgerHash));
+			HashDigest ledgerHash = Crypto.resolveAsHashDigest(Base58Utils.decode(base58LedgerHash));
 
 			if (ledgerKeypairs.get(ledgerHash) == null) {
 				return WebResponse.createFailureResult(-1, "[ManagementController] input ledgerhash not exist!");
@@ -594,7 +590,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		WebResponse webResponse;
 
 		try {
-			HashDigest ledgerHash = new HashDigest(Base58Utils.decode(base58LedgerHash));
+			HashDigest ledgerHash = Crypto.resolveAsHashDigest(Base58Utils.decode(base58LedgerHash));
 
 			// 进行一系列安全检查
 			if (ledgerQuerys.get(ledgerHash) == null) {

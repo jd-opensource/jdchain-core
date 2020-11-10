@@ -2,6 +2,7 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
@@ -98,7 +99,7 @@ public class TransactionSet implements Transactional, TransactionCollection {
 
 		DataEntry<Bytes, byte[]> txReqRootHashData = this.txStateSet.getDataEntry(TX_REQUEST_ROOT_HASH);
 		this.txRequestBlockID = txReqRootHashData.getVersion();
-		HashDigest txRequestRootHash = new HashDigest(txReqRootHashData.getValue());
+		HashDigest txRequestRootHash = Crypto.resolveAsHashDigest(txReqRootHashData.getValue());
 
 		Bytes txRequestPrefix = Bytes.fromString(keyPrefix + TX_SEQUENCE_PREFIX);
 		TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(setting.getHashAlgorithm())
@@ -174,7 +175,7 @@ public class TransactionSet implements Transactional, TransactionCollection {
 	}
 
 	public LedgerTransaction getTransaction(String base58Hash) {
-		HashDigest hash = new HashDigest(Base58Utils.decode(base58Hash));
+		HashDigest hash = Crypto.resolveAsHashDigest(Base58Utils.decode(base58Hash));
 		return getTransaction(hash);
 	}
 
@@ -312,7 +313,7 @@ public class TransactionSet implements Transactional, TransactionCollection {
 
 		@Override
 		public HashDigest fromBytes(byte[] bytes) {
-			return new HashDigest(bytes);
+			return Crypto.resolveAsHashDigest(bytes);
 		}
 
 	}

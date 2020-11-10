@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.StateSnapshot;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 
 import javax.swing.plaf.nimbus.State;
@@ -156,7 +157,7 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 	private RealmProcessor initRealmProcessor(String realmName) {
 		RealmProcessor realmProcessor = new RealmProcessor();
 		byte[] hashBytes = Base58Utils.decode(realmName);
-		HashDigest ledgerHash = new HashDigest(hashBytes);
+		HashDigest ledgerHash = Crypto.resolveAsHashDigest(hashBytes);
 		realmProcessor.realmName = realmName;
 		realmProcessor.ledgerHash = ledgerHash;
 		return realmProcessor;
