@@ -1,5 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.LedgerException;
@@ -43,7 +44,7 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 			if (pkBytes == null) {
 				return null;
 			}
-			dataPubKey = new PubKey(pkBytes.getBytes().toBytes());
+			dataPubKey = Crypto.resolveAsPubKey(pkBytes.getBytes().toBytes());
 		}
 		return dataPubKey;
 	}

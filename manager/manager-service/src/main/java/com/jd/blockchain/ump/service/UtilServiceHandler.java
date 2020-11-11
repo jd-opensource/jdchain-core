@@ -1,9 +1,12 @@
 package com.jd.blockchain.ump.service;
 
+import com.jd.blockchain.crypto.AsymmetricKeypair;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.PrivKey;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.crypto.utils.classic.ED25519Utils;
+import com.jd.blockchain.crypto.utils.classic.SHA256Utils;
 import com.jd.blockchain.ump.model.user.UserKeyBuilder;
 import com.jd.blockchain.ump.model.user.UserKeys;
 import com.jd.blockchain.utils.codec.Base58Utils;
@@ -36,17 +39,19 @@ public class UtilServiceHandler implements UtilService {
 
     @Override
     public UserKeys create(String name, String seed, String pwd) {
+//        AsymmetricCipherKeyPair keyPair = ED25519Utils.generateKeyPair(
+//                new FixedSecureRandom(seed.getBytes(Charset.forName(UTF_8))));
+//
+//        PubKey pubKey = new PubKey(ClassicAlgorithm.ED25519,
+//                ((Ed25519PublicKeyParameters) keyPair.getPublic()).getEncoded());
+//
+//        PrivKey privKey = new PrivKey(ClassicAlgorithm.ED25519,
+//                ((Ed25519PrivateKeyParameters) keyPair.getPrivate()).getEncoded());
+        
+        byte[] seedBytes = seed.getBytes(Charset.forName(UTF_8));
+        AsymmetricKeypair keypair = Crypto.getSignatureFunction(ClassicAlgorithm.ED25519).generateKeypair(seedBytes);
 
-        AsymmetricCipherKeyPair keyPair = ED25519Utils.generateKeyPair(
-                new FixedSecureRandom(seed.getBytes(Charset.forName(UTF_8))));
-
-        PubKey pubKey = new PubKey(ClassicAlgorithm.ED25519,
-                ((Ed25519PublicKeyParameters) keyPair.getPublic()).getEncoded());
-
-        PrivKey privKey = new PrivKey(ClassicAlgorithm.ED25519,
-                ((Ed25519PrivateKeyParameters) keyPair.getPrivate()).getEncoded());
-
-        return create(name, pubKey, privKey, pwd);
+        return create(name, keypair.getPubKey(), keypair.getPrivKey(), pwd);
     }
 
     @Override
@@ -58,7 +63,7 @@ public class UtilServiceHandler implements UtilService {
     @Override
     public boolean verify(UserKeys userKeys, String pwd) {
 
-        String encodePwd = Base58Utils.encode((ShaUtils.hash_256(pwd.getBytes(Charset.forName(UTF_8)))));
+        String encodePwd = Base58Utils.encode((SHA256Utils.hash(pwd.getBytes(Charset.forName(UTF_8)))));
 
         if (encodePwd.equals(userKeys.getEncodePwd())) {
             return true;
@@ -68,7 +73,7 @@ public class UtilServiceHandler implements UtilService {
 
     private UserKeys create(String name, PubKey pubKey, PrivKey privKey, String pwd) {
 
-        byte[] pwdBytes = ShaUtils.hash_256(pwd.getBytes(Charset.forName(UTF_8)));
+        byte[] pwdBytes = SHA256Utils.hash(pwd.getBytes(Charset.forName(UTF_8)));
 
         return new UserKeys(
                 name,

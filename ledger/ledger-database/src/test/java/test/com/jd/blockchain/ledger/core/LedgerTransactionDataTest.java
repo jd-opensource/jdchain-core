@@ -209,21 +209,23 @@ public class LedgerTransactionDataTest {
 		HashDigest txHash = TxBuilder.computeTxContentHash(hashAlgorithm, txContent);
 		TxRequestMessage txRequestMessage = new TxRequestMessage(txHash, txContent);
 
+		AsymmetricKeypair keypair2 = ClassicCryptoService.ED25519.generateKeypair();
 		SignatureDigest digest1 =ClassicCryptoService.ED25519.sign(keypair.getPrivKey(),"zhangsan".getBytes());
 		SignatureDigest digest2 = ClassicCryptoService.ED25519.sign(keypair.getPrivKey(),"lisi".getBytes());
 		DigitalSignatureBlob endPoint1 = new DigitalSignatureBlob(
-				new PubKey(ClassicAlgorithm.ED25519, "jd1.com".getBytes()), digest1);
+				keypair.getPubKey(), digest1);
 		DigitalSignatureBlob endPoint2 = new DigitalSignatureBlob(
-				new PubKey(ClassicAlgorithm.ED25519, "jd2.com".getBytes()), digest2);
+				keypair2.getPubKey(), digest2);
 		txRequestMessage.addEndpointSignatures(endPoint1);
 		txRequestMessage.addEndpointSignatures(endPoint2);
 
+		AsymmetricKeypair keypair4 = ClassicCryptoService.ED25519.generateKeypair();
 		SignatureDigest digest3 = ClassicCryptoService.ED25519.sign(keypair.getPrivKey(),"wangwu".getBytes());
-		SignatureDigest digest4 = ClassicCryptoService.ED25519.sign(keypair.getPrivKey(),"zhaoliu".getBytes());
+		SignatureDigest digest4 = ClassicCryptoService.ED25519.sign(keypair4.getPrivKey(),"zhaoliu".getBytes());
 		DigitalSignatureBlob node1 = new DigitalSignatureBlob(
-				new PubKey(ClassicAlgorithm.ED25519, "jd3.com".getBytes()), digest3);
+				keypair.getPubKey(), digest3);
 		DigitalSignatureBlob node2 = new DigitalSignatureBlob(
-				new PubKey(ClassicAlgorithm.ED25519, "jd4.com".getBytes()), digest4);
+				keypair4.getPubKey(), digest4);
 		txRequestMessage.addNodeSignatures(node1);
 		txRequestMessage.addNodeSignatures(node2);
 

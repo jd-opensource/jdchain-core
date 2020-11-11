@@ -196,8 +196,8 @@ public class LedgerTestUtils {
 	}
 
 	public static BlockchainKeypair createKeyPair(String pub, String priv) {
-		PubKey pubKey = new PubKey(Base58Utils.decode(pub));
-		PrivKey privKey = new PrivKey(Base58Utils.decode(priv));
+		PubKey pubKey = Crypto.resolveAsPubKey(Base58Utils.decode(pub));
+		PrivKey privKey = Crypto.resolveAsPrivKey(Base58Utils.decode(priv));
 
 		return new BlockchainKeypair(pubKey, privKey);
 	}

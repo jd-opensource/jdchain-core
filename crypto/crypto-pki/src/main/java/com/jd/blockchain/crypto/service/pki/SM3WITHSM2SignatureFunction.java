@@ -1,7 +1,5 @@
 package com.jd.blockchain.crypto.service.pki;
 
-import static com.jd.blockchain.crypto.BaseCryptoKey.KEY_TYPE_BYTES;
-import static com.jd.blockchain.crypto.CryptoBytes.ALGORYTHM_CODE_SIZE;
 import static com.jd.blockchain.crypto.CryptoKeyType.PRIVATE;
 import static com.jd.blockchain.crypto.CryptoKeyType.PUBLIC;
 import static com.jd.blockchain.crypto.service.pki.PKIAlgorithm.SM3WITHSM2;
@@ -38,6 +36,7 @@ import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.CryptoBytes;
 import com.jd.blockchain.crypto.CryptoException;
+import com.jd.blockchain.crypto.CryptoKeyType;
 import com.jd.blockchain.crypto.PrivKey;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.crypto.SignatureDigest;
@@ -148,14 +147,15 @@ public class SM3WITHSM2SignatureFunction implements SignatureFunction {
 
 	@Override
 	public boolean supportPubKey(byte[] pubKeyBytes) {
-		return pubKeyBytes.length > (ALGORYTHM_CODE_SIZE + KEY_TYPE_BYTES + RAW_PUBKEY_SIZE)
-				&& CryptoAlgorithm.match(SM3WITHSM2, pubKeyBytes) && pubKeyBytes[ALGORYTHM_CODE_SIZE] == PUBLIC.CODE;
+		return pubKeyBytes.length > (CryptoAlgorithm.CODE_SIZE + CryptoKeyType.TYPE_CODE_SIZE + RAW_PUBKEY_SIZE)
+				&& CryptoAlgorithm.match(SM3WITHSM2, pubKeyBytes)
+				&& pubKeyBytes[CryptoAlgorithm.CODE_SIZE] == PUBLIC.CODE;
 	}
 
 	@Override
 	public PubKey resolvePubKey(byte[] pubKeyBytes) {
 		if (supportPubKey(pubKeyBytes)) {
-			return new PubKey(pubKeyBytes);
+			return DefaultCryptoEncoding.createPubKey(SM3WITHSM2.code(), pubKeyBytes);
 		} else {
 			throw new CryptoException("pubKeyBytes are invalid!");
 		}
@@ -163,14 +163,15 @@ public class SM3WITHSM2SignatureFunction implements SignatureFunction {
 
 	@Override
 	public boolean supportPrivKey(byte[] privKeyBytes) {
-		return privKeyBytes.length > (ALGORYTHM_CODE_SIZE + KEY_TYPE_BYTES + RAW_PRIVKEY_SIZE)
-				&& CryptoAlgorithm.match(SM3WITHSM2, privKeyBytes) && privKeyBytes[ALGORYTHM_CODE_SIZE] == PRIVATE.CODE;
+		return privKeyBytes.length > (CryptoAlgorithm.CODE_SIZE + CryptoKeyType.TYPE_CODE_SIZE + RAW_PRIVKEY_SIZE)
+				&& CryptoAlgorithm.match(SM3WITHSM2, privKeyBytes)
+				&& privKeyBytes[CryptoAlgorithm.CODE_SIZE] == PRIVATE.CODE;
 	}
 
 	@Override
 	public PrivKey resolvePrivKey(byte[] privKeyBytes) {
 		if (supportPrivKey(privKeyBytes)) {
-			return new PrivKey(privKeyBytes);
+			return DefaultCryptoEncoding.createPrivKey(SM3WITHSM2.code(), privKeyBytes);
 		} else {
 			throw new CryptoException("privKeyBytes are invalid!");
 		}
@@ -204,12 +205,12 @@ public class SM3WITHSM2SignatureFunction implements SignatureFunction {
 			throw new CryptoException(e.getMessage(), e);
 		}
 
-		return new PubKey(SM3WITHSM2, rawPubKeyBytes);
+		return DefaultCryptoEncoding.encodePubKey(SM3WITHSM2, rawPubKeyBytes);
 	}
 
 	@Override
 	public boolean supportDigest(byte[] digestBytes) {
-		return digestBytes.length > (RAW_SIGNATUREDIGEST_SIZE + ALGORYTHM_CODE_SIZE)
+		return digestBytes.length > (RAW_SIGNATUREDIGEST_SIZE + CryptoAlgorithm.CODE_SIZE)
 				&& CryptoAlgorithm.match(SM3WITHSM2, digestBytes);
 	}
 
@@ -227,22 +228,31 @@ public class SM3WITHSM2SignatureFunction implements SignatureFunction {
 
 		Security.addProvider(new BouncyCastleProvider());
 		KeyPairGenerator generator;
-		PublicKey pubKey;
-		PrivateKey privKey;
+		PublicKey publicKey;
+		PrivateKey privateKey;
 		try {
 			generator = KeyPairGenerator.getInstance("EC", BouncyCastleProvider.PROVIDER_NAME);
 			generator.initialize(new ECNamedCurveGenParameterSpec("sm2p256v1"));
 			KeyPair keyPair = generator.generateKeyPair();
-			pubKey = keyPair.getPublic();
-			privKey = keyPair.getPrivate();
+			publicKey = keyPair.getPublic();
+			privateKey = keyPair.getPrivate();
 		} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException e) {
 			throw new CryptoException(e.getMessage(), e);
 		}
 
-		byte[] pubKeyBytes = pubKey.getEncoded();
-		byte[] privKeyBytes = privKey.getEncoded();
+		byte[] pubKeyBytes = publicKey.getEncoded();
+		byte[] privKeyBytes = privateKey.getEncoded();
 
-		return new AsymmetricKeypair(new PubKey(SM3WITHSM2, pubKeyBytes), new PrivKey(SM3WITHSM2, privKeyBytes));
+		PubKey pubKey = DefaultCryptoEncoding.encodePubKey(SM3WITHSM2, pubKeyBytes);
+		PrivKey privKey = DefaultCryptoEncoding.encodePrivKey(SM3WITHSM2, privKeyBytes);
+
+		return new AsymmetricKeypair(pubKey, privKey);
+	}
+
+	@Override
+	public AsymmetricKeypair generateKeypair(byte[] seed) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override

@@ -1,6 +1,7 @@
 package com.jd.blockchain.crypto.service.pki;
 
 import com.jd.blockchain.crypto.*;
+import com.jd.blockchain.crypto.base.DefaultCryptoEncoding;
 import com.jd.blockchain.crypto.utils.CSRBuilder;
 import com.jd.blockchain.crypto.utils.CertParser;
 import com.jd.blockchain.utils.io.BytesUtils;
@@ -300,8 +301,8 @@ public class SHA1WITHRSA4096SignatureFunctionTest {
         assertNotNull(algorithm);
         SignatureFunction signatureFunction = Crypto.getSignatureFunction(algorithm);
 
-        PubKey  pubKey  = new PubKey(algorithm, rawPublicKeyBytes);
-        PrivKey privKey = new PrivKey(algorithm, rawPrivateKeyBytes);
+        PubKey  pubKey  = DefaultCryptoEncoding.encodePubKey(algorithm, rawPublicKeyBytes);
+        PrivKey privKey = DefaultCryptoEncoding.encodePrivKey(algorithm, rawPrivateKeyBytes);
 
         // signTest
         byte[] data = new byte[1024];

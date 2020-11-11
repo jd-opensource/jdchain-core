@@ -8,7 +8,6 @@ import org.junit.Test;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
-import com.jd.blockchain.crypto.base.HashDigestBytes;
 import com.jd.blockchain.utils.serialize.json.JSONSerializeUtils;
 
 public class HashDigestJSONSerializeTest {

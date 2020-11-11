@@ -41,17 +41,17 @@ public class LedgerMetaDataTest {
 	byte[] seed = null;
 	String consensusProvider = "test-provider";
 	byte[] consensusSettingBytes = null;
-	byte[] rawDigestBytes = null;
+	byte[] randomBytes = null;
 
 	@Before
 	public void initCfg() throws Exception {
 		Random rand = new Random();
 		seed = new byte[8];
 		consensusSettingBytes = new byte[8];
-		rawDigestBytes = new byte[8];
+		randomBytes = new byte[8];
 		rand.nextBytes(seed);
 		rand.nextBytes(consensusSettingBytes);
-		rand.nextBytes(rawDigestBytes);
+		rand.nextBytes(randomBytes);
 		DataContractRegistry.register(LedgerMetadata.class);
 		DataContractRegistry.register(ParticipantNode.class);
 	}
@@ -83,7 +83,7 @@ public class LedgerMetaDataTest {
 		ledgerMetadata.setSeed(seed);
 		ledgerMetadata.setSettingsHash(settingsHash);
 
-		HashDigest hashDigest = ClassicCryptoService.SHA256.hash(rawDigestBytes);
+		HashDigest hashDigest = ClassicCryptoService.SHA256.hash(randomBytes);
 		ledgerMetadata.setParticipantsHash(hashDigest);
 
 		// encode and decode
@@ -180,7 +180,7 @@ public class LedgerMetaDataTest {
 		// prepare work
 		int id = 1;
 		// String address = "xxxxxxxxxxxxxx";
-		PubKey pubKey = new PubKey(ClassicAlgorithm.ED25519, rawDigestBytes);
+		PubKey pubKey = Crypto.getSignatureFunction(ClassicAlgorithm.ED25519).generateKeypair().getPubKey();
 		// ParticipantInfo info = new ParticipantCertData.ParticipantInfoData(1, "yyy");
 		// SignatureDigest signature = new SignatureDigest(CryptoAlgorithm.SM2,
 		// rawDigestBytes);
