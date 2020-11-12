@@ -17,5 +17,11 @@
 		<!--<module>tools-capability</module>-->
         <!--<module>tools-mocker</module>-->
         <!-- <module>tools-package</module> -->
+		<module>tools-regparti</module>
+		<module>tools-regparti-booter</module>
+		<module>tools-activeparti</module>
+		<module>tools-activeparti-booter</module>
+		<module>tools-deactiveparti</module>
+		<module>tools-deactiveparti-booter</module>
     </modules>
 </project>
