@@ -1,5 +1,8 @@
 package com.jd.blockchain.ledger.core.handles;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.jd.blockchain.contract.LedgerContext;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
@@ -20,7 +23,6 @@ import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.PrivilegeSet;
-import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
@@ -40,9 +42,6 @@ import com.jd.blockchain.transaction.KVData;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilder;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilderImpl;
 import com.jd.blockchain.utils.Bytes;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class ContractLedgerContext implements LedgerContext {
 

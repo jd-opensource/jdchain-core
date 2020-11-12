@@ -290,19 +290,19 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		txStateSet.cancel();
 	}
 
-	private static class TransactionRequestConverter implements BytesConverter<TransactionRequest> {
-
-		@Override
-		public byte[] toBytes(TransactionRequest value) {
-			return BinaryProtocol.encode(value, TransactionRequest.class);
-		}
-
-		@Override
-		public TransactionRequest fromBytes(byte[] bytes) {
-			return BinaryProtocol.decode(bytes, TransactionRequest.class);
-		}
-
-	}
+//	private static class TransactionRequestConverter implements BytesConverter<TransactionRequest> {
+//
+//		@Override
+//		public byte[] toBytes(TransactionRequest value) {
+//			return BinaryProtocol.encode(value, TransactionRequest.class);
+//		}
+//
+//		@Override
+//		public TransactionRequest fromBytes(byte[] bytes) {
+//			return BinaryProtocol.decode(bytes, TransactionRequest.class);
+//		}
+//
+//	}
 
 	private static class HashDigestBytesConverter implements BytesConverter<HashDigest> {
 

@@ -131,6 +131,7 @@ public class LedgerManager implements LedgerManage {
 		}
 	}
 
+	@SuppressWarnings("unused")
 	private LedgerRepositoryImpl innerGetLedger(HashDigest ledgerHash) {
 		// TODO Auto-generated method stub
 		LedgerRepositoryContext ledgerCtx = ledgers.get(ledgerHash);

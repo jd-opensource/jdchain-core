@@ -17,15 +17,15 @@ import com.jd.blockchain.utils.Mapper;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 
-public class MerkleEventSet implements EventGroup, EventPublisher, Transactional {
+public class MerkleEventGroupPublisher implements EventGroup, EventPublisher, Transactional {
 
     private  MerkleDataset<Bytes, byte[]> events;
 
-    public MerkleEventSet(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
+    public MerkleEventGroupPublisher(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
         events = new MerkleHashDataset(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage);
     }
 
-    public MerkleEventSet(HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
+    public MerkleEventGroupPublisher(HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
                           ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
         events = new MerkleHashDataset(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, readonly);
     }

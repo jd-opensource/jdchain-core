@@ -207,13 +207,11 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 	}
 
 	private void checkNodeSignatures(TransactionRequestExtension request) {
-		TransactionContent txContent = request.getTransactionContent();
 		Collection<Credential> nodes = request.getNodes();
 		if (nodes != null) {
 			for (Credential node : nodes) {
 				if (!SignatureUtils.verifyHashSignature(request.getTransactionHash(), node.getSignature().getDigest(),
 						node.getPubKey())) {
-					// 由于签名校验失败，引发IllegalTransactionException，使外部调用抛弃此交易请求；
 					throw new IllegalTransactionException(
 							String.format("Wrong transaction node signature! --[Tx Hash=%s][Node Signer=%s]!",
 									request.getTransactionHash(), node.getAddress()),
@@ -224,7 +222,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 	}
 
 	private void checkEndpointSignatures(TransactionRequestExtension request) {
-		TransactionContent txContent = request.getTransactionContent();
+//		TransactionContent txContent = request.getTransactionContent();
 		Collection<Credential> endpoints = request.getEndpoints();
 		if (endpoints != null) {
 			for (Credential endpoint : endpoints) {

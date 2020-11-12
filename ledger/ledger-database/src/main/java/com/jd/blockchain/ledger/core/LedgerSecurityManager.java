@@ -4,6 +4,12 @@ import java.util.Set;
 
 import com.jd.blockchain.utils.Bytes;
 
+/**
+ * 账本的安全管理器；
+ * 
+ * @author huanghaiquan
+ *
+ */
 public interface LedgerSecurityManager {
 
 	String DEFAULT_ROLE = "DEFAULT";
@@ -17,6 +23,12 @@ public interface LedgerSecurityManager {
 	 */
 	SecurityPolicy getSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes);
 
+	/**
+	 * 返回指定用户的角色权限；
+	 * 
+	 * @param userAddress
+	 * @return
+	 */
 	UserRolesPrivileges getUserRolesPrivilegs(Bytes userAddress);
 
 }

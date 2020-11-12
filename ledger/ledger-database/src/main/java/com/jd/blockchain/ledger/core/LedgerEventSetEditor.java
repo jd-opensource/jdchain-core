@@ -4,20 +4,20 @@ import com.jd.blockchain.utils.Transactional;
 
 public class LedgerEventSetEditor implements LedgerEventSet, Transactional {
 
-	private MerkleEventSet systemEventSet;
+	private MerkleEventGroupPublisher systemEventPublisher;
 	private EventAccountSetEditor userEventSet;
 	private boolean readonly;
 
 
-	public LedgerEventSetEditor(MerkleEventSet systemEventSet, EventAccountSetEditor userEventSet, boolean readonly) {
-		this.systemEventSet = systemEventSet;
+	public LedgerEventSetEditor(MerkleEventGroupPublisher systemEventSet, EventAccountSetEditor userEventSet, boolean readonly) {
+		this.systemEventPublisher = systemEventSet;
 		this.userEventSet = userEventSet;
 		this.readonly = readonly;
 	}
 
 	@Override
-	public MerkleEventSet getSystemEventGroup() {
-		return systemEventSet;
+	public MerkleEventGroupPublisher getSystemEventGroup() {
+		return systemEventPublisher;
 	}
 
 	@Override
@@ -28,7 +28,7 @@ public class LedgerEventSetEditor implements LedgerEventSet, Transactional {
 
 	@Override
 	public boolean isUpdated() {
-		return systemEventSet.isUpdated() || userEventSet.isUpdated();
+		return systemEventPublisher.isUpdated() || userEventSet.isUpdated();
 	}
 
 	@Override
@@ -40,14 +40,14 @@ public class LedgerEventSetEditor implements LedgerEventSet, Transactional {
 			return;
 		}
 
-		systemEventSet.commit();
+		systemEventPublisher.commit();
 		userEventSet.commit();
 
 	}
 
 	@Override
 	public void cancel() {
-		systemEventSet.cancel();
+		systemEventPublisher.cancel();
 		userEventSet.cancel();
 	}
 
