@@ -75,7 +75,7 @@ class EmptyLedgerQuery implements LedgerQuery {
 		}
 
 		@Override
-		public LedgerEventSet getLedgerEvents(LedgerBlock block) {
+		public LedgerEventSet getLedgerEventSet(LedgerBlock block) {
 			return null;
 		}
 
@@ -100,12 +100,12 @@ class EmptyLedgerQuery implements LedgerQuery {
 		}
 
 		@Override
-		public EventGroup getSystemEvents(LedgerBlock block) {
+		public EventGroup getSystemEventGroup(LedgerBlock block) {
 			return null;
 		}
 
 		@Override
-		public EventAccountSet getUserEvents(LedgerBlock block) {
+		public EventAccountSet getEventAccountSet(LedgerBlock block) {
 			return null;
 		}
 

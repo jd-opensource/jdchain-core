@@ -463,7 +463,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public Event[] getSystemEvents(HashDigest ledgerHash, String eventName, long fromSequence, int count) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
-		EventGroup systemEvents = ledger.getSystemEvents(block);
+		EventGroup systemEvents = ledger.getSystemEventGroup(block);
 		return systemEvents.getEvents(eventName, fromSequence, count);
 	}
 
@@ -471,7 +471,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public long getSystemEventNameTotalCount(HashDigest ledgerHash) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
-		EventGroup systemEvents = ledger.getSystemEvents(block);
+		EventGroup systemEvents = ledger.getSystemEventGroup(block);
 		return systemEvents.totalEventNames();
 	}
 
@@ -479,7 +479,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public String[] getSystemEventNames(HashDigest ledgerHash, int fromIndex, int maxCount) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
-		EventGroup systemEvents = ledger.getSystemEvents(block);
+		EventGroup systemEvents = ledger.getSystemEventGroup(block);
 		return systemEvents.getEventNames(fromIndex, maxCount);
 	}
 
@@ -487,7 +487,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public Event getLatestEvent(HashDigest ledgerHash, String eventName) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
-		EventGroup systemEvents = ledger.getSystemEvents(block);
+		EventGroup systemEvents = ledger.getSystemEventGroup(block);
 		return systemEvents.getLatest(eventName);
 	}
 
@@ -495,7 +495,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public long getSystemEventsTotalCount(HashDigest ledgerHash, String eventName) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
-		EventGroup systemEvents = ledger.getSystemEvents(block);
+		EventGroup systemEvents = ledger.getSystemEventGroup(block);
 		return systemEvents.totalEvents(eventName);
 	}
 
@@ -503,7 +503,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public BlockchainIdentity[] getUserEventAccounts(HashDigest ledgerHash, int fromIndex, int count) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
-		EventAccountSet eventAccountSet = ledger.getUserEvents(block);
+		EventAccountSet eventAccountSet = ledger.getEventAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) eventAccountSet.getTotal());
 		
 		SkippingIterator<BlockchainIdentity> it = eventAccountSet.identityIterator();
@@ -515,7 +515,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public BlockchainIdentity getUserEventAccount(HashDigest ledgerHash, String address) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
-		EventAccountSet eventAccountSet = ledger.getUserEvents(block);
+		EventAccountSet eventAccountSet = ledger.getEventAccountSet(block);
 		return eventAccountSet.getAccount(address).getID();
 	}
 
@@ -523,7 +523,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public long getUserEventAccountTotalCount(HashDigest ledgerHash) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
-		EventAccountSet eventAccountSet = ledger.getUserEvents(block);
+		EventAccountSet eventAccountSet = ledger.getEventAccountSet(block);
 		return eventAccountSet.getTotal();
 	}
 
@@ -531,7 +531,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public long getUserEventNameTotalCount(HashDigest ledgerHash, String address) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
-		EventAccountSet eventAccountSet = ledger.getUserEvents(block);
+		EventAccountSet eventAccountSet = ledger.getEventAccountSet(block);
 		return eventAccountSet.getAccount(address).totalEventNames();
 	}
 
@@ -539,7 +539,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public String[] getUserEventNames(HashDigest ledgerHash, String address, int fromIndex, int count) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
-		EventAccountSet eventAccountSet = ledger.getUserEvents(block);
+		EventAccountSet eventAccountSet = ledger.getEventAccountSet(block);
 		return eventAccountSet.getAccount(address).getEventNames(fromIndex, count);
 	}
 
@@ -547,7 +547,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public Event getLatestEvent(HashDigest ledgerHash, String address, String eventName) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
-		EventAccountSet eventAccountSet = ledger.getUserEvents(block);
+		EventAccountSet eventAccountSet = ledger.getEventAccountSet(block);
 		return eventAccountSet.getAccount(address).getLatest(eventName);
 	}
 
@@ -555,7 +555,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public long getUserEventsTotalCount(HashDigest ledgerHash, String address, String eventName) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
-		EventAccountSet eventAccountSet = ledger.getUserEvents(block);
+		EventAccountSet eventAccountSet = ledger.getEventAccountSet(block);
 		return eventAccountSet.getAccount(address).totalEvents(eventName);
 	}
 
@@ -563,7 +563,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 	public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int count) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
-		EventAccountSet userEvents = ledger.getUserEvents(block);
+		EventAccountSet userEvents = ledger.getEventAccountSet(block);
 		return userEvents.getAccount(address).getEvents(eventName, fromSequence, count);
 	}
 

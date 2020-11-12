@@ -369,7 +369,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	@Override
-	public EventGroup getSystemEvents(LedgerBlock block) {
+	public EventGroup getSystemEventGroup(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
 			return latestState.getLedgerEventSet().getSystemEventGroup();
@@ -385,7 +385,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	@Override
-	public EventAccountSet getUserEvents(LedgerBlock block) {
+	public EventAccountSet getEventAccountSet(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
 			return latestState.getLedgerEventSet().getEventAccountSet();
@@ -417,7 +417,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	@Override
-	public LedgerEventSet getLedgerEvents(LedgerBlock block) {
+	public LedgerEventSet getLedgerEventSet(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
 			return latestState.getLedgerEventSet();
