@@ -20,7 +20,6 @@ import com.jd.blockchain.gateway.web.GatewayLedgerLoadTimer;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.LedgerInitDecision;
 import com.jd.blockchain.ledger.core.LedgerInitProposal;
-import com.jd.blockchain.ledger.core.TransactionSetQuery;
 import com.jd.blockchain.ledger.merkletree.HashBucketEntry;
 import com.jd.blockchain.ledger.merkletree.KeyIndex;
 import com.jd.blockchain.ledger.merkletree.MerkleIndex;
@@ -222,7 +221,6 @@ public class GatewayServerBooter {
 		DataContractRegistry.register(TransactionRequest.class);
 		DataContractRegistry.register(TransactionResult.class);
 		DataContractRegistry.register(LedgerTransaction.class);
-		DataContractRegistry.register(TransactionSetQuery.class);
 		DataContractRegistry.register(Operation.class);
 		DataContractRegistry.register(LedgerInitOperation.class);
 		DataContractRegistry.register(UserRegisterOperation.class);

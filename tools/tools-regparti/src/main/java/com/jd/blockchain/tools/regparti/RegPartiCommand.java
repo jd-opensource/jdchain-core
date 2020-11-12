@@ -6,6 +6,8 @@ import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
+import com.jd.blockchain.crypto.base.DefaultCryptoEncoding;
+import com.jd.blockchain.crypto.base.HashDigestBytes;
 import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.ledger.ConsensusSettingsUpdateOperation;
 import com.jd.blockchain.ledger.ParticipantRegisterOperation;
@@ -139,7 +141,7 @@ public class RegPartiCommand {
             DataContractRegistry.register(ParticipantStateUpdateOperation.class);
             DataContractRegistry.register(ConsensusSettingsUpdateOperation.class);
 
-            HashDigest ledgerHash = new HashDigest(Base58Utils.decode(argSet.getArg(NEW_PARTI_LEDGER_ARG).getValue()));
+            HashDigest ledgerHash = new HashDigestBytes(DefaultCryptoEncoding.decodeAlgorithm(Base58Utils.decode(argSet.getArg(NEW_PARTI_LEDGER_ARG).getValue())), Base58Utils.decode(argSet.getArg(NEW_PARTI_LEDGER_ARG).getValue()));
 
             String pubkey = argSet.getArg(NEW_PARTI_PUBKEY_ARG).getValue();
 
