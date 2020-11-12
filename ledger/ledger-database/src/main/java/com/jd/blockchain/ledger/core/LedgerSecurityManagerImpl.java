@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerSecurityException;
-import com.jd.blockchain.ledger.ParticipantDataQuery;
 import com.jd.blockchain.ledger.ParticipantDoesNotExistException;
 import com.jd.blockchain.ledger.RolePrivilegeSettings;
 import com.jd.blockchain.ledger.RolePrivileges;
@@ -38,11 +37,11 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 	private Map<Bytes, UserRoles> userRolesCache = new ConcurrentHashMap<>();
 	private Map<String, RolePrivileges> rolesPrivilegeCache = new ConcurrentHashMap<>();
 
-	private ParticipantDataQuery participantsQuery;
-	private UserAccountQuery userAccountsQuery;
+	private ParticipantCollection participantsQuery;
+	private UserAccountSet userAccountsQuery;
 
 	public LedgerSecurityManagerImpl(RolePrivilegeSettings rolePrivilegeSettings, UserAuthorizationSettings userRolesSettings,
-			ParticipantDataQuery participantsQuery, UserAccountQuery userAccountsQuery) {
+			ParticipantCollection participantsQuery, UserAccountSet userAccountsQuery) {
 		this.rolePrivilegeSettings = rolePrivilegeSettings;
 		this.userRolesSettings = userRolesSettings;
 		this.participantsQuery = participantsQuery;
@@ -50,7 +49,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 	}
 
 	@Override
-	public SecurityPolicy createSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes) {
+	public SecurityPolicy getSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes) {
 		Map<Bytes, UserRolesPrivileges> endpointPrivilegeMap = new HashMap<>();
 		Map<Bytes, UserRolesPrivileges> nodePrivilegeMap = new HashMap<>();
 
@@ -145,13 +144,13 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 		 */
 		private Map<Bytes, UserRolesPrivileges> nodePrivilegeMap = new HashMap<>();
 
-		private ParticipantDataQuery participantsQuery;
+		private ParticipantCollection participantsQuery;
 
-		private UserAccountQuery userAccountsQuery;
+		private UserAccountSet userAccountsQuery;
 
 		public UserRolesSecurityPolicy(Map<Bytes, UserRolesPrivileges> endpointPrivilegeMap,
-				Map<Bytes, UserRolesPrivileges> nodePrivilegeMap, ParticipantDataQuery participantsQuery,
-				UserAccountQuery userAccountsQuery) {
+				Map<Bytes, UserRolesPrivileges> nodePrivilegeMap, ParticipantCollection participantsQuery,
+				UserAccountSet userAccountsQuery) {
 			this.endpointPrivilegeMap = endpointPrivilegeMap;
 			this.nodePrivilegeMap = nodePrivilegeMap;
 			this.participantsQuery = participantsQuery;

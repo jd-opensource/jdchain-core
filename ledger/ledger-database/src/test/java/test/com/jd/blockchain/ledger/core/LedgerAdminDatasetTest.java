@@ -37,12 +37,13 @@ import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.UserRoles;
 import com.jd.blockchain.ledger.UserAuthorizationSettings;
 import com.jd.blockchain.ledger.core.CryptoConfig;
-import com.jd.blockchain.ledger.core.LedgerAdminDataset;
+import com.jd.blockchain.ledger.core.LedgerAdminDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerConfiguration;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.transaction.ConsensusParticipantData;
 import com.jd.blockchain.transaction.LedgerInitData;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.net.NetworkAddress;
 
 public class LedgerAdminDatasetTest {
@@ -93,7 +94,7 @@ public class LedgerAdminDatasetTest {
 		MemoryKVStorage testStorage = new MemoryKVStorage();
 
 		// Create intance with init setting;
-		LedgerAdminDataset ledgerAdminDataset = new LedgerAdminDataset(initSetting, keyPrefix, testStorage,
+		LedgerAdminDataSetEditor ledgerAdminDataset = new LedgerAdminDataSetEditor(initSetting, keyPrefix, testStorage,
 				testStorage);
 
 		ledgerAdminDataset.getRolePrivileges().addRolePrivilege("DEFAULT",
@@ -132,7 +133,7 @@ public class LedgerAdminDatasetTest {
 		// Reload account from storage with readonly mode, and check the integrity of
 		// data;
 		HashDigest adminAccHash = ledgerAdminDataset.getHash();
-		LedgerAdminDataset reloadAdminAccount1 = new LedgerAdminDataset(adminAccHash, keyPrefix, testStorage,
+		LedgerAdminDataSetEditor reloadAdminAccount1 = new LedgerAdminDataSetEditor(adminAccHash, keyPrefix, testStorage,
 				testStorage, true);
 
 		LedgerMetadata_V2 meta2 = reloadAdminAccount1.getMetadata();
@@ -154,7 +155,7 @@ public class LedgerAdminDatasetTest {
 
 		// --------------
 		// 重新加载，并进行修改;
-		LedgerAdminDataset reloadAdminAccount2 = new LedgerAdminDataset(adminAccHash, keyPrefix, testStorage,
+		LedgerAdminDataSetEditor reloadAdminAccount2 = new LedgerAdminDataSetEditor(adminAccHash, keyPrefix, testStorage,
 				testStorage, false);
 		LedgerConfiguration newSetting = new LedgerConfiguration(reloadAdminAccount2.getPreviousSetting());
 		byte[] newCsSettingBytes = new byte[64];
@@ -183,7 +184,7 @@ public class LedgerAdminDatasetTest {
 		LedgerMetadata_V2 newMeta = reloadAdminAccount2.getMetadata();
 
 		// load the last version of account and verify again;
-		LedgerAdminDataset previousAdminAccount = new LedgerAdminDataset(adminAccHash, keyPrefix, testStorage,
+		LedgerAdminDataSetEditor previousAdminAccount = new LedgerAdminDataSetEditor(adminAccHash, keyPrefix, testStorage,
 				testStorage, true);
 		verifyRealoadingSettings(previousAdminAccount, adminAccHash, ledgerAdminDataset.getMetadata(),
 				ledgerAdminDataset.getSettings());
@@ -191,7 +192,7 @@ public class LedgerAdminDatasetTest {
 		verifyReadonlyState(previousAdminAccount);
 
 		// load the hash of new committing;
-		LedgerAdminDataset newlyAdminAccount = new LedgerAdminDataset(newAccHash, keyPrefix, testStorage, testStorage,
+		LedgerAdminDataSetEditor newlyAdminAccount = new LedgerAdminDataSetEditor(newAccHash, keyPrefix, testStorage, testStorage,
 				true);
 		verifyRealoadingSettings(newlyAdminAccount, newAccHash, newMeta, newlyLedgerSettings);
 		verifyRealoadingParities(newlyAdminAccount, parties);
@@ -201,7 +202,7 @@ public class LedgerAdminDatasetTest {
 //		testStorage.printStoragedKeys();
 	}
 
-	private void verifyRealoadingSettings(LedgerAdminDataset actualAccount, HashDigest expAccRootHash,
+	private void verifyRealoadingSettings(LedgerAdminDataSetEditor actualAccount, HashDigest expAccRootHash,
 			LedgerMetadata_V2 expMeta, LedgerSettings expLedgerSettings) {
 		// 验证基本信息；
 		assertFalse(actualAccount.isUpdated());
@@ -235,11 +236,12 @@ public class LedgerAdminDatasetTest {
 			RolePrivilegeSettings expRolePrivilegeSettings, UserAuthorizationSettings expUserRoleSettings) {
 		// 验证基本信息；
 		RolePrivilegeSettings actualRolePrivileges = actualAccount.getRolePrivileges();
-		RolePrivileges[] expRPs = expRolePrivilegeSettings.getRolePrivileges();
+		SkippingIterator<RolePrivileges> expRPs = expRolePrivilegeSettings.rolePrivilegesIterator();
 
-		assertEquals(expRPs.length, actualRolePrivileges.getRoleCount());
-
-		for (RolePrivileges expRP : expRPs) {
+		assertEquals(expRPs.getTotalCount(), actualRolePrivileges.getRoleCount());
+		
+		while (expRPs.hasNext()) {
+			RolePrivileges expRP = expRPs.next();
 			RolePrivileges actualRP = actualRolePrivileges.getRolePrivilege(expRP.getRoleName());
 			assertNotNull(actualRP);
 			assertArrayEquals(expRP.getLedgerPrivilege().toBytes(), actualRP.getLedgerPrivilege().toBytes());
@@ -288,7 +290,7 @@ public class LedgerAdminDatasetTest {
 	 * 
 	 * @param readonlyAccount
 	 */
-	private void verifyReadonlyState(LedgerAdminDataset readonlyAccount) {
+	private void verifyReadonlyState(LedgerAdminDataSetEditor readonlyAccount) {
 		ConsensusParticipantData newParti = new ConsensusParticipantData();
 		newParti.setId((int) readonlyAccount.getParticipantCount());
 		newParti.setHostAddress(

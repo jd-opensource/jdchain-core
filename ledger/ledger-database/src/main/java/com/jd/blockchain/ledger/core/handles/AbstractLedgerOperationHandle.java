@@ -5,7 +5,7 @@ import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.core.EventManager;
-import com.jd.blockchain.ledger.core.LedgerDataset;
+import com.jd.blockchain.ledger.core.LedgerDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
 import com.jd.blockchain.ledger.core.OperationHandle;
@@ -47,7 +47,7 @@ public abstract class AbstractLedgerOperationHandle<T extends Operation> impleme
 	}
 
 	@Override
-	public final BytesValue process(Operation op, LedgerDataset newBlockDataset,
+	public final BytesValue process(Operation op, LedgerDataSetEditor newBlockDataset,
 			TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager) {
 		// 权限校验；
 		SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
@@ -66,6 +66,6 @@ public abstract class AbstractLedgerOperationHandle<T extends Operation> impleme
 		return null;
 	}
 
-	protected abstract void doProcess(T op, LedgerDataset newBlockDataset, TransactionRequestExtension requestContext,
+	protected abstract void doProcess(T op, LedgerDataSetEditor newBlockDataset, TransactionRequestExtension requestContext,
 			LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager);
 }

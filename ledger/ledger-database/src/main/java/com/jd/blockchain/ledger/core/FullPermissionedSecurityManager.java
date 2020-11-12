@@ -12,7 +12,7 @@ class FullPermissionedSecurityManager implements LedgerSecurityManager {
 	public static final FullPermissionedSecurityManager INSTANCE = new FullPermissionedSecurityManager();
 
 	@Override
-	public SecurityPolicy createSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes) {
+	public SecurityPolicy getSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes) {
 		return new FullPermissionedPolicy(endpoints, nodes);
 	}
 

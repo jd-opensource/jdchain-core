@@ -2,15 +2,15 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.utils.Transactional;
 
-public class LedgerDataset implements LedgerDataQuery, Transactional {
+public class LedgerDataSetEditor implements LedgerDataSet, Transactional {
 
-	private LedgerAdminDataset adminDataset;
+	private LedgerAdminDataSetEditor adminDataset;
 
-	private UserAccountSet userAccountSet;
+	private UserAccountSetEditor userAccountSet;
 
-	private DataAccountSet dataAccountSet;
+	private DataAccountSetEditor dataAccountSet;
 
-	private ContractAccountSet contractAccountSet;
+	private ContractAccountSetEditor contractAccountSet;
 
 	private boolean readonly;
 
@@ -23,8 +23,8 @@ public class LedgerDataset implements LedgerDataQuery, Transactional {
 	 * @param contractAccountSet
 	 * @param readonly
 	 */
-	public LedgerDataset(LedgerAdminDataset adminAccount, UserAccountSet userAccountSet,
-			DataAccountSet dataAccountSet, ContractAccountSet contractAccountSet, boolean readonly) {
+	public LedgerDataSetEditor(LedgerAdminDataSetEditor adminAccount, UserAccountSetEditor userAccountSet,
+			DataAccountSetEditor dataAccountSet, ContractAccountSetEditor contractAccountSet, boolean readonly) {
 		this.adminDataset = adminAccount;
 		this.userAccountSet = userAccountSet;
 		this.dataAccountSet = dataAccountSet;
@@ -34,22 +34,22 @@ public class LedgerDataset implements LedgerDataQuery, Transactional {
 	}
 
 	@Override
-	public LedgerAdminDataset getAdminDataset() {
+	public LedgerAdminDataSetEditor getAdminDataset() {
 		return adminDataset;
 	}
 
 	@Override
-	public UserAccountSet getUserAccountSet() {
+	public UserAccountSetEditor getUserAccountSet() {
 		return userAccountSet;
 	}
 
 	@Override
-	public DataAccountSet getDataAccountSet() {
+	public DataAccountSetEditor getDataAccountSet() {
 		return dataAccountSet;
 	}
 
 	@Override
-	public ContractAccountSet getContractAccountset() {
+	public ContractAccountSetEditor getContractAccountSet() {
 		return contractAccountSet;
 	}
 
@@ -86,12 +86,12 @@ public class LedgerDataset implements LedgerDataQuery, Transactional {
 		return readonly;
 	}
 
-	void setReadonly() {
-		this.readonly = true;
-		this.adminDataset.setReadonly();
-		this.userAccountSet.setReadonly();
-		this.dataAccountSet.setReadonly();
-		this.contractAccountSet.setReadonly();
-	}
+//	void setReadonly() {
+//		this.readonly = true;
+//		this.adminDataset.setReadonly();
+//		this.userAccountSet.setReadonly();
+//		this.dataAccountSet.setReadonly();
+//		this.contractAccountSet.setReadonly();
+//	}
 
 }

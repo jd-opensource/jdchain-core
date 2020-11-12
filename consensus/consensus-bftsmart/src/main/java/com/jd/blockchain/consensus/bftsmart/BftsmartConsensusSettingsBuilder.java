@@ -6,19 +6,19 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.springframework.core.io.ClassPathResource;
+
+import com.jd.blockchain.consensus.ConsensusSettings;
+import com.jd.blockchain.consensus.ConsensusSettingsBuilder;
 import com.jd.blockchain.consensus.NodeSettings;
+import com.jd.blockchain.crypto.Crypto;
+import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.utils.PropertiesUtils;
 import com.jd.blockchain.utils.Property;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.BytesUtils;
 import com.jd.blockchain.utils.net.NetworkAddress;
-
-import org.springframework.core.io.ClassPathResource;
-
-import com.jd.blockchain.consensus.ConsensusSettings;
-import com.jd.blockchain.consensus.ConsensusSettingsBuilder;
-import com.jd.blockchain.crypto.PubKey;
 
 public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilder {
 
@@ -280,8 +280,10 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 				// organize new participant node
 				String host = newProps.getProperty(keyOfNode(CONSENSUS_HOST_PATTERN, activeId));
 				int port = Integer.parseInt(newProps.getProperty(keyOfNode(CONSENSUS_PORT_PATTERN, activeId)));
-				PubKey pubKey = new PubKey(Base58Utils.decode(newProps.getProperty(keyOfNode(PUBKEY_PATTERN, activeId))));
+				byte[] pubKeyBytes = Base58Utils.decode(newProps.getProperty(keyOfNode(PUBKEY_PATTERN, activeId)));
+				PubKey pubKey = Crypto.resolveAsPubKey(pubKeyBytes);
 				BftsmartNodeConfig bftsmartNodeConfig = new BftsmartNodeConfig(pubKey, activeId, new NetworkAddress(host, port));
+
 
 				for (int i = 0; i < oldNodeSettings.length; i++) {
 					bftsmartNodeSettings[i] = (BftsmartNodeSettings) oldNodeSettings[i];

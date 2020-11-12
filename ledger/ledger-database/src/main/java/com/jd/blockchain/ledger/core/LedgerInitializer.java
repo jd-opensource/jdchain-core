@@ -8,8 +8,6 @@ import com.jd.blockchain.ledger.BlockchainIdentityData;
 import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.DigitalSignature;
-import com.jd.blockchain.ledger.LedgerAdminInfo;
-import com.jd.blockchain.ledger.LedgerAdminSettings;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerInitException;
 import com.jd.blockchain.ledger.LedgerInitOperation;
@@ -30,13 +28,17 @@ import com.jd.blockchain.transaction.SignatureUtils;
 import com.jd.blockchain.transaction.TxBuilder;
 import com.jd.blockchain.transaction.TxRequestBuilder;
 
+/**
+ * 账本初始化器；
+ * 
+ * @author huanghaiquan
+ *
+ */
 public class LedgerInitializer {
 
 	private static final FullPermissionedSecurityManager FULL_PERMISSION_SECURITY_MANAGER = new FullPermissionedSecurityManager();
-	
-	private static final LedgerQuery EMPTY_LEDGER = new EmptyLedgerQuery();
 
-	private static final LedgerDataQuery EMPTY_LEDGER_DATA_QUERY = new EmptyLedgerDataset();
+	private static final LedgerQuery EMPTY_LEDGER = new EmptyLedgerQuery();
 
 	private static final OperationHandleRegisteration DEFAULT_OP_HANDLE_REG = new DefaultOperationHandleRegisteration();
 
@@ -57,6 +59,17 @@ public class LedgerInitializer {
 	private TransactionBatchResultHandle txResultsHandle;
 
 	/**
+	 * 内部构造器；
+	 * 
+	 * @param initSetting
+	 * @param initTxContent
+	 */
+	private LedgerInitializer(LedgerInitSetting initSetting, TransactionContent initTxContent) {
+		this.initSetting = initSetting;
+		this.initTxContent = initTxContent;
+	}
+
+	/**
 	 * 初始化生成的账本hash； <br>
 	 * 
 	 * 在成功执行 {@link #prepareLedger(KVStorageService, DigitalSignature...)} 之前总是返回
@@ -68,15 +81,6 @@ public class LedgerInitializer {
 		return genesisBlock == null ? null : genesisBlock.getHash();
 	}
 
-	/**
-	 * @param initSetting
-	 * @param initTxContent
-	 */
-	private LedgerInitializer(LedgerInitSetting initSetting, TransactionContent initTxContent) {
-		this.initSetting = initSetting;
-		this.initTxContent = initTxContent;
-	}
-	
 	public CryptoSetting getCryptoSetting() {
 		return initSetting.getCryptoSetting();
 	}
@@ -133,8 +137,7 @@ public class LedgerInitializer {
 		// 授权用户；
 		for (UserAuthInitSettings userAuthSettings : securityInitSettings.getUserAuthorizations()) {
 			initTxBuilder.security().authorziations().forUser(userAuthSettings.getUserAddress())
-					.authorize(userAuthSettings.getRoles())
-					.setPolicy(userAuthSettings.getPolicy());
+					.authorize(userAuthSettings.getRoles()).setPolicy(userAuthSettings.getPolicy());
 		}
 
 		// 账本初始化配置声明的创建时间来初始化交易时间戳；注：不能用本地时间，因为共识节点之间的本地时间系统不一致；
@@ -144,9 +147,9 @@ public class LedgerInitializer {
 	public SignatureDigest signTransaction(PrivKey privKey) {
 		return SignatureUtils.sign(initSetting.getCryptoSetting().getHashAlgorithm(), initTxContent, privKey);
 	}
-	
+
 	public DigitalSignature signTransaction(BlockchainKeypair key) {
-		return SignatureUtils.sign(initSetting.getCryptoSetting().getHashAlgorithm(),initTxContent, key);
+		return SignatureUtils.sign(initSetting.getCryptoSetting().getHashAlgorithm(), initTxContent, key);
 	}
 
 	/**
@@ -203,7 +206,8 @@ public class LedgerInitializer {
 	 */
 	private LedgerBlock prepareLedger(LedgerEditor ledgerEditor, DigitalSignature... nodeSignatures) {
 		// 初始化时，自动将参与方注册为账本的用户；
-		HashDigest txHash = TxBuilder.computeTxContentHash(initSetting.getCryptoSetting().getHashAlgorithm(), this.initTxContent);
+		HashDigest txHash = TxBuilder.computeTxContentHash(initSetting.getCryptoSetting().getHashAlgorithm(),
+				this.initTxContent);
 		TxRequestBuilder txReqBuilder = new TxRequestBuilder(txHash, this.initTxContent);
 		txReqBuilder.addNodeSignature(nodeSignatures);
 
@@ -215,128 +219,6 @@ public class LedgerInitializer {
 		txResultsHandle = txProcessor.prepare();
 		LedgerEditor.TIMESTAMP_HOLDER.remove();
 		return txResultsHandle.getBlock();
-	}
-	
-	private static class EmptyLedgerQuery implements LedgerQuery{
-		
-		private EmptyLedgerDataset dataset = new EmptyLedgerDataset();
-
-		@Override
-		public HashDigest getHash() {
-			return null;
-		}
-
-		@Override
-		public long getVersion() {
-			return LedgerStructureConfig.VERSION;
-		}
-
-		@Override
-		public long getLatestBlockHeight() {
-			return 0;
-		}
-
-		@Override
-		public HashDigest getLatestBlockHash() {
-			return null;
-		}
-
-		@Override
-		public LedgerBlock getLatestBlock() {
-			return null;
-		}
-
-		@Override
-		public HashDigest getBlockHash(long height) {
-			return null;
-		}
-
-		@Override
-		public LedgerBlock getBlock(long height) {
-			return null;
-		}
-
-		@Override
-		public LedgerAdminInfo getAdminInfo() {
-			return null;
-		}
-
-		@Override
-		public LedgerAdminInfo getAdminInfo(LedgerBlock block) {
-			return null;
-		}
-		
-		@Override
-		public LedgerAdminSettings getAdminSettings() {
-			return null;
-		}
-		
-		@Override
-		public LedgerAdminSettings getAdminSettings(LedgerBlock block) {
-			return null;
-		}
-
-		@Override
-		public LedgerBlock getBlock(HashDigest hash) {
-			return null;
-		}
-
-		@Override
-		public LedgerDataQuery getLedgerData(LedgerBlock block) {
-			return dataset;
-		}
-
-		@Override
-		public LedgerEventQuery getLedgerEvents(LedgerBlock block) {
-			return null;
-		}
-
-		@Override
-		public TransactionQuery getTransactionSet(LedgerBlock block) {
-			return null;
-		}
-
-		@Override
-		public UserAccountQuery getUserAccountSet(LedgerBlock block) {
-			return dataset.getUserAccountSet();
-		}
-
-		@Override
-		public DataAccountQuery getDataAccountSet(LedgerBlock block) {
-			return dataset.getDataAccountSet();
-		}
-
-		@Override
-		public ContractAccountQuery getContractAccountSet(LedgerBlock block) {
-			return dataset.getContractAccountset();
-		}
-
-		@Override
-		public EventGroup getSystemEvents(LedgerBlock block) {
-			return null;
-		}
-
-		@Override
-		public EventAccountQuery getUserEvents(LedgerBlock block) {
-			return null;
-		}
-
-		@Override
-		public LedgerBlock retrieveLatestBlock() {
-			//TODO
-			return null;
-		}
-
-		@Override
-		public long retrieveLatestBlockHeight() {
-			return 0;
-		}
-
-		@Override
-		public HashDigest retrieveLatestBlockHash() {
-			return null;
-		}
-		
 	}
 
 }

@@ -1,5 +1,21 @@
 package com.jd.blockchain.peer;
 
+import java.io.File;
+import java.io.InputStream;
+import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.core.io.ClassPathResource;
+
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.consensus.*;
 import com.jd.blockchain.consensus.action.ActionRequest;
@@ -27,7 +43,6 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.DataAccountInfo;
 import com.jd.blockchain.ledger.DataAccountKVSetOperation;
 import com.jd.blockchain.ledger.DataAccountRegisterOperation;
-import com.jd.blockchain.ledger.DataType;
 import com.jd.blockchain.ledger.DigitalSignature;
 import com.jd.blockchain.ledger.DigitalSignatureBody;
 import com.jd.blockchain.ledger.Event;
@@ -41,14 +56,12 @@ import com.jd.blockchain.ledger.LedgerInitOperation;
 import com.jd.blockchain.ledger.LedgerInitSetting;
 import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerMetadata_V2;
-import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerSettings;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.MerkleSnapshot;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.OperationResult;
 import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.ParticipantNodeState;
 import com.jd.blockchain.ledger.ParticipantRegisterOperation;
 import com.jd.blockchain.ledger.ParticipantStateUpdateInfo;
 import com.jd.blockchain.ledger.ParticipantStateUpdateOperation;
@@ -56,14 +69,11 @@ import com.jd.blockchain.ledger.PrivilegeSet;
 import com.jd.blockchain.ledger.RoleInitSettings;
 import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.RolesConfigureOperation;
-import com.jd.blockchain.ledger.RolesPolicy;
 import com.jd.blockchain.ledger.SecurityInitSettings;
 import com.jd.blockchain.ledger.TransactionContent;
-import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.ledger.TransactionResult;
-import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.UserAccountHeader;
 import com.jd.blockchain.ledger.UserAuthInitSettings;
 import com.jd.blockchain.ledger.UserAuthorizeOperation;
@@ -72,7 +82,6 @@ import com.jd.blockchain.ledger.UserInfoSetOperation;
 import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.core.LedgerInitDecision;
 import com.jd.blockchain.ledger.core.LedgerInitProposal;
-import com.jd.blockchain.ledger.core.TransactionSetQuery;
 import com.jd.blockchain.ledger.merkletree.HashBucketEntry;
 import com.jd.blockchain.ledger.merkletree.KeyIndex;
 import com.jd.blockchain.ledger.merkletree.MerkleIndex;
@@ -87,21 +96,6 @@ import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
 import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
 import com.jd.blockchain.utils.ArgumentSet;
 import com.jd.blockchain.utils.ConsoleUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.boot.SpringApplication;
-import org.springframework.context.ApplicationContextInitializer;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.core.io.ClassPathResource;
-
-import java.io.File;
-import java.io.InputStream;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 节点服务实例的启动器；
@@ -318,7 +312,6 @@ public class PeerServerBooter {
 		DataContractRegistry.register(TransactionRequest.class);
 		DataContractRegistry.register(TransactionResult.class);
 		DataContractRegistry.register(LedgerTransaction.class);
-		DataContractRegistry.register(TransactionSetQuery.class);
 		DataContractRegistry.register(Operation.class);
 		DataContractRegistry.register(LedgerInitOperation.class);
 		DataContractRegistry.register(UserRegisterOperation.class);

@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
 import com.jd.blockchain.utils.codec.Base58Utils;
@@ -222,7 +223,7 @@ public class LedgerBindingConfig {
 		HashDigest[] hashs = new HashDigest[base58Hashs.length];
 		for (int i = 0; i < base58Hashs.length; i++) {
 			byte[] hashBytes = Base58Utils.decode(base58Hashs[i]);
-			hashs[i] = new HashDigest(hashBytes);
+			hashs[i] = Crypto.resolveAsHashDigest(hashBytes);
 
 			BindingConfig bindingConf = resolveBinding(props, base58Hashs[i]);
 			conf.bindings.put(hashs[i], bindingConf);

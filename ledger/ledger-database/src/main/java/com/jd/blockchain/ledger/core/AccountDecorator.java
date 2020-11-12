@@ -1,7 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.Account;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.MerkleSnapshot;
@@ -38,7 +37,7 @@ public class AccountDecorator implements Account, HashProvable, MerkleSnapshot{
 	}
 
 	@Override
-	public Dataset<String, TypedValue> getDataset() {
+	public MerkleDataset<String, TypedValue> getDataset() {
 		return mklAccount.getDataset();
 	}
 

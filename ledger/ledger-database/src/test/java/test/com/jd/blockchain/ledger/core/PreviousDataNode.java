@@ -163,7 +163,7 @@ public class PreviousDataNode {
 		byte[] dataHashBytes = new byte[hashSize];
 		System.arraycopy(bytes, offset, dataHashBytes, 0, hashSize);
 		offset += hashSize;
-		HashDigest dataHash = new HashDigest(dataHashBytes);
+		HashDigest dataHash = Crypto.resolveAsHashDigest(dataHashBytes);
 		return new PreviousDataNode(sn, key, version, dataHash, bytes);
 	}
 

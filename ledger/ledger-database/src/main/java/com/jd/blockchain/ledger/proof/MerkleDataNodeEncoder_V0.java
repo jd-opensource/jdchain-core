@@ -74,7 +74,7 @@ public class MerkleDataNodeEncoder_V0 implements MerkleDataNodeEncoder {
 		byte[] nodeHashBytes = new byte[hashSize];
 		System.arraycopy(bytes, offset, nodeHashBytes, 0, hashSize);
 		offset += hashSize;
-		HashDigest nodeHash = new HashDigest(nodeHashBytes);
+		HashDigest nodeHash = Crypto.resolveAsHashDigest(nodeHashBytes);
 		return new DataNode(nodeHash, sn, key, version, null, bytes);
 	}
 

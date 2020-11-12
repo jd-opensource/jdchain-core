@@ -15,6 +15,7 @@ import org.springframework.http.converter.HttpMessageNotWritableException;
 
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.SignatureDigest;
 import com.jd.blockchain.ledger.core.LedgerInitDecision;
 import com.jd.blockchain.ledger.core.LedgerInitProposal;
@@ -82,7 +83,7 @@ public class LedgerInitMessageConverter implements HttpMessageConverter<Object> 
 			throws IOException, HttpMessageNotReadableException {
 		if (SignatureDigest.class == clazz) {
 			byte[] signDigestBytes = BytesUtils.copyToBytes(inputMessage.getBody());
-			return new SignatureDigest(signDigestBytes);
+			return Crypto.resolveAsSignatureDigest(signDigestBytes);
 		}
 		
 		Class<?> contractType = getContractType(clazz);

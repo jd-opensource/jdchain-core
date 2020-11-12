@@ -6,7 +6,7 @@ import com.jd.blockchain.ledger.*;
  * @author shaozhuguang
  * @date 2019-09-16
  *
- * LedgerAdminInfo的独立实现类，主要用于页面展示，区分 {@link LedgerAdminDataset}
+ * LedgerAdminInfo的独立实现类，主要用于页面展示，区分 {@link LedgerAdminDataSetEditor}
  */
 public class LedgerAdminInfoData implements LedgerAdminInfo {
 

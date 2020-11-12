@@ -32,8 +32,8 @@ import com.jd.blockchain.ledger.TransactionResult;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.core.DefaultOperationHandleRegisteration;
-import com.jd.blockchain.ledger.core.LedgerDataQuery;
-import com.jd.blockchain.ledger.core.LedgerDataset;
+import com.jd.blockchain.ledger.core.LedgerDataSet;
+import com.jd.blockchain.ledger.core.LedgerDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerEditor;
 import com.jd.blockchain.ledger.core.LedgerManager;
 import com.jd.blockchain.ledger.core.LedgerRepository;
@@ -115,7 +115,7 @@ public class BlockFullRollBackTest {
         assertEquals(ledgerRepo.getBlockHash(0), latestBlock.getHash());
         assertEquals(0, latestBlock.getHeight());
 
-        LedgerDataQuery ledgerDS = ledgerRepo.getLedgerData(latestBlock);
+        LedgerDataSet ledgerDS = ledgerRepo.getLedgerDataSet(latestBlock);
         boolean existUser = ledgerDS.getUserAccountSet().contains(userKeypair.getAddress());
 
         assertFalse(existUser);
@@ -151,7 +151,7 @@ public class BlockFullRollBackTest {
         assertEquals(newBlock1.getHash(), latestBlock1.getHash());
         assertEquals(1, latestBlock1.getHeight());
 
-        LedgerDataQuery ledgerDS1 = ledgerRepo.getLedgerData(latestBlock1);
+        LedgerDataSet ledgerDS1 = ledgerRepo.getLedgerDataSet(latestBlock1);
         boolean existUser1 = ledgerDS1.getUserAccountSet().contains(userKeypair1.getAddress());
 
         assertTrue(existUser1);
@@ -167,7 +167,7 @@ public class BlockFullRollBackTest {
         when(securityPolicy.isNodeEnable(any(LedgerPermission.class), any())).thenReturn(true);
         when(securityPolicy.isNodeEnable(any(TransactionPermission.class), any())).thenReturn(true);
 
-        when(securityManager.createSecurityPolicy(any(), any())).thenReturn(securityPolicy);
+        when(securityManager.getSecurityPolicy(any(), any())).thenReturn(securityPolicy);
 
         return securityManager;
     }
@@ -181,7 +181,7 @@ public class BlockFullRollBackTest {
 
         TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest_SHA256(partiKeys);
         LedgerTransactionContext genisisTxCtx = ldgEdt.newTransaction(genesisTxReq);
-        LedgerDataset ldgDS = genisisTxCtx.getDataset();
+        LedgerDataSetEditor ldgDS = genisisTxCtx.getDataset();
 
         for (int i = 0; i < partiKeys.length; i++) {
             UserAccount userAccount = ldgDS.getUserAccountSet().register(partiKeys[i].getAddress(),

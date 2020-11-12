@@ -11,6 +11,7 @@ import java.util.Random;
 import org.junit.Test;
 
 import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainKeyGenerator;
 import com.jd.blockchain.ledger.BlockchainKeypair;
@@ -33,7 +34,7 @@ import com.jd.blockchain.ledger.TransactionResult;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.core.TransactionResultData;
-import com.jd.blockchain.ledger.core.TransactionSet;
+import com.jd.blockchain.ledger.core.TransactionSetEditor;
 import com.jd.blockchain.ledger.core.TransactionStagedSnapshot;
 import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
@@ -65,7 +66,7 @@ public class TransactionSetTest {
 		MemoryKVStorage testStorage = new MemoryKVStorage();
 
 		// Create a new TransactionSet, it's empty;
-		TransactionSet txset = new TransactionSet(cryptoSetting, keyPrefix, testStorage, testStorage);
+		TransactionSetEditor txset = new TransactionSetEditor(cryptoSetting, keyPrefix, testStorage, testStorage);
 		assertTrue(txset.isUpdated());
 		assertFalse(txset.isReadonly());
 		assertNull(txset.getRootHash());
@@ -90,7 +91,7 @@ public class TransactionSetTest {
 		assertEquals(ledgerHash, txReq.getTransactionContent().getLedgerHash());
 
 		// Reload ;
-		TransactionSet reloadTxset = new TransactionSet(txsetRootHash, cryptoSetting, keyPrefix, testStorage,
+		TransactionSetEditor reloadTxset = new TransactionSetEditor(txsetRootHash, cryptoSetting, keyPrefix, testStorage,
 				testStorage, true);
 
 		assertEquals(1, reloadTxset.getTotalCount());
@@ -111,7 +112,7 @@ public class TransactionSetTest {
 		CryptoSetting cryptoSetting = LedgerTestUtils.createDefaultCryptoSetting();
 		MemoryKVStorage testStorage = new MemoryKVStorage();
 		// Create a new TransactionSet;
-		TransactionSet txset = new TransactionSet(cryptoSetting, keyPrefix, testStorage, testStorage);
+		TransactionSetEditor txset = new TransactionSetEditor(cryptoSetting, keyPrefix, testStorage, testStorage);
 
 		HashDigest ledgerHash = LedgerTestUtils.generateRandomHash();
 		long blockHeight = 8922L;
@@ -138,7 +139,7 @@ public class TransactionSetTest {
 
 		// 重新加载交易集合；
 		HashDigest txsetRootHash = txset.getRootHash();
-		TransactionSet reloadTxset = new TransactionSet(txsetRootHash, cryptoSetting, keyPrefix, testStorage,
+		TransactionSetEditor reloadTxset = new TransactionSetEditor(txsetRootHash, cryptoSetting, keyPrefix, testStorage,
 				testStorage, true);
 
 		// 验证重新加载之后的交易集合中记录的交易顺序；
@@ -156,7 +157,7 @@ public class TransactionSetTest {
 		buildRequestAndResult(ledgerHash, blockHeight, cryptoSetting, txCount1, txRequests_1, txResults_1);
 
 		// add tx to trasaction set;
-		TransactionSet newTxset = new TransactionSet(txsetRootHash, cryptoSetting, keyPrefix, testStorage, testStorage,
+		TransactionSetEditor newTxset = new TransactionSetEditor(txsetRootHash, cryptoSetting, keyPrefix, testStorage, testStorage,
 				false);
 		for (int i = 0; i < txCount1; i++) {
 			newTxset.addTransaction(txRequests_1[i], txResults_1[i]);
@@ -293,12 +294,12 @@ public class TransactionSetTest {
 		BufferedKVStorage bufferStorage = new BufferedKVStorage(testStorage, testStorage, false);
 
 		// Create a new TransactionSet, it's empty;
-		TransactionSet txset = new TransactionSet(defCryptoSetting, keyPrefix, bufferStorage, bufferStorage);
+		TransactionSetEditor txset = new TransactionSetEditor(defCryptoSetting, keyPrefix, bufferStorage, bufferStorage);
 		assertTrue(txset.isUpdated());
 		assertFalse(txset.isReadonly());
 		assertNull(txset.getRootHash());
 
-		HashDigest ledgerHash = new HashDigest(Base58Utils.decode("j5iF5xJ7KN4kjRrhD3EUKVSPmHz2bExxp3h9avqxcnnzch"));
+		HashDigest ledgerHash = Crypto.resolveAsHashDigest(Base58Utils.decode("j5iF5xJ7KN4kjRrhD3EUKVSPmHz2bExxp3h9avqxcnnzch"));
 		assertEquals("j5iF5xJ7KN4kjRrhD3EUKVSPmHz2bExxp3h9avqxcnnzch", ledgerHash.toBase58());
 
 		BlockchainKeypair parti0 = LedgerTestUtils.createKeyPair("7VeRLBwqTAz8oRazEazeaEfqei46sk2FzvBgyHMUBJvrUEGT",
@@ -318,9 +319,9 @@ public class TransactionSetTest {
 
 		TransactionStagedSnapshot txSnapshot = new TransactionStagedSnapshot();
 		txSnapshot.setAdminAccountHash(
-				new HashDigest(Base58Utils.decode("j5taeK6cpmJGcn8QbEYCqadna6s7NDSheDTK6NJdU4mFhh")));
+				Crypto.resolveAsHashDigest(Base58Utils.decode("j5taeK6cpmJGcn8QbEYCqadna6s7NDSheDTK6NJdU4mFhh")));
 		txSnapshot.setUserAccountSetHash(
-				new HashDigest(Base58Utils.decode("j5oQDSob92mCoGSHtrXa9soqgAtMyjwfRMt2kj7igXXJrP")));
+				Crypto.resolveAsHashDigest(Base58Utils.decode("j5oQDSob92mCoGSHtrXa9soqgAtMyjwfRMt2kj7igXXJrP")));
 
 		TransactionResult tx = new TransactionResultData(transactionRequest1.getTransactionHash(), 1,
 				TransactionState.SUCCESS, txSnapshot);
@@ -339,7 +340,7 @@ public class TransactionSetTest {
 
 		HashDigest txsetRootHash = txset.getRootHash();
 
-		txset = new TransactionSet(txsetRootHash, defCryptoSetting, keyPrefix, testStorage, testStorage, false);
+		txset = new TransactionSetEditor(txsetRootHash, defCryptoSetting, keyPrefix, testStorage, testStorage, false);
 		tx_query = txset.getTransaction(transactionRequest1.getTransactionHash());
 		tx_state = txset.getState(transactionRequest1.getTransactionHash());
 

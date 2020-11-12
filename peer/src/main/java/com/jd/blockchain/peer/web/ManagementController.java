@@ -38,10 +38,7 @@ import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuil
 import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.SERVER_VIEW_KEY;
 import static com.jd.blockchain.ledger.TransactionState.LEDGER_ERROR;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -62,7 +59,6 @@ import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -85,6 +81,7 @@ import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.ServerSettings;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 import com.jd.blockchain.crypto.AsymmetricKeypair;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.PrivKey;
@@ -127,6 +124,13 @@ import com.jd.blockchain.ledger.UserAuthorizeOperation;
 import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.ViewUpdateException;
 
+import com.jd.blockchain.ledger.core.DefaultOperationHandleRegisteration;
+import com.jd.blockchain.ledger.core.LedgerManage;
+import com.jd.blockchain.ledger.core.LedgerQuery;
+import com.jd.blockchain.ledger.core.LedgerRepository;
+import com.jd.blockchain.ledger.core.OperationHandleRegisteration;
+import com.jd.blockchain.ledger.core.TransactionBatchProcessor;
+
 import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.peer.ConsensusRealm;
 import com.jd.blockchain.peer.LedgerBindingConfigAware;
@@ -137,9 +141,11 @@ import com.jd.blockchain.storage.service.DbConnection;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig.BindingConfig;
+
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.io.ByteArray;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
+
 
 
 /**
@@ -251,8 +257,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		DataContractRegistry.register(CryptoSetting.class);
 		DataContractRegistry.register(CryptoProvider.class);
 		DataContractRegistry.register(CryptoAlgorithm.class);
-		// TransactionSetQuery;
-		DataContractRegistry.register(TransactionSetQuery.class);
 	}
 
 	/**
@@ -478,7 +482,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		OperationHandleRegisteration opReg = new DefaultOperationHandleRegisteration();
 
 		try {
-			HashDigest ledgerHash = new HashDigest(Base58Utils.decode(base58LedgerHash));
+			HashDigest ledgerHash = Crypto.resolveAsHashDigest(Base58Utils.decode(base58LedgerHash));
 
 			if (ledgerKeypairs.get(ledgerHash) == null) {
 				return WebResponse.createFailureResult(-1, "[ManagementController] input ledgerhash not exist!");
@@ -606,7 +610,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		WebResponse webResponse;
 
 		try {
-			HashDigest ledgerHash = new HashDigest(Base58Utils.decode(base58LedgerHash));
+			HashDigest ledgerHash = Crypto.resolveAsHashDigest(Base58Utils.decode(base58LedgerHash));
 
 			// 进行一系列安全检查
 			if (ledgerQuerys.get(ledgerHash) == null) {

@@ -1,20 +1,32 @@
 package com.jd.blockchain.crypto.service.pki;
 
-import com.jd.blockchain.crypto.*;
-import com.jd.blockchain.crypto.utils.CSRBuilder;
-import com.jd.blockchain.crypto.utils.CertParser;
-import com.jd.blockchain.utils.io.BytesUtils;
-import org.bouncycastle.util.encoders.Hex;
-import org.junit.Test;
-
-import java.security.PublicKey;
-import java.util.Random;
-
 import static com.jd.blockchain.crypto.CryptoAlgorithm.ASYMMETRIC_KEY;
 import static com.jd.blockchain.crypto.CryptoAlgorithm.SIGNATURE_ALGORITHM;
 import static com.jd.blockchain.crypto.CryptoKeyType.PRIVATE;
 import static com.jd.blockchain.crypto.CryptoKeyType.PUBLIC;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.security.PublicKey;
+import java.util.Random;
+
+import org.bouncycastle.util.encoders.Hex;
+import org.junit.Test;
+
+import com.jd.blockchain.crypto.AsymmetricKeypair;
+import com.jd.blockchain.crypto.Crypto;
+import com.jd.blockchain.crypto.CryptoAlgorithm;
+import com.jd.blockchain.crypto.PrivKey;
+import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.crypto.SignatureDigest;
+import com.jd.blockchain.crypto.SignatureFunction;
+import com.jd.blockchain.crypto.base.DefaultCryptoEncoding;
+import com.jd.blockchain.crypto.utils.CSRBuilder;
+import com.jd.blockchain.crypto.utils.CertParser;
+import com.jd.blockchain.utils.io.BytesUtils;
 
 /**
  * @author zhanglin33
@@ -339,8 +351,8 @@ public class SM3WITHSM2SignatureFunctionTest {
         assertNotNull(algorithm);
         SignatureFunction signatureFunction = Crypto.getSignatureFunction(algorithm);
 
-        PubKey  pubKey  = new PubKey(algorithm, rawPublicKeyBytes);
-        PrivKey privKey = new PrivKey(algorithm, rawPrivateKeyBytes);
+        PubKey  pubKey  = DefaultCryptoEncoding.encodePubKey(algorithm, rawPublicKeyBytes);
+        PrivKey privKey = DefaultCryptoEncoding.encodePrivKey(algorithm, rawPrivateKeyBytes);
 
         // signTest
         byte[] data = new byte[1024];

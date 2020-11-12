@@ -1,23 +1,5 @@
 package test.com.jd.blockchain.consensus.bftsmart;
 
-import com.jd.blockchain.consensus.NodeSettings;
-import com.jd.blockchain.consensus.bftsmart.*;
-import com.jd.blockchain.consensus.bftsmart.client.BftsmartClientConfig;
-import com.jd.blockchain.consensus.bftsmart.client.BftsmartConsensusClient;
-import com.jd.blockchain.consensus.bftsmart.client.BftsmartMessageService;
-import com.jd.blockchain.consensus.bftsmart.service.BftsmartNodeServer;
-import com.jd.blockchain.consensus.bftsmart.service.BftsmartServerSettingConfig;
-import com.jd.blockchain.consensus.service.ServerSettings;
-import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.ledger.BlockchainKeyGenerator;
-import com.jd.blockchain.ledger.BlockchainKeypair;
-import com.jd.blockchain.utils.PropertiesUtils;
-import com.jd.blockchain.utils.io.BytesUtils;
-import com.jd.blockchain.utils.net.NetworkAddress;
-import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
-import org.junit.Test;
-import org.springframework.core.io.ClassPathResource;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -25,6 +7,26 @@ import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import org.springframework.core.io.ClassPathResource;
+
+import com.jd.blockchain.consensus.NodeSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingConfig;
+import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusConfig;
+import com.jd.blockchain.consensus.bftsmart.BftsmartNodeConfig;
+import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
+import com.jd.blockchain.consensus.bftsmart.client.BftsmartClientConfig;
+import com.jd.blockchain.consensus.bftsmart.client.BftsmartConsensusClient;
+import com.jd.blockchain.consensus.bftsmart.client.BftsmartMessageService;
+import com.jd.blockchain.consensus.bftsmart.service.BftsmartNodeServer;
+import com.jd.blockchain.consensus.bftsmart.service.BftsmartServerSettingConfig;
+import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.ledger.BlockchainKeyGenerator;
+import com.jd.blockchain.ledger.BlockchainKeypair;
+import com.jd.blockchain.utils.PropertiesUtils;
+import com.jd.blockchain.utils.io.BytesUtils;
+import com.jd.blockchain.utils.net.NetworkAddress;
+import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 
 public class ProxyClientTest {
 

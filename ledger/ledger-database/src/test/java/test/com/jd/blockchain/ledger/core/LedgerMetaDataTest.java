@@ -2,12 +2,10 @@ package test.com.jd.blockchain.ledger.core;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Random;
 
-import com.jd.blockchain.ledger.*;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -15,15 +13,19 @@ import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.Crypto;
-import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.CryptoProvider;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.crypto.service.classic.ClassicCryptoService;
 import com.jd.blockchain.crypto.service.sm.SMCryptoService;
+import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.LedgerMetadata;
+import com.jd.blockchain.ledger.LedgerSettings;
+import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.ParticipantNodeState;
 import com.jd.blockchain.ledger.core.CryptoConfig;
-import com.jd.blockchain.ledger.core.LedgerAdminDataset;
+import com.jd.blockchain.ledger.core.LedgerAdminDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerConfiguration;
 import com.jd.blockchain.ledger.core.ParticipantCertData;
 import com.jd.blockchain.utils.Bytes;
@@ -39,17 +41,17 @@ public class LedgerMetaDataTest {
 	byte[] seed = null;
 	String consensusProvider = "test-provider";
 	byte[] consensusSettingBytes = null;
-	byte[] rawDigestBytes = null;
+	byte[] randomBytes = null;
 
 	@Before
 	public void initCfg() throws Exception {
 		Random rand = new Random();
 		seed = new byte[8];
 		consensusSettingBytes = new byte[8];
-		rawDigestBytes = new byte[8];
+		randomBytes = new byte[8];
 		rand.nextBytes(seed);
 		rand.nextBytes(consensusSettingBytes);
-		rand.nextBytes(rawDigestBytes);
+		rand.nextBytes(randomBytes);
 		DataContractRegistry.register(LedgerMetadata.class);
 		DataContractRegistry.register(ParticipantNode.class);
 	}
@@ -76,12 +78,12 @@ public class LedgerMetaDataTest {
 //				new Bytes(consensusSettingBytes), cryptoConfig);
 		HashDigest settingsHash = Crypto.getHashFunction("SHA256").hash(consensusSettingBytes);
 
-		LedgerAdminDataset.LedgerMetadataInfo ledgerMetadata = new LedgerAdminDataset.LedgerMetadataInfo();
+		LedgerAdminDataSetEditor.LedgerMetadataInfo ledgerMetadata = new LedgerAdminDataSetEditor.LedgerMetadataInfo();
 
 		ledgerMetadata.setSeed(seed);
 		ledgerMetadata.setSettingsHash(settingsHash);
 
-		HashDigest hashDigest = new HashDigest(ClassicAlgorithm.SHA256, rawDigestBytes);
+		HashDigest hashDigest = ClassicCryptoService.SHA256.hash(randomBytes);
 		ledgerMetadata.setParticipantsHash(hashDigest);
 
 		// encode and decode
@@ -178,7 +180,7 @@ public class LedgerMetaDataTest {
 		// prepare work
 		int id = 1;
 		// String address = "xxxxxxxxxxxxxx";
-		PubKey pubKey = new PubKey(ClassicAlgorithm.ED25519, rawDigestBytes);
+		PubKey pubKey = Crypto.getSignatureFunction(ClassicAlgorithm.ED25519).generateKeypair().getPubKey();
 		// ParticipantInfo info = new ParticipantCertData.ParticipantInfoData(1, "yyy");
 		// SignatureDigest signature = new SignatureDigest(CryptoAlgorithm.SM2,
 		// rawDigestBytes);
@@ -186,7 +188,8 @@ public class LedgerMetaDataTest {
 		// NetworkAddress consensusAddress = new NetworkAddress("192.168.1.1", 9001,
 		// false);
 		Bytes address = AddressEncoding.generateAddress(pubKey);
-		ParticipantCertData participantCertData = new ParticipantCertData(address, name, pubKey, ParticipantNodeState.CONSENSUS);
+		ParticipantCertData participantCertData = new ParticipantCertData(address, name, pubKey,
+				ParticipantNodeState.CONSENSUS);
 
 		// encode and decode
 		byte[] encodeBytes = BinaryProtocol.encode(participantCertData, ParticipantNode.class);

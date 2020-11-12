@@ -83,7 +83,7 @@ public class MerkleDataNodeEncoder_V1 implements MerkleDataNodeEncoder {
 		byte[] dataHashBytes = new byte[dataHashSize];
 		System.arraycopy(bytes, offset, dataHashBytes, 0, dataHashSize);
 		offset += dataHashSize;
-		HashDigest dataHash = new HashDigest(dataHashBytes);
+		HashDigest dataHash = Crypto.resolveAsHashDigest(dataHashBytes);
 
 		// resovle node hash;
 		int nodeHashSize = (int) NumberMask.TINY.resolveMaskedNumber(bytes, offset);
@@ -91,7 +91,7 @@ public class MerkleDataNodeEncoder_V1 implements MerkleDataNodeEncoder {
 		byte[] nodeHashBytes = new byte[nodeHashSize];
 		System.arraycopy(bytes, offset, nodeHashBytes, 0, nodeHashSize);
 		offset += nodeHashSize;
-		HashDigest nodeHash = new HashDigest(nodeHashBytes);
+		HashDigest nodeHash = Crypto.resolveAsHashDigest(nodeHashBytes);
 
 		return new DataNode(nodeHash, sn, key, version, dataHash, bytes);
 	}

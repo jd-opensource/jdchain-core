@@ -23,12 +23,12 @@ import com.jd.blockchain.crypto.service.sm.SMCryptoService;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.core.CryptoConfig;
+import com.jd.blockchain.ledger.core.DatasetHelper;
 import com.jd.blockchain.ledger.core.MerkleHashDataset;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.Dataset;
-import com.jd.blockchain.utils.DatasetHelper;
 import com.jd.blockchain.utils.io.BytesUtils;
 
 public class MerkleHashDataSetTest {

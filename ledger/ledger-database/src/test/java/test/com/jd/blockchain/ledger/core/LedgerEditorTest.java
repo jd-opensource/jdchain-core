@@ -27,7 +27,7 @@ import com.jd.blockchain.ledger.TransactionResult;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.core.DataAccount;
-import com.jd.blockchain.ledger.core.LedgerDataset;
+import com.jd.blockchain.ledger.core.LedgerDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerEditor;
 import com.jd.blockchain.ledger.core.LedgerManager;
 import com.jd.blockchain.ledger.core.LedgerRepository;
@@ -117,7 +117,7 @@ public class LedgerEditorTest {
 		LedgerEditor ldgEdt = createLedgerInitEditor(storage);
 
 		LedgerTransactionContext genisisTxCtx = createGenisisTx(ldgEdt, participants);
-		LedgerDataset ldgDS = genisisTxCtx.getDataset();
+		LedgerDataSetEditor ldgDS = genisisTxCtx.getDataset();
 
 		AsymmetricKeypair cryptoKeyPair = signatureFunction.generateKeypair();
 		BlockchainKeypair dataKP = new BlockchainKeypair(cryptoKeyPair.getPubKey(), cryptoKeyPair.getPrivKey());
@@ -165,7 +165,7 @@ public class LedgerEditorTest {
 	public void testGennesisBlockCreation() {
 		LedgerEditor ldgEdt = createLedgerInitEditor();
 		LedgerTransactionContext genisisTxCtx = createGenisisTx(ldgEdt, participants);
-		LedgerDataset ldgDS = genisisTxCtx.getDataset();
+		LedgerDataSetEditor ldgDS = genisisTxCtx.getDataset();
 
 		AsymmetricKeypair cryptoKeyPair = signatureFunction.generateKeypair();
 		BlockchainKeypair userKP = new BlockchainKeypair(cryptoKeyPair.getPubKey(), cryptoKeyPair.getPrivKey());
@@ -301,7 +301,7 @@ public class LedgerEditorTest {
 		MemoryKVStorage storage = new MemoryKVStorage();
 
 		byte[] key = Base58Utils.decode("j5q7n8ShYqKVitaobZrERtBK7GowGGZ54RuaUeWjLsdPYY");
-		HashDigest valueHash = new HashDigest(Base58Utils.decode("j5o6mMnMQqE5fJKJ93FzXPnu4vFCfpBKp7u4r8tUUaFRK8"));
+		HashDigest valueHash = Crypto.resolveAsHashDigest(Base58Utils.decode("j5o6mMnMQqE5fJKJ93FzXPnu4vFCfpBKp7u4r8tUUaFRK8"));
 		long version = 0;
 
 		MerkleHashTrie merkleTree = new MerkleHashTrie(setting, keyPrefix, storage);

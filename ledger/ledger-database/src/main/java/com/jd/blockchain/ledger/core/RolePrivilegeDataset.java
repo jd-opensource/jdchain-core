@@ -16,12 +16,14 @@ import com.jd.blockchain.ledger.TransactionPrivilegeBitset;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.Transactional;
 import com.jd.blockchain.utils.DataEntry;
+import com.jd.blockchain.utils.Mapper;
+import com.jd.blockchain.utils.SkippingIterator;
+import com.jd.blockchain.utils.Transactional;
 
-public class RolePrivilegeDataset implements Transactional, MerkleProvable, RolePrivilegeSettings {
+public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes>, RolePrivilegeSettings {
 
-	private MerkleHashDataset dataset;
+	private MerkleDataset<Bytes, byte[]> dataset;
 
 	public RolePrivilegeDataset(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage verStorage) {
@@ -64,12 +66,28 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable, Role
 		return dataset.getDataCount();
 	}
 
-	@Override
+	/**
+	 * 加入新的角色权限； <br>
+	 * 
+	 * 如果指定的角色已经存在，则引发 {@link LedgerException} 异常；
+	 * 
+	 * @param roleName        角色名称；不能超过 {@link #MAX_ROLE_NAME_LENGTH} 个 Unicode 字符；
+	 * @param ledgerPrivilege
+	 * @param txPrivilege
+	 */
 	public long addRolePrivilege(String roleName, Privileges privileges) {
 		return addRolePrivilege(roleName, privileges.getLedgerPrivilege(), privileges.getTransactionPrivilege());
 	}
 
-	@Override
+	/**
+	 * 加入新的角色权限； <br>
+	 *
+	 * 如果指定的角色已经存在，则引发 {@link LedgerException} 异常；
+	 *
+	 * @param roleName        角色名称；不能超过 {@link #MAX_ROLE_NAME_LENGTH} 个 Unicode 字符；
+	 * @param ledgerPrivilege
+	 * @param txPrivilege
+	 */
 	public long addRolePrivilege(String roleName, LedgerPrivilegeBitset ledgerPrivilege, TransactionPrivilegeBitset txPrivilege) {
 		RolePrivileges roleAuth = new RolePrivileges(roleName, -1, ledgerPrivilege, txPrivilege);
 		long nv = setRolePrivilege(roleAuth);
@@ -79,7 +97,17 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable, Role
 		return nv;
 	}
 
-	@Override
+	/**
+	 * 加入新的角色权限； <br>
+	 *
+	 * 如果指定的角色已经存在，则引发 {@link LedgerException} 异常；
+	 *
+	 * @param roleName          角色名称；不能超过 {@link #MAX_ROLE_NAME_LENGTH} 个 Unicode
+	 *                          字符；
+	 * @param ledgerPermissions 给角色授予的账本权限列表；
+	 * @param txPermissions     给角色授予的交易权限列表；
+	 * @return
+	 */
 	public long addRolePrivilege(String roleName, LedgerPermission[] ledgerPermissions,
 			TransactionPermission[] txPermissions) {
 		LedgerPrivilegeBitset ledgerPrivilege = new LedgerPrivilegeBitset();
@@ -115,7 +143,6 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable, Role
 	 * 
 	 * @param participant
 	 */
-	@Override
 	public void updateRolePrivilege(RolePrivileges roleAuth) {
 		long nv = setRolePrivilege(roleAuth);
 		if (nv < 0) {
@@ -132,7 +159,6 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable, Role
 	 * @param permissions 权限列表；
 	 * @return
 	 */
-	@Override
 	public long enablePermissions(String roleName, LedgerPermission... permissions) {
 		RolePrivileges roleAuth = getRolePrivilege(roleName);
 		if (roleAuth == null) {
@@ -150,7 +176,6 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable, Role
 	 * @param permissions 权限列表；
 	 * @return
 	 */
-	@Override
 	public long enablePermissions(String roleName, TransactionPermission... permissions) {
 		RolePrivileges roleAuth = getRolePrivilege(roleName);
 		if (roleAuth == null) {
@@ -168,7 +193,6 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable, Role
 	 * @param permissions 权限列表；
 	 * @return
 	 */
-	@Override
 	public long disablePermissions(String roleName, LedgerPermission... permissions) {
 		RolePrivileges roleAuth = getRolePrivilege(roleName);
 		if (roleAuth == null) {
@@ -186,7 +210,6 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable, Role
 	 * @param permissions 权限列表；
 	 * @return
 	 */
-	@Override
 	public long disablePermissions(String roleName, TransactionPermission... permissions) {
 		RolePrivileges roleAuth = getRolePrivilege(roleName);
 		if (roleAuth == null) {
@@ -205,7 +228,6 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable, Role
 	 * @param txPermissions
 	 * @return
 	 */
-	@Override
 	public long enablePermissions(String roleName, LedgerPermission[] ledgerPermissions,
 			TransactionPermission[] txPermissions) {
 		RolePrivileges roleAuth = getRolePrivilege(roleName);
@@ -226,7 +248,6 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable, Role
 	 * @param txPermissions
 	 * @return
 	 */
-	@Override
 	public long disablePermissions(String roleName, LedgerPermission[] ledgerPermissions,
 			TransactionPermission[] txPermissions) {
 		RolePrivileges roleAuth = getRolePrivilege(roleName);
@@ -264,23 +285,39 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable, Role
 		return new RolePrivileges(roleName, kv.getVersion(), privilege);
 	}
 
-	@Override
-	public RolePrivileges[] getRolePrivileges(int index, int count) {
-		DataEntry<Bytes, byte[]>[] kvEntries = dataset.getDataEntries(index, count);
-		RolePrivileges[] pns = new RolePrivileges[kvEntries.length];
-		PrivilegeSet privilege;
-		for (int i = 0; i < pns.length; i++) {
-			privilege = BinaryProtocol.decode(kvEntries[i].getValue());
-			pns[i] = new RolePrivileges(kvEntries[i].getKey().toUTF8String(), kvEntries[i].getVersion(), privilege);
-		}
-		return pns;
-	}
+//	@Override
+//	public RolePrivileges[] getRolePrivileges(int index, int count) {
+//		DataEntry<Bytes, byte[]>[] kvEntries = dataset.getDataEntries(index, count);
+//		RolePrivileges[] pns = new RolePrivileges[kvEntries.length];
+//		PrivilegeSet privilege;
+//		for (int i = 0; i < pns.length; i++) {
+//			privilege = BinaryProtocol.decode(kvEntries[i].getValue());
+//			pns[i] = new RolePrivileges(kvEntries[i].getKey().toUTF8String(), kvEntries[i].getVersion(), privilege);
+//		}
+//		return pns;
+//	}
+//
+//	@Override
+//	public RolePrivileges[] getRolePrivileges() {
+//		return getRolePrivileges(0, (int) getRoleCount());
+//	}
 
 	@Override
-	public RolePrivileges[] getRolePrivileges() {
-		return getRolePrivileges(0, (int) getRoleCount());
-	}
+	public SkippingIterator<RolePrivileges> rolePrivilegesIterator() {
+		SkippingIterator<DataEntry<Bytes, byte[]>> entriesIterator = dataset.iterator();
+		return entriesIterator.iterateAs(new Mapper<DataEntry<Bytes,byte[]>, RolePrivileges>() {
 
+			@Override
+			public RolePrivileges from(DataEntry<Bytes, byte[]> source) {
+				if (source == null) {
+					return null;
+				}
+				PrivilegeSet privilege = BinaryProtocol.decode(source.getValue());
+				return new RolePrivileges(source.getKey().toUTF8String(), source.getVersion(), privilege);
+			}
+		});
+	}
+	
 	@Override
 	public boolean isReadonly() {
 		return dataset.isReadonly();

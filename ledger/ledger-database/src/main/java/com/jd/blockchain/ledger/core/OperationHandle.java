@@ -21,7 +21,7 @@ public interface OperationHandle {
      * @param handleContext   操作上下文；
      * @return
      */
-    BytesValue process(Operation op, LedgerDataset newBlockDataset, TransactionRequestExtension requestContext,
+    BytesValue process(Operation op, LedgerDataSetEditor newBlockDataset, TransactionRequestExtension requestContext,
                        LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager);
 
 }

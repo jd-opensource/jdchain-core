@@ -3,23 +3,25 @@ package com.jd.blockchain.ledger.core;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.ParticipantDataQuery;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.DataEntry;
+import com.jd.blockchain.utils.Mapper;
+import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 
-public class ParticipantDataset implements Transactional, MerkleProvable, ParticipantDataQuery {
+public class ParticipantDataset implements Transactional, ParticipantCollection {
 
 	static {
 		DataContractRegistry.register(ParticipantNode.class);
 	}
 
-	private MerkleHashDataset dataset;
+	private MerkleDataset<Bytes, byte[]> dataset;
 
 	public ParticipantDataset(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage verStorage) {
@@ -28,7 +30,8 @@ public class ParticipantDataset implements Transactional, MerkleProvable, Partic
 
 	public ParticipantDataset(HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
 			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage, verStorage, readonly);
+		dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage,
+				verStorage, readonly);
 	}
 
 	@Override
@@ -125,15 +128,26 @@ public class ParticipantDataset implements Transactional, MerkleProvable, Partic
 		return BinaryProtocol.decode(bytes);
 	}
 
+	@Deprecated
 	@Override
 	public ParticipantNode[] getParticipants() {
-		byte[][] bytes = dataset.getValues(0, (int) dataset.getDataCount());
-		ParticipantNode[] pns = new ParticipantNode[bytes.length];
+		SkippingIterator<ParticipantNode> nodesIterator = getAllParticipants();
+		ParticipantNode[] nodes = new ParticipantNode[(int) nodesIterator.getCount()];
+		nodesIterator.next(nodes);
 
-		for (int i = 0; i < pns.length; i++) {
-			pns[i] = BinaryProtocol.decode(bytes[i]);
-		}
-		return pns;
+		return nodes;
+	}
+
+	@Override
+	public SkippingIterator<ParticipantNode> getAllParticipants() {
+		SkippingIterator<DataEntry<Bytes, byte[]>> dataIterator = dataset.iterator();
+		return dataIterator.iterateAs(new Mapper<DataEntry<Bytes, byte[]>, ParticipantNode>() {
+
+			@Override
+			public ParticipantNode from(DataEntry<Bytes, byte[]> source) {
+				return source == null ? null : BinaryProtocol.decode(source.getValue());
+			}
+		});
 	}
 
 }

@@ -22,6 +22,7 @@ import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.AbstractSkippingIterator;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.EmptySkippingIterator;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.BytesUtils;
@@ -44,7 +45,7 @@ import com.jd.blockchain.utils.io.BytesUtils;
  */
 public class MerkleHashTrie implements Iterable<KVEntry>, MerkleTree {
 
-	private static final SkippingIterator<KVEntry> NULL_DATA_ITERATOR = SkippingIterator.empty();
+	private static final SkippingIterator<KVEntry> NULL_DATA_ITERATOR = EmptySkippingIterator.instance();
 
 	public static final int TREE_DEGREE = 16;
 

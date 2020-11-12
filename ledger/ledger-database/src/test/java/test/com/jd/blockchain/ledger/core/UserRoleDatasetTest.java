@@ -16,7 +16,7 @@ import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.ledger.RolesPolicy;
 import com.jd.blockchain.ledger.UserRoles;
 import com.jd.blockchain.ledger.core.CryptoConfig;
-import com.jd.blockchain.ledger.core.UserRoleDataset;
+import com.jd.blockchain.ledger.core.UserRoleDatasetEditor;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 
 public class UserRoleDatasetTest {
@@ -42,7 +42,7 @@ public class UserRoleDatasetTest {
 
 		MemoryKVStorage testStorage = new MemoryKVStorage();
 		String prefix = "user-roles/";
-		UserRoleDataset userRolesDataset = new UserRoleDataset(cryptoConfig, prefix, testStorage, testStorage);
+		UserRoleDatasetEditor userRolesDataset = new UserRoleDatasetEditor(cryptoConfig, prefix, testStorage, testStorage);
 
 		BlockchainKeypair bckp = BlockchainKeyGenerator.getInstance().generate();
 		String[] authRoles = { "DEFAULT", "MANAGER" };

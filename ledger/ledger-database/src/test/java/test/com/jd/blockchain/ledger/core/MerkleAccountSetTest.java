@@ -11,7 +11,7 @@ import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.core.CompositeAccount;
 import com.jd.blockchain.ledger.core.CryptoConfig;
-import com.jd.blockchain.ledger.core.MerkleAccountSet;
+import com.jd.blockchain.ledger.core.MerkleAccountSetEditor;
 import com.jd.blockchain.ledger.core.OpeningAccessPolicy;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.Bytes;
@@ -31,7 +31,7 @@ public class MerkleAccountSetTest {
 		cryptoConfig.setAutoVerifyHash(true);
 		cryptoConfig.setHashAlgorithm(Crypto.getAlgorithm("SHA256"));
 
-		MerkleAccountSet accountset = new MerkleAccountSet(cryptoConfig, KEY_PREFIX, STORAGE, STORAGE, POLICY);
+		MerkleAccountSetEditor accountset = new MerkleAccountSetEditor(cryptoConfig, KEY_PREFIX, STORAGE, STORAGE, POLICY);
 
 		BlockchainKeypair key1 = BlockchainKeyGenerator.getInstance().generate();
 		accountset.register(key1.getIdentity());

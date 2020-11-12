@@ -24,16 +24,16 @@ import com.jd.blockchain.utils.DataEntry;
  * @author huanghaiquan
  *
  */
-public class UserRoleDataset implements Transactional, MerkleProvable, UserAuthorizationSettings {
+public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Bytes>, UserAuthorizationSettings {
 
 	private MerkleHashDataset dataset;
 
-	public UserRoleDataset(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
+	public UserRoleDatasetEditor(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage verStorage) {
 		dataset = new MerkleHashDataset(cryptoSetting, prefix, exPolicyStorage, verStorage);
 	}
 
-	public UserRoleDataset(HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
+	public UserRoleDatasetEditor(HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
 			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
 		dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage, verStorage, readonly);
 	}
@@ -77,7 +77,6 @@ public class UserRoleDataset implements Transactional, MerkleProvable, UserAutho
 	 * @param rolesPolicy
 	 * @param roles
 	 */
-	@Override
 	public void addUserRoles(Bytes userAddress, RolesPolicy rolesPolicy, String... roles) {
 		UserRoles roleAuth = new UserRoles(userAddress, -1, rolesPolicy);
 		roleAuth.addRoles(roles);
@@ -96,7 +95,6 @@ public class UserRoleDataset implements Transactional, MerkleProvable, UserAutho
 	 * @param rolesPolicy
 	 * @param roles
 	 */
-	@Override
 	public void addUserRoles(Bytes userAddress, RolesPolicy rolesPolicy, Collection<String> roles) {
 		UserRoles roleAuth = new UserRoles(userAddress, -1, rolesPolicy);
 		roleAuth.addRoles(roles);
@@ -127,7 +125,6 @@ public class UserRoleDataset implements Transactional, MerkleProvable, UserAutho
 	 * 
 	 * @param userRoles
 	 */
-	@Override
 	public void updateUserRoles(UserRoles userRoles) {
 		long nv = setUserRolesAuthorization(userRoles);
 		if (nv < 0) {
@@ -145,7 +142,6 @@ public class UserRoleDataset implements Transactional, MerkleProvable, UserAutho
 	 * @param roles       角色列表；
 	 * @return
 	 */
-	@Override
 	public long setRoles(Bytes userAddress, RolesPolicy policy, String... roles) {
 		UserRoles userRoles = getUserRoles(userAddress);
 		if (userRoles == null) {
