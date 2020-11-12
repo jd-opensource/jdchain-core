@@ -28,8 +28,8 @@ import com.jd.blockchain.ledger.core.MultiIDsPolicy;
 import com.jd.blockchain.ledger.core.ParticipantCollection;
 import com.jd.blockchain.ledger.core.RolePrivilegeDataset;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
-import com.jd.blockchain.ledger.core.UserAccountCollection;
-import com.jd.blockchain.ledger.core.UserRoleDataset;
+import com.jd.blockchain.ledger.core.UserAccountSet;
+import com.jd.blockchain.ledger.core.UserRoleDatasetEditor;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.Bytes;
 
@@ -65,9 +65,9 @@ public class LedgerSecurityManagerTest {
 		return rolePrivilegeDataset;
 	}
 
-	private UserRoleDataset createUserRoleDataset(MemoryKVStorage testStorage) {
+	private UserRoleDatasetEditor createUserRoleDataset(MemoryKVStorage testStorage) {
 		String prefix = "user-roles/";
-		UserRoleDataset userRolesDataset = new UserRoleDataset(CRYPTO_SETTINGS, prefix, testStorage, testStorage);
+		UserRoleDatasetEditor userRolesDataset = new UserRoleDatasetEditor(CRYPTO_SETTINGS, prefix, testStorage, testStorage);
 
 		return userRolesDataset;
 	}
@@ -120,7 +120,7 @@ public class LedgerSecurityManagerTest {
 		String[] employeeRoles = new String[] { ROLE_OPERATOR };
 		String[] devoiceRoles = new String[] { ROLE_DATA_COLLECTOR };
 		String[] platformRoles = new String[] { ROLE_PLATFORM };
-		UserRoleDataset userRolesDataset = createUserRoleDataset(testStorage);
+		UserRoleDatasetEditor userRolesDataset = createUserRoleDataset(testStorage);
 		userRolesDataset.addUserRoles(kpManager.getAddress(), RolesPolicy.UNION, managerRoles);
 		userRolesDataset.addUserRoles(kpEmployee.getAddress(), RolesPolicy.UNION, employeeRoles);
 		userRolesDataset.addUserRoles(kpDevoice.getAddress(), RolesPolicy.UNION, devoiceRoles);
@@ -128,7 +128,7 @@ public class LedgerSecurityManagerTest {
 		userRolesDataset.commit();
 
 		ParticipantCollection partisQuery = Mockito.mock(ParticipantCollection.class);
-		UserAccountCollection usersQuery = Mockito.mock(UserAccountCollection.class);
+		UserAccountSet usersQuery = Mockito.mock(UserAccountSet.class);
 
 		// 创建安全管理器；
 		LedgerSecurityManager securityManager = new LedgerSecurityManagerImpl(rolePrivilegeDataset, userRolesDataset,
@@ -144,7 +144,7 @@ public class LedgerSecurityManagerTest {
 		nodes.put(kpPlatform.getAddress(), kpPlatform);
 
 		// 创建一项与指定的终端用户和节点参与方相关的安全策略；
-		SecurityPolicy policy = securityManager.createSecurityPolicy(endpoints.keySet(), nodes.keySet());
+		SecurityPolicy policy = securityManager.getSecurityPolicy(endpoints.keySet(), nodes.keySet());
 
 		// 校验安全策略的正确性；
 		LedgerPermission[] ledgerPermissions = LedgerPermission.values();

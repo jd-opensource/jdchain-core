@@ -24,8 +24,8 @@ import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.core.DefaultOperationHandleRegisteration;
-import com.jd.blockchain.ledger.core.LedgerDataQuery;
-import com.jd.blockchain.ledger.core.LedgerDataset;
+import com.jd.blockchain.ledger.core.LedgerDataSet;
+import com.jd.blockchain.ledger.core.LedgerDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerEditor;
 import com.jd.blockchain.ledger.core.LedgerManager;
 import com.jd.blockchain.ledger.core.LedgerRepository;
@@ -105,7 +105,7 @@ public class ContractInvokingTest {
 		deploy(ledgerRepo, ledgerManager, opReg, ledgerHash, contractKey);
 		// 创建新区块的交易处理器；
 		LedgerBlock preBlock = ledgerRepo.getLatestBlock();
-		LedgerDataQuery previousBlockDataset = ledgerRepo.getLedgerData(preBlock);
+		LedgerDataSet previousBlockDataset = ledgerRepo.getLedgerDataSet(preBlock);
 
 		// 加载合约
 		LedgerEditor newBlockEditor = ledgerRepo.createNextBlock();
@@ -181,7 +181,7 @@ public class ContractInvokingTest {
 
 		// 创建新区块的交易处理器；
 		LedgerBlock preBlock = ledgerRepo.getLatestBlock();
-		LedgerDataQuery previousBlockDataset = ledgerRepo.getLedgerData(preBlock);
+		LedgerDataSet previousBlockDataset = ledgerRepo.getLedgerDataSet(preBlock);
 
 		// 加载合约
 		LedgerEditor newBlockEditor = ledgerRepo.createNextBlock();
@@ -332,7 +332,7 @@ public class ContractInvokingTest {
 	private LedgerBlock buildBlock(LedgerRepository ledgerRepo, LedgerService ledgerService,
 			OperationHandleRegisteration opReg, TxDefinitor txDefinitor) {
 		LedgerBlock preBlock = ledgerRepo.getLatestBlock();
-		LedgerDataQuery previousBlockDataset = ledgerRepo.getLedgerData(preBlock);
+		LedgerDataSet previousBlockDataset = ledgerRepo.getLedgerDataSet(preBlock);
 		LedgerEditor newBlockEditor = ledgerRepo.createNextBlock();
 		TransactionBatchProcessor txbatchProcessor = new TransactionBatchProcessor(getSecurityManager(), newBlockEditor,
 				ledgerRepo, opReg);
@@ -366,7 +366,7 @@ public class ContractInvokingTest {
 	private void registerDataAccount(LedgerRepository ledgerRepo, LedgerManager ledgerManager,
 			DefaultOperationHandleRegisteration opReg, HashDigest ledgerHash, BlockchainKeypair kpDataAccount) {
 		LedgerBlock preBlock = ledgerRepo.getLatestBlock();
-		LedgerDataQuery previousBlockDataset = ledgerRepo.getLedgerData(preBlock);
+		LedgerDataSet previousBlockDataset = ledgerRepo.getLedgerDataSet(preBlock);
 
 		// 加载合约
 		LedgerEditor newBlockEditor = ledgerRepo.createNextBlock();
@@ -397,7 +397,7 @@ public class ContractInvokingTest {
 			DefaultOperationHandleRegisteration opReg, HashDigest ledgerHash, BlockchainKeypair contractKey) {
 		// 创建新区块的交易处理器；
 		LedgerBlock preBlock = ledgerRepo.getLatestBlock();
-		LedgerDataQuery previousBlockDataset = ledgerRepo.getLedgerData(preBlock);
+		LedgerDataSet previousBlockDataset = ledgerRepo.getLedgerDataSet(preBlock);
 
 		// 加载合约
 		LedgerEditor newBlockEditor = ledgerRepo.createNextBlock();
@@ -432,7 +432,7 @@ public class ContractInvokingTest {
 
 		TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest_SHA256(partiKeys);
 		LedgerTransactionContext genisisTxCtx = ldgEdt.newTransaction(genesisTxReq);
-		LedgerDataset ldgDS = genisisTxCtx.getDataset();
+		LedgerDataSetEditor ldgDS = genisisTxCtx.getDataset();
 
 		for (int i = 0; i < partiKeys.length; i++) {
 			UserAccount userAccount = ldgDS.getUserAccountSet().register(partiKeys[i].getAddress(),
@@ -476,7 +476,7 @@ public class ContractInvokingTest {
 		when(securityPolicy.isNodeEnable(any(LedgerPermission.class), any())).thenReturn(true);
 		when(securityPolicy.isNodeEnable(any(TransactionPermission.class), any())).thenReturn(true);
 
-		when(securityManager.createSecurityPolicy(any(), any())).thenReturn(securityPolicy);
+		when(securityManager.getSecurityPolicy(any(), any())).thenReturn(securityPolicy);
 
 		return securityManager;
 	}

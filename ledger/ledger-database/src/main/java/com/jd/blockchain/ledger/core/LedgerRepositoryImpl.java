@@ -132,11 +132,11 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	 */
 	private LedgerState retrieveLatestState() {
 		LedgerBlock latestBlock = innerGetBlock(innerGetLatestBlockHeight());
-		LedgerDataset ledgerDataset = innerGetLedgerDataset(latestBlock);
-		TransactionCollection txSet = loadTransactionSet(latestBlock.getTransactionSetHash(),
+		LedgerDataSetEditor ledgerDataset = innerGetLedgerDataset(latestBlock);
+		TransactionSet txSet = loadTransactionSet(latestBlock.getTransactionSetHash(),
 				ledgerDataset.getAdminDataset().getSettings().getCryptoSetting(), keyPrefix, exPolicyStorage,
 				versioningStorage, true);
-		LedgerEventSet ledgerEventset = innerGetLedgerEventSet(latestBlock);
+		LedgerEventSetEditor ledgerEventset = innerGetLedgerEventSet(latestBlock);
 		this.latestState = new LedgerState(latestBlock, ledgerDataset, txSet, ledgerEventset);
 		this.ledgerStructureVersion = ledgerDataset.getAdminDataset().getMetadata().getLedgerStructureVersion();
 		return latestState;
@@ -273,7 +273,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	@Override
-	public TransactionCollection getTransactionSet(LedgerBlock block) {
+	public TransactionSet getTransactionSet(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
 			// 从缓存中返回最新区块的数据集；
@@ -322,12 +322,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	 * @param block
 	 * @return
 	 */
-	private LedgerAdminDataset createAdminDataset(LedgerBlock block) {
-		return new LedgerAdminDataset(block.getAdminAccountHash(), keyPrefix, exPolicyStorage, versioningStorage, true);
+	private LedgerAdminDataSetEditor createAdminDataset(LedgerBlock block) {
+		return new LedgerAdminDataSetEditor(block.getAdminAccountHash(), keyPrefix, exPolicyStorage, versioningStorage, true);
 	}
 
 	@Override
-	public UserAccountCollection getUserAccountSet(LedgerBlock block) {
+	public UserAccountSet getUserAccountSet(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
 			return latestState.getUserAccountSet();
@@ -336,13 +336,13 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return createUserAccountSet(block, adminAccount.getSettings().getCryptoSetting());
 	}
 
-	private UserAccountSet createUserAccountSet(LedgerBlock block, CryptoSetting cryptoSetting) {
+	private UserAccountSetEditor createUserAccountSet(LedgerBlock block, CryptoSetting cryptoSetting) {
 		return loadUserAccountSet(block.getUserAccountSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
 				versioningStorage, true);
 	}
 
 	@Override
-	public DataAccountCollection getDataAccountSet(LedgerBlock block) {
+	public DataAccountSet getDataAccountSet(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
 			return latestState.getDataAccountSet();
@@ -352,13 +352,13 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return createDataAccountSet(block, adminAccount.getSettings().getCryptoSetting());
 	}
 
-	private DataAccountSet createDataAccountSet(LedgerBlock block, CryptoSetting setting) {
+	private DataAccountSetEditor createDataAccountSet(LedgerBlock block, CryptoSetting setting) {
 		return loadDataAccountSet(block.getDataAccountSetHash(), setting, keyPrefix, exPolicyStorage, versioningStorage,
 				true);
 	}
 
 	@Override
-	public ContractAccountCollection getContractAccountSet(LedgerBlock block) {
+	public ContractAccountSet getContractAccountSet(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
 			return latestState.getContractAccountSet();
@@ -372,7 +372,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	public EventGroup getSystemEvents(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
-			return latestState.getLedgerEventSet().getSystemEvents();
+			return latestState.getLedgerEventSet().getSystemEventGroup();
 		}
 
 		LedgerAdminSettings adminAccount = getAdminSettings(block);
@@ -385,28 +385,28 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	@Override
-	public EventAccountCollection getUserEvents(LedgerBlock block) {
+	public EventAccountSet getUserEvents(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
-			return latestState.getLedgerEventSet().getUserEvents();
+			return latestState.getLedgerEventSet().getEventAccountSet();
 		}
 
 		LedgerAdminSettings adminAccount = getAdminSettings(block);
 		return createUserEventSet(block, adminAccount.getSettings().getCryptoSetting());
 	}
 
-	private EventAccountSet createUserEventSet(LedgerBlock block, CryptoSetting cryptoSetting) {
+	private EventAccountSetEditor createUserEventSet(LedgerBlock block, CryptoSetting cryptoSetting) {
 		return loadUserEventSet(block.getUserEventSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
 				versioningStorage, true);
 	}
 
-	private ContractAccountSet createContractAccountSet(LedgerBlock block, CryptoSetting cryptoSetting) {
+	private ContractAccountSetEditor createContractAccountSet(LedgerBlock block, CryptoSetting cryptoSetting) {
 		return loadContractAccountSet(block.getContractAccountSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
 				versioningStorage, true);
 	}
 
 	@Override
-	public LedgerDataset getLedgerData(LedgerBlock block) {
+	public LedgerDataSetEditor getLedgerDataSet(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
 			return latestState.getLedgerDataset();
@@ -417,7 +417,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	@Override
-	public LedgerEventCollection getLedgerEvents(LedgerBlock block) {
+	public LedgerEventSet getLedgerEvents(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
 			return latestState.getLedgerEventSet();
@@ -427,23 +427,23 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return innerGetLedgerEventSet(block);
 	}
 
-	private LedgerDataset innerGetLedgerDataset(LedgerBlock block) {
-		LedgerAdminDataset adminDataset = createAdminDataset(block);
+	private LedgerDataSetEditor innerGetLedgerDataset(LedgerBlock block) {
+		LedgerAdminDataSetEditor adminDataset = createAdminDataset(block);
 		CryptoSetting cryptoSetting = adminDataset.getSettings().getCryptoSetting();
 
-		UserAccountSet userAccountSet = createUserAccountSet(block, cryptoSetting);
-		DataAccountSet dataAccountSet = createDataAccountSet(block, cryptoSetting);
-		ContractAccountSet contractAccountSet = createContractAccountSet(block, cryptoSetting);
-		return new LedgerDataset(adminDataset, userAccountSet, dataAccountSet, contractAccountSet, true);
+		UserAccountSetEditor userAccountSet = createUserAccountSet(block, cryptoSetting);
+		DataAccountSetEditor dataAccountSet = createDataAccountSet(block, cryptoSetting);
+		ContractAccountSetEditor contractAccountSet = createContractAccountSet(block, cryptoSetting);
+		return new LedgerDataSetEditor(adminDataset, userAccountSet, dataAccountSet, contractAccountSet, true);
 	}
 
-	private LedgerEventSet innerGetLedgerEventSet(LedgerBlock block) {
-		LedgerAdminDataset adminDataset = createAdminDataset(block);
+	private LedgerEventSetEditor innerGetLedgerEventSet(LedgerBlock block) {
+		LedgerAdminDataSetEditor adminDataset = createAdminDataset(block);
 		CryptoSetting cryptoSetting = adminDataset.getSettings().getCryptoSetting();
 
 		MerkleEventSet systemEventSet = createSystemEventSet(block, cryptoSetting);
-		EventAccountSet userEventSet = createUserEventSet(block, cryptoSetting);
-		return new LedgerEventSet(systemEventSet, userEventSet, true);
+		EventAccountSetEditor userEventSet = createUserEventSet(block, cryptoSetting);
+		return new LedgerEventSetEditor(systemEventSet, userEventSet, true);
 	}
 
 	public synchronized void resetNextBlockEditor() {
@@ -476,8 +476,8 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	public LedgerSecurityManager getSecurityManager() {
 		LedgerBlock ledgerBlock = getLatestBlock();
 		
-		LedgerDataQuery ledgerDataQuery = getLedgerData(ledgerBlock);
-		LedgerAdminDataQuery previousAdminDataset = ledgerDataQuery.getAdminDataset();
+		LedgerDataSet ledgerDataQuery = getLedgerDataSet(ledgerBlock);
+		LedgerAdminDataSet previousAdminDataset = ledgerDataQuery.getAdminDataset();
 		LedgerSecurityManager securityManager = new LedgerSecurityManagerImpl(previousAdminDataset.getAdminSettings().getRolePrivileges(),
 				previousAdminDataset.getAdminSettings().getAuthorizations(), previousAdminDataset.getParticipantDataset(),
 				ledgerDataQuery.getUserAccountSet());
@@ -503,118 +503,118 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return BLOCK_PREFIX.concat(blockHash);
 	}
 
-	static LedgerDataset newDataSet(LedgerInitSetting initSetting, String keyPrefix,
+	static LedgerDataSetEditor newDataSet(LedgerInitSetting initSetting, String keyPrefix,
 			ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
-		LedgerAdminDataset adminAccount = new LedgerAdminDataset(initSetting, keyPrefix, ledgerExStorage,
+		LedgerAdminDataSetEditor adminAccount = new LedgerAdminDataSetEditor(initSetting, keyPrefix, ledgerExStorage,
 				ledgerVerStorage);
 
 		String usersetKeyPrefix = keyPrefix + USER_SET_PREFIX;
 		String datasetKeyPrefix = keyPrefix + DATA_SET_PREFIX;
 		String contractsetKeyPrefix = keyPrefix + CONTRACT_SET_PREFIX;
 
-		UserAccountSet userAccountSet = new UserAccountSet(adminAccount.getSettings().getCryptoSetting(),
+		UserAccountSetEditor userAccountSet = new UserAccountSetEditor(adminAccount.getSettings().getCryptoSetting(),
 				usersetKeyPrefix, ledgerExStorage, ledgerVerStorage, DEFAULT_ACCESS_POLICY);
 
-		DataAccountSet dataAccountSet = new DataAccountSet(adminAccount.getSettings().getCryptoSetting(),
+		DataAccountSetEditor dataAccountSet = new DataAccountSetEditor(adminAccount.getSettings().getCryptoSetting(),
 				datasetKeyPrefix, ledgerExStorage, ledgerVerStorage, DEFAULT_ACCESS_POLICY);
 
-		ContractAccountSet contractAccountSet = new ContractAccountSet(adminAccount.getSettings().getCryptoSetting(),
+		ContractAccountSetEditor contractAccountSet = new ContractAccountSetEditor(adminAccount.getSettings().getCryptoSetting(),
 				contractsetKeyPrefix, ledgerExStorage, ledgerVerStorage, DEFAULT_ACCESS_POLICY);
 
-		LedgerDataset newDataSet = new LedgerDataset(adminAccount, userAccountSet, dataAccountSet,
+		LedgerDataSetEditor newDataSet = new LedgerDataSetEditor(adminAccount, userAccountSet, dataAccountSet,
 				contractAccountSet, false);
 
 		return newDataSet;
 	}
 
-	static LedgerEventSet newEventSet(CryptoSetting cryptoSetting, String keyPrefix,
+	static LedgerEventSetEditor newEventSet(CryptoSetting cryptoSetting, String keyPrefix,
 									ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
 
 		MerkleEventSet systemEventSet = new MerkleEventSet(cryptoSetting,
 				keyPrefix + SYSTEM_EVENT_SET_PREFIX, ledgerExStorage, ledgerVerStorage);
 
-		EventAccountSet userEventSet = new EventAccountSet(cryptoSetting,
+		EventAccountSetEditor userEventSet = new EventAccountSetEditor(cryptoSetting,
 				keyPrefix + USER_EVENT_SET_PREFIX, ledgerExStorage, ledgerVerStorage, DEFAULT_ACCESS_POLICY);
 
-		LedgerEventSet newEventSet = new LedgerEventSet(systemEventSet, userEventSet, false);
+		LedgerEventSetEditor newEventSet = new LedgerEventSetEditor(systemEventSet, userEventSet, false);
 
 		return newEventSet;
 	}
 
-	static TransactionSet newTransactionSet(CryptoSetting cryptoSetting, String keyPrefix,
+	static TransactionSetEditor newTransactionSet(CryptoSetting cryptoSetting, String keyPrefix,
 			ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
 
 		String txsetKeyPrefix = keyPrefix + TRANSACTION_SET_PREFIX;
 
-		TransactionSet transactionSet = new TransactionSet(cryptoSetting, txsetKeyPrefix,
+		TransactionSetEditor transactionSet = new TransactionSetEditor(cryptoSetting, txsetKeyPrefix,
 				ledgerExStorage, ledgerVerStorage);
 		return transactionSet;
 	}
 
-	static LedgerDataset loadDataSet(LedgerDataSnapshot dataSnapshot, CryptoSetting cryptoSetting, String keyPrefix,
+	static LedgerDataSetEditor loadDataSet(LedgerDataSnapshot dataSnapshot, CryptoSetting cryptoSetting, String keyPrefix,
 			ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, boolean readonly) {
-		LedgerAdminDataset adminAccount = new LedgerAdminDataset(dataSnapshot.getAdminAccountHash(), keyPrefix,
+		LedgerAdminDataSetEditor adminAccount = new LedgerAdminDataSetEditor(dataSnapshot.getAdminAccountHash(), keyPrefix,
 				ledgerExStorage, ledgerVerStorage, readonly);
 
-		UserAccountSet userAccountSet = loadUserAccountSet(dataSnapshot.getUserAccountSetHash(), cryptoSetting,
+		UserAccountSetEditor userAccountSet = loadUserAccountSet(dataSnapshot.getUserAccountSetHash(), cryptoSetting,
 				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
 
-		DataAccountSet dataAccountSet = loadDataAccountSet(dataSnapshot.getDataAccountSetHash(), cryptoSetting,
+		DataAccountSetEditor dataAccountSet = loadDataAccountSet(dataSnapshot.getDataAccountSetHash(), cryptoSetting,
 				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
 
-		ContractAccountSet contractAccountSet = loadContractAccountSet(dataSnapshot.getContractAccountSetHash(),
+		ContractAccountSetEditor contractAccountSet = loadContractAccountSet(dataSnapshot.getContractAccountSetHash(),
 				cryptoSetting, keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
 
-		LedgerDataset dataset = new LedgerDataset(adminAccount, userAccountSet, dataAccountSet,
+		LedgerDataSetEditor dataset = new LedgerDataSetEditor(adminAccount, userAccountSet, dataAccountSet,
 				contractAccountSet, readonly);
 
 		return dataset;
 	}
 
-	static LedgerEventSet loadEventSet(LedgerDataSnapshot dataSnapshot, CryptoSetting cryptoSetting, String keyPrefix,
+	static LedgerEventSetEditor loadEventSet(LedgerDataSnapshot dataSnapshot, CryptoSetting cryptoSetting, String keyPrefix,
 									   ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, boolean readonly) {
 
 		MerkleEventSet systemEventSet = loadSystemEventSet(dataSnapshot.getSystemEventSetHash(), cryptoSetting,
 				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
-		EventAccountSet userEventSet = loadUserEventSet(dataSnapshot.getUserEventSetHash(), cryptoSetting,
+		EventAccountSetEditor userEventSet = loadUserEventSet(dataSnapshot.getUserEventSetHash(), cryptoSetting,
 				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
-		LedgerEventSet newEventSet = new LedgerEventSet(systemEventSet, userEventSet, false);
+		LedgerEventSetEditor newEventSet = new LedgerEventSetEditor(systemEventSet, userEventSet, false);
 
 		return newEventSet;
 	}
 
-	static UserAccountSet loadUserAccountSet(HashDigest userAccountSetHash, CryptoSetting cryptoSetting,
+	static UserAccountSetEditor loadUserAccountSet(HashDigest userAccountSetHash, CryptoSetting cryptoSetting,
 			String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
 			boolean readonly) {
 
 		String usersetKeyPrefix = keyPrefix + USER_SET_PREFIX;
-		return new UserAccountSet(userAccountSetHash, cryptoSetting, usersetKeyPrefix, ledgerExStorage,
+		return new UserAccountSetEditor(userAccountSetHash, cryptoSetting, usersetKeyPrefix, ledgerExStorage,
 				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
 	}
 
-	static DataAccountSet loadDataAccountSet(HashDigest dataAccountSetHash, CryptoSetting cryptoSetting,
+	static DataAccountSetEditor loadDataAccountSet(HashDigest dataAccountSetHash, CryptoSetting cryptoSetting,
 			String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
 			boolean readonly) {
 
 		String datasetKeyPrefix = keyPrefix + DATA_SET_PREFIX;
-		return new DataAccountSet(dataAccountSetHash, cryptoSetting, datasetKeyPrefix, ledgerExStorage,
+		return new DataAccountSetEditor(dataAccountSetHash, cryptoSetting, datasetKeyPrefix, ledgerExStorage,
 				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
 	}
 
-	static ContractAccountSet loadContractAccountSet(HashDigest contractAccountSetHash, CryptoSetting cryptoSetting,
+	static ContractAccountSetEditor loadContractAccountSet(HashDigest contractAccountSetHash, CryptoSetting cryptoSetting,
 			String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
 			boolean readonly) {
 
 		String contractsetKeyPrefix = keyPrefix + CONTRACT_SET_PREFIX;
-		return new ContractAccountSet(contractAccountSetHash, cryptoSetting, contractsetKeyPrefix, ledgerExStorage,
+		return new ContractAccountSetEditor(contractAccountSetHash, cryptoSetting, contractsetKeyPrefix, ledgerExStorage,
 				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
 	}
 
-	static TransactionSet loadTransactionSet(HashDigest txsetHash, CryptoSetting cryptoSetting, String keyPrefix,
+	static TransactionSetEditor loadTransactionSet(HashDigest txsetHash, CryptoSetting cryptoSetting, String keyPrefix,
 			ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, boolean readonly) {
 
 		String txsetKeyPrefix = keyPrefix + TRANSACTION_SET_PREFIX;
-		return new TransactionSet(txsetHash, cryptoSetting, txsetKeyPrefix, ledgerExStorage, ledgerVerStorage,
+		return new TransactionSetEditor(txsetHash, cryptoSetting, txsetKeyPrefix, ledgerExStorage, ledgerVerStorage,
 				readonly);
 
 	}
@@ -626,11 +626,11 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				ledgerVerStorage, readonly);
 	}
 
-	static EventAccountSet loadUserEventSet(HashDigest eventAccountSetHash, CryptoSetting cryptoSetting,
+	static EventAccountSetEditor loadUserEventSet(HashDigest eventAccountSetHash, CryptoSetting cryptoSetting,
 											String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
 											boolean readonly) {
 
-		return new EventAccountSet(eventAccountSetHash, cryptoSetting, keyPrefix + USER_EVENT_SET_PREFIX, ledgerExStorage,
+		return new EventAccountSetEditor(eventAccountSetHash, cryptoSetting, keyPrefix + USER_EVENT_SET_PREFIX, ledgerExStorage,
 				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
 	}
 
@@ -656,17 +656,17 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 
 		@Override
-		public LedgerDataset getLedgerDataset() {
+		public LedgerDataSetEditor getLedgerDataset() {
 			return editor.getLedgerDataset();
 		}
 
 		@Override
-		public LedgerEventSet getLedgerEventSet() {
+		public LedgerEventSetEditor getLedgerEventSet() {
 			return editor.getLedgerEventSet();
 		}
 
 		@Override
-		public TransactionSet getTransactionSet() {
+		public TransactionSetEditor getTransactionSet() {
 			return editor.getTransactionSet();
 		}
 
@@ -713,13 +713,13 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 		private final LedgerBlock block;
 
-		private final TransactionCollection transactionSet;
+		private final TransactionSet transactionSet;
 
-		private final LedgerDataset ledgerDataset;
+		private final LedgerDataSetEditor ledgerDataset;
 
-		private final LedgerEventSet ledgerEventSet;
+		private final LedgerEventSetEditor ledgerEventSet;
 
-		public LedgerState(LedgerBlock block, LedgerDataset ledgerDataset, TransactionCollection transactionSet, LedgerEventSet ledgerEventSet) {
+		public LedgerState(LedgerBlock block, LedgerDataSetEditor ledgerDataset, TransactionSet transactionSet, LedgerEventSetEditor ledgerEventSet) {
 			this.block = block;
 			this.ledgerDataset = ledgerDataset;
 			this.transactionSet = transactionSet;
@@ -727,31 +727,31 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 		}
 
-		public LedgerAdminDataset getAdminDataset() {
+		public LedgerAdminDataSetEditor getAdminDataset() {
 			return ledgerDataset.getAdminDataset();
 		}
 
-		public LedgerDataset getLedgerDataset() {
+		public LedgerDataSetEditor getLedgerDataset() {
 			return ledgerDataset;
 		}
 
-		public ContractAccountCollection getContractAccountSet() {
-			return ledgerDataset.getContractAccountset();
+		public ContractAccountSet getContractAccountSet() {
+			return ledgerDataset.getContractAccountSet();
 		}
 
-		public DataAccountCollection getDataAccountSet() {
+		public DataAccountSet getDataAccountSet() {
 			return ledgerDataset.getDataAccountSet();
 		}
 
-		public UserAccountCollection getUserAccountSet() {
+		public UserAccountSet getUserAccountSet() {
 			return ledgerDataset.getUserAccountSet();
 		}
 
-		public TransactionCollection getTransactionSet() {
+		public TransactionSet getTransactionSet() {
 			return transactionSet;
 		}
 
-		public LedgerEventCollection getLedgerEventSet() {
+		public LedgerEventSet getLedgerEventSet() {
 			return ledgerEventSet;
 		}
 

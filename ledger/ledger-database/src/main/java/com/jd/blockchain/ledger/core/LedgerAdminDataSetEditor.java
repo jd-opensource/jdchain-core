@@ -18,18 +18,17 @@ import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
-import com.jd.blockchain.utils.ByteSequence;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.Transactional;
 
-public class LedgerAdminDataset implements Transactional, LedgerAdminDataQuery, LedgerAdminSettings {
+public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataSet, LedgerAdminSettings {
 
 	static {
 		DataContractRegistry.register(LedgerMetadata.class);
 		DataContractRegistry.register(LedgerMetadata_V2.class);
 	}
 
-	private static Logger LOGGER = LoggerFactory.getLogger(LedgerAdminDataset.class);
+	private static Logger LOGGER = LoggerFactory.getLogger(LedgerAdminDataSetEditor.class);
 
 	public static final String LEDGER_META_PREFIX = "MTA" + LedgerConsts.KEY_SEPERATOR;
 	public static final String LEDGER_PARTICIPANT_PREFIX = "PAR" + LedgerConsts.KEY_SEPERATOR;
@@ -67,7 +66,7 @@ public class LedgerAdminDataset implements Transactional, LedgerAdminDataQuery, 
 	/**
 	 * “用户-角色”数据集；
 	 */
-	private UserRoleDataset userRoles;
+	private UserRoleDatasetEditor userRoles;
 
 	/**
 	 * 账本参数配置；
@@ -104,7 +103,7 @@ public class LedgerAdminDataset implements Transactional, LedgerAdminDataQuery, 
 	}
 
 	@Override
-	public UserRoleDataset getAuthorizations() {
+	public UserRoleDatasetEditor getAuthorizations() {
 		return userRoles;
 	}
 
@@ -126,7 +125,7 @@ public class LedgerAdminDataset implements Transactional, LedgerAdminDataQuery, 
 	 * @param exPolicyStorage
 	 * @param versioningStorage
 	 */
-	public LedgerAdminDataset(LedgerInitSetting initSetting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
+	public LedgerAdminDataSetEditor(LedgerInitSetting initSetting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage versioningStorage) {
 		this.metaPrefix = Bytes.fromString(keyPrefix + LEDGER_META_PREFIX);
 		this.settingPrefix = Bytes.fromString(keyPrefix + LEDGER_SETTING_PREFIX);
@@ -161,7 +160,7 @@ public class LedgerAdminDataset implements Transactional, LedgerAdminDataQuery, 
 				exPolicyStorage, versioningStorage);
 
 		String userRolePrefix = keyPrefix + USER_ROLE_PREFIX;
-		this.userRoles = new UserRoleDataset(this.settings.getCryptoSetting(), userRolePrefix, exPolicyStorage,
+		this.userRoles = new UserRoleDatasetEditor(this.settings.getCryptoSetting(), userRolePrefix, exPolicyStorage,
 				versioningStorage);
 
 		// 初始化其它属性；
@@ -169,7 +168,7 @@ public class LedgerAdminDataset implements Transactional, LedgerAdminDataQuery, 
 		this.readonly = false;
 	}
 
-	public LedgerAdminDataset(HashDigest adminAccountHash, String keyPrefix, ExPolicyKVStorage kvStorage,
+	public LedgerAdminDataSetEditor(HashDigest adminAccountHash, String keyPrefix, ExPolicyKVStorage kvStorage,
 			VersioningKVStorage versioningKVStorage, boolean readonly) {
 		this.metaPrefix = Bytes.fromString(keyPrefix + LEDGER_META_PREFIX);
 		this.settingPrefix = Bytes.fromString(keyPrefix + LEDGER_SETTING_PREFIX);
@@ -192,7 +191,7 @@ public class LedgerAdminDataset implements Transactional, LedgerAdminDataQuery, 
 				previousSettings.getCryptoSetting(), rolePrivilegePrefix, kvStorage, versioningKVStorage, readonly);
 
 		String userRolePrefix = keyPrefix + USER_ROLE_PREFIX;
-		this.userRoles = new UserRoleDataset(metadata.getUserRolesHash(), previousSettings.getCryptoSetting(),
+		this.userRoles = new UserRoleDatasetEditor(metadata.getUserRolesHash(), previousSettings.getCryptoSetting(),
 				userRolePrefix, kvStorage, versioningKVStorage, readonly);
 	}
 
@@ -310,7 +309,6 @@ public class LedgerAdminDataset implements Transactional, LedgerAdminDataQuery, 
 	public void addParticipant(ParticipantNode participant) {
 		participants.addConsensusParticipant(participant);
 	}
-
 
 	/**
 	 * 更新参与方的状态参数；

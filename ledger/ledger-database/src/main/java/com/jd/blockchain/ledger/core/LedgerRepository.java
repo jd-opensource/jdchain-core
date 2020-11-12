@@ -4,7 +4,6 @@ import java.io.Closeable;
 
 public interface LedgerRepository extends Closeable, LedgerQuery {
 
-
 	/**
 	 * 创建新区块的编辑器；
 	 * 
@@ -21,14 +20,12 @@ public interface LedgerRepository extends Closeable, LedgerQuery {
 	 * @return
 	 */
 	LedgerEditor getNextBlockEditor();
-	
 
 	/**
 	 * 在最新区块下返回安全管理器；
 	 * @return
 	 */
 	LedgerSecurityManager getSecurityManager();
-	
 
 	@Override
 	void close();

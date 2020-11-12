@@ -11,7 +11,7 @@ public class EventPublishOperationHandle extends AbstractLedgerOperationHandle<E
     }
 
     @Override
-    protected void doProcess(EventPublishOperation op, LedgerDataset newBlockDataset, TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager) {
+    protected void doProcess(EventPublishOperation op, LedgerDataSetEditor newBlockDataset, TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager) {
         // 权限校验；
         SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
         securityPolicy.checkEndpointPermission(LedgerPermission.WRITE_EVENT_ACCOUNT, MultiIDsPolicy.AT_LEAST_ONE);

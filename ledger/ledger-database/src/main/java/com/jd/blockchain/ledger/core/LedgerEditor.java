@@ -38,20 +38,20 @@ public interface LedgerEditor {
 	 * 
 	 * @return
 	 */
-	LedgerDataset getLedgerDataset();
+	LedgerDataSetEditor getLedgerDataset();
 	
 	/**
 	 * 最新的事件集合；
 	 * @return
 	 */
-	LedgerEventSet getLedgerEventSet();
+	LedgerEventSetEditor getLedgerEventSet();
 
 	/**
 	 * 最新的交易集合；
 	 * 
 	 * @return
 	 */
-	TransactionSet getTransactionSet();
+	TransactionSetEditor getTransactionSet();
 
 	/**
 	 * 开始新事务；<br>

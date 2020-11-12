@@ -23,7 +23,7 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 	}
 
 	@Override
-	protected void doProcess(ContractCodeDeployOperation op, LedgerDataset newBlockDataset,
+	protected void doProcess(ContractCodeDeployOperation op, LedgerDataSetEditor newBlockDataset,
 			TransactionRequestExtension requestContext, LedgerQuery ledger,
 			OperationHandleContext handleContext, EventManager manager) {
 
@@ -63,13 +63,13 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 		// chainCodeVersion != null? then use it;
 		long contractVersion = contractOP.getChainCodeVersion();
 		if(contractVersion != -1L){
-			long rst = newBlockDataset.getContractAccountset().update(contractOP.getContractID().getAddress(),
+			long rst = newBlockDataset.getContractAccountSet().update(contractOP.getContractID().getAddress(),
 					contractOP.getChainCode(), contractVersion);
 			if(rst < 0 ){
 				throw new ContractVersionConflictException();
 			}
 		} else {
-			newBlockDataset.getContractAccountset().deploy(contractOP.getContractID().getAddress(),
+			newBlockDataset.getContractAccountSet().deploy(contractOP.getContractID().getAddress(),
 					contractOP.getContractID().getPubKey(), contractOP.getAddressSignature(), contractOP.getChainCode());
 		}
 	}

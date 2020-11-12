@@ -20,17 +20,17 @@ import com.jd.blockchain.crypto.SignatureFunction;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.crypto.service.classic.ClassicCryptoService;
 import com.jd.blockchain.crypto.service.sm.SMCryptoService;
-import com.jd.blockchain.ledger.core.ContractAccountCollection;
+import com.jd.blockchain.ledger.core.ContractAccountSet;
 import com.jd.blockchain.ledger.core.CryptoConfig;
-import com.jd.blockchain.ledger.core.DataAccountCollection;
-import com.jd.blockchain.ledger.core.LedgerDataset;
+import com.jd.blockchain.ledger.core.DataAccountSet;
+import com.jd.blockchain.ledger.core.LedgerDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerEditor;
 import com.jd.blockchain.ledger.core.LedgerInitializer;
 import com.jd.blockchain.ledger.core.LedgerManager;
 import com.jd.blockchain.ledger.core.LedgerRepository;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.UserAccount;
-import com.jd.blockchain.ledger.core.UserAccountCollection;
+import com.jd.blockchain.ledger.core.UserAccountSet;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.transaction.ConsensusParticipantData;
 import com.jd.blockchain.transaction.LedgerInitData;
@@ -86,7 +86,7 @@ public class LedgerManagerTest {
 
 		// 记录交易，注册用户；
 		LedgerTransactionContext txCtx = ldgEdt.newTransaction(genesisTxReq);
-		LedgerDataset ldgDS = txCtx.getDataset();
+		LedgerDataSetEditor ldgDS = txCtx.getDataset();
 		BlockchainKeypair userKP = BlockchainKeyGenerator.getInstance().generate();
 
 		UserAccount userAccount = ldgDS.getUserAccountSet().register(userKP.getAddress(), userKP.getPubKey());
@@ -163,9 +163,9 @@ public class LedgerManagerTest {
 		assertEquals(1, latestBlock.getHeight());
 		assertEquals(block1.getHash(), latestBlock.getHash());
 
-		DataAccountCollection dataAccountSet = reloadLedgerRepo.getDataAccountSet(latestBlock);
-		UserAccountCollection userAccountSet = reloadLedgerRepo.getUserAccountSet(latestBlock);
-		ContractAccountCollection contractAccountSet = reloadLedgerRepo.getContractAccountSet(latestBlock);
+		DataAccountSet dataAccountSet = reloadLedgerRepo.getDataAccountSet(latestBlock);
+		UserAccountSet userAccountSet = reloadLedgerRepo.getUserAccountSet(latestBlock);
+		ContractAccountSet contractAccountSet = reloadLedgerRepo.getContractAccountSet(latestBlock);
 
 	}
 

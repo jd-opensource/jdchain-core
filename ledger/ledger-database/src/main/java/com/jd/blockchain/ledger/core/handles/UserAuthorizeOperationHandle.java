@@ -10,14 +10,14 @@ import com.jd.blockchain.ledger.UserAuthorizeOperation;
 import com.jd.blockchain.ledger.UserAuthorizeOperation.UserRolesEntry;
 import com.jd.blockchain.ledger.UserRoles;
 import com.jd.blockchain.ledger.core.EventManager;
-import com.jd.blockchain.ledger.core.LedgerDataset;
+import com.jd.blockchain.ledger.core.LedgerDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
-import com.jd.blockchain.ledger.core.UserRoleDataset;
+import com.jd.blockchain.ledger.core.UserRoleDatasetEditor;
 import com.jd.blockchain.utils.Bytes;
 
 public class UserAuthorizeOperationHandle extends AbstractLedgerOperationHandle<UserAuthorizeOperation> {
@@ -27,7 +27,7 @@ public class UserAuthorizeOperationHandle extends AbstractLedgerOperationHandle<
 	}
 
 	@Override
-	protected void doProcess(UserAuthorizeOperation operation, LedgerDataset newBlockDataset,
+	protected void doProcess(UserAuthorizeOperation operation, LedgerDataSetEditor newBlockDataset,
 							 TransactionRequestExtension request, LedgerQuery ledger,
 							 OperationHandleContext handleContext, EventManager manager) {
 		// 权限校验；
@@ -37,7 +37,7 @@ public class UserAuthorizeOperationHandle extends AbstractLedgerOperationHandle<
 		// 操作账本；
 
 		UserRolesEntry[] urcfgs = operation.getUserRolesAuthorizations();
-		UserRoleDataset userRoleDataset = newBlockDataset.getAdminDataset().getAuthorizations();
+		UserRoleDatasetEditor userRoleDataset = newBlockDataset.getAdminDataset().getAuthorizations();
 		RolePrivilegeSettings rolesSettings = newBlockDataset.getAdminDataset().getRolePrivileges();
 		if (urcfgs != null) {
 			for (UserRolesEntry urcfg : urcfgs) {

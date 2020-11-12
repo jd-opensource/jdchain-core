@@ -5,7 +5,7 @@ import com.jd.blockchain.ledger.RolePrivileges;
 import com.jd.blockchain.ledger.RolesConfigureOperation;
 import com.jd.blockchain.ledger.RolesConfigureOperation.RolePrivilegeEntry;
 import com.jd.blockchain.ledger.core.EventManager;
-import com.jd.blockchain.ledger.core.LedgerDataset;
+import com.jd.blockchain.ledger.core.LedgerDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
@@ -21,7 +21,7 @@ public class RolesConfigureOperationHandle extends AbstractLedgerOperationHandle
 	}
 
 	@Override
-	protected void doProcess(RolesConfigureOperation operation, LedgerDataset newBlockDataset,
+	protected void doProcess(RolesConfigureOperation operation, LedgerDataSetEditor newBlockDataset,
 							 TransactionRequestExtension request, LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager) {
 		// 权限校验；
 		SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();

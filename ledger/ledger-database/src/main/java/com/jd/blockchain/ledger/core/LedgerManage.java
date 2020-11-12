@@ -1,7 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.storage.service.KVStorageService;
 
 /**
@@ -18,15 +17,5 @@ public interface LedgerManage extends LedgerService {
 	
 	void unregister(HashDigest ledgerHash);
 
-//	/**
-//	 * 创建新账本；
-//	 * 
-//	 * @param initSetting
-//	 *            初始化配置；
-//	 * @param initPermissions
-//	 *            参与者的初始化授权列表；与参与者列表一致；
-//	 * @return
-//	 */
-//	LedgerEditor newLedger(LedgerInitSetting initSetting, KVStorageService storageService);
 
 }

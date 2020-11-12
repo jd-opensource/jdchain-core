@@ -24,16 +24,16 @@ import com.jd.blockchain.utils.DataEntry;
  * @author huanghaiquan
  *
  */
-public class UserRoleDataset implements Transactional, MerkleProvable<Bytes>, UserAuthorizationSettings {
+public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Bytes>, UserAuthorizationSettings {
 
 	private MerkleHashDataset dataset;
 
-	public UserRoleDataset(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
+	public UserRoleDatasetEditor(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage verStorage) {
 		dataset = new MerkleHashDataset(cryptoSetting, prefix, exPolicyStorage, verStorage);
 	}
 
-	public UserRoleDataset(HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
+	public UserRoleDatasetEditor(HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
 			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
 		dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage, verStorage, readonly);
 	}

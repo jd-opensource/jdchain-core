@@ -58,7 +58,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	 */
 	private BufferedKVStorage baseStorage;
 
-	private final TransactionSet txset;
+	private final TransactionSetEditor txset;
 
 	/**
 	 * 上一个交易产生的账本快照；
@@ -73,7 +73,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	/**
 	 * 最后提交的账本数据集；
 	 */
-	private volatile LedgerDataset latestLedgerDataset;
+	private volatile LedgerDataSetEditor latestLedgerDataset;
 
 	private volatile BufferedKVStorage datasetStorage;
 
@@ -85,7 +85,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	/**
 	 * 最后提交的事件数据集；
 	 */
-	private volatile LedgerEventSet latestLedgerEventSet;
+	private volatile LedgerEventSetEditor latestLedgerEventSet;
 
 	private volatile BufferedKVStorage eventsetStorage;
 
@@ -99,7 +99,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	 * @param verifyTx        是否校验交易请求；当外部调用者在调用前已经实施了验证时，将次参数设置为 false 能够提升性能；
 	 */
 	private LedgerTransactionalEditor(HashDigest ledgerHash, CryptoSetting cryptoSetting, LedgerBlockData currentBlock,
-			StagedSnapshot startingPoint, String ledgerKeyPrefix, TransactionSet txset,
+			StagedSnapshot startingPoint, String ledgerKeyPrefix, TransactionSetEditor txset,
 			BufferedKVStorage bufferedStorage) {
 		this.ledgerHash = ledgerHash;
 		this.ledgerKeyPrefix = ledgerKeyPrefix;
@@ -140,7 +140,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		// init storage;
 		BufferedKVStorage txStagedStorage = new BufferedKVStorage(ledgerExStorage, ledgerVerStorage, PARALLEL_DB_WRITE);
 
-		TransactionSet txset = LedgerRepositoryImpl.loadTransactionSet(previousBlock.getTransactionSetHash(),
+		TransactionSetEditor txset = LedgerRepositoryImpl.loadTransactionSet(previousBlock.getTransactionSetHash(),
 				ledgerSetting.getCryptoSetting(), ledgerKeyPrefix, txStagedStorage, txStagedStorage, false);
 
 		StagedSnapshot startingPoint = new TxSnapshot(null, previousBlock);
@@ -167,7 +167,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		// init storage;
 		BufferedKVStorage txStagedStorage = new BufferedKVStorage(ledgerExStorage, ledgerVerStorage, false);
 
-		TransactionSet txset = LedgerRepositoryImpl.newTransactionSet(initSetting.getCryptoSetting(), ledgerKeyPrefix,
+		TransactionSetEditor txset = LedgerRepositoryImpl.newTransactionSet(initSetting.getCryptoSetting(), ledgerKeyPrefix,
 				txStagedStorage, txStagedStorage);
 
 		return new LedgerTransactionalEditor(null, initSetting.getCryptoSetting(), genesisBlock, startingPoint,
@@ -214,11 +214,11 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	}
 
 	@Override
-	public LedgerDataset getLedgerDataset() {
+	public LedgerDataSetEditor getLedgerDataset() {
 		return innerGetDataset();
 	}
 
-	private LedgerDataset innerGetDataset() {
+	private LedgerDataSetEditor innerGetDataset() {
 		if (this.latestLedgerDataset == null) {
 			this.datasetStorage = new BufferedKVStorage(baseStorage, baseStorage, false);
 			this.latestLedgerDataset = createDatasetFromLastestSnapshot(datasetStorage);
@@ -227,11 +227,11 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	}
 
 	@Override
-	public LedgerEventSet getLedgerEventSet() {
+	public LedgerEventSetEditor getLedgerEventSet() {
 		return innerGetEventset();
 	}
 
-	private LedgerEventSet innerGetEventset() {
+	private LedgerEventSetEditor innerGetEventset() {
 		if (this.latestLedgerEventSet == null) {
 			this.eventsetStorage = new BufferedKVStorage(baseStorage, baseStorage, false);
 			this.latestLedgerEventSet = createEventSetFromLastestSnapshot(eventsetStorage);
@@ -240,7 +240,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	}
 
 	@Override
-	public TransactionSet getTransactionSet() {
+	public TransactionSetEditor getTransactionSet() {
 		// TODO: wrapper with readonly；
 		return txset;
 	}
@@ -346,8 +346,8 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 //		return currentTxCtx;
 	}
 
-	private LedgerDataset createDatasetFromLastestSnapshot(BufferedKVStorage txBufferedStorage) {
-		LedgerDataset txDataset = null;
+	private LedgerDataSetEditor createDatasetFromLastestSnapshot(BufferedKVStorage txBufferedStorage) {
+		LedgerDataSetEditor txDataset = null;
 		if (previousTxSnapshot == null) {
 			// load the starting point of the new transaction;
 			if (startingPoint instanceof GenesisSnapshot) {
@@ -377,8 +377,8 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		return txDataset;
 	}
 
-	private LedgerEventSet createEventSetFromLastestSnapshot(BufferedKVStorage txBufferedStorage) {
-		LedgerEventSet eventSet = null;
+	private LedgerEventSetEditor createEventSetFromLastestSnapshot(BufferedKVStorage txBufferedStorage) {
+		LedgerEventSetEditor eventSet = null;
 		if (previousTxSnapshot == null) {
 			// load the starting point of the new transaction;
 			if (startingPoint instanceof GenesisSnapshot) {
@@ -652,13 +652,13 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		}
 
 		@Override
-		public LedgerDataset getDataset() {
+		public LedgerDataSetEditor getDataset() {
 			// TODO: 控制只读；
 			return ledgerEditor.getLedgerDataset();
 		}
 
 		@Override
-		public LedgerEventSet getEventSet() {
+		public LedgerEventSetEditor getEventSet() {
 			// TODO: 控制只读；
 			return ledgerEditor.getLedgerEventSet();
 		}
@@ -781,11 +781,11 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			TransactionStagedSnapshot txDataSnapshot = new TransactionStagedSnapshot();
 			txDataSnapshot.setAdminAccountHash(ledgerEditor.latestLedgerDataset.getAdminDataset().getHash());
 			txDataSnapshot
-					.setContractAccountSetHash(ledgerEditor.latestLedgerDataset.getContractAccountset().getRootHash());
+					.setContractAccountSetHash(ledgerEditor.latestLedgerDataset.getContractAccountSet().getRootHash());
 			txDataSnapshot.setDataAccountSetHash(ledgerEditor.latestLedgerDataset.getDataAccountSet().getRootHash());
 			txDataSnapshot.setUserAccountSetHash(ledgerEditor.latestLedgerDataset.getUserAccountSet().getRootHash());
-			txDataSnapshot.setSystemEventSetHash(ledgerEditor.latestLedgerEventSet.getSystemEvents().getRootHash());
-			txDataSnapshot.setUserEventSetHash(ledgerEditor.latestLedgerEventSet.getUserEvents().getRootHash());
+			txDataSnapshot.setSystemEventSetHash(ledgerEditor.latestLedgerEventSet.getSystemEventGroup().getRootHash());
+			txDataSnapshot.setUserEventSetHash(ledgerEditor.latestLedgerEventSet.getEventAccountSet().getRootHash());
 			return txDataSnapshot;
 		}
 

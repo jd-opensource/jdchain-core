@@ -25,7 +25,7 @@ import com.jd.blockchain.ledger.LedgerSettings;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.ParticipantNodeState;
 import com.jd.blockchain.ledger.core.CryptoConfig;
-import com.jd.blockchain.ledger.core.LedgerAdminDataset;
+import com.jd.blockchain.ledger.core.LedgerAdminDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerConfiguration;
 import com.jd.blockchain.ledger.core.ParticipantCertData;
 import com.jd.blockchain.utils.Bytes;
@@ -78,7 +78,7 @@ public class LedgerMetaDataTest {
 //				new Bytes(consensusSettingBytes), cryptoConfig);
 		HashDigest settingsHash = Crypto.getHashFunction("SHA256").hash(consensusSettingBytes);
 
-		LedgerAdminDataset.LedgerMetadataInfo ledgerMetadata = new LedgerAdminDataset.LedgerMetadataInfo();
+		LedgerAdminDataSetEditor.LedgerMetadataInfo ledgerMetadata = new LedgerAdminDataSetEditor.LedgerMetadataInfo();
 
 		ledgerMetadata.setSeed(seed);
 		ledgerMetadata.setSettingsHash(settingsHash);

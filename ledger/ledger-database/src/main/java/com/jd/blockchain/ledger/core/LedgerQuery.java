@@ -77,7 +77,7 @@ public interface LedgerQuery {
 	 * @param block
 	 * @return
 	 */
-	LedgerDataQuery getLedgerData(LedgerBlock block);
+	LedgerDataSet getLedgerDataSet(LedgerBlock block);
 
 	/**
 	 * 查询账本事件；
@@ -85,15 +85,15 @@ public interface LedgerQuery {
 	 * @param block
 	 * @return
 	 */
-	LedgerEventCollection getLedgerEvents(LedgerBlock block);
+	LedgerEventSet getLedgerEvents(LedgerBlock block);
 
 	/**
 	 * 查询最新区块的账本数据；
 	 * 
 	 * @return
 	 */
-	default LedgerDataQuery getLedgerData() {
-		return getLedgerData(getLatestBlock());
+	default LedgerDataSet getLedgerDataSet() {
+		return getLedgerDataSet(getLatestBlock());
 	}
 	
 	/**
@@ -101,35 +101,35 @@ public interface LedgerQuery {
 	 * 
 	 * @return
 	 */
-	default LedgerEventCollection getLedgerEvents() {
+	default LedgerEventSet getLedgerEvents() {
 		return getLedgerEvents(getLatestBlock());
 	}
 
-	TransactionCollection getTransactionSet(LedgerBlock block);
+	TransactionSet getTransactionSet(LedgerBlock block);
 
-	UserAccountCollection getUserAccountSet(LedgerBlock block);
+	UserAccountSet getUserAccountSet(LedgerBlock block);
 
-	DataAccountCollection getDataAccountSet(LedgerBlock block);
+	DataAccountSet getDataAccountSet(LedgerBlock block);
 
-	ContractAccountCollection getContractAccountSet(LedgerBlock block);
+	ContractAccountSet getContractAccountSet(LedgerBlock block);
 
 	EventGroup getSystemEvents(LedgerBlock block);
 
-	EventAccountCollection getUserEvents(LedgerBlock block);
+	EventAccountSet getUserEvents(LedgerBlock block);
 
-	default TransactionCollection getTransactionSet() {
+	default TransactionSet getTransactionSet() {
 		return getTransactionSet(getLatestBlock());
 	}
 
-	default UserAccountCollection getUserAccountSet() {
+	default UserAccountSet getUserAccountSet() {
 		return getUserAccountSet(getLatestBlock());
 	}
 
-	default DataAccountCollection getDataAccountSet() {
+	default DataAccountSet getDataAccountSet() {
 		return getDataAccountSet(getLatestBlock());
 	}
 
-	default ContractAccountCollection getContractAccountset() {
+	default ContractAccountSet getContractAccountset() {
 		return getContractAccountSet(getLatestBlock());
 	}
 

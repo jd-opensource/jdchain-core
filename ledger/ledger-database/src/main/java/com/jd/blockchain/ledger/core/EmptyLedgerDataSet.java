@@ -8,41 +8,50 @@ import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.EmptySkippingIterator;
 import com.jd.blockchain.utils.SkippingIterator;
 
-public class EmptyLedgerDataset implements LedgerDataQuery {
+/**
+ * 一个只读的空的账本数据集；
+ * 
+ * @author huanghaiquan
+ *
+ */
+public class EmptyLedgerDataSet implements LedgerDataSet {
 	
-	private static final LedgerAdminDataQuery EMPTY_ADMIN_DATA = new EmptyAdminData();
-	
-	private static final UserAccountCollection EMPTY_USER_ACCOUNTS = new EmptyUserAccountSet();
-	
-	private static final DataAccountCollection EMPTY_DATA_ACCOUNTS = new EmptyDataAccountSet();
-	
-	private static final ContractAccountCollection EMPTY_CONTRACT_ACCOUNTS = new EmptyContractAccountSet();
+	public static final LedgerDataSet INSTANCE = new EmptyLedgerDataSet();
+
+	private static final LedgerAdminDataSet EMPTY_ADMIN_DATA = new EmptyAdminData();
+
+	private static final UserAccountSet EMPTY_USER_ACCOUNTS = new EmptyUserAccountSet();
+
+	private static final DataAccountSet EMPTY_DATA_ACCOUNTS = new EmptyDataAccountSet();
+
+	private static final ContractAccountSet EMPTY_CONTRACT_ACCOUNTS = new EmptyContractAccountSet();
 
 	private static final ParticipantCollection EMPTY_PARTICIPANTS = new EmptyParticipantData();
+	
+	private EmptyLedgerDataSet() {
+	}
 
 	@Override
-	public LedgerAdminDataQuery getAdminDataset() {
+	public LedgerAdminDataSet getAdminDataset() {
 		return EMPTY_ADMIN_DATA;
 	}
 
 	@Override
-	public UserAccountCollection getUserAccountSet() {
+	public UserAccountSet getUserAccountSet() {
 		return EMPTY_USER_ACCOUNTS;
 	}
 
 	@Override
-	public DataAccountCollection getDataAccountSet() {
+	public DataAccountSet getDataAccountSet() {
 		return EMPTY_DATA_ACCOUNTS;
 	}
 
 	@Override
-	public ContractAccountCollection getContractAccountset() {
+	public ContractAccountSet getContractAccountSet() {
 		return EMPTY_CONTRACT_ACCOUNTS;
 	}
 
-
-	private static class EmptyAdminData implements LedgerAdminDataQuery{
-		
+	private static class EmptyAdminData implements LedgerAdminDataSet {
 
 		@Override
 		public LedgerAdminSettings getAdminSettings() {
@@ -53,10 +62,10 @@ public class EmptyLedgerDataset implements LedgerDataQuery {
 		public ParticipantCollection getParticipantDataset() {
 			return EMPTY_PARTICIPANTS;
 		}
-		
+
 	}
-	
-	private static class EmptyParticipantData implements ParticipantCollection{
+
+	private static class EmptyParticipantData implements ParticipantCollection {
 
 		@Override
 		public HashDigest getRootHash() {
@@ -92,20 +101,20 @@ public class EmptyLedgerDataset implements LedgerDataQuery {
 		public SkippingIterator<ParticipantNode> getAllParticipants() {
 			return EmptySkippingIterator.instance();
 		}
-		
-	}
-	
-	private static class EmptyUserAccountSet extends EmptyAccountSet<UserAccount> implements UserAccountCollection{
 
 	}
-	
-	private static class EmptyDataAccountSet extends EmptyAccountSet<DataAccount> implements DataAccountCollection{
+
+	private static class EmptyUserAccountSet extends EmptyAccountSet<UserAccount> implements UserAccountSet {
 
 	}
-	
-	private static class EmptyContractAccountSet extends EmptyAccountSet<ContractAccount> implements ContractAccountCollection{
-		
+
+	private static class EmptyDataAccountSet extends EmptyAccountSet<DataAccount> implements DataAccountSet {
+
 	}
 
-	
+	private static class EmptyContractAccountSet extends EmptyAccountSet<ContractAccount>
+			implements ContractAccountSet {
+
+	}
+
 }

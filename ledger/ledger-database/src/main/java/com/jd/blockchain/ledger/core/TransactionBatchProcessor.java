@@ -111,7 +111,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 			TransactionRequestExtension reqExt = new TransactionRequestExtensionImpl(request);
 
 			// 初始化交易的用户安全策略；
-			SecurityPolicy securityPolicy = securityManager.createSecurityPolicy(reqExt.getEndpointAddresses(),
+			SecurityPolicy securityPolicy = securityManager.getSecurityPolicy(reqExt.getEndpointAddresses(),
 					reqExt.getNodeAddresses());
 			SecurityContext.setContextUsersPolicy(securityPolicy);
 
@@ -254,7 +254,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess {
 		EventManager eventManager;
 		List<OperationResult> operationResults = new ArrayList<>();
 		try {
-			LedgerDataset dataset = txCtx.getDataset();
+			LedgerDataSetEditor dataset = txCtx.getDataset();
 			eventManager = new EventManager(request, txCtx);
 
 			// 执行操作；

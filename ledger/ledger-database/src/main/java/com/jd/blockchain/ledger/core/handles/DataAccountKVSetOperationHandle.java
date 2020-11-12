@@ -7,7 +7,7 @@ import com.jd.blockchain.ledger.DataVersionConflictException;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.core.DataAccount;
-import com.jd.blockchain.ledger.core.LedgerDataset;
+import com.jd.blockchain.ledger.core.LedgerDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
@@ -23,7 +23,7 @@ public class DataAccountKVSetOperationHandle extends AbstractLedgerOperationHand
 	}
 
 	@Override
-	protected void doProcess(DataAccountKVSetOperation kvWriteOp, LedgerDataset newBlockDataset,
+	protected void doProcess(DataAccountKVSetOperation kvWriteOp, LedgerDataSetEditor newBlockDataset,
 			TransactionRequestExtension requestContext, LedgerQuery ledger, 
 			OperationHandleContext handleContext, EventManager manager) {
 		// 权限校验；

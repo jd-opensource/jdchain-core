@@ -17,7 +17,7 @@ public class ConsensusSettingsUpdateOperationHandle extends AbstractLedgerOperat
     }
 
     @Override
-    protected void doProcess(ConsensusSettingsUpdateOperation op, LedgerDataset newBlockDataset,
+    protected void doProcess(ConsensusSettingsUpdateOperation op, LedgerDataSetEditor newBlockDataset,
                              TransactionRequestExtension requestContext, LedgerQuery previousBlockDataset,
                              OperationHandleContext handleContext, EventManager manager) {
 
@@ -25,7 +25,7 @@ public class ConsensusSettingsUpdateOperationHandle extends AbstractLedgerOperat
         SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
         securityPolicy.checkEndpointPermission(LedgerPermission.REGISTER_PARTICIPANT, MultiIDsPolicy.AT_LEAST_ONE);
 
-        LedgerAdminDataset adminAccountDataSet = newBlockDataset.getAdminDataset();
+        LedgerAdminDataSetEditor adminAccountDataSet = newBlockDataset.getAdminDataset();
 
         ConsensusProvider provider = ConsensusProviders.getProvider(adminAccountDataSet.getSettings().getConsensusProvider());
 

@@ -96,7 +96,6 @@ import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.LedgerRepository;
 import com.jd.blockchain.ledger.core.OperationHandleRegisteration;
 import com.jd.blockchain.ledger.core.TransactionBatchProcessor;
-import com.jd.blockchain.ledger.core.TransactionSetQuery;
 import com.jd.blockchain.ledger.json.CryptoConfigInfo;
 import com.jd.blockchain.ledger.merkletree.HashBucketEntry;
 import com.jd.blockchain.ledger.merkletree.KeyIndex;
@@ -251,8 +250,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		DataContractRegistry.register(CryptoSetting.class);
 		DataContractRegistry.register(CryptoProvider.class);
 		DataContractRegistry.register(CryptoAlgorithm.class);
-		// TransactionSetQuery;
-		DataContractRegistry.register(TransactionSetQuery.class);
 	}
 
 	/**

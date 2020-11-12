@@ -19,7 +19,7 @@ import com.jd.blockchain.crypto.service.classic.ClassicCryptoService;
 import com.jd.blockchain.crypto.service.sm.SMCryptoService;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.CryptoConfig;
-import com.jd.blockchain.ledger.core.LedgerDataset;
+import com.jd.blockchain.ledger.core.LedgerDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerEditor;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.LedgerTransactionalEditor;
@@ -257,7 +257,7 @@ public class LedgerTestUtils {
 
 		TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest_SHA256(partiKeys);
 		LedgerTransactionContext genisisTxCtx = ldgEdt.newTransaction(genesisTxReq);
-		LedgerDataset ldgDS = genisisTxCtx.getDataset();
+		LedgerDataSetEditor ldgDS = genisisTxCtx.getDataset();
 
 		for (int i = 0; i < partiKeys.length; i++) {
 			UserAccount userAccount = ldgDS.getUserAccountSet().register(partiKeys[i].getAddress(),

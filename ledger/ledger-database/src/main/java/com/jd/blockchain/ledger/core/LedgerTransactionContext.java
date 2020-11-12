@@ -24,7 +24,7 @@ public interface LedgerTransactionContext {
 	 * 
 	 * @return
 	 */
-	LedgerDataset getDataset();
+	LedgerDataSetEditor getDataset();
 
 //	/**
 //	 * 事务集合；
@@ -89,5 +89,5 @@ public interface LedgerTransactionContext {
 	 *
 	 * @return
 	 */
-	LedgerEventSet getEventSet();
+	LedgerEventSetEditor getEventSet();
 }

@@ -38,10 +38,10 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 	private Map<String, RolePrivileges> rolesPrivilegeCache = new ConcurrentHashMap<>();
 
 	private ParticipantCollection participantsQuery;
-	private UserAccountCollection userAccountsQuery;
+	private UserAccountSet userAccountsQuery;
 
 	public LedgerSecurityManagerImpl(RolePrivilegeSettings rolePrivilegeSettings, UserAuthorizationSettings userRolesSettings,
-			ParticipantCollection participantsQuery, UserAccountCollection userAccountsQuery) {
+			ParticipantCollection participantsQuery, UserAccountSet userAccountsQuery) {
 		this.rolePrivilegeSettings = rolePrivilegeSettings;
 		this.userRolesSettings = userRolesSettings;
 		this.participantsQuery = participantsQuery;
@@ -49,7 +49,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 	}
 
 	@Override
-	public SecurityPolicy createSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes) {
+	public SecurityPolicy getSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes) {
 		Map<Bytes, UserRolesPrivileges> endpointPrivilegeMap = new HashMap<>();
 		Map<Bytes, UserRolesPrivileges> nodePrivilegeMap = new HashMap<>();
 
@@ -146,11 +146,11 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 
 		private ParticipantCollection participantsQuery;
 
-		private UserAccountCollection userAccountsQuery;
+		private UserAccountSet userAccountsQuery;
 
 		public UserRolesSecurityPolicy(Map<Bytes, UserRolesPrivileges> endpointPrivilegeMap,
 				Map<Bytes, UserRolesPrivileges> nodePrivilegeMap, ParticipantCollection participantsQuery,
-				UserAccountCollection userAccountsQuery) {
+				UserAccountSet userAccountsQuery) {
 			this.endpointPrivilegeMap = endpointPrivilegeMap;
 			this.nodePrivilegeMap = nodePrivilegeMap;
 			this.participantsQuery = participantsQuery;

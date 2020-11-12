@@ -7,7 +7,7 @@ import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.EmptySkippingIterator;
 import com.jd.blockchain.utils.SkippingIterator;
 
-public class EmptyAccountSet<T> implements MerkleAccountCollection<T> {
+public class EmptyAccountSet<T> implements MerkleAccountSet<T> {
 	
 	@Override
 	public HashDigest getRootHash() {
