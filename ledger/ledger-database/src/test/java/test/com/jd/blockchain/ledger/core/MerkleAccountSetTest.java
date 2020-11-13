@@ -31,16 +31,16 @@ public class MerkleAccountSetTest {
 		cryptoConfig.setAutoVerifyHash(true);
 		cryptoConfig.setHashAlgorithm(Crypto.getAlgorithm("SHA256"));
 
-		MerkleAccountSetEditor accountset = new MerkleAccountSetEditor(cryptoConfig, KEY_PREFIX, STORAGE, STORAGE, POLICY);
+		MerkleAccountSetEditor accountsetEditor = new MerkleAccountSetEditor(cryptoConfig, KEY_PREFIX, STORAGE, STORAGE, POLICY);
 
 		BlockchainKeypair key1 = BlockchainKeyGenerator.getInstance().generate();
-		accountset.register(key1.getIdentity());
+		accountsetEditor.register(key1.getIdentity());
 
-		accountset.commit();
+		accountsetEditor.commit();
 
-		CompositeAccount acc1 = accountset.getAccount(key1.getAddress());
+		CompositeAccount acc1 = accountsetEditor.getAccount(key1.getAddress());
 		assertNotNull(acc1);
-		assertEquals(0, accountset.getVersion(key1.getAddress()));
+		assertEquals(0, accountsetEditor.getVersion(key1.getAddress()));
 		
 		acc1.getDataset().setValue("K1", TypedValue.fromText("V0"), -1);
 
@@ -48,7 +48,7 @@ public class MerkleAccountSetTest {
 		assertNotNull(v1);
 		assertEquals(0, acc1.getDataset().getVersion("K1"));
 
-		accountset.commit();
+		accountsetEditor.commit();
 
 		v1 = acc1.getDataset().getValue("K1");
 		assertNotNull(v1);

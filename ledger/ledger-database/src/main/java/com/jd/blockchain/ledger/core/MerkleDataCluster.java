@@ -12,8 +12,6 @@ import com.jd.blockchain.utils.Transactional;
 
 public class MerkleDataCluster implements Transactional, MerkleSnapshot {
 
-	private boolean readonly;
-
 	private  MerkleDataset<Bytes, byte[]> rootDS;
 
 	private Map<Bytes,  MerkleDataset<Bytes, byte[]>> partitions;

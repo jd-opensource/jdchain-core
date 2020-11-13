@@ -13,7 +13,7 @@ import com.jd.blockchain.utils.io.BytesUtils;
 public class MerkleHashSortTree implements MerkleTree {
 
 	// 左 4 位为 0，用于截取哈希值的左 4 位，以免超过默克尔树的编码范围；
-	private static final long HASH_CODE_MASK = 0xFFFFFFFFFFFFFFFL;
+	private static final long HASH_CODE_MASK = 0x0FFFFFFFFFFFFFFFL;
 
 	private static final Bytes HASH_TREE = Bytes.fromString("HASH");
 	private static final Bytes BUCKET_TREE = Bytes.fromString("BUCKET");

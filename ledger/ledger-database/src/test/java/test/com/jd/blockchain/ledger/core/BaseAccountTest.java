@@ -15,7 +15,7 @@ import com.jd.blockchain.ledger.BlockchainKeyGenerator;
 import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.core.CryptoConfig;
-import com.jd.blockchain.ledger.core.MerkleAccount;
+import com.jd.blockchain.ledger.core.ComplecatedMerkleAccount;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.utils.Bytes;
 
@@ -49,7 +49,7 @@ public class BaseAccountTest {
 		BlockchainKeypair bck = BlockchainKeyGenerator.getInstance().generate();
 
 		// 新建账户；
-		MerkleAccount baseAccount = new MerkleAccount(bck.getIdentity(), cryptoConf, Bytes.fromString(keyPrefix),
+		ComplecatedMerkleAccount baseAccount = new ComplecatedMerkleAccount(bck.getIdentity(), cryptoConf, Bytes.fromString(keyPrefix),
 				testStorage, testStorage);
 		assertTrue(baseAccount.isUpdated());//初始化新账户时，先写入PubKey；
 		assertFalse(baseAccount.isReadonly());

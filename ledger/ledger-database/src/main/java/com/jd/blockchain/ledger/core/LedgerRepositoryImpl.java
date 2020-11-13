@@ -304,6 +304,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 		return createAdminDataset(block);
 	}
+	
+	@Override
+	public LedgerDiffView getDiffView(LedgerBlock recentBlock, LedgerBlock previousBlock) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 	/**
 	 * 生成LedgerAdminInfoData对象
@@ -494,7 +500,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 		closed = true;
 	}
-
+	
 	static Bytes encodeLedgerIndexKey(HashDigest ledgerHash) {
 		return LEDGER_PREFIX.concat(ledgerHash);
 	}

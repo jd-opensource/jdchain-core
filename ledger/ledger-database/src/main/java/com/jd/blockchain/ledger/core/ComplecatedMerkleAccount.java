@@ -21,12 +21,12 @@ import com.jd.blockchain.utils.Dataset;
 import com.jd.blockchain.utils.Transactional;
 
 /**
- * 事务性的基础账户；
+ * {@link ComplecatedMerkleAccount} 对头部和数据分别采用独立的默克尔数据集；
  * 
  * @author huanghaiquan
  *
  */
-public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnapshot, Transactional {
+public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable, MerkleSnapshot, Transactional {
 
 	private static final Bytes HEADER_PREFIX = Bytes.fromString("HD/");
 	private static final Bytes DATA_PREFIX = Bytes.fromString("DT/");
@@ -49,8 +49,6 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 
 	private MerkleDataset<String, TypedValue> typedData;
 
-//	private long version;
-
 	/**
 	 * Create a new Account with the specified identity(address and pubkey); <br>
 	 *
@@ -65,7 +63,7 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 	 * @param exStorage     The base storage for existance operation;
 	 * @param verStorage    The base storage for versioning operation;
 	 */
-	public MerkleAccount(BlockchainIdentity accountID, CryptoSetting cryptoSetting, Bytes keyPrefix,
+	public ComplecatedMerkleAccount(BlockchainIdentity accountID, CryptoSetting cryptoSetting, Bytes keyPrefix,
 			ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
 		// 初始化数据集；
 		initializeDatasets(null, cryptoSetting, keyPrefix, exStorage, verStorage, false);
@@ -87,7 +85,7 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 	 * @param verStorage    The base storage for versioning operation;
 	 * @param readonly      Readonly about this account's dataset;
 	 */
-	public MerkleAccount(Bytes address, HashDigest rootHash, CryptoSetting cryptoSetting, Bytes keyPrefix,
+	public ComplecatedMerkleAccount(Bytes address, HashDigest rootHash, CryptoSetting cryptoSetting, Bytes keyPrefix,
 			ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
 		if (rootHash == null) {
 			throw new IllegalArgumentException("Specified a null root hash for account[" + address.toBase58() + "]!");
