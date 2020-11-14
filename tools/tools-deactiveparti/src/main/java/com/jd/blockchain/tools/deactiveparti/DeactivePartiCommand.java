@@ -93,6 +93,7 @@ public class DeactivePartiCommand {
             System.out.println("url = " + url);
 
             PubKey deactivePubKey = KeyGenUtils.decodePubKey(argSet.getArg(DEACTIVE_PARTI_ADDRESS_ARG).getValue());
+
             Bytes address = AddressEncoding.generateAddress(deactivePubKey);
 
             HttpPost httpPost = new HttpPost(url);
@@ -119,7 +120,9 @@ public class DeactivePartiCommand {
             JsonResponseConverter jsonConverter = new JsonResponseConverter(WebResponse.class);
 
             WebResponse webResponse = (WebResponse) jsonConverter.getResponse(null, response.getEntity().getContent(), null);
+
             ConsoleUtils.info("Deactive participant ,response result = %s", webResponse.isSuccess());
+
             if (!webResponse.isSuccess()) {
                 ConsoleUtils.info("Deactive participant ,error msg = %s", webResponse.getError().getErrorMessage());
             }

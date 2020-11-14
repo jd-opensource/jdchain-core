@@ -1,7 +1,5 @@
 package com.jd.blockchain.tools.regparti;
 
-import com.jd.blockchain.binaryproto.DataContractRegistry;
-import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.HashDigest;
@@ -9,12 +7,7 @@ import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.base.DefaultCryptoEncoding;
 import com.jd.blockchain.crypto.base.HashDigestBytes;
 import com.jd.blockchain.ledger.BlockchainKeypair;
-import com.jd.blockchain.ledger.ConsensusSettingsUpdateOperation;
-import com.jd.blockchain.ledger.ParticipantRegisterOperation;
-import com.jd.blockchain.ledger.ParticipantStateUpdateOperation;
 import com.jd.blockchain.ledger.PreparedTransaction;
-import com.jd.blockchain.ledger.TransactionContent;
-import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.ledger.TransactionTemplate;
 import com.jd.blockchain.sdk.BlockchainService;
@@ -29,6 +22,7 @@ import com.jd.blockchain.utils.codec.Base58Utils;
  * @Date: 2020/10/22 5:56 PM
  * Version 1.0
  */
+
 public class RegPartiCommand {
 
     private static final String NEW_PARTI_LEDGER_ARG = "-ledger";
@@ -134,13 +128,6 @@ public class RegPartiCommand {
                 return;
             }
 
-            DataContractRegistry.register(TransactionContent.class);
-            DataContractRegistry.register(TransactionRequest.class);
-            DataContractRegistry.register(TransactionResponse.class);
-            DataContractRegistry.register(ParticipantRegisterOperation.class);
-            DataContractRegistry.register(ParticipantStateUpdateOperation.class);
-            DataContractRegistry.register(ConsensusSettingsUpdateOperation.class);
-
             HashDigest ledgerHash = new HashDigestBytes(DefaultCryptoEncoding.decodeAlgorithm(Base58Utils.decode(argSet.getArg(NEW_PARTI_LEDGER_ARG).getValue())), Base58Utils.decode(argSet.getArg(NEW_PARTI_LEDGER_ARG).getValue()));
 
             String pubkey = argSet.getArg(NEW_PARTI_PUBKEY_ARG).getValue();
@@ -172,7 +159,7 @@ public class RegPartiCommand {
             //existed signer
             AsymmetricKeypair keyPair = new BlockchainKeypair(KeyGenUtils.decodePubKey(exist_pubkey), KeyGenUtils.decodePrivKey(exist_privkey, exist_privkey_pass));
 
-            GatewayServiceFactory serviceFactory = GatewayServiceFactory.connect(gw_host, Integer.getInteger(gw_port),false, (BlockchainKeypair) keyPair);
+            GatewayServiceFactory serviceFactory = GatewayServiceFactory.connect(gw_host, Integer.valueOf(gw_port),false);
 
             BlockchainService service = serviceFactory.getBlockchainService();
 
@@ -181,7 +168,7 @@ public class RegPartiCommand {
 
             BlockchainKeypair user = new BlockchainKeypair(KeyGenUtils.decodePubKey(pubkey), KeyGenUtils.decodePrivKey(privkey, privKey_pass));
 
-            ConsoleUtils.info("Register new participant address = %s" + AddressEncoding.generateAddress(KeyGenUtils.decodePubKey(pubkey)));
+            ConsoleUtils.info("Register new participant address = {%s}", AddressEncoding.generateAddress(KeyGenUtils.decodePubKey(pubkey)).toBase58());
 
             // 注册参与方
             txTemp.participants().register(name, user.getIdentity());
@@ -194,6 +181,12 @@ public class RegPartiCommand {
 
             // 提交交易；
             TransactionResponse transactionResponse = prepTx.commit();
+
+            if (transactionResponse.isSuccess()) {
+                ConsoleUtils.info("Reg participant succ!");
+            } else {
+                ConsoleUtils.info("Reg participant fail!");
+            }
 
         } catch (Exception e) {
             e.printStackTrace();

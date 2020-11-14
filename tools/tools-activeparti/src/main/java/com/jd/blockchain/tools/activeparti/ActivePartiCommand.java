@@ -1,9 +1,7 @@
 package com.jd.blockchain.tools.activeparti;
 
-import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.utils.ArgumentSet;
 import com.jd.blockchain.utils.ConsoleUtils;
-import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.http.converters.JsonResponseConverter;
 import com.jd.blockchain.utils.web.model.WebResponse;
 import org.apache.http.HttpResponse;
@@ -101,7 +99,7 @@ public class ActivePartiCommand {
 
             String url = "http://" + argSet.getArg(NEW_PARTI_HTTP_HOST_ARG).getValue() + ":" +  argSet.getArg(NEW_PARTI_HTTP_PORT_ARG).getValue() + "/management/delegate/activeparticipant";
 
-            ConsoleUtils.info("Active participant ,url = %s", url);
+            ConsoleUtils.info("Active participant, Url = %s", url);
 
             HttpPost httpPost = new HttpPost(url);
 
@@ -132,9 +130,10 @@ public class ActivePartiCommand {
 
             WebResponse webResponse = (WebResponse) jsonConverter.getResponse(null, response.getEntity().getContent(), null);
 
-            ConsoleUtils.info("Active participant ,response result = %s", webResponse.isSuccess());
+            ConsoleUtils.info("Active participant ,response result = {%s}", webResponse.isSuccess());
+
             if (!webResponse.isSuccess()) {
-                ConsoleUtils.info("Active participant ,error msg = %s", webResponse.getError().getErrorMessage());
+                ConsoleUtils.info("Active participant ,error msg = {%s}", webResponse.getError().getErrorMessage());
             }
         }
         catch (Exception e) {
