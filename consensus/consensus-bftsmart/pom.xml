@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>com.jd.blockchain</groupId>
 		<artifactId>consensus-core</artifactId>
-		<version>1.4.0-SNAPSHOT</version>
+		<version>1.4.0.RELEASE</version>
 	</parent>
 	<artifactId>consensus-bftsmart</artifactId>
 
@@ -54,7 +54,7 @@
 			<artifactId>runtime-context</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-        <!-- <dependency>
+		<!-- <dependency>
             <groupId>com.jd.blockchain</groupId>
             <artifactId>ledger-core</artifactId>
             <version>${project.version}</version>
