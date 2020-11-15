@@ -92,10 +92,6 @@ public class DeactivePartiCommand {
 
             System.out.println("url = " + url);
 
-            PubKey deactivePubKey = KeyGenUtils.decodePubKey(argSet.getArg(DEACTIVE_PARTI_ADDRESS_ARG).getValue());
-
-            Bytes address = AddressEncoding.generateAddress(deactivePubKey);
-
             HttpPost httpPost = new HttpPost(url);
 
             List<BasicNameValuePair> para=new ArrayList<BasicNameValuePair>();
@@ -103,7 +99,7 @@ public class DeactivePartiCommand {
             // 账本值根据具体情况进行修改
             BasicNameValuePair base58LedgerHash = new BasicNameValuePair("ledgerHash",  argSet.getArg(DEACTIVE_LEDGER_ARG).getValue());
 
-            BasicNameValuePair deactiveAddress = new BasicNameValuePair("participantAddress", address.toBase58());
+            BasicNameValuePair deactiveAddress = new BasicNameValuePair("participantAddress", argSet.getArg(DEACTIVE_PARTI_ADDRESS_ARG).getValue());
             // 指定已经启动的其他共识节点的HTTP管理端口
             BasicNameValuePair manageHost = new BasicNameValuePair("remoteManageHost",  argSet.getArg(DEACTIVE_PARTI_SYNC_HTTP_HOST_ARG).getValue());
             BasicNameValuePair managePort = new BasicNameValuePair("remoteManagePort", argSet.getArg(DEACTIVE_PARTI_SYNC_HTTP_PORT_ARG).getValue());

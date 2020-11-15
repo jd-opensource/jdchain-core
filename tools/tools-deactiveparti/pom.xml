@@ -18,6 +18,16 @@
             <version>${framework.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.jd.blockchain</groupId>
+            <artifactId>crypto-sm</artifactId>
+            <version>${framework.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.jd.blockchain</groupId>
+            <artifactId>crypto-classic</artifactId>
+            <version>${framework.version}</version>
+        </dependency>
+        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>2.4</version>
