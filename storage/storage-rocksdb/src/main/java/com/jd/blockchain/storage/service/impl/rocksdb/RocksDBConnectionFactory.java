@@ -85,31 +85,26 @@ public class RocksDBConnectionFactory implements DbConnectionFactory {
 	}
 
 	private Options initOptions() {
-		Cache cache = new LRUCache(512 * SizeUnit.MB, 64, false);
-
+		Cache cache = new LRUCache(1024 * SizeUnit.MB, 64, false);
 		final BlockBasedTableConfig tableOptions = new BlockBasedTableConfig()
 				.setBlockCache(cache)
-				.setMetadataBlockSize(4096)
-				.setCacheIndexAndFilterBlocks(true) // 设置索引和布隆过滤器使用Block Cache内存
+				.setCacheIndexAndFilterBlocks(true)
 				.setCacheIndexAndFilterBlocksWithHighPriority(true)
-				.setIndexType(IndexType.kTwoLevelIndexSearch) // 设置两级索引，控制索引占用内存
-				.setPinTopLevelIndexAndFilter(false)
-				.setBlockSize(4096)
+				.setIndexType(IndexType.kTwoLevelIndexSearch) // 打开分片索引
+				.setPartitionFilters(true) // 打开分片过滤器
+				.setMetadataBlockSize(4096) // 索引分片的块大小
+				.setPinL0FilterAndIndexBlocksInCache(true)
+				.setPinTopLevelIndexAndFilter(true)
 				.setFilterPolicy(null) // 不设置布隆过滤器
-				;
-
+				.setDataBlockIndexType(DataBlockIndexType.kDataBlockBinaryAndHash)
+				.setDataBlockHashTableUtilRatio(0.75);
 		Options options = new Options()
-				// 最多占用256 * 6 + 512 = 2G内存
-				.setWriteBufferSize(256 * SizeUnit.MB)
-				.setMaxWriteBufferNumber(6)
-				.setMinWriteBufferNumberToMerge(2)
-				.setMaxOpenFiles(100) // 控制最大打开文件数量，防止内存持续增加
-				.setAllowConcurrentMemtableWrite(true) //允许并行Memtable写入
+				.setMaxOpenFiles(1000) // 控制最大打开文件数量，防止内存持续增加
+				.setMemTableConfig(new HashLinkedListMemTableConfig())
+				.setCompressionType(CompressionType.LZ4_COMPRESSION)
+				.setAllowConcurrentMemtableWrite(false)
 				.setCreateIfMissing(true)
-				.setTableFormatConfig(tableOptions)
-				.setMaxBackgroundCompactions(5)
-				.setMaxBackgroundFlushes(4)
-				;
+				.setTableFormatConfig(tableOptions);
 		return options;
 	}
 
