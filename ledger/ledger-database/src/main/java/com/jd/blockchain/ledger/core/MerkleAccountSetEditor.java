@@ -3,7 +3,6 @@ package com.jd.blockchain.ledger.core;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
@@ -13,21 +12,17 @@ import com.jd.blockchain.ledger.BlockchainIdentityData;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.MerkleSnapshot;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.DataEntry;
+import com.jd.blockchain.utils.Mapper;
 import com.jd.blockchain.utils.SkippingIterator;
 import com.jd.blockchain.utils.Transactional;
 
 public class MerkleAccountSetEditor implements Transactional, MerkleAccountSet<CompositeAccount> {
-
-	static {
-		DataContractRegistry.register(MerkleSnapshot.class);
-		DataContractRegistry.register(BlockchainIdentity.class);
-	}
 
 	private final Bytes keyPrefix;
 
@@ -98,13 +93,25 @@ public class MerkleAccountSetEditor implements Transactional, MerkleAccountSet<C
 //		}
 //		return ids;
 //	}
-	
+
 	@Override
 	public SkippingIterator<BlockchainIdentity> identityIterator() {
-		
-		return null;
+
+		SkippingIterator<BlockchainIdentity> idIterator = merkleDataset.iterator()
+				.iterateAs(new Mapper<DataEntry<Bytes, byte[]>, BlockchainIdentity>() {
+					@Override
+					public BlockchainIdentity from(DataEntry<Bytes, byte[]> source) {
+						if (source == null) {
+							return null;
+						}
+						InnerMerkleAccount account = createAccount(source.getKey(),
+								Crypto.resolveAsHashDigest(source.getValue()), source.getVersion(), true);
+						return account.getID();
+					}
+				});
+
+		return idIterator;
 	}
-	
 
 	/**
 	 * 返回账户的总数量；
