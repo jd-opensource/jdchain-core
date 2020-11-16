@@ -1,6 +1,5 @@
 package com.jd.blockchain.consensus.bftsmart;
 
-import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.utils.net.NetworkAddress;
@@ -14,10 +13,6 @@ public class BftsmartNodeConfig implements BftsmartNodeSettings {
 	private PubKey pubKey;
 
 	private NetworkAddress networkAddress;
-
-	static {
-		DataContractRegistry.register(BftsmartNodeSettings.class);
-	}
 
 	public BftsmartNodeConfig() {
 	}

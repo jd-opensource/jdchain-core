@@ -1,17 +1,19 @@
 package test.com.jd.blockchain.consensus.bftsmart;
 
 import com.jd.blockchain.consensus.Replica;
+import com.jd.blockchain.crypto.AddressEncoding;
+import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.utils.Bytes;
 
-public class ReplicaInfo implements Replica {
+public class ReplicaNode implements Replica {
 
 	private int id;
 	private Bytes address;
 	private String name;
-	private PubKey pubKey;
+	private AsymmetricKeypair keypair;
 
-	public ReplicaInfo(int id) {
+	public ReplicaNode(int id) {
 		this.id = id;
 	}
 	
@@ -32,7 +34,7 @@ public class ReplicaInfo implements Replica {
 
 	@Override
 	public PubKey getPubKey() {
-		return pubKey;
+		return keypair.getPubKey();
 	}
 	
 	
@@ -44,8 +46,9 @@ public class ReplicaInfo implements Replica {
 		this.name = name;
 	}
 	
-	public void setPubKey(PubKey pubKey) {
-		this.pubKey = pubKey;
+	public void setKey(AsymmetricKeypair keypair) {
+		this.keypair = keypair;
+		this.address = AddressEncoding.generateAddress(keypair.getPubKey());
 	}
 
 }
