@@ -54,11 +54,6 @@
 			<artifactId>runtime-context</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		<!-- <dependency>
-            <groupId>com.jd.blockchain</groupId>
-            <artifactId>ledger-core</artifactId>
-            <version>${project.version}</version>
-        </dependency> -->
 	</dependencies>
 
 

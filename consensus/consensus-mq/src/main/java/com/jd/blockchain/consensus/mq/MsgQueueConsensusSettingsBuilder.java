@@ -8,9 +8,16 @@
  */
 package com.jd.blockchain.consensus.mq;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
+import org.springframework.core.io.ClassPathResource;
+
 import com.jd.blockchain.consensus.ConsensusSettings;
 import com.jd.blockchain.consensus.ConsensusSettingsBuilder;
 import com.jd.blockchain.consensus.NodeSettings;
+import com.jd.blockchain.consensus.Replica;
 import com.jd.blockchain.consensus.mq.config.MsgQueueBlockConfig;
 import com.jd.blockchain.consensus.mq.config.MsgQueueConsensusConfig;
 import com.jd.blockchain.consensus.mq.config.MsgQueueNetworkConfig;
@@ -22,17 +29,10 @@ import com.jd.blockchain.consensus.mq.settings.MsgQueueNodeSettings;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.PropertiesUtils;
 import com.jd.blockchain.utils.io.BytesUtils;
 import com.jd.blockchain.utils.io.FileUtils;
-
-import org.springframework.core.io.ClassPathResource;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
 
 /**
  *
@@ -98,7 +98,7 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
     }
 
     @Override
-    public MsgQueueConsensusSettings createSettings(Properties props, ParticipantNode[] participantNodes) {
+    public MsgQueueConsensusSettings createSettings(Properties props, Replica[] participantNodes) {
         MsgQueueNetworkConfig networkConfig = new MsgQueueNetworkConfig();
         Properties resolvingProps = PropertiesUtils.cloneFrom(props);
 
