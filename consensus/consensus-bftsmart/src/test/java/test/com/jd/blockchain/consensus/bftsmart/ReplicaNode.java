@@ -50,5 +50,10 @@ public class ReplicaNode implements Replica {
 		this.keypair = keypair;
 		this.address = AddressEncoding.generateAddress(keypair.getPubKey());
 	}
+	
+	@Override
+	public String toString() {
+		return String.format("Replica[%s : %s]", id, address.toBase58());
+	}
 
 }
