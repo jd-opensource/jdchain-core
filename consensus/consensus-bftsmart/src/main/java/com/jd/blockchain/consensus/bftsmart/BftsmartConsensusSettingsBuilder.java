@@ -11,9 +11,9 @@ import org.springframework.core.io.ClassPathResource;
 import com.jd.blockchain.consensus.ConsensusSettings;
 import com.jd.blockchain.consensus.ConsensusSettingsBuilder;
 import com.jd.blockchain.consensus.NodeSettings;
+import com.jd.blockchain.consensus.Replica;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.utils.PropertiesUtils;
 import com.jd.blockchain.utils.Property;
 import com.jd.blockchain.utils.codec.Base58Utils;
@@ -132,7 +132,7 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 	}
 
 	@Override
-	public BftsmartConsensusSettings createSettings(Properties props, ParticipantNode[] participantNodes) {
+	public BftsmartConsensusSettings createSettings(Properties props, Replica[] participantNodes) {
 		Properties resolvingProps = PropertiesUtils.cloneFrom(props);
 		int serversNum = PropertiesUtils.getInt(resolvingProps, SERVER_NUM_KEY);
 		if (serversNum < 0) {

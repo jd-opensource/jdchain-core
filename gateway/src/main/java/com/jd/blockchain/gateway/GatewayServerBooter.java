@@ -275,7 +275,6 @@ public class GatewayServerBooter {
 		DataContractRegistry.register(DigitalSignatureBody.class);
 		DataContractRegistry.register(ClientIdentification.class);
 		DataContractRegistry.register(ClientIdentifications.class);
-		DataContractRegistry.register(ClientIdentifications.class);
 		DataContractRegistry.register(ActionRequest.class);
 		DataContractRegistry.register(ActionResponse.class);
 		DataContractRegistry.register(ConsensusSettings.class);

@@ -11,11 +11,6 @@ public class BftsmartSettingsFactory implements SettingsFactory {
 	
 	private static ClientIncomingSettingsEncoder CI_ENCODER = new ClientIncomingSettingsEncoder();
 
-	static {
-		DataContractRegistry.register(BftsmartConsensusSettings.class);
-		DataContractRegistry.register(BftsmartClientIncomingSettings.class);
-	}
-
 	@Override
 	public BftsmartConsensusSettingsBuilder getConsensusSettingsBuilder() {
 		return new BftsmartConsensusSettingsBuilder();

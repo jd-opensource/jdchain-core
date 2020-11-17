@@ -54,11 +54,13 @@
 			<artifactId>runtime-context</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		<!-- <dependency>
-            <groupId>com.jd.blockchain</groupId>
-            <artifactId>ledger-core</artifactId>
-            <version>${project.version}</version>
-        </dependency> -->
+		
+		<dependency>
+			<groupId>com.jd.blockchain</groupId>
+			<artifactId>crypto-classic</artifactId>
+			<version>${framework.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 

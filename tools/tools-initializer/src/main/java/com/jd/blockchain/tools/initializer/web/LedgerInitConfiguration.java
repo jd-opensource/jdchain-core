@@ -121,7 +121,7 @@ public class LedgerInitConfiguration {
 
 		Properties csProps = initProps.getConsensusConfig();
 		ConsensusSettings protocolSettings = consensusProvider.getSettingsFactory().getConsensusSettingsBuilder()
-				.createSettings(csProps, initProps.getConsensusParticipantNodes());
+				.createSettings(csProps, ParticipantReplica.wrap(initProps.getConsensusParticipantNodes()));
 
 		ConsensusConfig config = new ConsensusConfig();
 		config.setProvider(consensusProvider);
@@ -184,8 +184,8 @@ public class LedgerInitConfiguration {
 									partiProps.getId(), partiProps.getName()));
 				}
 			}
-			//去掉对默认角色的授权；
-			
+			// 去掉对默认角色的授权；
+
 			securityInitData.addUserAuthencation(partiProps.getAddress(), roles, partiProps.getRolesPolicy());
 		}
 
