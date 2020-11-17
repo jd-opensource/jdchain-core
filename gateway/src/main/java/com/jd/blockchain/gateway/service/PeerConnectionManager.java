@@ -81,6 +81,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 
 	@Override
 	public synchronized void connect(NetworkAddress peerAddress, AsymmetricKeypair defaultKeyPair, List<String> peerProviders) {
+		LOGGER.info("Add peerAddress{} to connect list !", peerAddress);
 		if (peerAddresses.contains(peerAddress)) {
 			return;
 		}
@@ -102,9 +103,11 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 				}
 				peerBlockchainServiceFactories.put(peerAddress, peerServiceFactory);
 				updateLedgerCache();
+			} else {
+				LOGGER.error("Connect peer {} fail !!!", peerAddress);
 			}
 		} catch (Exception e) {
-			LOGGER.error("Connect peer {} fail !!!", peerAddress);
+			LOGGER.error(String.format("Connect peer %s fail !!!", peerAddress), e);
 		} finally {
 			// 连接成功的话，更新账本
 			ledgerHashLock.unlock();
@@ -310,7 +313,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 	 */
 	private void executorStart() {
 		// 定时任务处理线程
-		peerConnectExecutor.scheduleAtFixedRate(new PeerConnectRunner(new AtomicLong(-1L)), 0,
+		peerConnectExecutor.scheduleWithFixedDelay(new PeerConnectRunner(new AtomicLong(-1L)), 0,
 				LEDGER_REFRESH_PERIOD_SECONDS, TimeUnit.SECONDS);
 	}
 
@@ -342,6 +345,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 			// 3、根据目前的情况更新缓存
 			ledgerHashLock.lock();
 			try {
+				LOGGER.info("Start the connection check with the remote peer...... ");
 				if (counter.getAndIncrement() % PEER_NETWORK_UPDATE_PERIOD == 0) {
 					// 更新远端Peer管理网络列表
 					updatePeerAddresses();
