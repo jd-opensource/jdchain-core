@@ -3,12 +3,15 @@ package com.jd.blockchain.peer.web;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jd.blockchain.ledger.LedgerTransactions;
+import com.jd.blockchain.web.converters.BinaryMessageConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jd.blockchain.contract.ContractException;
@@ -333,6 +336,18 @@ public class LedgerQueryController implements BlockchainQueryService {
 //		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, currentHeightTxNums);
 //		LedgerTransaction[] txs = transactionSet.getBlockTxs(queryArgs.getFrom(), queryArgs.getCount(), origTransactionSet);
 //		return txsDecorator(txs);
+	}
+
+	@RequestMapping(method = RequestMethod.POST, path = "ledgers/{ledgerHash}/blocks/height/{blockHeight}/txs/additional-txs/binary" , produces = BinaryMessageConverter.CONTENT_TYPE_VALUE)
+	public @ResponseBody LedgerTransactions getAdditionalTransactionsInBinary(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+														 @PathVariable(name = "blockHeight") long blockHeight,
+														 @RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,
+														 @RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
+		LedgerTransaction[] ledgerTransactions = getAdditionalTransactions(ledgerHash, blockHeight, fromIndex, count);
+		if (ledgerTransactions != null) {
+			return new LedgerTransactionsDecorator(ledgerTransactions);
+		}
+		return null;
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/blocks/height/{blockHeight}/txs/additional-txs")
@@ -862,5 +877,19 @@ public class LedgerQueryController implements BlockchainQueryService {
 			transactionDecorators[i] = txDecorator(ledgerTransactions[i]);
 		}
 		return transactionDecorators;
+	}
+
+	class LedgerTransactionsDecorator implements LedgerTransactions {
+
+		LedgerTransaction[] ledgerTransactions;
+
+		public LedgerTransactionsDecorator(LedgerTransaction[] ledgerTransactions) {
+			this.ledgerTransactions = ledgerTransactions;
+		}
+
+		@Override
+		public LedgerTransaction[] getLedgerTransactions() {
+			return ledgerTransactions;
+		}
 	}
 }

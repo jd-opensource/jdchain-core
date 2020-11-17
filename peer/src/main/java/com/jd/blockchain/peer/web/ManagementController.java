@@ -10,18 +10,16 @@ import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.ServiceProxy;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.blockchain.ledger.LedgerTransactions;
 import com.jd.blockchain.ledger.core.*;
 import com.jd.blockchain.ledger.merkletree.HashBucketEntry;
 import com.jd.blockchain.ledger.merkletree.KeyIndex;
 import com.jd.blockchain.ledger.merkletree.MerkleIndex;
 import com.jd.blockchain.ledger.proof.MerkleKey;
-import com.jd.blockchain.sdk.converters.ClientResolveUtil;
 import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
 import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.transaction.SignatureUtils;
 import com.jd.blockchain.transaction.TxBuilder;
-import com.jd.blockchain.transaction.TxContentBlob;
-import com.jd.blockchain.transaction.TxRequestBuilder;
 import com.jd.blockchain.transaction.TxRequestMessage;
 import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.PropertiesUtils;
@@ -38,6 +36,7 @@ import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuil
 import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.SERVER_VIEW_KEY;
 import static com.jd.blockchain.ledger.TransactionState.LEDGER_ERROR;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +55,10 @@ import com.jd.blockchain.utils.web.model.WebResponse;
 import java.util.Properties;
 import java.util.concurrent.*;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -780,24 +783,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					long pullBlockTime = blockchainServiceFactory.getBlockchainService().getBlock(ledgerHash, height).getTimestamp();
 
 					//获取区块内的增量交易
-					LedgerTransaction[] addition_transactions = blockchainServiceFactory.getBlockchainService().getAdditionalTransactions(ledgerHash, height, 0, -1);
+					LedgerTransaction[] addition_transactions = getAdditionalTransactions(ledgerHash, height, 0, -1, remoteManageHost, remoteManagePort);
 
 					for (LedgerTransaction ledgerTransaction : addition_transactions) {
-
-						TxContentBlob txContentBlob = new TxContentBlob(ledgerHash);
-
-						txContentBlob.setTime(ledgerTransaction.getRequest().getTransactionContent().getTimestamp());
-
-						// convert operation, from json to object
-						for (Operation operation : ledgerTransaction.getRequest().getTransactionContent().getOperations()) {
-							txContentBlob.addOperation(ClientResolveUtil.read(operation));
-						}
-
-						TxRequestBuilder txRequestBuilder = new TxRequestBuilder(ledgerTransaction.getTransactionHash(), txContentBlob);
-						txRequestBuilder.addNodeSignature(ledgerTransaction.getRequest().getNodeSignatures());
-						txRequestBuilder.addEndpointSignature(ledgerTransaction.getRequest().getEndpointSignatures());
-						TransactionRequest transactionRequest = txRequestBuilder.buildRequest();
-						txbatchProcessor.schedule(transactionRequest);
+						txbatchProcessor.schedule(ledgerTransaction.getRequest());
 					}
 
 					LedgerEditor.TIMESTAMP_HOLDER.set(pullBlockTime);
@@ -816,23 +805,41 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				}
 			}
 		} catch (Exception e) {
+			e.printStackTrace();
 			return WebResponse.createFailureResult(-1, "[ManagementController] checkLedgerDiff error!" + e);
 		}
 
 		return WebResponse.createSuccessResult(null);
 	}
 
-	// order transactions by timestamp in block
-//	private LedgerTransaction[] orderTransactions(LedgerTransaction[] transactions) {
-//		List<LedgerTransaction> transactionList = Arrays.asList(transactions);
-//		transactionList.sort(new Comparator<LedgerTransaction>() {
-//			@Override
-//			public int compare(LedgerTransaction t1, LedgerTransaction t2) {
-//				return (int)(t1.getTransactionContent().getTimestamp() - t2.getTransactionContent().getTimestamp());
-//			}
-//		});
-//		return transactionList.toArray(new LedgerTransaction[transactions.length]);
-//	}
+	private LedgerTransaction[] getAdditionalTransactions(HashDigest ledgerHash, int height, int i, int i1, String remoteManageHost, String remoteManagePort) {
+
+		String url = "http://" + remoteManageHost + ":" + remoteManagePort;
+
+		url = url + "/ledgers/" + ledgerHash.toBase58() + "/blocks/height/" + String.valueOf(height) + "/txs/additional-txs/binary";
+
+		System.out.println("url = " + url);
+
+		HttpPost httpPost = new HttpPost(url);
+
+		try {
+
+			HttpClient httpClient = HttpClients.createDefault();
+
+			HttpResponse response = httpClient.execute(httpPost);
+
+			InputStream respStream = response.getEntity().getContent();
+
+			LedgerTransactions transactions = BinaryProtocol.decode(respStream);
+
+			return transactions.getLedgerTransactions();
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+
+	}
 
 	private static String keyOfNode(String pattern, int id) {
 		return String.format(pattern, id);
