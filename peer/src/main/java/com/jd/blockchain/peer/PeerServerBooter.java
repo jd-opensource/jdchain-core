@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.jd.blockchain.ledger.LedgerTransactions;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -382,5 +383,6 @@ public class PeerServerBooter {
 		DataContractRegistry.register(MsgQueueBlockSettings.class);
 		DataContractRegistry.register(NodeNetworkAddress.class);
 		DataContractRegistry.register(NodeNetworkAddresses.class);
+		DataContractRegistry.register(LedgerTransactions.class);
 	}
 }
