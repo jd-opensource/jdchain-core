@@ -290,5 +290,6 @@ public class GatewayServerBooter {
 		DataContractRegistry.register(MsgQueueBlockSettings.class);
 		DataContractRegistry.register(NodeNetworkAddress.class);
 		DataContractRegistry.register(NodeNetworkAddresses.class);
+		DataContractRegistry.register(LedgerTransactions.class);
 	}
 }

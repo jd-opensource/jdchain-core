@@ -506,6 +506,12 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 				ledgerAdminInfo = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock());
 
+				origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
+
+				if (isConsensusNodeExist(consensusPort)) {
+					return WebResponse.createFailureResult(-1, "[ManagementController] consensus port is exist, please check input port parameter!");
+				}
+
 				ParticipantNode[] participants = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock()).getParticipants();
 
 				systemConfig = PropertiesUtils.createProperties(((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getSystemConfigs());
@@ -521,7 +527,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					return WebResponse.createSuccessResult(null);
 				}
 
-				origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
 
 				// 为交易添加本节点的签名信息，防止无法通过安全策略检查
 				txRequest = addNodeSigner(txRequest);
@@ -577,6 +582,16 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		} catch (Exception e) {
 			return WebResponse.createFailureResult(-1, "[ManagementController] activate new particpant failed!" + e);
 		}
+	}
+
+	// check if consensus node is exist
+	private boolean isConsensusNodeExist(String consensusPort) {
+		for (NodeSettings nodeSettings : origConsensusNodes) {
+			if (((BftsmartNodeSettings)nodeSettings).getNetworkAddress().getPort() == Integer.valueOf(consensusPort).intValue()) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private void cancelBlock(long blockGenerateTime, TransactionBatchProcessor txBatchProcessor) {
