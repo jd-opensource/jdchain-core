@@ -2,6 +2,7 @@ package com.jd.blockchain.consensus.bftsmart.service;
 
 import com.jd.blockchain.consensus.ConsensusSettings;
 import com.jd.blockchain.consensus.NodeSettings;
+import com.jd.blockchain.consensus.Replica;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.consensus.service.MessageHandle;
@@ -19,17 +20,16 @@ public class BftsmartNodeServerFactory implements NodeServerFactory {
 
 	private static Map<String, NodeSettings[]> nodeServerMap = new ConcurrentHashMap<>();
 
-
 	@Override
-	public ServerSettings buildServerSettings(String realmName, ConsensusSettings consensusSetting, String currentNodeAddress) {
+	public ServerSettings buildServerSettings(String realmName, ConsensusSettings consensusSetting, Replica replica) {
 
 		NodeSettings serverNode = null;
 
 		BftsmartServerSettingConfig serverSettings = new BftsmartServerSettingConfig();
 
-		//find current node according to current address
+		// find current node according to current address
 		for (NodeSettings nodeSettings : consensusSetting.getNodes()) {
-			if (nodeSettings.getAddress().equals(currentNodeAddress)) {
+			if (nodeSettings.getAddress().equals(replica.getAddress().toBase58())) {
 				serverNode = nodeSettings;
 				break;
 			}
@@ -39,7 +39,7 @@ public class BftsmartNodeServerFactory implements NodeServerFactory {
 			throw new IllegalArgumentException();
 		}
 
-		//set server settings
+		// set server settings
 		serverSettings.setRealmName(realmName);
 
 		serverSettings.setReplicaSettings(serverNode);
@@ -52,39 +52,39 @@ public class BftsmartNodeServerFactory implements NodeServerFactory {
 
 	@Override
 	public NodeServer setupServer(ServerSettings serverSettings, MessageHandle messageHandler,
-								  StateMachineReplicate stateMachineReplicator) {
+			StateMachineReplicate stateMachineReplicator) {
 
-		NodeSettings[] currNodeSettings = (((BftsmartServerSettings)serverSettings).getConsensusSettings()).getNodes();
+		NodeSettings[] currNodeSettings = (((BftsmartServerSettings) serverSettings).getConsensusSettings()).getNodes();
 
 		String currRealName = serverSettings.getRealmName();
 
-		//check conflict realm
+		// check conflict realm
 		if (!hasIntersection(currRealName, currNodeSettings)) {
-			BftsmartNodeServer nodeServer = new BftsmartNodeServer(serverSettings, messageHandler, stateMachineReplicator);
+			BftsmartNodeServer nodeServer = new BftsmartNodeServer(serverSettings, messageHandler,
+					stateMachineReplicator);
 			nodeServerMap.put(serverSettings.getRealmName(), currNodeSettings);
 			return nodeServer;
-		}
-		else {
+		} else {
 			throw new IllegalArgumentException("setupServer serverSettings parameters error!");
 
 		}
 	}
 
-
-	//check if consensus realm conflict, by this support multi ledgers
+	// check if consensus realm conflict, by this support multi ledgers
 	private boolean hasIntersection(String currRealName, NodeSettings[] currNodeSettings) {
 
-		//first check if is same consensus realm
+		// first check if is same consensus realm
 		for (String existRealmName : nodeServerMap.keySet()) {
 			if (currRealName.equals(existRealmName)) {
 				return false;
 			}
 		}
-		//check conflict
+		// check conflict
 		for (NodeSettings[] existNodeSettings : nodeServerMap.values()) {
 			for (NodeSettings curr : currNodeSettings) {
 				for (NodeSettings exist : existNodeSettings) {
-					if (((BftsmartNodeSettings)curr).getNetworkAddress().equals(((BftsmartNodeSettings)exist).getNetworkAddress())) {
+					if (((BftsmartNodeSettings) curr).getNetworkAddress()
+							.equals(((BftsmartNodeSettings) exist).getNetworkAddress())) {
 						return true;
 					}
 				}
@@ -94,14 +94,14 @@ public class BftsmartNodeServerFactory implements NodeServerFactory {
 		return false;
 	}
 
-	//compute hashcode for consensus nodes
+	// compute hashcode for consensus nodes
 	private int getHashcode(NodeSettings[] nodeSettings) {
 
 		int i = 0;
 		NetworkAddress[] nodeAddrs = new NetworkAddress[nodeSettings.length];
 		for (NodeSettings setting : nodeSettings) {
 
-			nodeAddrs[i++] = ((BftsmartNodeSettings)setting).getNetworkAddress();
+			nodeAddrs[i++] = ((BftsmartNodeSettings) setting).getNetworkAddress();
 		}
 		int hashCode = Arrays.hashCode(nodeAddrs);
 		return hashCode;

@@ -10,13 +10,17 @@ import com.jd.blockchain.consensus.service.NodeServerFactory;
 public class BftsmartConsensusProvider implements ConsensusProvider {
 
 	public static final String NAME = BftsmartConsensusProvider.class.getName();
-	
+
 	private static BftsmartSettingsFactory settingsFactory = new BftsmartSettingsFactory();
-	
+
 	private static BftsmartConsensusClientFactory clientFactory = new BftsmartConsensusClientFactory();
 
 	private static BftsmartNodeServerFactory nodeServerFactory = new BftsmartNodeServerFactory();
 
+	public static final ConsensusProvider INSTANCE = new BftsmartConsensusProvider();
+
+	private BftsmartConsensusProvider() {
+	}
 
 	@Override
 	public String getName() {
@@ -27,7 +31,7 @@ public class BftsmartConsensusProvider implements ConsensusProvider {
 	public SettingsFactory getSettingsFactory() {
 		return settingsFactory;
 	}
-	
+
 	@Override
 	public ClientFactory getClientFactory() {
 		return clientFactory;
@@ -37,6 +41,5 @@ public class BftsmartConsensusProvider implements ConsensusProvider {
 	public NodeServerFactory getServerFactory() {
 		return nodeServerFactory;
 	}
-
 
 }
