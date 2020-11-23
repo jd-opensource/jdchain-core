@@ -1,9 +1,25 @@
 package com.jd.blockchain.peer.consensus;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.BlockStateSnapshot;
 import com.jd.blockchain.consensus.service.ConsensusContext;
 import com.jd.blockchain.consensus.service.ConsensusMessageContext;
+import com.jd.blockchain.consensus.service.MessageHandle;
+import com.jd.blockchain.consensus.service.StateSnapshot;
+import com.jd.blockchain.crypto.Crypto;
+import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.OperationResult;
 import com.jd.blockchain.ledger.TransactionRequest;
@@ -18,25 +34,6 @@ import com.jd.blockchain.service.TransactionEngine;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.concurrent.AsyncFuture;
 import com.jd.blockchain.utils.concurrent.CompletableAsyncFuture;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-import com.jd.blockchain.consensus.service.MessageHandle;
-import com.jd.blockchain.consensus.service.StateSnapshot;
-import com.jd.blockchain.crypto.Crypto;
-import com.jd.blockchain.crypto.HashDigest;
-
-import javax.swing.plaf.nimbus.State;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author huanghaiquan
@@ -48,7 +45,7 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 	@Autowired
 	private TransactionEngine txEngine;
 
-	// todo 可能存在内存溢出的问题
+	// todo 当账本很多的时候，可能存在内存溢出的问题
 	private final Map<String, RealmProcessor> realmProcessorMap = new ConcurrentHashMap<>();
 
 	private final ReentrantLock beginLock = new ReentrantLock();

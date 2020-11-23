@@ -17,7 +17,7 @@ public class BftsmartConsensusProvider implements ConsensusProvider {
 
 	private static BftsmartNodeServerFactory nodeServerFactory = new BftsmartNodeServerFactory();
 
-	public static final ConsensusProvider INSTANCE = new BftsmartConsensusProvider();
+	public static final BftsmartConsensusProvider INSTANCE = new BftsmartConsensusProvider();
 
 	private BftsmartConsensusProvider() {
 	}
