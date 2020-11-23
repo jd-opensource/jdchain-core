@@ -3,14 +3,15 @@ package com.jd.blockchain.ledger.core;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.AddressEncoding;
-import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BlockchainIdentityData;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
+import com.jd.blockchain.ledger.AccountSnapshot;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedValue;
@@ -104,8 +105,11 @@ public class MerkleAccountSetEditor implements Transactional, MerkleAccountSet<C
 						if (source == null) {
 							return null;
 						}
-						InnerMerkleAccount account = createAccount(source.getKey(),
-								Crypto.resolveAsHashDigest(source.getValue()), source.getVersion(), true);
+
+						InnerMerkleAccount account = resolveAccount(source.getKey(), source.getValue(),
+								source.getVersion(), true);
+//						InnerMerkleAccount account = createAccount(source.getKey(),
+//								Crypto.resolveAsHashDigest(source.getValue()), source.getVersion(), true);
 						return account.getID();
 					}
 				});
@@ -305,21 +309,27 @@ public class MerkleAccountSetEditor implements Transactional, MerkleAccountSet<C
 	 * @return
 	 */
 	private InnerMerkleAccount loadAccount(Bytes address, boolean readonly, long version) {
-		byte[] rootHashBytes = merkleDataset.getValue(address, version);
-		if (rootHashBytes == null) {
-			return null;
-		}
-		HashDigest rootHash = Crypto.resolveAsHashDigest(rootHashBytes);
-
-		return createAccount(address, rootHash, version, readonly);
+		byte[] accountSnapshotBytes = merkleDataset.getValue(address, version);
+		return resolveAccount(address, accountSnapshotBytes, version, readonly);
 	}
 
-	private InnerMerkleAccount createAccount(Bytes address, HashDigest rootHash, long version, boolean readonly) {
-		// prefix;
-		Bytes prefix = keyPrefix.concat(address);
+	private InnerMerkleAccount resolveAccount(Bytes address, byte[] accountSnapshotBytes, long version,
+			boolean readonly) {
+		if (accountSnapshotBytes == null) {
+			return null;
+		}
+		AccountSnapshot snapshot = BinaryProtocol.decode(accountSnapshotBytes, AccountSnapshot.class);
 
-		return new InnerMerkleAccount(address, version, rootHash, cryptoSetting, prefix, baseExStorage, baseVerStorage,
-				readonly);
+		return createAccount(address, snapshot.getHeaderRootHash(), snapshot.getDataRootHash(), version, readonly);
+	}
+
+	private InnerMerkleAccount createAccount(Bytes address, HashDigest headerRoot, HashDigest dataRoot, long version,
+			boolean readonly) {
+		// prefix;
+		Bytes accountPrefix = keyPrefix.concat(address);
+
+		return new InnerMerkleAccount(address, version, headerRoot, dataRoot, cryptoSetting, accountPrefix,
+				baseExStorage, baseVerStorage, readonly);
 	}
 
 	// TODO:优化：区块链身份(地址+公钥)与其Merkle树根哈希分开独立存储；
@@ -395,9 +405,10 @@ public class MerkleAccountSetEditor implements Transactional, MerkleAccountSet<C
 			this.version = -1;
 		}
 
-		public InnerMerkleAccount(Bytes address, long version, HashDigest dataRootHash, CryptoSetting cryptoSetting,
-				Bytes keyPrefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
-			super(address, dataRootHash, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
+		public InnerMerkleAccount(Bytes address, long version, HashDigest headerRootHash, HashDigest dataRootHash,
+				CryptoSetting cryptoSetting, Bytes keyPrefix, ExPolicyKVStorage exStorage,
+				VersioningKVStorage verStorage, boolean readonly) {
+			super(address, headerRootHash, dataRootHash, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
 			this.version = version;
 		}
 
@@ -407,8 +418,11 @@ public class MerkleAccountSetEditor implements Transactional, MerkleAccountSet<C
 		}
 
 		@Override
-		protected void onCommited(HashDigest previousRootHash, HashDigest newRootHash) {
-			long newVersion = merkleDataset.setValue(this.getAddress(), newRootHash.toBytes(), version);
+		protected void onCommited(HashDigest headerRoot, HashDigest dataRoot) {
+			AccountSnapshot accountSnapshot = new AccountHashSnapshot(headerRoot, dataRoot);
+			byte[] snapshotBytes = BinaryProtocol.encode(accountSnapshot, AccountSnapshot.class);
+
+			long newVersion = merkleDataset.setValue(this.getAddress(), snapshotBytes, version);
 			if (newVersion < 0) {
 				// Update fail;
 				throw new LedgerException("Account updating fail! --[Address=" + this.getAddress() + "]");
@@ -418,6 +432,29 @@ public class MerkleAccountSetEditor implements Transactional, MerkleAccountSet<C
 
 		public long getVersion() {
 			return version;
+		}
+
+	}
+
+	private static class AccountHashSnapshot implements AccountSnapshot {
+
+		private HashDigest headerRoot;
+
+		private HashDigest dataRoot;
+
+		public AccountHashSnapshot(HashDigest headerRoot, HashDigest dataRoot) {
+			this.headerRoot = headerRoot;
+			this.dataRoot = dataRoot;
+		}
+
+		@Override
+		public HashDigest getHeaderRootHash() {
+			return headerRoot;
+		}
+
+		@Override
+		public HashDigest getDataRootHash() {
+			return dataRoot;
 		}
 
 	}

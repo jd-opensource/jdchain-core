@@ -1,16 +1,14 @@
 package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.binaryproto.BinaryProtocol;
-import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
+import com.jd.blockchain.ledger.AccountSnapshot;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.MerkleProofBuilder;
-import com.jd.blockchain.ledger.MerkleSnapshot;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.core.DatasetHelper.DataChangedListener;
 import com.jd.blockchain.ledger.core.DatasetHelper.TypeMapper;
@@ -26,20 +24,20 @@ import com.jd.blockchain.utils.Transactional;
  * @author huanghaiquan
  *
  */
-public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnapshot, Transactional {
+public class MerkleAccount implements CompositeAccount, HashProvable, AccountSnapshot, Transactional {
 
 	private static final Bytes HEADER_PREFIX = Bytes.fromString("HD/");
 	private static final Bytes DATA_PREFIX = Bytes.fromString("DT/");
 
-	private static final Bytes KEY_HEADER_ROOT = Bytes.fromString("HEADER");
+//	private static final Bytes KEY_HEADER_ROOT = Bytes.fromString("HEADER");
 
-	private static final Bytes KEY_DATA_ROOT = Bytes.fromString("DATA");
+//	private static final Bytes KEY_DATA_ROOT = Bytes.fromString("DATA");
 
 	private static final String KEY_PUBKEY = "PUBKEY";
 
 	private BlockchainIdentity accountID;
 
-	private MerkleDataset<Bytes, byte[]> rootDataset;
+//	private MerkleDataset<Bytes, byte[]> rootDataset;
 
 	private MerkleDataset<Bytes, byte[]> headerDataset;
 
@@ -48,8 +46,6 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 	private MerkleDataset<String, TypedValue> typedHeader;
 
 	private MerkleDataset<String, TypedValue> typedData;
-
-//	private long version;
 
 	/**
 	 * Create a new Account with the specified identity(address and pubkey); <br>
@@ -68,7 +64,7 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 	public MerkleAccount(BlockchainIdentity accountID, CryptoSetting cryptoSetting, Bytes keyPrefix,
 			ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
 		// 初始化数据集；
-		initializeDatasets(null, cryptoSetting, keyPrefix, exStorage, verStorage, false);
+		initializeDatasets(null, null, cryptoSetting, keyPrefix, exStorage, verStorage, false);
 
 		initPubKey(accountID.getPubKey());
 		this.accountID = accountID;
@@ -87,24 +83,29 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 	 * @param verStorage    The base storage for versioning operation;
 	 * @param readonly      Readonly about this account's dataset;
 	 */
-	public MerkleAccount(Bytes address, HashDigest rootHash, CryptoSetting cryptoSetting, Bytes keyPrefix,
-			ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
-		if (rootHash == null) {
-			throw new IllegalArgumentException("Specified a null root hash for account[" + address.toBase58() + "]!");
+	public MerkleAccount(Bytes address, HashDigest headerRoot, HashDigest dataRoot, CryptoSetting cryptoSetting,
+			Bytes keyPrefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
+		if (headerRoot == null) {
+			throw new IllegalArgumentException(
+					"Specified a null header-root hash for account[" + address.toBase58() + "]!");
+		}
+		if (dataRoot == null) {
+			throw new IllegalArgumentException(
+					"Specified a null data-root hash for account[" + address.toBase58() + "]!");
 		}
 
 		// 初始化数据集；
-		initializeDatasets(rootHash, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
+		initializeDatasets(headerRoot, dataRoot, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
 
 		// 初始化账户的身份；
 		PubKey pubKey = loadPubKey();
 		this.accountID = new AccountID(address, pubKey);
 	}
 
-	private void initializeDatasets(HashDigest rootHash, CryptoSetting cryptoSetting, Bytes keyPrefix,
-			ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
-		// 加载“根数据集”
-		this.rootDataset = new MerkleHashDataset(rootHash, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
+	private void initializeDatasets(HashDigest headerRoot, HashDigest dataRoot, CryptoSetting cryptoSetting,
+			Bytes keyPrefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
+//		// 加载“根数据集”
+//		this.rootDataset = new MerkleHashDataset(rootHash, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
 
 		// 初始化数据修改监听器；
 		DataChangedListener<String, TypedValue> dataChangedListener = new DataChangedListener<String, TypedValue>() {
@@ -129,42 +130,42 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 		};
 
 		// 加载“头数据集”；
-		HashDigest headerRoot = loadHeaderRoot();
+//		HashDigest headerRoot = loadHeaderRoot();
 		Bytes headerPrefix = keyPrefix.concat(HEADER_PREFIX);
 		this.headerDataset = new MerkleHashDataset(headerRoot, cryptoSetting, headerPrefix, exStorage, verStorage,
 				readonly);
 		this.typedHeader = DatasetHelper.listen(DatasetHelper.map(headerDataset, valueMapper), dataChangedListener);
 
 		// 加载“主数据集”
-		HashDigest dataRoot = loadDataRoot();
+//		HashDigest dataRoot = loadDataRoot();
 		Bytes dataPrefix = keyPrefix.concat(DATA_PREFIX);
 		this.dataDataset = new MerkleHashDataset(dataRoot, cryptoSetting, dataPrefix, exStorage, verStorage, readonly);
 		this.typedData = DatasetHelper.listen(DatasetHelper.map(dataDataset, valueMapper), dataChangedListener);
 	}
 
-	private HashDigest loadHeaderRoot() {
-		byte[] hashBytes = rootDataset.getValue(KEY_HEADER_ROOT);
-		if (hashBytes == null) {
-			return null;
-		}
-		return Crypto.resolveAsHashDigest(hashBytes);
-	}
-
-	private HashDigest loadDataRoot() {
-		byte[] hashBytes = rootDataset.getValue(KEY_DATA_ROOT);
-		if (hashBytes == null) {
-			return null;
-		}
-		return Crypto.resolveAsHashDigest(hashBytes);
-	}
-
-	private long getHeaderRootVersion() {
-		return rootDataset.getVersion(KEY_HEADER_ROOT);
-	}
-
-	private long getDataRootVersion() {
-		return rootDataset.getVersion(KEY_DATA_ROOT);
-	}
+//	private HashDigest loadHeaderRoot() {
+//		byte[] hashBytes = rootDataset.getValue(KEY_HEADER_ROOT);
+//		if (hashBytes == null) {
+//			return null;
+//		}
+//		return Crypto.resolveAsHashDigest(hashBytes);
+//	}
+//
+//	private HashDigest loadDataRoot() {
+//		byte[] hashBytes = rootDataset.getValue(KEY_DATA_ROOT);
+//		if (hashBytes == null) {
+//			return null;
+//		}
+//		return Crypto.resolveAsHashDigest(hashBytes);
+//	}
+//
+//	private long getHeaderRootVersion() {
+//		return rootDataset.getVersion(KEY_HEADER_ROOT);
+//	}
+//
+//	private long getDataRootVersion() {
+//		return rootDataset.getVersion(KEY_DATA_ROOT);
+//	}
 
 	public Bytes getAddress() {
 		return accountID.getAddress();
@@ -188,14 +189,24 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 		return typedData;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.jd.blockchain.ledger.core.AccountDataSet#getRootHash()
-	 */
+//	/*
+//	 * (non-Javadoc)
+//	 * 
+//	 * @see com.jd.blockchain.ledger.core.AccountDataSet#getRootHash()
+//	 */
+//	@Override
+//	public HashDigest getRootHash() {
+//		return rootDataset.getRootHash();
+//	}
+
 	@Override
-	public HashDigest getRootHash() {
-		return rootDataset.getRootHash();
+	public HashDigest getHeaderRootHash() {
+		return headerDataset.getRootHash();
+	}
+
+	@Override
+	public HashDigest getDataRootHash() {
+		return dataDataset.getRootHash();
 	}
 
 	@Override
@@ -204,12 +215,15 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 		if (dataProof == null) {
 			return null;
 		}
-		MerkleProof rootProof = rootDataset.getProof(KEY_DATA_ROOT);
-		if (rootProof == null) {
-			return null;
-		}
-		MerkleProof proof = MerkleProofBuilder.combine(rootProof, dataProof);
-		return proof;
+//		MerkleProof rootProof = rootDataset.getProof(KEY_DATA_ROOT);
+//		if (rootProof == null) {
+//			return null;
+//		}
+//		MerkleProof proof = MerkleProofBuilder.combine(rootProof, dataProof);
+//		return proof;
+
+		// TODO Auto-generated method stub
+		throw new IllegalStateException("Not implemented!");
 	}
 
 	/**
@@ -259,44 +273,56 @@ public class MerkleAccount implements CompositeAccount, HashProvable, MerkleSnap
 	/**
 	 * 当账户数据提交后触发此方法；<br>
 	 * 
-	 * 此方法默认会返回新的账户版本号，等于当前版本号加 1 ；
-	 * 
-	 * @param previousRootHash 提交前的根哈希；如果是新账户的首次提交，则为 null；
-	 * @param newRootHash      新的根哈希；
+	 * @param headerRoot
+	 * @param dataRoot
 	 */
-	protected void onCommited(HashDigest previousRootHash, HashDigest newRootHash) {
+	protected void onCommited(HashDigest headerRoot, HashDigest dataRoot) {
 	}
 
 	@Override
 	public boolean isUpdated() {
-		return headerDataset.isUpdated() || dataDataset.isUpdated() || rootDataset.isUpdated();
+		return headerDataset.isUpdated() || dataDataset.isUpdated();
+//		return headerDataset.isUpdated() || dataDataset.isUpdated() || rootDataset.isUpdated();
 	}
 
 	@Override
 	public void commit() {
+		boolean updated = false;
+		HashDigest headerRoot = headerDataset.getRootHash();
 		if (headerDataset.isUpdated()) {
 			headerDataset.commit();
-			long version = getHeaderRootVersion();
-			rootDataset.setValue(KEY_HEADER_ROOT, headerDataset.getRootHash().toBytes(), version);
-		}
-		if (dataDataset.isUpdated()) {
-			long version = getDataRootVersion();
-			dataDataset.commit();
-			rootDataset.setValue(KEY_DATA_ROOT, dataDataset.getRootHash().toBytes(), version);
+			updated = true;
+			headerRoot = headerDataset.getRootHash();
+//			long version = getHeaderRootVersion();
+//			rootDataset.setValue(KEY_HEADER_ROOT, headerDataset.getRootHash().toBytes(), version);
 		}
 
-		if (rootDataset.isUpdated()) {
-			HashDigest previousRootHash = rootDataset.getRootHash();
-			rootDataset.commit();
-			onCommited(previousRootHash, rootDataset.getRootHash());
+		HashDigest dataRoot = dataDataset.getRootHash();
+		if (dataDataset.isUpdated()) {
+			dataDataset.commit();
+			updated = true;
+			dataRoot = dataDataset.getRootHash();
+//			long version = getDataRootVersion();
+//			rootDataset.setValue(KEY_DATA_ROOT, dataDataset.getRootHash().toBytes(), version);
 		}
+
+//		if (rootDataset.isUpdated()) {
+//			HashDigest previousRootHash = rootDataset.getRootHash();
+//			rootDataset.commit();
+//			onCommited(previousRootHash, rootDataset.getRootHash());
+//		}
+
+		if (updated) {
+			onCommited(headerRoot, dataRoot);
+		}
+
 	}
 
 	@Override
 	public void cancel() {
 		headerDataset.cancel();
 		dataDataset.cancel();
-		rootDataset.cancel();
+//		rootDataset.cancel();
 	}
 
 	// ----------------------
