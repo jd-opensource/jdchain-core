@@ -67,9 +67,13 @@ public class OperationDecoratorFactory {
      * @return
      */
     public static Operation decorateContractEventSendOperation(ContractEventSendOperation op) {
-        BytesDataList dataList = new BytesDataList(decorateBytesValues(op.getArgs().getValues()));
-        return new ContractEventSendOpTemplate(op.getContractAddress(),
-                op.getEvent(), dataList);
+        BytesDataList dataList;
+        if(null != op.getArgs()) {
+            dataList = new BytesDataList(decorateBytesValues(op.getArgs().getValues()));
+        } else {
+            dataList = new BytesDataList();
+        }
+        return new ContractEventSendOpTemplate(op.getContractAddress(), op.getEvent(), dataList);
     }
 
     /**
