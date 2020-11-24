@@ -1,39 +1,62 @@
 package com.jd.blockchain.consensus.bftsmart.service;
 
 import java.io.ByteArrayOutputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.TreeMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import bftsmart.consensus.app.BatchAppResultImpl;
-import bftsmart.reconfiguration.views.NodeNetwork;
-import bftsmart.reconfiguration.views.View;
-import bftsmart.tom.*;
-import com.jd.blockchain.binaryproto.BinaryProtocol;
-import com.jd.blockchain.consensus.*;
-import com.jd.blockchain.consensus.service.*;
-import com.jd.blockchain.crypto.Crypto;
-import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.*;
-import com.jd.blockchain.runtime.RuntimeConstant;
-import com.jd.blockchain.transaction.TxResponseMessage;
-import com.jd.blockchain.utils.StringUtils;
-import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.NumberUtils;
+
+import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.blockchain.consensus.BlockStateSnapshot;
+import com.jd.blockchain.consensus.ConsensusManageService;
+import com.jd.blockchain.consensus.NodeNetworkAddress;
+import com.jd.blockchain.consensus.NodeNetworkAddresses;
+import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
+import com.jd.blockchain.consensus.service.MessageHandle;
+import com.jd.blockchain.consensus.service.MonitorService;
+import com.jd.blockchain.consensus.service.NodeServer;
+import com.jd.blockchain.consensus.service.ServerSettings;
+import com.jd.blockchain.consensus.service.StateHandle;
+import com.jd.blockchain.consensus.service.StateMachineReplicate;
+import com.jd.blockchain.consensus.service.StateSnapshot;
+import com.jd.blockchain.crypto.Crypto;
+import com.jd.blockchain.ledger.BlockRollbackException;
+import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.TransactionResponse;
+import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.runtime.RuntimeConstant;
+import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.PropertiesUtils;
+import com.jd.blockchain.utils.StringUtils;
 import com.jd.blockchain.utils.concurrent.AsyncFuture;
 import com.jd.blockchain.utils.io.BytesUtils;
+import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
+
+import bftsmart.consensus.app.BatchAppResultImpl;
 import bftsmart.reconfiguration.util.HostsConfig;
 import bftsmart.reconfiguration.util.TOMConfiguration;
+import bftsmart.reconfiguration.views.NodeNetwork;
+import bftsmart.reconfiguration.views.View;
+import bftsmart.tom.MessageContext;
+import bftsmart.tom.ReplyContextMessage;
+import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
-import org.springframework.util.NumberUtils;
 
 public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer {
 
@@ -73,8 +96,6 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     private Properties systemConfig;
 
     private MessageHandle messageHandle;
-
-    private String providerName;
 
     private String realmName;
 
@@ -764,6 +785,13 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             }
         }
     }
+    
+    @Override
+    public String toString() {
+    	return String.format("BFTSMaRT_Node[%s]", getId());
+    }
+    
+    //-------------------------
 
     enum Status {
 

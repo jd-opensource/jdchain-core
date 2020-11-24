@@ -34,11 +34,11 @@
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-pool2</artifactId>
 		</dependency>
-		<dependency>
+		<!-- <dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>ledger-model</artifactId>
 			<version>${framework.version}</version>
-		</dependency>
+		</dependency> -->
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>tools-keygen</artifactId>
