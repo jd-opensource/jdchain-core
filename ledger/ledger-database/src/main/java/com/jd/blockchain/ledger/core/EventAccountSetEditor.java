@@ -66,7 +66,7 @@ public class EventAccountSetEditor implements EventAccountSet, Transactional {
 
     @Override
     public EventPublishingAccount getAccount(Bytes address, long version) {
-        Account account = accountSet.getAccount(address);
+    	CompositeAccount account = accountSet.getAccount(address);
         if (null == account) {
             return null;
         }
