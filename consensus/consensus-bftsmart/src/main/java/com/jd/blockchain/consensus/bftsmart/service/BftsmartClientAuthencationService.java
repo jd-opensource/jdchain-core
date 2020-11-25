@@ -4,7 +4,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.jd.blockchain.consensus.ClientIdentification;
-import com.jd.blockchain.consensus.ConsensusManageService;
+import com.jd.blockchain.consensus.ClientAuthencationService;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingConfig;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
@@ -12,7 +12,7 @@ import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.SignatureFunction;
 import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 
-public class BftsmartConsensusManageService implements ConsensusManageService {
+public class BftsmartClientAuthencationService implements ClientAuthencationService {
 
 	public static final int GATEWAY_SIZE = 100;
 
@@ -26,14 +26,14 @@ public class BftsmartConsensusManageService implements ConsensusManageService {
 
 	private static final Lock authLock = new ReentrantLock();
 
-	public BftsmartConsensusManageService(BftsmartNodeServer nodeServer) {
+	public BftsmartClientAuthencationService(BftsmartNodeServer nodeServer) {
 		this.nodeServer = nodeServer;
 		// Assume that each peer node corresponds to up to 100 gateways
 		clientId = nodeServer.getServerId() * CLIENT_RANGE;
 	}
 
 	@Override
-	public BftsmartClientIncomingSettings authClientIncoming(ClientIdentification authId) {
+	public BftsmartClientIncomingSettings authencateIncoming(ClientIdentification authId) {
 		if (verify(authId)) {
 			BftsmartTopology topology = nodeServer.getTopology();
 			if (topology == null) {

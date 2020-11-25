@@ -1,8 +1,11 @@
 package com.jd.blockchain.consensus.bftsmart.service;
 
-import com.jd.blockchain.consensus.ConsensusSettings;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
-import com.jd.blockchain.consensus.Replica;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.consensus.service.MessageHandle;
@@ -12,16 +15,12 @@ import com.jd.blockchain.consensus.service.ServerSettings;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 import com.jd.blockchain.utils.net.NetworkAddress;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 public class BftsmartNodeServerFactory implements NodeServerFactory {
 
 	private static Map<String, NodeSettings[]> nodeServerMap = new ConcurrentHashMap<>();
 
 	@Override
-	public ServerSettings buildServerSettings(String realmName, ConsensusSettings consensusSetting, Replica replica) {
+	public ServerSettings buildServerSettings(String realmName, ConsensusViewSettings consensusSetting, String nodeAddress) {
 
 		NodeSettings serverNode = null;
 
@@ -29,7 +28,7 @@ public class BftsmartNodeServerFactory implements NodeServerFactory {
 
 		// find current node according to current address
 		for (NodeSettings nodeSettings : consensusSetting.getNodes()) {
-			if (nodeSettings.getAddress().equals(replica.getAddress().toBase58())) {
+			if (nodeSettings.getAddress().equals(nodeAddress)) {
 				serverNode = nodeSettings;
 				break;
 			}

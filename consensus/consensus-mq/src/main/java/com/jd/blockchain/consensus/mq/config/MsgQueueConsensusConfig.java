@@ -8,7 +8,7 @@
  */
 package com.jd.blockchain.consensus.mq.config;
 
-import com.jd.blockchain.consensus.ConsensusSettings;
+import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.mq.settings.*;
 import com.jd.blockchain.crypto.PubKey;

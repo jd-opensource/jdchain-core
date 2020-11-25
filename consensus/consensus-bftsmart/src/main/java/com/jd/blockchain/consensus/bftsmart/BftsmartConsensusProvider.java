@@ -3,8 +3,10 @@ package com.jd.blockchain.consensus.bftsmart;
 import com.jd.blockchain.consensus.ConsensusProvider;
 import com.jd.blockchain.consensus.SettingsFactory;
 import com.jd.blockchain.consensus.bftsmart.client.BftsmartConsensusClientFactory;
+import com.jd.blockchain.consensus.bftsmart.manage.BftsmartConsensusManageClientFactory;
 import com.jd.blockchain.consensus.bftsmart.service.BftsmartNodeServerFactory;
 import com.jd.blockchain.consensus.client.ClientFactory;
+import com.jd.blockchain.consensus.manage.ManageClientFactory;
 import com.jd.blockchain.consensus.service.NodeServerFactory;
 
 public class BftsmartConsensusProvider implements ConsensusProvider {
@@ -16,6 +18,8 @@ public class BftsmartConsensusProvider implements ConsensusProvider {
 	private static BftsmartConsensusClientFactory clientFactory = new BftsmartConsensusClientFactory();
 
 	private static BftsmartNodeServerFactory nodeServerFactory = new BftsmartNodeServerFactory();
+	
+	private static BftsmartConsensusManageClientFactory manangeClientFactory = new BftsmartConsensusManageClientFactory();
 
 	public static final BftsmartConsensusProvider INSTANCE = new BftsmartConsensusProvider();
 
@@ -40,6 +44,11 @@ public class BftsmartConsensusProvider implements ConsensusProvider {
 	@Override
 	public NodeServerFactory getServerFactory() {
 		return nodeServerFactory;
+	}
+
+	@Override
+	public ManageClientFactory getManagerClientFactory() {
+		return manangeClientFactory;
 	}
 
 }

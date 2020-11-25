@@ -11,7 +11,7 @@ package com.jd.blockchain.consensus.mq.server;
 import java.util.Arrays;
 
 import com.jd.blockchain.consensus.ClientIdentification;
-import com.jd.blockchain.consensus.ConsensusManageService;
+import com.jd.blockchain.consensus.ClientAuthencationService;
 import com.jd.blockchain.consensus.ConsensusSecurityException;
 import com.jd.blockchain.consensus.mq.config.MsgQueueClientIncomingConfig;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueClientIncomingSettings;
@@ -27,7 +27,7 @@ import com.jd.blockchain.crypto.SignatureFunction;
  * @since 1.0.0
  */
 
-public class MsgQueueConsensusManageService implements ConsensusManageService {
+public class MsgQueueConsensusManageService implements ClientAuthencationService {
 
     private MsgQueueConsensusSettings consensusSettings;
 
@@ -37,7 +37,7 @@ public class MsgQueueConsensusManageService implements ConsensusManageService {
     }
 
     @Override
-    public MsgQueueClientIncomingSettings authClientIncoming(ClientIdentification authId) throws ConsensusSecurityException {
+    public MsgQueueClientIncomingSettings authencateIncoming(ClientIdentification authId) throws ConsensusSecurityException {
         boolean isLegal = isLegal(authId);
         if (isLegal) {
             MsgQueueClientIncomingSettings mqcis = new MsgQueueClientIncomingConfig()

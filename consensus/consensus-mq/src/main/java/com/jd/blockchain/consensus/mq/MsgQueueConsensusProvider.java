@@ -11,6 +11,7 @@ package com.jd.blockchain.consensus.mq;
 import com.jd.blockchain.consensus.ConsensusProvider;
 import com.jd.blockchain.consensus.SettingsFactory;
 import com.jd.blockchain.consensus.client.ClientFactory;
+import com.jd.blockchain.consensus.manage.ManageClientFactory;
 import com.jd.blockchain.consensus.mq.client.MsgQueueClientFactory;
 import com.jd.blockchain.consensus.mq.config.MsgQueueSettingsFactory;
 import com.jd.blockchain.consensus.mq.server.MsgQueueNodeServerFactory;
@@ -52,4 +53,10 @@ public class MsgQueueConsensusProvider implements ConsensusProvider {
     public NodeServerFactory getServerFactory() {
         return nodeServerFactory;
     }
+
+	@Override
+	public ManageClientFactory getManagerClientFactory() {
+		// TODO Auto-generated method stub
+		throw new IllegalStateException("Not implemented!");
+	}
 }

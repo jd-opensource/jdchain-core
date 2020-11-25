@@ -17,7 +17,7 @@ public class BftsmartSettingsFactory implements SettingsFactory {
 	}
 
 	@Override
-	public BytesEncoder<ConsensusSettings> getConsensusSettingsEncoder() {
+	public BytesEncoder<ConsensusViewSettings> getConsensusSettingsEncoder() {
 		return CS_ENCODER;
 	}
 
@@ -26,10 +26,10 @@ public class BftsmartSettingsFactory implements SettingsFactory {
 		return CI_ENCODER;
 	}
 	
-	private static class ConsensusSettingsEncoder implements BytesEncoder<ConsensusSettings>{
+	private static class ConsensusSettingsEncoder implements BytesEncoder<ConsensusViewSettings>{
 
 		@Override
-		public byte[] encode(ConsensusSettings data) {
+		public byte[] encode(ConsensusViewSettings data) {
 			if (data instanceof BftsmartConsensusSettings) {
 				return BinaryProtocol.encode(data, BftsmartConsensusSettings.class);
 			}
@@ -37,7 +37,7 @@ public class BftsmartSettingsFactory implements SettingsFactory {
 		}
 
 		@Override
-		public ConsensusSettings decode(byte[] bytes) {
+		public ConsensusViewSettings decode(byte[] bytes) {
 			return BinaryProtocol.decode(bytes, BftsmartConsensusSettings.class);
 		}
 	}

@@ -9,7 +9,7 @@ import java.util.Set;
 
 import com.jd.blockchain.consensus.ConsensusProvider;
 import com.jd.blockchain.consensus.ConsensusProviders;
-import com.jd.blockchain.consensus.ConsensusSettings;
+import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.CryptoProvider;
@@ -87,7 +87,7 @@ public class LedgerInitConfiguration {
 	private LedgerInitConfiguration() {
 	}
 
-	public void setConsensusSettings(ConsensusProvider consensusProvider, ConsensusSettings consensusSettings) {
+	public void setConsensusSettings(ConsensusProvider consensusProvider, ConsensusViewSettings consensusSettings) {
 		byte[] consensusSettingBytes = encodeConsensusSettings(consensusProvider, consensusSettings);
 		ledgerSettings.setConsensusProvider(consensusProvider.getName());
 		ledgerSettings.setConsensusSettings(consensusSettingBytes);
@@ -120,7 +120,7 @@ public class LedgerInitConfiguration {
 		ConsensusProvider consensusProvider = ConsensusProviders.getProvider(initProps.getConsensusProvider());
 
 		Properties csProps = initProps.getConsensusConfig();
-		ConsensusSettings protocolSettings = consensusProvider.getSettingsFactory().getConsensusSettingsBuilder()
+		ConsensusViewSettings protocolSettings = consensusProvider.getSettingsFactory().getConsensusSettingsBuilder()
 				.createSettings(csProps, ParticipantReplica.wrap(initProps.getConsensusParticipantNodes()));
 
 		ConsensusConfig config = new ConsensusConfig();
@@ -217,7 +217,7 @@ public class LedgerInitConfiguration {
 	}
 
 	public static byte[] encodeConsensusSettings(ConsensusProvider consensusProvider,
-			ConsensusSettings consensusSettings) {
+			ConsensusViewSettings consensusSettings) {
 		return consensusProvider.getSettingsFactory().getConsensusSettingsEncoder().encode(consensusSettings);
 	}
 
@@ -262,13 +262,13 @@ public class LedgerInitConfiguration {
 
 		private ConsensusProvider provider;
 
-		private ConsensusSettings protocolSettings;
+		private ConsensusViewSettings protocolSettings;
 
-		public ConsensusSettings getProtocolSettings() {
+		public ConsensusViewSettings getProtocolSettings() {
 			return protocolSettings;
 		}
 
-		public void setProtocolSettings(ConsensusSettings protocolSettings) {
+		public void setProtocolSettings(ConsensusViewSettings protocolSettings) {
 			this.protocolSettings = protocolSettings;
 		}
 

@@ -2,7 +2,7 @@ package com.jd.blockchain.gateway.service;
 
 import com.jd.blockchain.consensus.ConsensusProvider;
 import com.jd.blockchain.consensus.ConsensusProviders;
-import com.jd.blockchain.consensus.ConsensusSettings;
+import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusConfig;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
@@ -140,7 +140,7 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 	 * @param ledgerAdminInfo 账本元数据
 	 * @return
 	 */
-	private ConsensusSettings initConsensusSettings(LedgerAdminInfo ledgerAdminInfo) {
+	private ConsensusViewSettings initConsensusSettings(LedgerAdminInfo ledgerAdminInfo) {
 		String consensusProvider = ledgerAdminInfo.getSettings().getConsensusProvider();
 		ConsensusProvider provider = ConsensusProviders.getProvider(consensusProvider);
 		byte[] consensusSettingsBytes = ledgerAdminInfo.getSettings().getConsensusSetting().toBytes();
@@ -148,7 +148,7 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 				provider.getSettingsFactory().getConsensusSettingsEncoder().decode(consensusSettingsBytes));
 	}
 
-	private ConsensusSettings consensusSettingsDecorator(ConsensusSettings consensusSettings) {
+	private ConsensusViewSettings consensusSettingsDecorator(ConsensusViewSettings consensusSettings) {
 		if (consensusSettings instanceof BftsmartConsensusSettings) {
 			// bft-smart单独处理
 			BftsmartConsensusSettings bftsmartConsensusSettings = (BftsmartConsensusSettings) consensusSettings;

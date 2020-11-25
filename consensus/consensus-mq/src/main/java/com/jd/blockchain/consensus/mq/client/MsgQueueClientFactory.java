@@ -9,7 +9,7 @@
 package com.jd.blockchain.consensus.mq.client;
 
 import com.jd.blockchain.consensus.ClientIncomingSettings;
-import com.jd.blockchain.consensus.ConsensusManageService;
+import com.jd.blockchain.consensus.ClientAuthencationService;
 import com.jd.blockchain.consensus.client.ClientFactory;
 import com.jd.blockchain.consensus.client.ClientSettings;
 import com.jd.blockchain.consensus.mq.config.MsgQueueClientConfig;
@@ -67,11 +67,11 @@ public class MsgQueueClientFactory implements ClientFactory {
         return msgQueueClientConfig;
     }
 
-    @Override
-    public ConsensusManageService createManageServiceClient(String[] serviceNodes) {
-        // todo serviceNodes // IP：port
-        return null;
-    }
+//    @Override
+//    public ConsensusManageService createManageServiceClient(String[] serviceNodes) {
+//        // todo serviceNodes // IP：port
+//        return null;
+//    }
 
     @Override
     public MsgQueueConsensusClient setupClient(ClientSettings settings) {

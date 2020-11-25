@@ -8,7 +8,7 @@ import java.util.Properties;
 
 import org.springframework.core.io.ClassPathResource;
 
-import com.jd.blockchain.consensus.ConsensusSettings;
+import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.ConsensusSettingsBuilder;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.Replica;
@@ -190,7 +190,8 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 	}
 
 	@Override
-	public void writeSettings(ConsensusSettings settings, Properties props) {
+	public Properties convertToProperties(ConsensusViewSettings settings) {
+		Properties props = new Properties();
 		int serversNum = PropertiesUtils.getInt(props, SERVER_NUM_KEY);
 		if (serversNum > 0) {
 			for (int i = 0; i < serversNum; i++) {
@@ -243,10 +244,12 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 		}
 
 		PropertiesUtils.setValues(props, bftsmartSettings.getSystemConfigs());
+		
+		return props;
 	}
 
 	@Override
-	public ConsensusSettings updateSettings(ConsensusSettings oldConsensusSettings, Properties newProps) {
+	public ConsensusViewSettings updateSettings(ConsensusViewSettings oldConsensusSettings, Properties newProps) {
 
         if (newProps != null) {
             // update system config and node settings
@@ -373,6 +376,12 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 			properties[index++] = entry.getValue();
 		}
 		return properties;
+	}
+
+	@Override
+	public ConsensusViewSettings addReplicaSetting(ConsensusViewSettings settings, Replica replica) {
+		// TODO Auto-generated method stub
+		throw new IllegalStateException("Not implemented!");
 	}
 
 }

@@ -20,7 +20,7 @@ import org.springframework.util.NumberUtils;
 
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.BlockStateSnapshot;
-import com.jd.blockchain.consensus.ConsensusManageService;
+import com.jd.blockchain.consensus.ClientAuthencationService;
 import com.jd.blockchain.consensus.NodeNetworkAddress;
 import com.jd.blockchain.consensus.NodeNetworkAddresses;
 import com.jd.blockchain.consensus.NodeSettings;
@@ -78,7 +78,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     private ServerSettings serverSettings;
 
-    private BftsmartConsensusManageService manageService;
+    private BftsmartClientAuthencationService manageService;
 
 
     private volatile BftsmartTopology topology;
@@ -128,7 +128,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         createConfig();
         serverId = findServerId();
         initConfig(serverId, systemConfig, hostsConfig);
-        this.manageService = new BftsmartConsensusManageService(this);
+        this.manageService = new BftsmartClientAuthencationService(this);
         this.timeTolerance = tomConfig.getTimeTolerance();
     }
 
@@ -207,7 +207,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     }
 
     @Override
-    public ConsensusManageService getConsensusManageService() {
+    public ClientAuthencationService getClientAuthencationService() {
         return manageService;
     }
 

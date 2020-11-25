@@ -10,7 +10,7 @@ package com.jd.blockchain.consensus.mq.server;
 
 import java.util.concurrent.Executors;
 
-import com.jd.blockchain.consensus.ConsensusManageService;
+import com.jd.blockchain.consensus.ClientAuthencationService;
 import com.jd.blockchain.consensus.mq.MsgQueueConsensusProvider;
 import com.jd.blockchain.consensus.mq.consumer.MsgQueueConsumer;
 import com.jd.blockchain.consensus.mq.factory.MsgQueueFactory;
@@ -123,7 +123,7 @@ public class MsgQueueNodeServer implements NodeServer {
     }
 
     @Override
-	public ConsensusManageService getConsensusManageService() {
+	public ClientAuthencationService getClientAuthencationService() {
         return this.manageService;
     }
 

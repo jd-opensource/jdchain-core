@@ -11,7 +11,7 @@ package com.jd.blockchain.consensus.mq.settings;
 import com.jd.blockchain.binaryproto.DataContract;
 import com.jd.blockchain.binaryproto.DataField;
 import com.jd.blockchain.binaryproto.PrimitiveType;
-import com.jd.blockchain.consensus.ConsensusSettings;
+import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.mq.config.MsgQueueBlockConfig;
 import com.jd.blockchain.consts.DataCodes;
 import com.jd.blockchain.utils.Property;
@@ -23,7 +23,7 @@ import com.jd.blockchain.utils.Property;
  * @since 1.0.0
  */
 @DataContract(code = DataCodes.CONSENSUS_MSGQUEUE_SETTINGS)
-public interface MsgQueueConsensusSettings extends ConsensusSettings {
+public interface MsgQueueConsensusSettings extends ConsensusViewSettings {
 
     @DataField(order = 0, refContract = true)
     MsgQueueNetworkSettings getNetworkSettings();

@@ -370,7 +370,7 @@ public class PeerServerBooter {
 		DataContractRegistry.register(ClientIdentifications.class);
 		DataContractRegistry.register(ActionRequest.class);
 		DataContractRegistry.register(ActionResponse.class);
-		DataContractRegistry.register(ConsensusSettings.class);
+		DataContractRegistry.register(ConsensusViewSettings.class);
 		DataContractRegistry.register(NodeSettings.class);
 		DataContractRegistry.register(ClientIncomingSettings.class);
 		DataContractRegistry.register(BftsmartConsensusSettings.class);

@@ -8,14 +8,16 @@
  */
 package com.jd.blockchain.consensus.mq.server;
 
-import com.jd.blockchain.consensus.ConsensusSettings;
-import com.jd.blockchain.consensus.Replica;
+import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.mq.config.MsgQueueNodeConfig;
 import com.jd.blockchain.consensus.mq.config.MsgQueueServerConfig;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueConsensusSettings;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueNodeSettings;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueServerSettings;
-import com.jd.blockchain.consensus.service.*;
+import com.jd.blockchain.consensus.service.MessageHandle;
+import com.jd.blockchain.consensus.service.NodeServerFactory;
+import com.jd.blockchain.consensus.service.ServerSettings;
+import com.jd.blockchain.consensus.service.StateMachineReplicate;
 
 /**
  *
@@ -27,15 +29,15 @@ import com.jd.blockchain.consensus.service.*;
 public class MsgQueueNodeServerFactory implements NodeServerFactory {
 
 	@Override
-	public MsgQueueServerSettings buildServerSettings(String realmName, ConsensusSettings consensusSetting,
-			Replica replica) {
+	public MsgQueueServerSettings buildServerSettings(String realmName, ConsensusViewSettings consensusSetting,
+			String nodeAddress) {
 
 		if (!(consensusSetting instanceof MsgQueueConsensusSettings)) {
 			throw new IllegalArgumentException(
 					"ConsensusSettings data isn't supported! Accept MsgQueueConsensusSettings only!");
 		}
 
-		MsgQueueNodeSettings nodeSettings = new MsgQueueNodeConfig().setAddress(replica.getAddress().toBase58());
+		MsgQueueNodeSettings nodeSettings = new MsgQueueNodeConfig().setAddress(nodeAddress);
 
 		MsgQueueServerSettings serverSettings = new MsgQueueServerConfig().setRealmName(realmName)
 				.setNodeSettings(nodeSettings).setConsensusSettings((MsgQueueConsensusSettings) consensusSetting);
