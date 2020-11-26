@@ -252,7 +252,7 @@ public class SM3WITHSM2SignatureFunction implements SignatureFunction {
 	@Override
 	public AsymmetricKeypair generateKeypair(byte[] seed) {
 		// TODO Auto-generated method stub
-		return null;
+		throw new IllegalStateException("Not implemented!");
 	}
 
 	@Override

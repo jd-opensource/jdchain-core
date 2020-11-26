@@ -8,8 +8,8 @@ import java.util.Properties;
 
 import org.springframework.core.io.ClassPathResource;
 
-import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.ConsensusSettingsBuilder;
+import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.Replica;
 import com.jd.blockchain.crypto.Crypto;
@@ -33,7 +33,7 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 	public static final String PARTICIPANT_OP_KEY = "participant.op";
 
 	public static final String DEACTIVE_PARTICIPANT_ID_KEY = "deactive.participant.id";
-	
+
 	public static final String ACTIVE_PARTICIPANT_ID_KEY = "active.participant.id";
 
 	/**
@@ -83,9 +83,7 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 	 */
 	public static final String CONSENSUS_SECURE_PATTERN = "system.server.%s.network.secure";
 
-	public static final  String  BFTSMART_PROVIDER = "com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider";
-
-
+	public static final String BFTSMART_PROVIDER = "com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider";
 
 	private static Properties CONFIG_TEMPLATE;
 	static {
@@ -99,7 +97,7 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 		}
 	}
 
-	//解析得到结块的相关配置信息
+	// 解析得到结块的相关配置信息
 //	public BftsmartCommitBlockConfig createBlockConfig(Properties resolvingProps) {
 //		BftsmartCommitBlockConfig blockConfig = new BftsmartCommitBlockConfig();
 //
@@ -145,8 +143,9 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 			throw new IllegalArgumentException("ParticipantNodes is Empty !!!");
 		}
 		if (serversNum != participantNodes.length) {
-			throw new IllegalArgumentException(String.format("Property[%s] which is [%s] unequal " +
-					"ParticipantNodes's length which is [%s] !", SERVER_NUM_KEY, serversNum, participantNodes.length));
+			throw new IllegalArgumentException(
+					String.format("Property[%s] which is [%s] unequal " + "ParticipantNodes's length which is [%s] !",
+							SERVER_NUM_KEY, serversNum, participantNodes.length));
 		}
 
 //		BftsmartCommitBlockConfig blockConfig = createBlockConfig(resolvingProps);
@@ -215,7 +214,7 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 		serversNum = nodesSettings.length;
 		props.setProperty(SERVER_NUM_KEY, serversNum + "");
 
-		//获得结块相关的属性信息
+		// 获得结块相关的属性信息
 //		BftsmartCommitBlockSettings blockSettings = bftsmartSettings.getCommitBlockSettings();
 //		if (blockSettings == null) {
 //			props.setProperty(BFTSMART_BLOCK_TXSIZE_KEY, DEFAULT_TXSIZE + "");
@@ -240,27 +239,31 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 			props.setProperty(keyOfPort, ns.getNetworkAddress() == null ? "" : ns.getNetworkAddress().getPort() + "");
 
 			String keyOfSecure = keyOfNode(CONSENSUS_SECURE_PATTERN, id);
-			props.setProperty(keyOfSecure, ns.getNetworkAddress() == null ? "false" : ns.getNetworkAddress().isSecure() + "");
+			props.setProperty(keyOfSecure,
+					ns.getNetworkAddress() == null ? "false" : ns.getNetworkAddress().isSecure() + "");
 		}
 
 		PropertiesUtils.setValues(props, bftsmartSettings.getSystemConfigs());
-		
+
 		return props;
 	}
 
 	@Override
 	public ConsensusViewSettings updateSettings(ConsensusViewSettings oldConsensusSettings, Properties newProps) {
 
-        if (newProps != null) {
-            // update system config and node settings
-            Property[] systemConfigs = modifySystemProperties(((BftsmartConsensusSettings) oldConsensusSettings).getSystemConfigs(), newProps);
+		if (newProps != null) {
+			// update system config and node settings
+			Property[] systemConfigs = modifySystemProperties(
+					((BftsmartConsensusSettings) oldConsensusSettings).getSystemConfigs(), newProps);
 
 			BftsmartNodeSettings[] newNodeSettings = createNewNodeSetting(oldConsensusSettings.getNodes(), newProps);
 
 			if (newProps.getProperty(PARTICIPANT_OP_KEY) != null) {
-				return new BftsmartConsensusConfig(newNodeSettings, systemConfigs, ((BftsmartConsensusSettings) oldConsensusSettings).getViewId() + 1);
+				return new BftsmartConsensusConfig(newNodeSettings, systemConfigs,
+						((BftsmartConsensusSettings) oldConsensusSettings).getViewId() + 1);
 			} else {
-				return new BftsmartConsensusConfig(newNodeSettings, systemConfigs, ((BftsmartConsensusSettings) oldConsensusSettings).getViewId());
+				return new BftsmartConsensusConfig(newNodeSettings, systemConfigs,
+						((BftsmartConsensusSettings) oldConsensusSettings).getViewId());
 			}
 		} else {
 			throw new IllegalArgumentException("updateSettings parameters error!");
@@ -270,9 +273,9 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 
 	private BftsmartNodeSettings[] createNewNodeSetting(NodeSettings[] oldNodeSettings, Properties newProps) {
 
-        BftsmartNodeSettings[] bftsmartNodeSettings = null;
+		BftsmartNodeSettings[] bftsmartNodeSettings = null;
 
-        if (newProps.getProperty(PARTICIPANT_OP_KEY) != null) {
+		if (newProps.getProperty(PARTICIPANT_OP_KEY) != null) {
 
 			if (newProps.getProperty(PARTICIPANT_OP_KEY).equals("active")) {
 
@@ -285,8 +288,8 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 				int port = Integer.parseInt(newProps.getProperty(keyOfNode(CONSENSUS_PORT_PATTERN, activeId)));
 				byte[] pubKeyBytes = Base58Utils.decode(newProps.getProperty(keyOfNode(PUBKEY_PATTERN, activeId)));
 				PubKey pubKey = Crypto.resolveAsPubKey(pubKeyBytes);
-				BftsmartNodeConfig bftsmartNodeConfig = new BftsmartNodeConfig(pubKey, activeId, new NetworkAddress(host, port));
-
+				BftsmartNodeConfig bftsmartNodeConfig = new BftsmartNodeConfig(pubKey, activeId,
+						new NetworkAddress(host, port));
 
 				for (int i = 0; i < oldNodeSettings.length; i++) {
 					bftsmartNodeSettings[i] = (BftsmartNodeSettings) oldNodeSettings[i];
@@ -379,9 +382,47 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 	}
 
 	@Override
-	public ConsensusViewSettings addReplicaSetting(ConsensusViewSettings settings, Replica replica) {
-		// TODO Auto-generated method stub
-		throw new IllegalStateException("Not implemented!");
+	public ConsensusViewSettings addReplicaSetting(ConsensusViewSettings viewSettings, Replica replica) {
+		if (!(viewSettings instanceof BftsmartConsensusSettings)) {
+			throw new IllegalArgumentException("The specified view-settings is not a bftsmart-consensus-settings!");
+		}
+		if (!(replica instanceof BftsmartReplica)) {
+			throw new IllegalArgumentException("The specified replica is not a bftsmart-replica!");
+		}
+		BftsmartConsensusSettings bftsmartSettings = (BftsmartConsensusSettings) viewSettings;
+		BftsmartReplica newReplica = (BftsmartReplica) replica;
+
+		NodeSettings[] origNodes = bftsmartSettings.getNodes();
+		if (origNodes.length == 0) {
+			throw new IllegalStateException("The number of nodes is zero!");
+		}
+
+		BftsmartNodeSettings[] newNodes = new BftsmartNodeSettings[origNodes.length + 1];
+		for (int i = 0; i < origNodes.length; i++) {
+			newNodes[i] = (BftsmartNodeSettings) origNodes[i];
+		}
+		newNodes[origNodes.length] = new BftsmartNodeConfig(newReplica.getPubKey(), newReplica.getId(),
+				newReplica.getNetworkAddress());
+
+		Properties systemProps = PropertiesUtils.createProperties(bftsmartSettings.getSystemConfigs());
+
+		systemProps.setProperty(SERVER_NUM_KEY, String.valueOf(newNodes.length));
+
+		int f = computeF(newNodes.length);
+		
+
+		return null;
+	}
+
+	private int computeF(int nodeNumber) {
+		int f = 0;
+		while (true) {
+			if (nodeNumber >= (3 * f + 1) && nodeNumber < (3 * (f + 1) + 1)) {
+				break;
+			}
+			f++;
+		}
+		return f;
 	}
 
 }

@@ -236,7 +236,7 @@ public class SHA1WITHRSA4096SignatureFunction implements SignatureFunction {
 	@Override
 	public AsymmetricKeypair generateKeypair(byte[] seed) {
 		// TODO Auto-generated method stub
-		return null;
+		throw new IllegalStateException("Not implemented!");
 	}
 
 	@Override
