@@ -24,7 +24,7 @@ import com.jd.blockchain.utils.Transactional;
  * @author huanghaiquan
  *
  */
-public class MerkleAccount implements CompositeAccount, HashProvable, AccountSnapshot, Transactional {
+public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable, AccountSnapshot, Transactional {
 
 	private static final Bytes HEADER_PREFIX = Bytes.fromString("HD/");
 	private static final Bytes DATA_PREFIX = Bytes.fromString("DT/");
@@ -61,7 +61,7 @@ public class MerkleAccount implements CompositeAccount, HashProvable, AccountSna
 	 * @param exStorage     The base storage for existance operation;
 	 * @param verStorage    The base storage for versioning operation;
 	 */
-	public MerkleAccount(BlockchainIdentity accountID, CryptoSetting cryptoSetting, Bytes keyPrefix,
+	public ComplecatedMerkleAccount(BlockchainIdentity accountID, CryptoSetting cryptoSetting, Bytes keyPrefix,
 			ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
 		// 初始化数据集；
 		initializeDatasets(null, null, cryptoSetting, keyPrefix, exStorage, verStorage, false);
@@ -83,7 +83,7 @@ public class MerkleAccount implements CompositeAccount, HashProvable, AccountSna
 	 * @param verStorage    The base storage for versioning operation;
 	 * @param readonly      Readonly about this account's dataset;
 	 */
-	public MerkleAccount(Bytes address, HashDigest headerRoot, HashDigest dataRoot, CryptoSetting cryptoSetting,
+	public ComplecatedMerkleAccount(Bytes address, HashDigest headerRoot, HashDigest dataRoot, CryptoSetting cryptoSetting,
 			Bytes keyPrefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
 		if (headerRoot == null) {
 			throw new IllegalArgumentException(
