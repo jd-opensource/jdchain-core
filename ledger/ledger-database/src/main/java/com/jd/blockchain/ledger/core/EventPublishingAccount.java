@@ -4,10 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.EventInfo;
 import com.jd.blockchain.ledger.TypedValue;
+import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.DataEntry;
 import com.jd.blockchain.utils.Dataset;
 import com.jd.blockchain.utils.Mapper;
@@ -15,9 +18,9 @@ import com.jd.blockchain.utils.SkippingIterator;
 
 public class EventPublishingAccount implements EventAccount, EventPublisher {
 
-    private Account account;
+    private CompositeAccount account;
 
-    public EventPublishingAccount(Account account) {
+    public EventPublishingAccount(CompositeAccount account) {
         this.account = account;
     }
 
@@ -82,5 +85,28 @@ public class EventPublishingAccount implements EventAccount, EventPublisher {
     public BlockchainIdentity getID() {
         return account.getID();
     }
+    
+    
+    @Override
+    public Bytes getAddress() {
+    	return account.getID().getAddress();
+    }
+    
+    @Override
+    public HashDigest getDataRootHash() {
+    	return account.getDataRootHash();
+    }
+    
+    @Override
+    public HashDigest getHeaderRootHash() {
+    	return account.getHeaderRootHash();
+    }
+    
+    @Override
+    public PubKey getPubKey() {
+    	return account.getID().getPubKey();
+    }
+    
+    
 
 }

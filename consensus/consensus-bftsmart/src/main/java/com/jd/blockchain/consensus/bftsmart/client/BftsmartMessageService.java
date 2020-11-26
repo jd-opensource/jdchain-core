@@ -11,10 +11,10 @@ import java.util.concurrent.Executors;
 
 public class BftsmartMessageService implements MessageService {
 
-    private BftsmartPeerProxyPool asyncPeerProxyPool;
+    private BftsmartServiceProxyPool serviceProxyPool;
 
-    public BftsmartMessageService(BftsmartPeerProxyPool peerProxyPool) {
-        this.asyncPeerProxyPool = peerProxyPool;
+    public BftsmartMessageService(BftsmartServiceProxyPool peerProxyPool) {
+        this.serviceProxyPool = peerProxyPool;
     }
 
     @Override
@@ -26,24 +26,19 @@ public class BftsmartMessageService implements MessageService {
         CompletableAsyncFuture<byte[]> asyncFuture = new CompletableAsyncFuture<>();
         AsynchServiceProxy asynchServiceProxy = null;
         try {
-            asynchServiceProxy = asyncPeerProxyPool.borrowObject();
-//            //0: Transaction msg, 1: Commitblock msg
-//            byte[] msgType = BytesUtils.toBytes(0);
-//            byte[] wrapMsg = new byte[message.length + 4];
-//            System.arraycopy(message, 0, wrapMsg, 4, message.length);
-//            System.arraycopy(msgType, 0, wrapMsg, 0, 4);
-//
-//            System.out.printf("BftsmartMessageService invokeOrdered time = %s, id = %s threadId = %s \r\n",
-//                    System.currentTimeMillis(),  asynchServiceProxy.getProcessId(), Thread.currentThread().getId());
-
+            asynchServiceProxy = serviceProxyPool.borrowObject();
+            
+            //TODO: 此处是同步调用，今后应优化为异步调用；
             byte[] result = asynchServiceProxy.invokeOrdered(message);
+            
             asyncFuture.complete(result);
-
         } catch (Exception e) {
-            throw new RuntimeException(e);
-
+        	asyncFuture.error(e);
+//            throw new RuntimeException(e);
         } finally {
-            asyncPeerProxyPool.returnObject(asynchServiceProxy);
+            if (asynchServiceProxy != null) {
+                serviceProxyPool.returnObject(asynchServiceProxy);
+            }
         }
 
         return asyncFuture;
@@ -58,7 +53,7 @@ public class BftsmartMessageService implements MessageService {
         CompletableAsyncFuture<byte[]> asyncFuture = new CompletableAsyncFuture<>();
             AsynchServiceProxy asynchServiceProxy = null;
             try {
-                asynchServiceProxy = asyncPeerProxyPool.borrowObject();
+                asynchServiceProxy = serviceProxyPool.borrowObject();
                 byte[] result = asynchServiceProxy.invokeUnordered(message);
                 asyncFuture.complete(result);
 
@@ -66,10 +61,9 @@ public class BftsmartMessageService implements MessageService {
                 throw new RuntimeException(e);
             } finally {
                 if (asynchServiceProxy != null) {
-                    asyncPeerProxyPool.returnObject(asynchServiceProxy);
+                    serviceProxyPool.returnObject(asynchServiceProxy);
                 }
             }
         return asyncFuture;
     }
-
 }

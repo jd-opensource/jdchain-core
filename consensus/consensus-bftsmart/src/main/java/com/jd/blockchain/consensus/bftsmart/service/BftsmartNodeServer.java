@@ -1,43 +1,62 @@
 package com.jd.blockchain.consensus.bftsmart.service;
 
 import java.io.ByteArrayOutputStream;
-import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.TreeMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import bftsmart.consensus.app.BatchAppResultImpl;
-import bftsmart.reconfiguration.views.View;
-import bftsmart.tom.*;
-import bftsmart.tom.core.messages.TOMMessage;
-import com.jd.blockchain.binaryproto.BinaryProtocol;
-import com.jd.blockchain.binaryproto.DataContractException;
-import com.jd.blockchain.consensus.service.*;
-import com.jd.blockchain.crypto.Crypto;
-import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.*;
-import com.jd.blockchain.transaction.TxResponseMessage;
-import com.jd.blockchain.utils.ConsoleUtils;
-import com.jd.blockchain.utils.StringUtils;
-import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
+import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.jd.blockchain.consensus.ConsensusManageService;
+import org.springframework.util.NumberUtils;
+
+import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.blockchain.consensus.BlockStateSnapshot;
+import com.jd.blockchain.consensus.ClientAuthencationService;
+import com.jd.blockchain.consensus.NodeNetworkAddress;
+import com.jd.blockchain.consensus.NodeNetworkAddresses;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
+import com.jd.blockchain.consensus.service.MessageHandle;
+import com.jd.blockchain.consensus.service.MonitorService;
+import com.jd.blockchain.consensus.service.NodeServer;
+import com.jd.blockchain.consensus.service.ServerSettings;
+import com.jd.blockchain.consensus.service.StateHandle;
+import com.jd.blockchain.consensus.service.StateMachineReplicate;
+import com.jd.blockchain.consensus.service.StateSnapshot;
+import com.jd.blockchain.crypto.Crypto;
+import com.jd.blockchain.ledger.BlockRollbackException;
+import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.TransactionResponse;
+import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.runtime.RuntimeConstant;
+import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.PropertiesUtils;
+import com.jd.blockchain.utils.StringUtils;
 import com.jd.blockchain.utils.concurrent.AsyncFuture;
 import com.jd.blockchain.utils.io.BytesUtils;
+import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
+
+import bftsmart.consensus.app.BatchAppResultImpl;
 import bftsmart.reconfiguration.util.HostsConfig;
 import bftsmart.reconfiguration.util.TOMConfiguration;
+import bftsmart.reconfiguration.views.NodeNetwork;
+import bftsmart.reconfiguration.views.View;
+import bftsmart.tom.MessageContext;
+import bftsmart.tom.ReplyContextMessage;
+import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
-import org.springframework.util.NumberUtils;
 
 public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer {
 
@@ -47,8 +66,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     private List<StateHandle> stateHandles = new CopyOnWriteArrayList<>();
 
-    // TODO 暂不处理队列溢出问题
-    private ExecutorService notifyReplyExecutors = Executors.newSingleThreadExecutor();
+    private final Map<String, BftsmartConsensusMessageContext> contexts = Collections.synchronizedMap(new LRUMap<>(1024));
 
     private volatile Status status = Status.STOPPED;
 
@@ -60,7 +78,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     private ServerSettings serverSettings;
 
-    private BftsmartConsensusManageService manageService;
+    private BftsmartClientAuthencationService manageService;
 
 
     private volatile BftsmartTopology topology;
@@ -79,8 +97,6 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     private MessageHandle messageHandle;
 
-    private String providerName;
-
     private String realmName;
 
     private int serverId;
@@ -89,11 +105,13 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     private View latestView;
 
-    private List<InetSocketAddress> consensusAddresses = new ArrayList<>();
+    private TreeMap<Integer, NodeNetwork> consensusAddresses = new TreeMap<>();
 
     private final Lock batchHandleLock = new ReentrantLock();
 
     private volatile InnerStateHolder stateHolder;
+
+    private long timeTolerance = -1L;
 
     public BftsmartNodeServer() {
 
@@ -110,7 +128,8 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         createConfig();
         serverId = findServerId();
         initConfig(serverId, systemConfig, hostsConfig);
-        this.manageService = new BftsmartConsensusManageService(this);
+        this.manageService = new BftsmartClientAuthencationService(this);
+        this.timeTolerance = tomConfig.getTimeTolerance();
     }
 
     protected int findServerId() {
@@ -142,8 +161,8 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         NodeSettings[] nodeSettingsArray = setting.getNodes();
         for (NodeSettings nodeSettings : nodeSettingsArray) {
             BftsmartNodeSettings node = (BftsmartNodeSettings)nodeSettings;
-            configList.add(new HostsConfig.Config(node.getId(), node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort()));
-            consensusAddresses.add(new InetSocketAddress(node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort()));
+            configList.add(new HostsConfig.Config(node.getId(), node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1));
+            consensusAddresses.put(node.getId(), new NodeNetwork(node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1));
         }
 
         //create HostsConfig instance based on consensus realm nodes
@@ -166,23 +185,29 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             port = NumberUtils.parseNumber(preHostPort, Integer.class);
             LOGGER.info("###peer-startup.sh###,set up the -DhostPort="+port);
         }
-
+        int monitorPort = RuntimeConstant.getMonitorPort();
         String preHostIp = System.getProperty("hostIp");
         if(!StringUtils.isEmpty(preHostIp)){
-            hostConfig.add(id, preHostIp, port);
+            hostConfig.add(id, preHostIp, port, monitorPort);
             LOGGER.info("###peer-startup.sh###,set up the -DhostIp="+preHostIp);
         }
 
+        // 调整视图中的本节点端口号
+        consensusAddresses.get(id).setMonitorPort(monitorPort);
+
         this.tomConfig = new TOMConfiguration(id, systemsConfig, hostConfig, outerHostConfig);
 
-        this.latestView = new View(setting.getViewId(), tomConfig.getInitialView(), tomConfig.getF(), consensusAddresses.toArray(new InetSocketAddress[consensusAddresses.size()]));
+        Collection<NodeNetwork> nodeNetworks = consensusAddresses.values();
+        NodeNetwork[] nodeNetworksArray = new NodeNetwork[nodeNetworks.size()];
+
+        this.latestView = new View(setting.getViewId(), tomConfig.getInitialView(), tomConfig.getF(), nodeNetworks.toArray(nodeNetworksArray));
 
         this.outerTomConfig = new TOMConfiguration(id, sysConfClone, outerHostConfig);
 
     }
 
     @Override
-    public ConsensusManageService getConsensusManageService() {
+    public ClientAuthencationService getClientAuthencationService() {
         return manageService;
     }
 
@@ -238,11 +263,12 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         int id = currView.getId();
         int f = currView.getF();
         int[] processes = currView.getProcesses();
-        InetSocketAddress[] addresses = new InetSocketAddress[processes.length];
+        NodeNetwork[] addresses = new NodeNetwork[processes.length];
         for (int i = 0; i < processes.length; i++) {
             int pid = processes[i];
             if (serverId == pid) {
-                addresses[i] = new InetSocketAddress(getTomConfig().getHost(pid), getTomConfig().getPort(pid));
+                addresses[i] = new NodeNetwork(getTomConfig().getHost(pid), getTomConfig().getPort(pid),
+                        getTomConfig().getMonitorPort(pid));
             } else {
                 addresses[i] = currView.getAddress(pid);
             }
@@ -251,7 +277,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
         for (int i = 0; i < returnView.getProcesses().length; i++) {
             LOGGER.info("[BftsmartNodeServer.getOuterTopology] PartiNode id = {}, host = {}, port = {}", returnView.getProcesses()[i],
-                    returnView.getAddress(returnView.getProcesses()[i]).getHostName(), returnView.getAddress(returnView.getProcesses()[i]).getPort());
+                    returnView.getAddress(returnView.getProcesses()[i]).getHost(), returnView.getAddress(returnView.getProcesses()[i]).getConsensusPort());
         }
         this.outerTopology = new BftsmartTopology(returnView);
 
@@ -267,8 +293,38 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         return status == Status.RUNNING;
     }
 
+    @Override
     public byte[] appExecuteUnordered(byte[] bytes, MessageContext messageContext) {
+        if (Arrays.equals(MonitorService.LOAD_MONITOR, bytes)) {
+            try {
+                // 获取加载管理端口的信息
+                View currView = this.replica.getReplicaContext().getCurrentView();
+                Map<Integer, NodeNetwork> addresses = currView.getAddresses();
+                TreeMap<Integer, NodeNetwork> tree = new TreeMap<>();
+                for (Map.Entry<Integer, NodeNetwork> entry : addresses.entrySet()) {
+                    tree.put(entry.getKey(), entry.getValue());
+                }
+                Collection<NodeNetwork> nodeNetworks = tree.values();
+                NodeNetworkAddresses nodeNetworkAddresses = nodeNetworkAddresses(new ArrayList<>(nodeNetworks));
+                return BinaryProtocol.encode(nodeNetworkAddresses, NodeNetworkAddresses.class);
+            } catch (Exception e) {
+                // 返回启动异常的错误
+                throw new IllegalStateException(String.format("BftSmartNodeServer[%s] is still not started !", serverId));
+            }
+        }
         return messageHandle.processUnordered(bytes).get();
+    }
+
+    private NodeNetworkAddresses nodeNetworkAddresses(List<NodeNetwork> nodeNetworks) {
+        NodeNetworkAddress[] nodeNetworkAddresses = new NodeNetworkAddress[nodeNetworks.size()];
+        for (int i = 0; i < nodeNetworks.size(); i++) {
+            nodeNetworkAddresses[i] = nodeNetworkAddress(nodeNetworks.get(i));
+        }
+        return new PeerNodeNetworkAddresses(nodeNetworkAddresses);
+    }
+
+    private NodeNetworkAddress nodeNetworkAddress(NodeNetwork networkAddress) {
+        return new PeerNodeNetwork(networkAddress.getHost(), networkAddress.getConsensusPort(), networkAddress.getMonitorPort());
     }
 
     /**
@@ -276,22 +332,36 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
      *  Only block, no reply， used by state transfer when peer start
      *
      */
-    private void block(List<byte[]> manageConsensusCmds) {
-
-        String batchId = messageHandle.beginBatch(realmName);
+    private void block(List<byte[]> manageConsensusCmds, long timestamp) {
+        BftsmartConsensusMessageContext context = BftsmartConsensusMessageContext.createInstance(realmName, timestamp);
+        String batchId = messageHandle.beginBatch(context);
+        context.setBatchId(batchId);
         try {
+            StateSnapshot preStateSnapshot = messageHandle.getStateSnapshot(context);
+            if (preStateSnapshot instanceof BlockStateSnapshot) {
+                BlockStateSnapshot preBlockStateSnapshot = (BlockStateSnapshot)preStateSnapshot;
+                long preBlockTimestamp = preBlockStateSnapshot.getTimestamp();
+                if (timestamp < preBlockTimestamp && (preBlockTimestamp - timestamp) > timeTolerance) {
+                    // 打印错误信息
+                    LOGGER.warn("The time[{}] of the last block is mismatch with the current[{}] for time tolerance[{}] !!!",
+                            preBlockTimestamp, timestamp, timeTolerance);
+                    // 回滚该操作
+                    messageHandle.rollbackBatch(TransactionState.CONSENSUS_TIMESTAMP_ERROR.CODE, context);
+                    return;
+                }
+            }
+
             int msgId = 0;
             for (byte[] txContent : manageConsensusCmds) {
-                AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(msgId++, txContent, realmName, batchId);
+                messageHandle.processOrdered(msgId++, txContent, context);
             }
-            messageHandle.completeBatch(realmName, batchId);
-            messageHandle.commitBatch(realmName, batchId);
+            messageHandle.completeBatch(context);
+            messageHandle.commitBatch(context);
         } catch (Exception e) {
             // todo 需要处理应答码 404
             LOGGER.error("Error occurred while processing ordered messages! --" + e.getMessage(), e);
-            messageHandle.rollbackBatch(realmName, batchId, TransactionState.CONSENSUS_ERROR.CODE);
+            messageHandle.rollbackBatch(TransactionState.CONSENSUS_ERROR.CODE, context);
         }
-
     }
 
     /**
@@ -302,6 +372,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     private byte[][] appExecuteDiffBatch(byte[][] commands, MessageContext[] msgCtxs) {
 
         int manageConsensusId = msgCtxs[0].getConsensusId();
+        long timestamp = msgCtxs[0].getTimestamp();
         List<byte[]> manageConsensusCmds = new ArrayList<>();
 
         int index = 0;
@@ -310,17 +381,18 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
                 manageConsensusCmds.add(commands[index]);
             } else {
                 // 达到结块标准，需要进行结块并应答
-                block(manageConsensusCmds);
+                block(manageConsensusCmds, timestamp);
                 // 重置链表和共识ID
                 manageConsensusCmds = new ArrayList<>();
                 manageConsensusId = msgCtx.getConsensusId();
+                timestamp = msgCtx.getTimestamp();
                 manageConsensusCmds.add(commands[index]);
             }
             index++;
         }
         // 结束时，肯定有最后一个结块请求未处理
         if (!manageConsensusCmds.isEmpty()) {
-            block(manageConsensusCmds);
+            block(manageConsensusCmds, timestamp);
         }
         return null;
 
@@ -444,80 +516,80 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
      * @param commands
      *        请求列表
      */
-    public BatchAppResultImpl preComputeAppHash(int cid, byte[][] commands) {
-
+    @Override
+    public BatchAppResultImpl preComputeAppHash(int cid, byte[][] commands, long timestamp) {
         List<AsyncFuture<byte[]>> asyncFutureLinkedList = new ArrayList<>(commands.length);
         List<byte[]> responseLinkedList = new ArrayList<>();
-        StateSnapshot newStateSnapshot = null;
-        StateSnapshot preStateSnapshot = null;
-        StateSnapshot genisStateSnapshot = null;
-        BatchAppResultImpl result = null;
-        String batchId = null;
+        StateSnapshot newStateSnapshot, preStateSnapshot, genisStateSnapshot;
+        BatchAppResultImpl result;
+        String batchId = "";
         int msgId = 0;
+        byte[] cidBytes = BytesUtils.toBytes(cid);
+        batchHandleLock.lock();
         try {
-            batchHandleLock.lock();
-
-//            long lastCid = stateHolder.lastCid, currentCid = stateHolder.currentCid;
-//            if (cid < lastCid) {
-//                // 表示该CID已经执行过，不再处理
-//                return null;
-//            } else if (cid == lastCid + 1) {
-//                // 需要判断之前二阶段是否执行过
-//                if (cid == currentCid) {
-//                    // 表示二阶段已执行,回滚，重新执行
-//                    String batchingID = stateHolder.batchingID;
-//                    messageHandle.rollbackBatch(realmName, batchingID, TransactionState.IGNORED_BY_BLOCK_FULL_ROLLBACK.CODE);
-//                }
-//            }
-//            stateHolder.currentCid = cid;
-
             if(commands.length == 0) {
                 // 没有要做预计算的消息，直接组装结果返回
-                result = new BatchAppResultImpl(responseLinkedList, int2Bytes(cid) , "", int2Bytes(cid));
-                result.setErrorCode((byte) 0);
+                result = BatchAppResultImpl.createFailure(responseLinkedList, cidBytes, batchId, cidBytes);
             } else {
-                batchId = messageHandle.beginBatch(realmName);
+                BftsmartConsensusMessageContext context = BftsmartConsensusMessageContext.createInstance(realmName, timestamp);
+                batchId = messageHandle.beginBatch(context);
+                context.setBatchId(batchId);
+                contexts.put(batchId, context);
                 stateHolder.batchingID = batchId;
+                // 获取前置区块快照状态
+                preStateSnapshot = messageHandle.getStateSnapshot(context);
+                if (preStateSnapshot instanceof BlockStateSnapshot) {
+                    BlockStateSnapshot preBlockStateSnapshot = (BlockStateSnapshot)preStateSnapshot;
+                    long preBlockTimestamp = preBlockStateSnapshot.getTimestamp();
+                    if (timestamp < preBlockTimestamp && (preBlockTimestamp - timestamp) > timeTolerance) {
+                        // 打印错误信息
+                        LOGGER.warn("The time[{}] of the last block is mismatch with the current[{}] for time tolerance[{}] !!!",
+                                preBlockTimestamp, timestamp, timeTolerance);
+                        // 设置返回的应答信息
+                        for (byte[] command : commands) {
+                            // 状态设置为共识错误
+                            responseLinkedList.add(createAppResponse(command, TransactionState.CONSENSUS_TIMESTAMP_ERROR));
+                        }
+                        // 将该状态设置为未执行
+                        stateHolder.setComputeStatus(PreComputeStatus.UN_EXECUTED);
+                        // 回滚该操作
+                        messageHandle.rollbackBatch(TransactionState.CONSENSUS_TIMESTAMP_ERROR.CODE, context);
+                        // 返回成功，但需要设置当前的状态
+                        return BatchAppResultImpl.createSuccess(responseLinkedList, cidBytes, batchId, cidBytes);
+                    } else {
+                        LOGGER.info("Last block's timestamp = {}, current timestamp = {}, time tolerance = {} !",
+                                preBlockTimestamp, timestamp, timeTolerance);
+                    }
+                }
 
                 // 创世区块的状态快照
-                genisStateSnapshot = messageHandle.getGenisStateSnapshot(realmName);
-                // 前置区块的状态快照
-                preStateSnapshot = messageHandle.getStateSnapshot(realmName);
-                if (preStateSnapshot == null) {
-                    throw new IllegalStateException("Prev block state snapshot is null!");
-                }
-                for (int i = 0; i < commands.length; i++) {
-                    byte[] txContent = commands[i];
-                    AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(msgId++, txContent, realmName, batchId);
+                genisStateSnapshot = messageHandle.getGenesisStateSnapshot(context);
+                for (byte[] txContent : commands) {
+                    AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(msgId++, txContent, context);
                     asyncFutureLinkedList.add(asyncFuture);
                 }
 
-                newStateSnapshot = messageHandle.completeBatch(realmName, batchId);
-
-                for (int i = 0; i < asyncFutureLinkedList.size(); i++) {
-                    responseLinkedList.add(asyncFutureLinkedList.get(i).get());
+                newStateSnapshot = messageHandle.completeBatch(context);
+                for (AsyncFuture<byte[]> asyncFuture : asyncFutureLinkedList) {
+                    responseLinkedList.add(asyncFuture.get());
                 }
 
-                result = new BatchAppResultImpl(responseLinkedList, newStateSnapshot.getSnapshot(), batchId, genisStateSnapshot.getSnapshot());
-                result.setErrorCode((byte) 0);
+                result = BatchAppResultImpl.createSuccess(responseLinkedList, newStateSnapshot.getSnapshot(), batchId,
+                        genisStateSnapshot.getSnapshot());
             }
         } catch (BlockRollbackException e) {
             LOGGER.error("Error occurred while pre compute app! --" + e.getMessage(), e);
-            for (int i = 0; i < commands.length; i++) {
-                responseLinkedList.add(createAppResponse(commands[i],e.getState()));
+            for (byte[] command : commands) {
+                responseLinkedList.add(createAppResponse(command, e.getState()));
             }
-
-            result = new BatchAppResultImpl(responseLinkedList,preStateSnapshot.getSnapshot(), batchId, genisStateSnapshot.getSnapshot());
-            result.setErrorCode((byte) 1);
-        }catch (Exception e) {
+            result = BatchAppResultImpl.createFailure(responseLinkedList, cidBytes, batchId, cidBytes);
+        } catch (Exception e) {
             LOGGER.error("Error occurred while pre compute app! --" + e.getMessage(), e);
-            for (int i = 0; i < commands.length; i++) {
-                responseLinkedList.add(createAppResponse(commands[i],TransactionState.IGNORED_BY_BLOCK_FULL_ROLLBACK));
+            for (byte[] command : commands) {
+                responseLinkedList.add(createAppResponse(command, TransactionState.IGNORED_BY_BLOCK_FULL_ROLLBACK));
             }
-
-            result = new BatchAppResultImpl(responseLinkedList,preStateSnapshot.getSnapshot(), batchId, genisStateSnapshot.getSnapshot());
-            result.setErrorCode((byte) 1);
-        }finally {
+            result = BatchAppResultImpl.createFailure(responseLinkedList, cidBytes, batchId, cidBytes);
+        } finally {
             batchHandleLock.unlock();
         }
 
@@ -535,10 +607,10 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         return BinaryProtocol.encode(resp, TransactionResponse.class);
     }
 
+    @Override
     public List<byte[]> updateAppResponses(List<byte[]> asyncResponseLinkedList, byte[] commonHash, boolean isConsistent) {
         List<byte[]> updatedResponses = new ArrayList<>();
         TxResponseMessage resp = null;
-
         for(int i = 0; i < asyncResponseLinkedList.size(); i++) {
             TransactionResponse txResponse = BinaryProtocol.decode(asyncResponseLinkedList.get(i));
             if (isConsistent) {
@@ -557,9 +629,23 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
      *  Decision has been made at the consensus stage， commit block
      *
      */
+    @Override
     public void preComputeAppCommit(int cid, String batchId) {
+        batchHandleLock.lock();
         try {
-            batchHandleLock.lock();
+            BftsmartConsensusMessageContext context = contexts.get(batchId);
+            if (context == null) {
+                LOGGER.warn("Can not load any context by {} !", batchId);
+                return;
+            }
+            // 判断该CID是否执行过
+            PreComputeStatus computeStatus = stateHolder.getComputeStatus();
+            if (computeStatus == PreComputeStatus.UN_EXECUTED) {
+                // 当前CID并未真正操作账本，因此无需做处理
+                stateHolder.reset();
+                return;
+            }
+
 //            long lastCid = stateHolder.lastCid;
 //            if (cid <= lastCid) {
 //                // 表示该CID已经执行过，不再处理
@@ -568,8 +654,8 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 //            stateHolder.setLastCid(cid);
             String batchingID = stateHolder.batchingID;
             stateHolder.reset();
-            if (batchId.equals(batchingID) && !(batchingID.equals("".toString()))) {
-                messageHandle.commitBatch(realmName, batchId);
+            if (!StringUtils.isEmpty(batchId) && batchId.equals(batchingID)) {
+                messageHandle.commitBatch(context);
             }
         } catch (BlockRollbackException e) {
             LOGGER.error("Error occurred while pre compute commit --" + e.getMessage(), e);
@@ -584,20 +670,33 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
      *  Consensus write phase will terminate, new block hash values are inconsistent, rollback block
      *
      */
+    @Override
     public void preComputeAppRollback(int cid, String batchId) {
+        batchHandleLock.lock();
         try {
-            batchHandleLock.lock();
+            BftsmartConsensusMessageContext context = contexts.get(batchId);
+            if (context == null) {
+                LOGGER.warn("Can not load any context by {} !", batchId);
+                return;
+            }
 //            long lastCid = stateHolder.lastCid;
 //            if (cid <= lastCid) {
 //                // 表示该CID已经执行过，不再处理
 //                return;
 //            }
 //            stateHolder.setLastCid(cid);
+            // 判断该CID是否执行过
+            PreComputeStatus computeStatus = stateHolder.getComputeStatus();
+            if (computeStatus == PreComputeStatus.UN_EXECUTED) {
+                // 当前CID并未真正操作账本，因此无需做处理
+                stateHolder.reset();
+                return;
+            }
             String batchingID = stateHolder.batchingID;
             stateHolder.reset();
             LOGGER.debug("Rollback of operations that cause inconsistencies in the ledger");
-            if (batchId.equals(batchingID) && !(batchingID.equals("".toString()))) {
-                messageHandle.rollbackBatch(realmName, batchId, TransactionState.IGNORED_BY_BLOCK_FULL_ROLLBACK.CODE);
+            if (!StringUtils.isEmpty(batchId) && batchId.equals(batchingID)) {
+                messageHandle.rollbackBatch(TransactionState.IGNORED_BY_BLOCK_FULL_ROLLBACK.CODE, context);
             }
         } catch (Exception e) {
             LOGGER.error("Error occurred while pre compute rollback --" + e.getMessage(), e);
@@ -608,6 +707,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
     }
 
     //notice
+    @Override
     public byte[] getSnapshot() {
         LOGGER.debug("------- GetSnapshot...[replica.id=" + this.getId() + "]");
 
@@ -620,6 +720,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         return out.toByteArray();
     }
 
+    @Override
     public void installSnapshot(byte[] snapshot) {
 //        System.out.println("Not implement!");
     }
@@ -643,7 +744,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             try {
                 LOGGER.info("Start replica...[ID=" + getId() + "]");
 //                this.replica = new ServiceReplica(tomConfig, this, this);
-                this.replica = new ServiceReplica(tomConfig, this, this, (int)latestStateId -1, latestView);
+                this.replica = new ServiceReplica(tomConfig, this, this, (int)latestStateId -1, latestView, realmName);
                 this.topology = new BftsmartTopology(replica.getReplicaContext().getCurrentView());
 //                initOutTopology();
                 status = Status.RUNNING;
@@ -684,25 +785,13 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             }
         }
     }
-
-    private void initOutTopology() {
-        View currView = this.topology.getView();
-        int id = currView.getId();
-        int curProcessId = tomConfig.getProcessId();
-        int f = currView.getF();
-        int[] processes = currView.getProcesses();
-        InetSocketAddress[] addresses = new InetSocketAddress[processes.length];
-        for (int i = 0; i < processes.length; i++) {
-            int pid = processes[i];
-            if (curProcessId == pid) {
-                addresses[i] = new InetSocketAddress(this.tomConfig.getHost(pid), this.tomConfig.getPort(pid));
-            } else {
-                addresses[i] = currView.getAddress(pid);
-            }
-        }
-        View returnView = new View(id, processes, f, addresses);
-        this.outerTopology = new BftsmartTopology(returnView);
+    
+    @Override
+    public String toString() {
+    	return String.format("BFTSMaRT_Node[%s]", getId());
     }
+    
+    //-------------------------
 
     enum Status {
 
@@ -716,16 +805,6 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
     }
 
-    private byte[] int2Bytes(int cid){
-        byte[] arr = new byte[4] ;
-        arr[0] = (byte)cid ;
-        arr[1] = (byte)(cid >> 8) ;
-        arr[2] = (byte)(cid >> 16) ;
-        arr[3] = (byte)(cid >> 24) ;
-
-        return arr;
-    }
-
     private static class InnerStateHolder {
 
         private long lastCid;
@@ -733,6 +812,12 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
         private long currentCid = -1L;
 
         private String batchingID = "";
+
+        /**
+         * 预计算状态
+         *         默认为已计算
+         */
+        private PreComputeStatus computeStatus = PreComputeStatus.EXECUTED;
 
         public InnerStateHolder(long lastCid) {
             this.lastCid = lastCid;
@@ -767,10 +852,104 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
             this.batchingID = batchingID;
         }
 
+        public PreComputeStatus getComputeStatus() {
+            return computeStatus;
+        }
+
+        public void setComputeStatus(PreComputeStatus computeStatus) {
+            this.computeStatus = computeStatus;
+        }
+
         public void reset() {
             currentCid = -1;
             batchingID = "";
+            computeStatus = PreComputeStatus.EXECUTED;
         }
     }
 
+    private enum PreComputeStatus {
+
+        /**
+         * 已执行
+         *
+         */
+        EXECUTED,
+
+        /**
+         * 未执行
+         *
+         */
+        UN_EXECUTED,
+    }
+
+    private static class PeerNodeNetwork implements NodeNetworkAddress {
+
+        /**
+         * 域名
+         */
+        String host;
+
+        /**
+         * 共识端口
+         */
+        int consensusPort;
+
+        /**
+         * 管理口
+         */
+        int monitorPort;
+
+        public PeerNodeNetwork() {
+        }
+
+        public PeerNodeNetwork(String host, int consensusPort, int monitorPort) {
+            this.host = host;
+            this.consensusPort = consensusPort;
+            this.monitorPort = monitorPort;
+        }
+
+        @Override
+        public String getHost() {
+            return host;
+        }
+
+        @Override
+        public int getConsensusPort() {
+            return consensusPort;
+        }
+
+        @Override
+        public int getMonitorPort() {
+            return monitorPort;
+        }
+
+        public void setHost(String host) {
+            this.host = host;
+        }
+
+        public void setConsensusPort(int consensusPort) {
+            this.consensusPort = consensusPort;
+        }
+
+        public void setMonitorPort(int monitorPort) {
+            this.monitorPort = monitorPort;
+        }
+    }
+
+    private static class PeerNodeNetworkAddresses implements NodeNetworkAddresses {
+
+        private NodeNetworkAddress[] nodeNetworkAddresses = null;
+
+        public PeerNodeNetworkAddresses() {
+        }
+
+        public PeerNodeNetworkAddresses(NodeNetworkAddress[] nodeNetworkAddresses) {
+            this.nodeNetworkAddresses = nodeNetworkAddresses;
+        }
+
+        @Override
+        public NodeNetworkAddress[] getNodeNetworkAddresses() {
+            return nodeNetworkAddresses;
+        }
+    }
 }

@@ -146,31 +146,23 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
     }
 
     private Map<String, AsyncFuture<byte[]>> execute(List<MessageEvent> messageEvents) {
-//        System.out.printf("Thread[%s %s] execute messageEvents !!! \r\n",
-//                Thread.currentThread().getId(), Thread.currentThread().getName());
         Map<String, AsyncFuture<byte[]>> asyncFutureMap = new HashMap<>();
         // 使用MessageHandle处理
-//        long startTime = System.currentTimeMillis();
-//        int txSize = messageEvents.size();
-        String batchId = messageHandle.beginBatch(realmName);
+        MsgQueueConsensusMessageContext consensusContext = MsgQueueConsensusMessageContext.createInstance(realmName);
+        String batchId = messageHandle.beginBatch(consensusContext);
+        consensusContext.setBatchId(batchId);
         try {
             for (MessageEvent messageEvent : messageEvents) {
                 String txKey = messageEvent.getMessageKey();
                 byte[] txContent = messageEvent.getMessage();
-                AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(messageId.getAndIncrement(), txContent, realmName, batchId);
+                AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(messageId.getAndIncrement(), txContent, consensusContext);
                 asyncFutureMap.put(txKey, asyncFuture);
             }
-            messageHandle.completeBatch(realmName, batchId);
-            messageHandle.commitBatch(realmName, batchId);
-//            long totalTime = System.currentTimeMillis() - startTime;
-//            String content = String.format("batch[%s] process, time = {%s}ms, TPS = %.2f \r\n",
-//                    batchId, totalTime, txSize * 1000.0D / totalTime);
-//            System.out.println(content);
-//            logQueue.put(content);
-            // 提交之后需要获取对应的结果
+            messageHandle.completeBatch(consensusContext);
+            messageHandle.commitBatch(consensusContext);
         } catch (Exception e) {
-            // todo 需要处理应答码 404
-            messageHandle.rollbackBatch(realmName, batchId, TransactionState.CONSENSUS_ERROR.CODE);
+            // todo 需要处理应答码
+            messageHandle.rollbackBatch(TransactionState.CONSENSUS_ERROR.CODE, consensusContext);
         }
         return asyncFutureMap;
     }

@@ -679,14 +679,12 @@ public class UmpStateServiceHandler implements UmpStateService, Closeable {
                                 JSONArray ledgerHashs = HttpJsonClientUtils.httpGet(ledgersUrl(listenPort), JSONArray.class, true);
 
                                 if (ledgerHashs != null && !ledgerHashs.isEmpty()) {
-                                    for(Object hashObj : ledgerHashs) {
-                                        if (hashObj instanceof JSONObject) {
-                                            if (ledgerInited.getLedgerHash().equals(((JSONObject) hashObj).getString("value"))) {
-                                                // 说明该账本已经被加载
-                                                ledgerInited.setStartupState(StartupState.LOADED);
-                                                isRead = true;
-                                                break;
-                                            }
+                                    for(int i=0; i< ledgerHashs.size(); i++) {
+                                        if (ledgerInited.getLedgerHash().equals(ledgerHashs.getString(i))) {
+                                            // 说明该账本已经被加载
+                                            ledgerInited.setStartupState(StartupState.LOADED);
+                                            isRead = true;
+                                            break;
                                         }
                                     }
                                     if (isRead) {
@@ -765,12 +763,10 @@ public class UmpStateServiceHandler implements UmpStateService, Closeable {
                 JSONArray ledgerHashs = HttpJsonClientUtils.httpGet(ledgersUrl(listenPort), JSONArray.class, true);
 
                 if (ledgerHashs != null && !ledgerHashs.isEmpty()) {
-                    for(Object hashObj : ledgerHashs) {
-                        if (hashObj instanceof JSONObject) {
-                            if (ledgerHash.equals(((JSONObject) hashObj).getString("value"))) {
-                                // 说明该账本已经被加载
-                                return StartupState.LOADED;
-                            }
+                    for(int i=0; i< ledgerHashs.size(); i++) {
+                        if (ledgerHash.equals(ledgerHashs.getString(i))) {
+                            // 说明该账本已经被加载
+                            return StartupState.LOADED;
                         }
                     }
                     // 表明等待加载，无须再启动

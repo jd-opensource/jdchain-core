@@ -2,6 +2,7 @@ package com.jd.blockchain.consensus.bftsmart.client;
 
 import bftsmart.reconfiguration.util.TOMConfiguration;
 import bftsmart.reconfiguration.views.MemoryBasedViewStorage;
+import bftsmart.reconfiguration.views.NodeNetwork;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.AsynchServiceProxy;
 import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
@@ -38,7 +39,7 @@ public class BftsmartPeerProxyFactory extends BasePooledObjectFactory<AsynchServ
             // 打印view
             int[] processes = view.getProcesses();
             for (int process : processes) {
-                InetSocketAddress address = view.getAddress(process);
+                NodeNetwork address = view.getAddress(process);
                 if(LOGGER.isDebugEnabled()){
                     LOGGER.debug("read topology id = %s, address = %s \r\n",
                             process, address);

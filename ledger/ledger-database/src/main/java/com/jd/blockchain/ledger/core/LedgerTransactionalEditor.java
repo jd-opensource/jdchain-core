@@ -433,9 +433,11 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		currentBlock.setSystemEventSetHash(previousTxSnapshot.getSystemEventSetHash());
 		currentBlock.setUserEventSetHash(previousTxSnapshot.getUserEventSetHash());
 
-		// TODO: 根据所有交易的时间戳的平均值来生成区块的时间戳；
-//		long timestamp =
-//		currentBlock.setTimestamp(timestamp);
+		// 根据ThreadLocal中的时间戳设置；
+		Long timestamp = TIMESTAMP_HOLDER.get();
+		if (timestamp != null) {
+			currentBlock.setTimestamp(timestamp);
+		}
 
 		// compute block hash;
 		byte[] blockBodyBytes = BinaryProtocol.encode(currentBlock, BlockBody.class);

@@ -212,13 +212,12 @@ public class LedgerInitializer {
 		txReqBuilder.addNodeSignature(nodeSignatures);
 
 		TransactionRequest txRequest = txReqBuilder.buildRequest();
-
 		TransactionBatchProcessor txProcessor = new TransactionBatchProcessor(FULL_PERMISSION_SECURITY_MANAGER,
 				ledgerEditor, EMPTY_LEDGER, DEFAULT_OP_HANDLE_REG);
-
+		LedgerEditor.TIMESTAMP_HOLDER.set(initSetting.getCreatedTime());
 		txProcessor.schedule(txRequest);
-
 		txResultsHandle = txProcessor.prepare();
+		LedgerEditor.TIMESTAMP_HOLDER.remove();
 		return txResultsHandle.getBlock();
 	}
 

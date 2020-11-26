@@ -53,6 +53,7 @@ public class LedgerBlockData implements LedgerBlock {
 		this.dataAccountSetHash = block.getDataAccountSetHash();
 		this.contractAccountSetHash = block.getContractAccountSetHash();
 		this.transactionSetHash = block.getTransactionSetHash();
+		this.timestamp = block.getTimestamp();
 		this.systemEventSetHash = block.getSystemEventSetHash();
 		this.userEventSetHash = block.getUserEventSetHash();
 	}
@@ -163,6 +164,7 @@ public class LedgerBlockData implements LedgerBlock {
 		this.ledgerHash = ledgerHash;
 	}
 
+	@Override
 	public long getTimestamp() {
 		return timestamp;
 	}
@@ -170,7 +172,6 @@ public class LedgerBlockData implements LedgerBlock {
 	public void setTimestamp(long timestamp) {
 		this.timestamp = timestamp;
 	}
-
 
 	@Override
 	public HashDigest getSystemEventSetHash() {

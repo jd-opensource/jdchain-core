@@ -1,6 +1,6 @@
 package com.jd.blockchain.consensus.bftsmart.client;
 
-import com.jd.blockchain.consensus.ConsensusSettings;
+import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
 import com.jd.blockchain.crypto.PubKey;
 
@@ -9,12 +9,12 @@ public class BftsmartClientConfig implements BftsmartClientSettings {
 
     private int clientId;
     private PubKey clientPubkey;
-    private ConsensusSettings consensusSettings;
+    private ConsensusViewSettings consensusSettings;
     private byte[] topology;
     private byte[] tomConfig;
     BftsmartClientIncomingSettings clientIncomingSettings;
 
-    public BftsmartClientConfig(int clientId, PubKey clientPubkey, ConsensusSettings consensusSettings, byte[] topology, byte[] tomConfig) {
+    public BftsmartClientConfig(int clientId, PubKey clientPubkey, ConsensusViewSettings consensusSettings, byte[] topology, byte[] tomConfig) {
         this.clientId = clientId;
         this.clientPubkey = clientPubkey;
         this.consensusSettings = consensusSettings;
@@ -51,11 +51,11 @@ public class BftsmartClientConfig implements BftsmartClientSettings {
     }
 
     @Override
-    public ConsensusSettings getConsensusSettings() {
+    public ConsensusViewSettings getConsensusSettings() {
         return consensusSettings;
     }
 
-    public void setConsensusSettings(ConsensusSettings consensusSettings) {
+    public void setConsensusSettings(ConsensusViewSettings consensusSettings) {
         this.consensusSettings = consensusSettings;
     }
 

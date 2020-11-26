@@ -20,6 +20,11 @@ import com.jd.blockchain.ledger.TransactionRequest;
 public interface LedgerEditor {
 
 	/**
+	 * 使用ThreadLocal缓存处理过程中区块用到的时间戳
+	 */
+	ThreadLocal<Long> TIMESTAMP_HOLDER = new ThreadLocal<>();
+
+	/**
 	 * 账本Hash；
 	 * 
 	 * @return

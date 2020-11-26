@@ -1,11 +1,6 @@
 package com.jd.blockchain.consensus.bftsmart.client;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import com.jd.blockchain.consensus.ClientIncomingSettings;
-import com.jd.blockchain.consensus.ConsensusManageService;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
 import com.jd.blockchain.consensus.client.ClientFactory;
 import com.jd.blockchain.consensus.client.ClientSettings;
@@ -16,15 +11,14 @@ import com.jd.blockchain.crypto.PrivKey;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.crypto.SignatureDigest;
 import com.jd.blockchain.crypto.SignatureFunction;
-import com.jd.blockchain.utils.net.NetworkAddress;
 
 public class BftsmartConsensusClientFactory implements ClientFactory {
 
 
-	private AtomicInteger addId = new AtomicInteger();
-
-	private String localDomain = "localhost";
-	private String localIp = "127.0.0.1";
+//	private AtomicInteger addId = new AtomicInteger();
+//
+//	private String localDomain = "localhost";
+//	private String localIp = "127.0.0.1";
 
 	public BftsmartConsensusClientFactory() {
 
@@ -64,8 +58,8 @@ public class BftsmartConsensusClientFactory implements ClientFactory {
 		return new BftsmartConsensusClient(settings);
 	}
 
-	@Override
-	public ConsensusManageService createManageServiceClient(String[] serviceNodes) {
+//	@Override
+//	public ConsensusManageService createManageServiceClient(String[] serviceNodes) {
 //		BftsmartConsensusManageService consensusManageService = null;
 //		BftsmartClientIncomingSettings clientIncomingSettings;
 //
@@ -98,36 +92,36 @@ public class BftsmartConsensusClientFactory implements ClientFactory {
 //		}
 
 //		return consensusManageService;
-		return null;
-	}
+//		return null;
+//	}
 
-	private NetworkAddress getIpPortFromUrl(String url) {
-
-		// 1.check null
-		if (url == null || url.trim().equals("")) {
-			return null;
-		}
-
-		// 2. localhost replace to 127.0.0.1
-		if(url.startsWith("http://" + localDomain) ){
-			url = url.replace("http://" + localDomain, "http://" + localIp) ;
-		}
-
-		String host = "";
-		Pattern p = Pattern.compile("(?<=//|)((\\w)+\\.)+\\w+(:\\d{0,5})?");
-		Matcher matcher = p.matcher(url);
-		if (matcher.find()) {
-			host = matcher.group() ;
-		}
-
-		if(host.contains(":") == false){
-			//default port :80
-			return new NetworkAddress(host, 80);
-		}
-		else {
-			String[] ipPortArr = host.split(":");
-			return new NetworkAddress(ipPortArr[0], Integer.parseInt(ipPortArr[1]));
-		}
-	}
+//	private NetworkAddress getIpPortFromUrl(String url) {
+//
+//		// 1.check null
+//		if (url == null || url.trim().equals("")) {
+//			return null;
+//		}
+//
+//		// 2. localhost replace to 127.0.0.1
+//		if(url.startsWith("http://" + localDomain) ){
+//			url = url.replace("http://" + localDomain, "http://" + localIp) ;
+//		}
+//
+//		String host = "";
+//		Pattern p = Pattern.compile("(?<=//|)((\\w)+\\.)+\\w+(:\\d{0,5})?");
+//		Matcher matcher = p.matcher(url);
+//		if (matcher.find()) {
+//			host = matcher.group() ;
+//		}
+//
+//		if(host.contains(":") == false){
+//			//default port :80
+//			return new NetworkAddress(host, 80);
+//		}
+//		else {
+//			String[] ipPortArr = host.split(":");
+//			return new NetworkAddress(ipPortArr[0], Integer.parseInt(ipPortArr[1]));
+//		}
+//	}
 
 }

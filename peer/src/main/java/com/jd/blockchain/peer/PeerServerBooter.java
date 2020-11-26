@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.jd.blockchain.ledger.LedgerTransactions;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -17,11 +18,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 
 import com.jd.blockchain.binaryproto.DataContractRegistry;
-import com.jd.blockchain.consensus.ClientIdentification;
-import com.jd.blockchain.consensus.ClientIdentifications;
-import com.jd.blockchain.consensus.ClientIncomingSettings;
-import com.jd.blockchain.consensus.ConsensusSettings;
-import com.jd.blockchain.consensus.NodeSettings;
+import com.jd.blockchain.consensus.*;
 import com.jd.blockchain.consensus.action.ActionRequest;
 import com.jd.blockchain.consensus.action.ActionResponse;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
@@ -94,6 +91,7 @@ import com.jd.blockchain.ledger.proof.MerkleLeaf;
 import com.jd.blockchain.ledger.proof.MerklePath;
 import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.peer.web.LedgerLoadTimer;
+import com.jd.blockchain.runtime.RuntimeConstant;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
 import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
@@ -253,6 +251,10 @@ public class PeerServerBooter {
 		if (port > 0) {
 			String argServerPort = String.format("--server.port=%s", port);
 			argList.add(argServerPort);
+			RuntimeConstant.setMonitorPort(port);
+		} else {
+			// 设置默认的管理口信息
+			RuntimeConstant.setMonitorPort(8080);
 		}
 
 		String[] args = argList.toArray(new String[argList.size()]);
@@ -368,7 +370,7 @@ public class PeerServerBooter {
 		DataContractRegistry.register(ClientIdentifications.class);
 		DataContractRegistry.register(ActionRequest.class);
 		DataContractRegistry.register(ActionResponse.class);
-		DataContractRegistry.register(ConsensusSettings.class);
+		DataContractRegistry.register(ConsensusViewSettings.class);
 		DataContractRegistry.register(NodeSettings.class);
 		DataContractRegistry.register(ClientIncomingSettings.class);
 		DataContractRegistry.register(BftsmartConsensusSettings.class);
@@ -379,5 +381,8 @@ public class PeerServerBooter {
 		DataContractRegistry.register(MsgQueueClientIncomingSettings.class);
 		DataContractRegistry.register(MsgQueueNetworkSettings.class);
 		DataContractRegistry.register(MsgQueueBlockSettings.class);
+		DataContractRegistry.register(NodeNetworkAddress.class);
+		DataContractRegistry.register(NodeNetworkAddresses.class);
+		DataContractRegistry.register(LedgerTransactions.class);
 	}
 }

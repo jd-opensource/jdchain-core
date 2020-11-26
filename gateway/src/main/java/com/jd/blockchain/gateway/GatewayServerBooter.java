@@ -7,17 +7,32 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.blockchain.consensus.*;
+import com.jd.blockchain.consensus.action.ActionRequest;
+import com.jd.blockchain.consensus.action.ActionResponse;
+import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
+import com.jd.blockchain.consensus.mq.settings.*;
+import com.jd.blockchain.crypto.*;
 import com.jd.blockchain.gateway.web.GatewayLedgerLoadTimer;
+import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.ledger.core.LedgerInitDecision;
+import com.jd.blockchain.ledger.core.LedgerInitProposal;
+import com.jd.blockchain.ledger.merkletree.HashBucketEntry;
+import com.jd.blockchain.ledger.merkletree.KeyIndex;
+import com.jd.blockchain.ledger.merkletree.MerkleIndex;
+import com.jd.blockchain.ledger.proof.MerkleKey;
+import com.jd.blockchain.ledger.proof.MerkleLeaf;
+import com.jd.blockchain.ledger.proof.MerklePath;
+import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.utils.net.NetworkAddress;
 import org.apache.commons.io.FileUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 
-import com.jd.blockchain.crypto.AsymmetricKeypair;
-import com.jd.blockchain.crypto.KeyGenUtils;
-import com.jd.blockchain.crypto.PrivKey;
-import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.gateway.web.BlockBrowserController;
 import com.jd.blockchain.utils.ArgumentSet;
 import com.jd.blockchain.utils.ArgumentSet.ArgEntry;
@@ -37,6 +52,10 @@ public class GatewayServerBooter {
 
 	// 是否输出调试信息；
 	private static final String DEBUG_OPT = "-debug";
+
+	static {
+		registerDataContracts();
+	}
 
 	public static void main(String[] args) {
 		boolean debug = false;
@@ -133,19 +152,12 @@ public class GatewayServerBooter {
 		blockBrowserController.setSchemaRetrievalUrl(config.getSchemaRetrievalUrl());
 		PeerConnector peerConnector = appCtx.getBean(PeerConnector.class);
 
-		Set<NetworkAddress> peerAddresses = config.masterPeerAddresses();
-		StringBuilder peerAddressBuf = new StringBuilder();
-		for (NetworkAddress peerAddress : peerAddresses) {
-			peerConnector.connect(peerAddress, defaultKeyPair, config.providerConfig().getProviders());
-			if (peerAddressBuf.length() > 0) {
-				peerAddressBuf.append(",");
-			}
-			peerAddressBuf.append(peerAddress.toString());
-		}
+		NetworkAddress peerAddress = config.masterPeerAddress();
+		peerConnector.connect(peerAddress, defaultKeyPair, config.providerConfig().getProviders());
 		// 不管连接是否成功，都需要释放许可
 		GatewayLedgerLoadTimer loadTimer = appCtx.getBean(GatewayLedgerLoadTimer.class);
 		loadTimer.release();
-		ConsoleUtils.info("Peer[%s] is connected success!", peerAddressBuf.toString());
+		ConsoleUtils.info("Peer[%s] is connected success!", peerAddress.toString());
 	}
 
 	public synchronized void close() {
@@ -187,5 +199,97 @@ public class GatewayServerBooter {
 		}
 		System.out.printf("Current Project Boot Path = %s \r\n", currPath);
 		return new File(currPath).getParent() + File.separator;
+	}
+
+	private static void registerDataContracts() {
+		DataContractRegistry.register(MerkleSnapshot.class);
+		DataContractRegistry.register(MerkleTrieData.class);
+		DataContractRegistry.register(MerkleLeaf.class);
+		DataContractRegistry.register(MerklePath.class);
+		DataContractRegistry.register(MerkleKey.class);
+		DataContractRegistry.register(MerkleIndex.class);
+		DataContractRegistry.register(KeyIndex.class);
+		DataContractRegistry.register(HashBucketEntry.class);
+		DataContractRegistry.register(BytesValue.class);
+		DataContractRegistry.register(BytesValueList.class);
+		DataContractRegistry.register(BlockchainIdentity.class);
+		DataContractRegistry.register(LedgerBlock.class);
+		DataContractRegistry.register(BlockBody.class);
+		DataContractRegistry.register(LedgerDataSnapshot.class);
+		DataContractRegistry.register(LedgerAdminInfo.class);
+		DataContractRegistry.register(TransactionContent.class);
+		DataContractRegistry.register(TransactionRequest.class);
+		DataContractRegistry.register(TransactionResult.class);
+		DataContractRegistry.register(LedgerTransaction.class);
+		DataContractRegistry.register(Operation.class);
+		DataContractRegistry.register(LedgerInitOperation.class);
+		DataContractRegistry.register(UserRegisterOperation.class);
+		DataContractRegistry.register(UserInfoSetOperation.class);
+		DataContractRegistry.register(UserInfoSetOperation.KVEntry.class);
+		DataContractRegistry.register(DataAccountRegisterOperation.class);
+		DataContractRegistry.register(DataAccountKVSetOperation.class);
+		DataContractRegistry.register(DataAccountKVSetOperation.KVWriteEntry.class);
+		DataContractRegistry.register(ContractCodeDeployOperation.class);
+		DataContractRegistry.register(ContractEventSendOperation.class);
+		DataContractRegistry.register(ParticipantRegisterOperation.class);
+		DataContractRegistry.register(ParticipantStateUpdateOperation.class);
+		DataContractRegistry.register(TransactionResponse.class);
+		DataContractRegistry.register(OperationResult.class);
+		DataContractRegistry.register(RolesConfigureOperation.class);
+		DataContractRegistry.register(RolesConfigureOperation.RolePrivilegeEntry.class);
+		DataContractRegistry.register(UserAuthorizeOperation.class);
+		DataContractRegistry.register(UserAuthorizeOperation.UserRolesEntry.class);
+		DataContractRegistry.register(EventAccountRegisterOperation.class);
+		DataContractRegistry.register(EventPublishOperation.class);
+		DataContractRegistry.register(EventPublishOperation.EventEntry.class);
+		DataContractRegistry.register(ConsensusSettingsUpdateOperation.class);
+//		DataContractRegistry.register(TransactionPermission.class);
+//		DataContractRegistry.register(LedgerPermission.class);
+//		DataContractRegistry.register(RolesPolicy.class);
+		DataContractRegistry.register(PrivilegeSet.class);
+		DataContractRegistry.register(RoleSet.class);
+		DataContractRegistry.register(SecurityInitSettings.class);
+		DataContractRegistry.register(RoleInitSettings.class);
+		DataContractRegistry.register(UserAuthInitSettings.class);
+		DataContractRegistry.register(Event.class);
+		DataContractRegistry.register(LedgerMetadata.class);
+		DataContractRegistry.register(LedgerMetadata_V2.class);
+		DataContractRegistry.register(LedgerInitSetting.class);
+		DataContractRegistry.register(LedgerInitProposal.class);
+		DataContractRegistry.register(LedgerInitDecision.class);
+		DataContractRegistry.register(LedgerSettings.class);
+		DataContractRegistry.register(ParticipantNode.class);
+		DataContractRegistry.register(ParticipantStateUpdateInfo.class);
+		DataContractRegistry.register(CryptoSetting.class);
+		DataContractRegistry.register(CryptoProvider.class);
+		DataContractRegistry.register(DataAccountInfo.class);
+		DataContractRegistry.register(UserAccountHeader.class);
+		DataContractRegistry.register(UserInfo.class);
+		DataContractRegistry.register(ContractInfo.class);
+		DataContractRegistry.register(HashObject.class);
+		DataContractRegistry.register(CryptoAlgorithm.class);
+//		DataContractRegistry.register(TransactionState.class);
+//		DataContractRegistry.register(DataType.class);
+//		DataContractRegistry.register(ParticipantNodeState.class);
+		DataContractRegistry.register(DigitalSignature.class);
+		DataContractRegistry.register(DigitalSignatureBody.class);
+		DataContractRegistry.register(ClientIdentification.class);
+		DataContractRegistry.register(ClientIdentifications.class);
+		DataContractRegistry.register(ActionRequest.class);
+		DataContractRegistry.register(ActionResponse.class);
+		DataContractRegistry.register(ConsensusViewSettings.class);
+		DataContractRegistry.register(NodeSettings.class);
+		DataContractRegistry.register(ClientIncomingSettings.class);
+		DataContractRegistry.register(BftsmartConsensusSettings.class);
+		DataContractRegistry.register(BftsmartNodeSettings.class);
+		DataContractRegistry.register(BftsmartClientIncomingSettings.class);
+		DataContractRegistry.register(MsgQueueConsensusSettings.class);
+		DataContractRegistry.register(MsgQueueNodeSettings.class);
+		DataContractRegistry.register(MsgQueueClientIncomingSettings.class);
+		DataContractRegistry.register(MsgQueueNetworkSettings.class);
+		DataContractRegistry.register(MsgQueueBlockSettings.class);
+		DataContractRegistry.register(NodeNetworkAddress.class);
+		DataContractRegistry.register(NodeNetworkAddresses.class);
+		DataContractRegistry.register(LedgerTransactions.class);
 	}
 }

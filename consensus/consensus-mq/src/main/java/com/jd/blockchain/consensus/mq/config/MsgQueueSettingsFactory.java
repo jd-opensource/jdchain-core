@@ -11,7 +11,7 @@ package com.jd.blockchain.consensus.mq.config;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.consensus.ClientIncomingSettings;
-import com.jd.blockchain.consensus.ConsensusSettings;
+import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.SettingsFactory;
 import com.jd.blockchain.consensus.mq.MsgQueueConsensusSettingsBuilder;
@@ -36,7 +36,7 @@ public class MsgQueueSettingsFactory implements SettingsFactory {
 
         DataContractRegistry.register(MsgQueueNodeSettings.class);
 
-        DataContractRegistry.register(ConsensusSettings.class);
+        DataContractRegistry.register(ConsensusViewSettings.class);
 
         DataContractRegistry.register(MsgQueueConsensusSettings.class);
 
@@ -61,7 +61,7 @@ public class MsgQueueSettingsFactory implements SettingsFactory {
     }
 
     @Override
-    public BytesEncoder<ConsensusSettings> getConsensusSettingsEncoder() {
+    public BytesEncoder<ConsensusViewSettings> getConsensusSettingsEncoder() {
         return MQCS_ENCODER;
     }
 
@@ -70,10 +70,10 @@ public class MsgQueueSettingsFactory implements SettingsFactory {
         return MQCIS_ENCODER;
     }
 
-    private static class MsgQueueConsensusSettingsEncoder implements BytesEncoder<ConsensusSettings>{
+    private static class MsgQueueConsensusSettingsEncoder implements BytesEncoder<ConsensusViewSettings>{
 
         @Override
-        public byte[] encode(ConsensusSettings data) {
+        public byte[] encode(ConsensusViewSettings data) {
             if (data instanceof MsgQueueConsensusSettings) {
                 return BinaryProtocol.encode(data, MsgQueueConsensusSettings.class);
             }

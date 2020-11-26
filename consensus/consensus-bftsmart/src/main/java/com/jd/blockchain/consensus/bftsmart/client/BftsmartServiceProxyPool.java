@@ -13,13 +13,13 @@ import org.apache.commons.pool2.PooledObjectFactory;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
-public class BftsmartPeerProxyPool extends GenericObjectPool<AsynchServiceProxy> {
+public class BftsmartServiceProxyPool extends GenericObjectPool<AsynchServiceProxy> {
 
-    public BftsmartPeerProxyPool(PooledObjectFactory<AsynchServiceProxy> factory) {
+    public BftsmartServiceProxyPool(PooledObjectFactory<AsynchServiceProxy> factory) {
         this(factory, null);
     }
 
-    public BftsmartPeerProxyPool(PooledObjectFactory<AsynchServiceProxy> factory, GenericObjectPoolConfig config) {
+    public BftsmartServiceProxyPool(PooledObjectFactory<AsynchServiceProxy> factory, GenericObjectPoolConfig config) {
         super(factory, config == null ? new BftsmartPeerProxyPoolConfig() : config);
     }
 }

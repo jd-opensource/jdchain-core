@@ -1,16 +1,20 @@
 package com.jd.blockchain.consensus.bftsmart.client;
 
-import com.jd.blockchain.consensus.MessageService;
-import com.jd.blockchain.consensus.client.ClientSettings;
-import com.jd.blockchain.consensus.client.ConsensusClient;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class BftsmartConsensusClient implements ConsensusClient {
+import com.jd.blockchain.consensus.MessageService;
+import com.jd.blockchain.consensus.bftsmart.manage.BftsmartConsensusManageService;
+import com.jd.blockchain.consensus.client.ClientSettings;
+import com.jd.blockchain.consensus.client.ConsensusClient;
+import com.jd.blockchain.consensus.manage.ConsensusManageClient;
+import com.jd.blockchain.consensus.manage.ConsensusManageService;
+
+public class BftsmartConsensusClient implements ConsensusClient, ConsensusManageClient {
 
 
     private final AtomicInteger addId = new AtomicInteger();
 
-    private BftsmartPeerProxyPool asyncPeerProxyPool;
+    private BftsmartServiceProxyPool serviceProxyPool;
 
     private int gatewayId;
 
@@ -23,14 +27,19 @@ public class BftsmartConsensusClient implements ConsensusClient {
     }
 
 
-    public BftsmartPeerProxyPool getConsensusClientPool() {
-        return this.asyncPeerProxyPool;
+    public BftsmartServiceProxyPool getConsensusClientPool() {
+        return this.serviceProxyPool;
     }
 
     @Override
     public MessageService getMessageService() {
-        return new BftsmartMessageService(asyncPeerProxyPool);
+        return new BftsmartMessageService(serviceProxyPool);
     }
+
+	@Override
+	public ConsensusManageService getManageService() {
+		return new BftsmartConsensusManageService(serviceProxyPool);
+	}
 
     @Override
     public ClientSettings getSettings() {
@@ -39,7 +48,7 @@ public class BftsmartConsensusClient implements ConsensusClient {
 
     @Override
     public boolean isConnected() {
-        return this.asyncPeerProxyPool != null;
+        return this.serviceProxyPool != null;
     }
 
     @Override
@@ -47,7 +56,7 @@ public class BftsmartConsensusClient implements ConsensusClient {
 
         //consensus client pool
         BftsmartPeerProxyFactory peerProxyFactory = new BftsmartPeerProxyFactory((BftsmartClientSettings)clientSettings, gatewayId);
-        this.asyncPeerProxyPool = new BftsmartPeerProxyPool(peerProxyFactory);
+        this.serviceProxyPool = new BftsmartServiceProxyPool(peerProxyFactory);
 
 //        MemoryBasedViewStorage viewStorage = new MemoryBasedViewStorage(((BftsmartClientSettings)clientSettings).getTopology().getView());
 //        TOMConfiguration tomConfiguration = ((BftsmartConsensusConfig)clientSettings.getConsensusSettings()).getBftsmartConfig();
@@ -66,10 +75,11 @@ public class BftsmartConsensusClient implements ConsensusClient {
 
     @Override
     public void close() {
-        if (asyncPeerProxyPool != null) {
-            asyncPeerProxyPool.close();
+        if (serviceProxyPool != null) {
+            serviceProxyPool.close();
         }
     }
+
 
 //    public void asyncSendOrdered(byte[] message, AsyncCallback<byte[]> callback) {
 //        AsyncReplier replier = new AsyncReplier(callback, peerProxy);

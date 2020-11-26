@@ -10,27 +10,27 @@
             <!--控制台只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch）-->
             <ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY"/>
             <!--输出日志的格式-->
-            <PatternLayout pattern="%d{HH:mm:ss.SSS} %-5level %class{36} %L %M - %msg%xEx%n"/>
+            <PatternLayout pattern="%date{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %class{36} %L %M - %msg%xEx%n"/>
         </console>
         <!--文件会打印出所有信息，这个log每次运行程序会自动清空，由append属性决定，适合临时测试用-->
-        <File name="log" fileName="${sys:jdchain.log}/logs/peer.temp.log" append="false">
-            <PatternLayout pattern="%d{HH:mm:ss.SSS} %-5level %class{36} %L %M - %msg%xEx%n"/>
+        <File name="log" fileName="../logs/peer.temp.log" append="false">
+            <PatternLayout pattern="%date{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %class{36} %L %M - %msg%xEx%n"/>
         </File>
         <!-- 这个会打印出所有的info及以下级别的信息，每次大小超过size，则这size大小的日志会自动存入按年份-月份建立的文件夹下面并进行压缩，作为存档-->
-        <RollingFile name="PeerRollingInfo" fileName="${sys:jdchain.log}/logs/peer.info.log"
-                     filePattern="${sys:jdchain.log}/logs/$${date:yyyy-MM}/peer.info-%d{yyyy-MM-dd}-%i.log">
+        <RollingFile name="PeerRollingInfo" fileName="../logs/peer.info.log"
+                     filePattern="../logs/$${date:yyyy-MM}/peer.info-%d{yyyy-MM-dd}-%i.log">
             <!--控制台只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch）-->
             <ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY"/>
-            <PatternLayout pattern="[%d{HH:mm:ss:SSS}] [%p] - %l - %m%n"/>
+            <PatternLayout pattern="[%date{yyyy-MM-dd HH:mm:ss:SSS}] [%thread] [%p] - %l - %m%n"/>
             <Policies>
                 <TimeBasedTriggeringPolicy/>
                 <SizeBasedTriggeringPolicy size="100 MB"/>
             </Policies>
         </RollingFile>
-        <RollingFile name="PeerRollingWarn" fileName="${sys:jdchain.log}/logs/peer.warn.log"
-                     filePattern="${sys:jdchain.log}/logs/$${date:yyyy-MM}/peer.warn-%d{yyyy-MM-dd}-%i.log">
+        <RollingFile name="PeerRollingWarn" fileName="../logs/peer.warn.log"
+                     filePattern="../logs/$${date:yyyy-MM}/peer.warn-%d{yyyy-MM-dd}-%i.log">
             <ThresholdFilter level="warn" onMatch="ACCEPT" onMismatch="DENY"/>
-            <PatternLayout pattern="[%d{HH:mm:ss:SSS}] [%p] - %l - %m%n"/>
+            <PatternLayout pattern="[%date{yyyy-MM-dd HH:mm:ss:SSS}] [%thread] [%p] - %l - %m%n"/>
             <Policies>
                 <TimeBasedTriggeringPolicy/>
                 <SizeBasedTriggeringPolicy size="100 MB"/>
@@ -38,10 +38,10 @@
             <!-- DefaultRolloverStrategy属性如不设置，则默认为最多同一文件夹下7个文件，这里设置了20 -->
             <DefaultRolloverStrategy max="20"/>
         </RollingFile>
-        <RollingFile name="PeerRollingError" fileName="${sys:jdchain.log}/logs/peer.error.log"
-                     filePattern="${sys:jdchain.log}/logs/$${date:yyyy-MM}/peer.error-%d{yyyy-MM-dd}-%i.log">
+        <RollingFile name="PeerRollingError" fileName="../logs/peer.error.log"
+                     filePattern="../logs/$${date:yyyy-MM}/peer.error-%d{yyyy-MM-dd}-%i.log">
             <ThresholdFilter level="error" onMatch="ACCEPT" onMismatch="DENY"/>
-            <PatternLayout pattern="[%d{HH:mm:ss:SSS}] [%p] - %l - %m%n"/>
+            <PatternLayout pattern="[%date{yyyy-MM-dd HH:mm:ss:SSS}] [%thread] [%p] - %l - %m%n"/>
             <Policies>
                 <TimeBasedTriggeringPolicy/>
                 <SizeBasedTriggeringPolicy size="100 MB"/>

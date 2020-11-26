@@ -1,7 +1,7 @@
 package com.jd.blockchain.gateway.service.settings;
 
 
-import com.jd.blockchain.consensus.ConsensusSettings;
+import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.ParticipantNode;
@@ -39,7 +39,7 @@ public class LedgerBaseSettings {
     /**
      * 共识配置
      */
-    private ConsensusSettings consensusSettings;
+    private ConsensusViewSettings consensusSettings;
 
     /**
      * 共识参与方
@@ -83,11 +83,11 @@ public class LedgerBaseSettings {
         this.consensusProtocol = consensusProtocol;
     }
 
-    public ConsensusSettings getConsensusSettings() {
+    public ConsensusViewSettings getConsensusSettings() {
         return consensusSettings;
     }
 
-    public void setConsensusSettings(ConsensusSettings consensusSettings) {
+    public void setConsensusSettings(ConsensusViewSettings consensusSettings) {
         this.consensusSettings = consensusSettings;
     }
 
