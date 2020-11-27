@@ -1,6 +1,7 @@
 package com.jd.blockchain.gateway;
 
 import com.jd.blockchain.crypto.AsymmetricKeypair;
+import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.utils.net.NetworkAddress;
 
 import java.util.List;
@@ -21,6 +22,13 @@ public interface PeerConnector {
 	 * @return
 	 */
 	boolean isConnected();
+
+	/**
+	 * 共识客户端视图落后时进行重连操作；
+	 *
+	 * @return
+	 */
+	void reconnect(HashDigest ledgerHash);
 
 	/**
 	 * 连接至指定Peer节点
