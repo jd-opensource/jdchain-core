@@ -40,10 +40,10 @@ public class BftsmartPeerProxyFactory extends BasePooledObjectFactory<AsynchServ
             int[] processes = view.getProcesses();
             for (int process : processes) {
                 NodeNetwork address = view.getAddress(process);
-                if(LOGGER.isDebugEnabled()){
-                    LOGGER.debug("read topology id = %s, address = %s \r\n",
+//                if(LOGGER.isDebugEnabled()){
+                    LOGGER.info("read topology id = {}, address = {} \r\n",
                             process, address);
-                }
+//                }
             }
         }
 

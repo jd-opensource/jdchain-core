@@ -80,6 +80,35 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 	}
 
 	@Override
+	public void reconnect(HashDigest ledgerHash) {
+		ledgerHashLock.lock();
+		try {
+			// 先清理
+			PeerBlockchainServiceFactory.clear();
+			latestPeerServiceFactories.clear();
+			mostLedgerPeerServiceFactory = null;
+			for (NetworkAddress networkAddress : peerAddresses) {
+				LOGGER.info("Reconnect all , add = {}", networkAddress.getPort());
+				PeerBlockchainServiceFactory blockchainServiceFactory = peerBlockchainServiceFactories.get(networkAddress);
+				if (blockchainServiceFactory != null) {
+					blockchainServiceFactory.close();
+				}
+			}
+			Set<NetworkAddress> paddress = new HashSet<>(peerAddresses);
+			peerAddresses.clear();
+			// 重新连接
+			for (NetworkAddress networkAddress : paddress) {
+				connect(networkAddress, gateWayKeyPair, peerProviders);
+			}
+
+		} catch (Exception e) {
+			throw new IllegalArgumentException(e);
+		} finally {
+			ledgerHashLock.unlock();
+		}
+	}
+
+	@Override
 	public synchronized void connect(NetworkAddress peerAddress, AsymmetricKeypair defaultKeyPair, List<String> peerProviders) {
 		LOGGER.info("Add peerAddress{} to connect list !", peerAddress);
 		if (peerAddresses.contains(peerAddress)) {
