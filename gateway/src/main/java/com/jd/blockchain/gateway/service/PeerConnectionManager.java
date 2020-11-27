@@ -79,6 +79,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 		return !peerBlockchainServiceFactories.isEmpty();
 	}
 
+	// 需要进行重连指定账本的优化
 	@Override
 	public void reconnect(HashDigest ledgerHash) {
 		ledgerHashLock.lock();
@@ -88,7 +89,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 			latestPeerServiceFactories.clear();
 			mostLedgerPeerServiceFactory = null;
 			for (NetworkAddress networkAddress : peerAddresses) {
-				LOGGER.info("Reconnect all , add = {}", networkAddress.getPort());
+				LOGGER.info("Reconnect peer , address = {}", networkAddress.getPort());
 				PeerBlockchainServiceFactory blockchainServiceFactory = peerBlockchainServiceFactories.get(networkAddress);
 				if (blockchainServiceFactory != null) {
 					blockchainServiceFactory.close();
