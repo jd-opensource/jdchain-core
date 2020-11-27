@@ -23,6 +23,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.service.BftsmartNodeServer;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -45,7 +46,6 @@ import com.jd.blockchain.consensus.ClientIdentifications;
 import com.jd.blockchain.consensus.ClientIncomingSettings;
 import com.jd.blockchain.consensus.ConsensusProvider;
 import com.jd.blockchain.consensus.ConsensusProviders;
-import com.jd.blockchain.consensus.ConsensusSettings;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.action.ActionResponse;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
@@ -303,7 +303,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     continue;
                 }
                 try {
-                    clientIncomingSettings = peer.getConsensusManageService().authClientIncoming(authId);
+                    clientIncomingSettings = peer.getClientAuthencationService().authencateIncoming(authId);
                     for (NodeSettings nodeSettings : clientIncomingSettings.getConsensusSettings().getNodes()) {
                     	LOGGER.info("Manager controller, node settings proc id = {}", ((BftsmartNodeSettings)nodeSettings).getId());
 					}
@@ -382,7 +382,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			ConsensusProvider provider = getProvider(ledgerAdminAccount);
 
 			// load consensus setting;
-			ConsensusSettings csSettings = getConsensusSetting(ledgerAdminAccount);
+			ConsensusViewSettings csSettings = getConsensusSetting(ledgerAdminAccount);
 
 			// find current node;
 
@@ -400,7 +400,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			if (currentNode.getParticipantNodeState() == ParticipantNodeState.CONSENSUS) {
 
 				ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(ledgerHash.toBase58(),
-						csSettings, new ParticipantReplica(currentNode));
+						csSettings, currentNode.getAddress().toBase58());
 
 				((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
 
@@ -1020,10 +1020,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			ConsensusProvider provider = getProvider(ledgerAdminAccount);
 
 			// load consensus setting;
-			ConsensusSettings csSettings = getConsensusSetting(ledgerAdminAccount);
+			ConsensusViewSettings csSettings = getConsensusSetting(ledgerAdminAccount);
 
 			ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(ledgerRepository.getHash().toBase58(),
-					csSettings, new ParticipantReplica(currNode));
+					csSettings, currNode.getAddress().toBase58());
 
 			((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
 
@@ -1038,8 +1038,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				e.printStackTrace();
 			}
 			runRealm(server);
-
-			((BftsmartNodeServer)server).getTopology();
 
 			LOGGER.info("[ManagementController] setupServer SUCC!");
 		} catch (Exception e) {
@@ -1169,13 +1167,13 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	}
 
-	private ConsensusSettings getConsensusSetting(LedgerAdminInfo ledgerAdminInfo) {
+	private ConsensusViewSettings getConsensusSetting(LedgerAdminInfo ledgerAdminInfo) {
 
 		ConsensusProvider provider = getProvider(ledgerAdminInfo);
 
 		// load consensus setting
 		Bytes csSettingBytes = ledgerAdminInfo.getSettings().getConsensusSetting();
-		ConsensusSettings csSettings = provider.getSettingsFactory().getConsensusSettingsEncoder()
+		ConsensusViewSettings csSettings = provider.getSettingsFactory().getConsensusSettingsEncoder()
 				.decode(csSettingBytes.toBytes());
 
 		return csSettings;
@@ -1201,7 +1199,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		LedgerAdminInfo ledgerAdminInfo = ledgerRepository.getAdminInfo(ledgerRepository.retrieveLatestBlock());
 
 		// load consensus setting
-		ConsensusSettings csSettings = getConsensusSetting(ledgerAdminInfo);
+		ConsensusViewSettings csSettings = getConsensusSetting(ledgerAdminInfo);
 
 		NodeSettings[] nodeSettingsArray = csSettings.getNodes();
 		for (NodeSettings nodeSettings : nodeSettingsArray) {

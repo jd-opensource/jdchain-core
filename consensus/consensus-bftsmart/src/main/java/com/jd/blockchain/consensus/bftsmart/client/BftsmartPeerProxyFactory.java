@@ -40,10 +40,10 @@ public class BftsmartPeerProxyFactory extends BasePooledObjectFactory<AsynchServ
             int[] processes = view.getProcesses();
             for (int process : processes) {
                 NodeNetwork address = view.getAddress(process);
-//                if(LOGGER.isDebugEnabled()){
+                if(LOGGER.isDebugEnabled()){
                     LOGGER.info("read topology id = {}, address = {} \r\n",
                             process, address);
-//                }
+                }
             }
         }
 
@@ -59,5 +59,15 @@ public class BftsmartPeerProxyFactory extends BasePooledObjectFactory<AsynchServ
     @Override
     public PooledObject<AsynchServiceProxy> wrap(AsynchServiceProxy asynchServiceProxy) {
         return new DefaultPooledObject<>(asynchServiceProxy);
+    }
+
+    // when close pool, destroy its object
+    @Override
+    public void destroyObject(PooledObject<AsynchServiceProxy> p) throws Exception {
+        super.destroyObject(p);
+        AsynchServiceProxy serviceProxy = p.getObject();
+        if (serviceProxy != null) {
+            serviceProxy.close();
+        }
     }
 }

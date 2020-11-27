@@ -5,16 +5,12 @@ import com.jd.blockchain.consensus.MessageService;
 import com.jd.blockchain.utils.concurrent.AsyncFuture;
 import com.jd.blockchain.utils.concurrent.CompletableAsyncFuture;
 import com.jd.blockchain.utils.exception.ViewObsoleteException;
-import com.jd.blockchain.utils.io.BytesUtils;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class BftsmartMessageService implements MessageService {
 
-    private BftsmartPeerProxyPool asyncPeerProxyPool;
+    private BftsmartServiceProxyPool asyncPeerProxyPool;
 
-    public BftsmartMessageService(BftsmartPeerProxyPool peerProxyPool) {
+    public BftsmartMessageService(BftsmartServiceProxyPool peerProxyPool) {
         this.asyncPeerProxyPool = peerProxyPool;
     }
 
@@ -43,7 +39,6 @@ public class BftsmartMessageService implements MessageService {
 //            System.out.printf("BftsmartMessageService invokeOrdered time = %s, id = %s threadId = %s \r\n",
 //                    System.currentTimeMillis(),  asynchServiceProxy.getProcessId(), Thread.currentThread().getId());
 
-            System.out.println("this asyncPeerProxyPool order = " + this.asyncPeerProxyPool.hashCode());
             byte[] result = asynchServiceProxy.invokeOrdered(message);
             asyncFuture.complete(result);
         } catch (ViewObsoleteException voe) {
@@ -72,9 +67,7 @@ public class BftsmartMessageService implements MessageService {
                 byte[] result = asynchServiceProxy.invokeUnordered(message);
                 asyncFuture.complete(result);
 
-                System.out.println("this asyncPeerProxyPool unorder = " + this.asyncPeerProxyPool.hashCode());
             } catch (Exception e) {
-                System.out.println("this asyncPeerProxyPool unorder ex = " + this.asyncPeerProxyPool.hashCode());
                 throw new RuntimeException(e);
             } finally {
                 if (asynchServiceProxy != null) {
