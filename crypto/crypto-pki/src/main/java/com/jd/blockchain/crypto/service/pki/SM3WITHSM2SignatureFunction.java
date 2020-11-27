@@ -14,6 +14,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.Security;
 import java.security.Signature;
 import java.security.SignatureException;
@@ -225,14 +226,22 @@ public class SM3WITHSM2SignatureFunction implements SignatureFunction {
 
 	@Override
 	public AsymmetricKeypair generateKeypair() {
+		return generateKeypair(new SecureRandom());
+	}
 
+	@Override
+	public AsymmetricKeypair generateKeypair(byte[] seed) {
+		return generateKeypair(new SM3SecureRandom(seed));
+	}
+
+	public AsymmetricKeypair generateKeypair(SecureRandom random) {
 		Security.addProvider(new BouncyCastleProvider());
 		KeyPairGenerator generator;
 		PublicKey publicKey;
 		PrivateKey privateKey;
 		try {
 			generator = KeyPairGenerator.getInstance("EC", BouncyCastleProvider.PROVIDER_NAME);
-			generator.initialize(new ECNamedCurveGenParameterSpec("sm2p256v1"));
+			generator.initialize(new ECNamedCurveGenParameterSpec("sm2p256v1"), random);
 			KeyPair keyPair = generator.generateKeyPair();
 			publicKey = keyPair.getPublic();
 			privateKey = keyPair.getPrivate();
@@ -247,12 +256,6 @@ public class SM3WITHSM2SignatureFunction implements SignatureFunction {
 		PrivKey privKey = DefaultCryptoEncoding.encodePrivKey(SM3WITHSM2, privKeyBytes);
 
 		return new AsymmetricKeypair(pubKey, privKey);
-	}
-
-	@Override
-	public AsymmetricKeypair generateKeypair(byte[] seed) {
-		// TODO Auto-generated method stub
-		throw new IllegalStateException("Not implemented!");
 	}
 
 	@Override

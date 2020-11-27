@@ -13,6 +13,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.Security;
 import java.security.Signature;
 import java.security.SignatureException;
@@ -209,14 +210,22 @@ public class SHA1WITHRSA2048SignatureFunction implements SignatureFunction {
 
 	@Override
 	public AsymmetricKeypair generateKeypair() {
+		return generateKeypair(new SecureRandom());
+	}
 
+	@Override
+	public AsymmetricKeypair generateKeypair(byte[] seed) {
+		return generateKeypair(new SHA1SecureRandom(seed));
+	}
+
+	private AsymmetricKeypair generateKeypair(SecureRandom random) {
 		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 		KeyPairGenerator generator;
 		PublicKey publicKey;
 		PrivateKey privateKey;
 		try {
 			generator = KeyPairGenerator.getInstance("RSA", BouncyCastleProvider.PROVIDER_NAME);
-			generator.initialize(2048);
+			generator.initialize(2048, random);
 			KeyPair keyPair = generator.generateKeyPair();
 			publicKey = keyPair.getPublic();
 			privateKey = keyPair.getPrivate();
@@ -231,12 +240,6 @@ public class SHA1WITHRSA2048SignatureFunction implements SignatureFunction {
 		PrivKey privKey = DefaultCryptoEncoding.encodePrivKey(SHA1WITHRSA2048, privKeyBytes);
 
 		return new AsymmetricKeypair(pubKey, privKey);
-	}
-
-	@Override
-	public AsymmetricKeypair generateKeypair(byte[] seed) {
-		// TODO Auto-generated method stub
-		throw new IllegalStateException("Not implemented!");
 	}
 
 	@Override
