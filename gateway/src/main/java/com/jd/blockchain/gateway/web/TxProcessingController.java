@@ -2,6 +2,8 @@ package com.jd.blockchain.gateway.web;
 
 import javax.servlet.http.HttpServletRequest;
 
+import com.jd.blockchain.gateway.PeerConnector;
+import com.jd.blockchain.utils.exception.ViewObsoleteException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,9 @@ public class TxProcessingController implements TransactionService {
 	@Autowired
 	private GatewayInterceptService interceptService;
 
+	@Autowired
+	private PeerConnector peerConnector;
+
 	@RequestMapping(path = "rpc/tx", method = RequestMethod.POST, consumes = BinaryMessageConverter.CONTENT_TYPE_VALUE, produces = BinaryMessageConverter.CONTENT_TYPE_VALUE)
 	@Override
 	public @ResponseBody TransactionResponse process(@RequestBody TransactionRequest txRequest) {
@@ -75,7 +80,14 @@ public class TxProcessingController implements TransactionService {
 
 		// 注：转发前自动附加网关的签名并转发请求至共识节点；异步的处理方式
 		LOGGER.info("[contentHash={}],before peerService.getTransactionService().process(txRequest)",txRequest.getTransactionHash());
-		TransactionResponse transactionResponse =  peerService.getTransactionService().process(txRequest);
+
+		TransactionResponse transactionResponse = null;
+		try {
+			transactionResponse =  peerService.getTransactionService().process(txRequest);
+		} catch (ViewObsoleteException voe) {
+			peerConnector.reconnect(txRequest.getTransactionContent().getLedgerHash());
+			throw new IllegalArgumentException(voe);
+		}
 		LOGGER.info("[contentHash={}],after peerService.getTransactionService().process(txRequest)",txRequest.getTransactionHash());
 		return transactionResponse;
 	}
