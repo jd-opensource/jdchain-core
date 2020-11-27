@@ -397,6 +397,7 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 			throw new IllegalStateException("The number of nodes is zero!");
 		}
 
+		// 更新节点列表；
 		BftsmartNodeSettings[] newNodes = new BftsmartNodeSettings[origNodes.length + 1];
 		for (int i = 0; i < origNodes.length; i++) {
 			newNodes[i] = (BftsmartNodeSettings) origNodes[i];
@@ -404,17 +405,37 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 		newNodes[origNodes.length] = new BftsmartNodeConfig(newReplica.getPubKey(), newReplica.getId(),
 				newReplica.getNetworkAddress());
 
+		// 更新系统属性；
 		Properties systemProps = PropertiesUtils.createProperties(bftsmartSettings.getSystemConfigs());
 
 		systemProps.setProperty(SERVER_NUM_KEY, String.valueOf(newNodes.length));
 
-		int f = computeF(newNodes.length);
-		
+		int f = computeBFTNumber(newNodes.length);
+		systemProps.setProperty(F_NUM_KEY, String.valueOf(f));
 
-		return null;
+		String[] processIds = new String[newNodes.length];
+		for (int i = 0; i < processIds.length; i++) {
+			processIds[i] = String.valueOf(newNodes[i].getId());
+		}
+		String viewPIDs = String.join(",", processIds);
+		systemProps.setProperty(SERVER_VIEW_KEY, viewPIDs);
+
+		// viewID increment;
+		int viewId = bftsmartSettings.getViewId() + 1;
+
+		return new BftsmartConsensusConfig(newNodes, PropertiesUtils.getOrderedValues(systemProps), viewId);
 	}
 
-	private int computeF(int nodeNumber) {
+	/**
+	 * 计算在指定节点数量下的拜占庭容错数；
+	 * 
+	 * @param nodeNumber
+	 * @return
+	 */
+	public static int computeBFTNumber(int nodeNumber) {
+		if (nodeNumber < 1) {
+			throw new IllegalArgumentException("Node number is less than 1!");
+		}
 		int f = 0;
 		while (true) {
 			if (nodeNumber >= (3 * f + 1) && nodeNumber < (3 * (f + 1) + 1)) {
