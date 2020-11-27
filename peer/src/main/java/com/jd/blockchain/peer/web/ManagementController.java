@@ -174,10 +174,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 //	private static Properties systemConfig;
 
-	private int viewId;
+//	private int viewId;
 
-	private static List<NodeSettings> origConsensusNodes;
-
+//	private static List<NodeSettings> origConsensusNodes;
 
 	@Autowired
 	private LedgerManage ledgerManager;
@@ -508,9 +507,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 				ledgerAdminInfo = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock());
 
-				origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
+				List<NodeSettings> origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
 
-				if (isConsensusNodeExist(consensusPort)) {
+				if (isConsensusNodeExist(consensusPort, origConsensusNodes)) {
 					return WebResponse.createFailureResult(-1, "[ManagementController] consensus port is exist, please check input port parameter!");
 				}
 
@@ -519,7 +518,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				Properties systemConfig = PropertiesUtils.createProperties(
 						((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getSystemConfigs());
 
-				viewId = ((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getViewId();
+				int viewId = ((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getViewId();
 
 				// 由本节点准备交易
 
@@ -542,14 +541,14 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				txbatchProcessor.schedule(txRequest);
 
 				// 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行新参与方的状态激活操作
-				remoteTxResponse = commitTxToOrigConsensus(ledgerRepo, txRequest, systemConfig);
+				remoteTxResponse = commitTxToOrigConsensus(ledgerRepo, txRequest, systemConfig, viewId, origConsensusNodes);
 
 				// 保证原有共识网络账本状态与共识协议的视图更新信息一致
 				long blockGenerateTime = remoteTxResponse.getBlockGenerateTime();
 				if (remoteTxResponse.isSuccess()) {
 					try {
 						View newView = updateView(ledgerRepo, consensusHost, Integer.parseInt(consensusPort),
-								Op.ACTIVE, systemConfig);
+								Op.ACTIVE, systemConfig, viewId, origConsensusNodes);
 						if (newView != null && newView.isMember(ledgerCurrNodes.get(ledgerRepo.getHash()).getId())) {
 							LOGGER.info("[ManagementController] updateView SUCC!");
 						} else if (newView == null) {
@@ -589,7 +588,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	}
 
 	// check if consensus node is exist
-	private boolean isConsensusNodeExist(String consensusPort) {
+	private boolean isConsensusNodeExist(String consensusPort, List<NodeSettings> origConsensusNodes) {
 		for (NodeSettings nodeSettings : origConsensusNodes) {
 			if (((BftsmartNodeSettings)nodeSettings).getNetworkAddress().getPort() == Integer.valueOf(consensusPort).intValue()) {
 				return true;
@@ -675,7 +674,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				Properties systemConfig = PropertiesUtils.createProperties(
 						((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getSystemConfigs());
 
-				viewId = ((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getViewId();
+				int viewId = ((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getViewId();
 
 				// 由本节点准备交易
 				TransactionRequest txRequest = prepareDeActiveTx(ledgerHash, participants, systemConfig);
@@ -685,19 +684,19 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					return WebResponse.createSuccessResult(null);
 				}
 
-				origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
+				List<NodeSettings> origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
 
 				// 为交易添加本节点的签名信息，防止无法通过安全策略检查
 				txRequest = addNodeSigner(txRequest);
 
 				// 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行参与方的去激活操作，这个原有网络包括本节点
-				txResponse = commitTxToOrigConsensus(ledgerRepo, txRequest, systemConfig);
+				txResponse = commitTxToOrigConsensus(ledgerRepo, txRequest, systemConfig, viewId, origConsensusNodes);
 
 				// 保证原有共识网络账本状态与共识协议的视图更新信息一致
 				if (txResponse.isSuccess()) {
 
 					try {
-						View newView = updateView(ledgerRepo, null, -1, Op.DEACTIVE, systemConfig);
+						View newView = updateView(ledgerRepo, null, -1, Op.DEACTIVE, systemConfig, viewId, origConsensusNodes);
 						if (newView != null && !newView.isMember(ledgerCurrNodes.get(ledgerRepo.getHash()).getId())) {
 							LOGGER.info("[ManagementController] updateView SUCC!");
 							ledgerPeers.get(ledgerHash).stop();
@@ -1050,13 +1049,13 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	}
 
 	// 通知原有的共识网络更新共识的视图ID
-	private View updateView(LedgerRepository ledgerRepository, String consensusHost, int consensusPort, Op op, Properties systemConfig) {
+	private View updateView(LedgerRepository ledgerRepository, String consensusHost, int consensusPort, Op op, Properties systemConfig, int viewId, List<NodeSettings> origConsensusNodes) {
 		ParticipantNode currNode = ledgerCurrNodes.get(ledgerRepository.getHash());
 
 		LOGGER.info("ManagementController start updateView operation!");
 
 		try {
-			ServiceProxy peerProxy = createPeerProxy(systemConfig);
+			ServiceProxy peerProxy = createPeerProxy(systemConfig, viewId, origConsensusNodes);
 
 			Reconfiguration reconfiguration = new Reconfiguration(peerProxy.getProcessId(), peerProxy);
 
@@ -1105,7 +1104,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		return new TxResponseMessage(txResponse, null);
 	}
 
-	private ServiceProxy createPeerProxy(Properties systemConfig) {
+	private ServiceProxy createPeerProxy(Properties systemConfig, int viewId, List<NodeSettings> origConsensusNodes) {
 
 		HostsConfig hostsConfig;
 		List<HostsConfig.Config> configList = new ArrayList<>();
@@ -1144,10 +1143,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	// SDK 通过Peer节点转发交易到远端的共识网络
 	private TransactionResponse commitTxToOrigConsensus(LedgerRepository ledgerRepository,
-			TransactionRequest txRequest, Properties systemConfig) {
+			TransactionRequest txRequest, Properties systemConfig, int viewId, List<NodeSettings> origConsensusNodes) {
 		TransactionResponse transactionResponse = new TxResponseMessage();
 
-		ServiceProxy peerProxy = createPeerProxy(systemConfig);
+		ServiceProxy peerProxy = createPeerProxy(systemConfig, viewId, origConsensusNodes);
 
 		byte[] result = peerProxy.invokeOrdered(BinaryProtocol.encode(txRequest, TransactionRequest.class));
 
