@@ -1,73 +1,80 @@
 package com.jd.blockchain.consensus.bftsmart.client;
 
-import bftsmart.reconfiguration.util.TOMConfiguration;
-import bftsmart.reconfiguration.views.MemoryBasedViewStorage;
-import bftsmart.reconfiguration.views.NodeNetwork;
-import bftsmart.reconfiguration.views.View;
-import bftsmart.tom.AsynchServiceProxy;
-import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
-import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
-import java.util.concurrent.atomic.AtomicInteger;
+import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
+import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
+
+import bftsmart.reconfiguration.util.TOMConfiguration;
+import bftsmart.reconfiguration.views.MemoryBasedViewStorage;
+import bftsmart.reconfiguration.views.NodeNetwork;
+import bftsmart.reconfiguration.views.View;
+import bftsmart.tom.AsynchServiceProxy;
 
 public class BftsmartPeerProxyFactory extends BasePooledObjectFactory<AsynchServiceProxy> {
-    private static Logger LOGGER = LoggerFactory.getLogger(BftsmartPeerProxyFactory.class);
-    private BftsmartClientSettings bftsmartClientSettings;
+	private static Logger LOGGER = LoggerFactory.getLogger(BftsmartPeerProxyFactory.class);
+	private BftsmartClientSettings bftsmartClientSettings;
 
-    private int gatewayId;
+	private int gatewayId;
 
-    private AtomicInteger index = new AtomicInteger(1);
+	private AtomicInteger index = new AtomicInteger(1);
 
-    public BftsmartPeerProxyFactory(BftsmartClientSettings bftsmartClientSettings, int gatewayId) {
-        this.bftsmartClientSettings = bftsmartClientSettings;
-        this.gatewayId = gatewayId;
-    }
+	public BftsmartPeerProxyFactory(BftsmartClientSettings bftsmartClientSettings, int gatewayId) {
+		this.bftsmartClientSettings = bftsmartClientSettings;
+		this.gatewayId = gatewayId;
+	}
 
-    @Override
-    public AsynchServiceProxy create() throws Exception {
+	@Override
+	public AsynchServiceProxy create() throws Exception {
+		BftsmartTopology topology = BinarySerializeUtils.deserialize(bftsmartClientSettings.getTopology());
 
-        BftsmartTopology topology = BinarySerializeUtils.deserialize(bftsmartClientSettings.getTopology());
+		View view = topology.getView();
+		if (view == null) {
+			throw new IllegalStateException("No topology view in the bftsmart client settings!");
+		}
 
-        View view = topology.getView();
-        if (view != null) {
-            // 打印view
-            int[] processes = view.getProcesses();
-            for (int process : processes) {
-                NodeNetwork address = view.getAddress(process);
-                if(LOGGER.isDebugEnabled()){
-                    LOGGER.info("read topology id = {}, address = {} \r\n",
-                            process, address);
-                }
-            }
-        }
+		MemoryBasedViewStorage viewStorage = new MemoryBasedViewStorage(view);
+		TOMConfiguration tomConfiguration = BinarySerializeUtils.deserialize(bftsmartClientSettings.getTomConfig());
 
-        MemoryBasedViewStorage viewStorage = new MemoryBasedViewStorage(topology.getView());
-        TOMConfiguration tomConfiguration = BinarySerializeUtils.deserialize(bftsmartClientSettings.getTomConfig());
+		// every proxy client has unique id;
+		int pooledClientId = gatewayId + index.getAndIncrement();
+		tomConfiguration.setProcessId(pooledClientId);
+		AsynchServiceProxy peerProxy = new AsynchServiceProxy(tomConfiguration, viewStorage);
 
-        //every proxy client has unique id;
-        tomConfiguration.setProcessId(gatewayId + index.getAndIncrement());
-        AsynchServiceProxy peerProxy = new AsynchServiceProxy(tomConfiguration, viewStorage);
-        return peerProxy;
-    }
+		if (LOGGER.isDebugEnabled()) {
+			// 打印view
+			int[] processes = view.getProcesses();
+			NodeNetwork[] addresses = new NodeNetwork[processes.length];
+			for (int i = 0; i < addresses.length; i++) {
+				addresses[i] = view.getAddress(processes[i]);
+			}
+			LOGGER.debug(
+					"Creating pooled bftsmart client ... [PooledClientID={}] [ViewID={}] [ViewTopology={}] [Peers={}]",
+					pooledClientId, view.getId(), Arrays.toString(processes), Arrays.toString(addresses));
+		}
 
-    @Override
-    public PooledObject<AsynchServiceProxy> wrap(AsynchServiceProxy asynchServiceProxy) {
-        return new DefaultPooledObject<>(asynchServiceProxy);
-    }
+		return peerProxy;
+	}
 
-    // when close pool, destroy its object
-    @Override
-    public void destroyObject(PooledObject<AsynchServiceProxy> p) throws Exception {
-        super.destroyObject(p);
-        AsynchServiceProxy serviceProxy = p.getObject();
-        if (serviceProxy != null) {
-            serviceProxy.close();
-        }
-    }
+	@Override
+	public PooledObject<AsynchServiceProxy> wrap(AsynchServiceProxy asynchServiceProxy) {
+		return new DefaultPooledObject<>(asynchServiceProxy);
+	}
+
+	// when close pool, destroy its object
+	@Override
+	public void destroyObject(PooledObject<AsynchServiceProxy> p) throws Exception {
+		super.destroyObject(p);
+		AsynchServiceProxy serviceProxy = p.getObject();
+		if (serviceProxy != null) {
+			serviceProxy.close();
+		}
+	}
 }

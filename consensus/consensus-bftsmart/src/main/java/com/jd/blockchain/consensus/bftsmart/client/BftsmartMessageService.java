@@ -6,30 +6,33 @@ import com.jd.blockchain.utils.concurrent.AsyncFuture;
 import com.jd.blockchain.utils.concurrent.CompletableAsyncFuture;
 import com.jd.blockchain.utils.exception.ViewObsoleteException;
 
-public class BftsmartMessageService implements MessageService {
+public abstract class BftsmartMessageService implements MessageService {
 
-    private BftsmartServiceProxyPool asyncPeerProxyPool;
+//    private BftsmartServiceProxyPool asyncPeerProxyPool;
 
-    public BftsmartMessageService(BftsmartServiceProxyPool peerProxyPool) {
-        this.asyncPeerProxyPool = peerProxyPool;
-    }
+	public BftsmartMessageService() {
+	}
 
-    @Override
-    public AsyncFuture<byte[]> sendOrdered(byte[] message) {
-        try {
-            return sendOrderedMessage(message);
-        } catch (ViewObsoleteException voe) {
-            throw voe;
-        } catch (Exception e) {
-            throw e;
-        }
-    }
+	protected abstract BftsmartServiceProxyPool getServiceProxyPool();
 
-    private AsyncFuture<byte[]> sendOrderedMessage(byte[] message) {
-        CompletableAsyncFuture<byte[]> asyncFuture = new CompletableAsyncFuture<>();
-        AsynchServiceProxy asynchServiceProxy = null;
-        try {
-            asynchServiceProxy = asyncPeerProxyPool.borrowObject();
+	@Override
+	public AsyncFuture<byte[]> sendOrdered(byte[] message) {
+		try {
+			return sendOrderedMessage(message);
+		} catch (ViewObsoleteException voe) {
+			throw voe;
+		} catch (Exception e) {
+			throw e;
+		}
+	}
+
+	private AsyncFuture<byte[]> sendOrderedMessage(byte[] message) {
+		BftsmartServiceProxyPool asyncPeerProxyPool = getServiceProxyPool();
+		
+		CompletableAsyncFuture<byte[]> asyncFuture = new CompletableAsyncFuture<>();
+		AsynchServiceProxy asynchServiceProxy = null;
+		try {
+			asynchServiceProxy = asyncPeerProxyPool.borrowObject();
 //            //0: Transaction msg, 1: Commitblock msg
 //            byte[] msgType = BytesUtils.toBytes(0);
 //            byte[] wrapMsg = new byte[message.length + 4];
@@ -39,41 +42,43 @@ public class BftsmartMessageService implements MessageService {
 //            System.out.printf("BftsmartMessageService invokeOrdered time = %s, id = %s threadId = %s \r\n",
 //                    System.currentTimeMillis(),  asynchServiceProxy.getProcessId(), Thread.currentThread().getId());
 
-            byte[] result = asynchServiceProxy.invokeOrdered(message);
-            asyncFuture.complete(result);
-        } catch (ViewObsoleteException voe) {
-            throw voe;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            if (asynchServiceProxy != null) {
-                asyncPeerProxyPool.returnObject(asynchServiceProxy);
-            }
-        }
+			byte[] result = asynchServiceProxy.invokeOrdered(message);
+			asyncFuture.complete(result);
+		} catch (ViewObsoleteException voe) {
+			throw voe;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		} finally {
+			if (asynchServiceProxy != null) {
+				asyncPeerProxyPool.returnObject(asynchServiceProxy);
+			}
+		}
 
-        return asyncFuture;
-    }
+		return asyncFuture;
+	}
 
-    @Override
-    public AsyncFuture<byte[]> sendUnordered(byte[] message) {
-        return sendUnorderedMessage(message);
-    }
+	@Override
+	public AsyncFuture<byte[]> sendUnordered(byte[] message) {
+		return sendUnorderedMessage(message);
+	}
 
-    private AsyncFuture<byte[]> sendUnorderedMessage(byte[] message) {
-        CompletableAsyncFuture<byte[]> asyncFuture = new CompletableAsyncFuture<>();
-            AsynchServiceProxy asynchServiceProxy = null;
-            try {
-                asynchServiceProxy = asyncPeerProxyPool.borrowObject();
-                byte[] result = asynchServiceProxy.invokeUnordered(message);
-                asyncFuture.complete(result);
+	private AsyncFuture<byte[]> sendUnorderedMessage(byte[] message) {
+		BftsmartServiceProxyPool asyncPeerProxyPool = getServiceProxyPool();
+		
+		CompletableAsyncFuture<byte[]> asyncFuture = new CompletableAsyncFuture<>();
+		AsynchServiceProxy asynchServiceProxy = null;
+		try {
+			asynchServiceProxy = asyncPeerProxyPool.borrowObject();
+			byte[] result = asynchServiceProxy.invokeUnordered(message);
+			asyncFuture.complete(result);
 
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            } finally {
-                if (asynchServiceProxy != null) {
-                    asyncPeerProxyPool.returnObject(asynchServiceProxy);
-                }
-            }
-        return asyncFuture;
-    }
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		} finally {
+			if (asynchServiceProxy != null) {
+				asyncPeerProxyPool.returnObject(asynchServiceProxy);
+			}
+		}
+		return asyncFuture;
+	}
 }

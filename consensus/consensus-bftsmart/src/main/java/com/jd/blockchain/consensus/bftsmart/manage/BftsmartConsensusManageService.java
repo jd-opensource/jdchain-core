@@ -12,16 +12,17 @@ import bftsmart.reconfiguration.Reconfiguration;
 import bftsmart.reconfiguration.ReconfigureReply;
 import bftsmart.tom.AsynchServiceProxy;
 
-public class BftsmartConsensusManageService implements ConsensusManageService {
+public abstract class BftsmartConsensusManageService implements ConsensusManageService {
 
-	private BftsmartServiceProxyPool serviceProxyPool;
-
-	public BftsmartConsensusManageService(BftsmartServiceProxyPool serviceProxyPool) {
-		this.serviceProxyPool = serviceProxyPool;
+	public BftsmartConsensusManageService() {
 	}
+
+	protected abstract BftsmartServiceProxyPool getServiceProxyPool();
 
 	@Override
 	public AsyncFuture<ConsensusView> addNode(Replica replica) {
+		BftsmartServiceProxyPool serviceProxyPool = getServiceProxyPool();
+		
 		BftsmartReplica bftsmartReplica = (BftsmartReplica) replica;
 
 		CompletableAsyncFuture<ConsensusView> asyncFuture = new CompletableAsyncFuture<>();
@@ -51,6 +52,8 @@ public class BftsmartConsensusManageService implements ConsensusManageService {
 
 	@Override
 	public AsyncFuture<ConsensusView> removeNode(Replica replica) {
+		BftsmartServiceProxyPool serviceProxyPool = getServiceProxyPool();
+		
 		CompletableAsyncFuture<ConsensusView> asyncFuture = new CompletableAsyncFuture<>();
 		AsynchServiceProxy serviceProxy = null;
 		try {

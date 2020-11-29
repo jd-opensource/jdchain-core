@@ -54,7 +54,6 @@ public class BftsmartConsensusClientFactory implements ClientFactory {
 
 	@Override
 	public ConsensusClient setupClient(ClientSettings settings) {
-
 		return new BftsmartConsensusClient(settings);
 	}
 

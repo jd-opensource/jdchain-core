@@ -1,5 +1,6 @@
 package com.jd.blockchain.consensus.bftsmart.service;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -14,22 +15,19 @@ import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 
 public class BftsmartClientAuthencationService implements ClientAuthencationService {
 
-	public static final int GATEWAY_SIZE = 100;
+	public static final int MAX_CLIENT_COUNT = 20000;
 
-	public static final int CLIENT_SIZE_PER_GATEWAY = 1000;
-
-	public static final int CLIENT_RANGE = GATEWAY_SIZE * CLIENT_SIZE_PER_GATEWAY;
-
+	public static final int POOL_SIZE_PEER_CLIENT = 100;
+	
 	private BftsmartNodeServer nodeServer;
 
-	private int clientId;
+	private AtomicInteger clientIdSeed;
 
 	private static final Lock authLock = new ReentrantLock();
 
 	public BftsmartClientAuthencationService(BftsmartNodeServer nodeServer) {
 		this.nodeServer = nodeServer;
-		// Assume that each peer node corresponds to up to 100 gateways
-		clientId = nodeServer.getServerId() * CLIENT_RANGE;
+		clientIdSeed = new AtomicInteger(0);
 	}
 
 	@Override
@@ -41,21 +39,23 @@ public class BftsmartClientAuthencationService implements ClientAuthencationServ
 			}
 
 			BftsmartClientIncomingConfig clientIncomingSettings = new BftsmartClientIncomingConfig();
-			clientIncomingSettings
-					.setTopology(BinarySerializeUtils.serialize(topology));
+			clientIncomingSettings.setTopology(BinarySerializeUtils.serialize(topology));
 
-			clientIncomingSettings
-					.setTomConfig(BinarySerializeUtils.serialize(nodeServer.getTomConfig()));
+			clientIncomingSettings.setTomConfig(BinarySerializeUtils.serialize(nodeServer.getTomConfig()));
 
-			clientIncomingSettings
-					.setConsensusSettings(nodeServer.getConsensusSetting());
+			clientIncomingSettings.setConsensusSettings(nodeServer.getConsensusSetting());
 
 			clientIncomingSettings.setPubKey(authId.getPubKey());
 			// compute gateway id
 			authLock.lock();
 			try {
-				clientIncomingSettings.setClientId(clientId++);
-				clientId += CLIENT_SIZE_PER_GATEWAY;
+				int clientCount = clientIdSeed.getAndIncrement();
+				if (clientCount > MAX_CLIENT_COUNT) {
+					throw new IllegalStateException(
+							String.format("Too many clients income from the node server[%s]! -- MAX_CLIENT_COUNT=%s",
+									nodeServer.getId(), MAX_CLIENT_COUNT));
+				}
+				clientIncomingSettings.setClientId(clientCount * nodeServer.getId());
 			} finally {
 				authLock.unlock();
 			}
@@ -68,8 +68,7 @@ public class BftsmartClientAuthencationService implements ClientAuthencationServ
 
 	public boolean verify(ClientIdentification authId) {
 
-		SignatureFunction signatureFunction = Crypto
-				.getSignatureFunction(authId.getPubKey().getAlgorithm());
+		SignatureFunction signatureFunction = Crypto.getSignatureFunction(authId.getPubKey().getAlgorithm());
 
 		return signatureFunction.verify(authId.getSignature(), authId.getPubKey(), authId.getIdentityInfo());
 	}
