@@ -20,30 +20,31 @@ public class BftsmartNodeServerFactory implements NodeServerFactory {
 	private static Map<String, NodeSettings[]> nodeServerMap = new ConcurrentHashMap<>();
 
 	@Override
-	public ServerSettings buildServerSettings(String realmName, ConsensusViewSettings consensusSetting, String nodeAddress) {
+	public ServerSettings buildServerSettings(String realmName, ConsensusViewSettings viewSettings,
+			String nodeAddress) {
 
-		NodeSettings serverNode = null;
+		NodeSettings nodeSetting = null;
 
 		BftsmartServerSettingConfig serverSettings = new BftsmartServerSettingConfig();
 
 		// find current node according to current address
-		for (NodeSettings nodeSettings : consensusSetting.getNodes()) {
+		for (NodeSettings nodeSettings : viewSettings.getNodes()) {
 			if (nodeSettings.getAddress().equals(nodeAddress)) {
-				serverNode = nodeSettings;
+				nodeSetting = nodeSettings;
 				break;
 			}
 		}
 
-		if (serverNode == null) {
-			throw new IllegalArgumentException();
+		if (nodeSetting == null) {
+			throw new IllegalArgumentException("Node address does not exist in view settings!");
 		}
 
 		// set server settings
 		serverSettings.setRealmName(realmName);
 
-		serverSettings.setReplicaSettings(serverNode);
+		serverSettings.setReplicaSettings(nodeSetting);
 
-		serverSettings.setConsensusSettings((BftsmartConsensusSettings) consensusSetting);
+		serverSettings.setConsensusSettings((BftsmartConsensusSettings) viewSettings);
 
 		return serverSettings;
 
