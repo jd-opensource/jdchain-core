@@ -2,7 +2,6 @@ package com.jd.blockchain.consensus.bftsmart.client;
 
 import com.jd.blockchain.consensus.MessageService;
 import com.jd.blockchain.consensus.bftsmart.manage.BftsmartConsensusManageService;
-import com.jd.blockchain.consensus.bftsmart.service.BftsmartClientAuthencationService;
 import com.jd.blockchain.consensus.client.ClientSettings;
 import com.jd.blockchain.consensus.client.ConsensusClient;
 import com.jd.blockchain.consensus.manage.ConsensusManageClient;
@@ -45,9 +44,7 @@ public class BftsmartConsensusClient implements ConsensusClient, ConsensusManage
     @Override
     public synchronized void connect() {
         //consensus client pool
-        BftsmartPeerProxyFactory peerProxyFactory = new BftsmartPeerProxyFactory((BftsmartClientSettings)clientSettings, gatewayId);
-        this.serviceProxyPool = new BftsmartServiceProxyPool(peerProxyFactory);
-        this.serviceProxyPool.setMaxTotal(BftsmartClientAuthencationService.POOL_SIZE_PEER_CLIENT);
+        this.serviceProxyPool = new BftsmartServiceProxyPool(gatewayId, (BftsmartClientSettings)clientSettings);
     }
 
     @Override

@@ -17,13 +17,7 @@ public abstract class BftsmartMessageService implements MessageService {
 
 	@Override
 	public AsyncFuture<byte[]> sendOrdered(byte[] message) {
-		try {
-			return sendOrderedMessage(message);
-		} catch (ViewObsoleteException voe) {
-			throw voe;
-		} catch (Exception e) {
-			throw e;
-		}
+		return sendOrderedMessage(message);
 	}
 
 	private AsyncFuture<byte[]> sendOrderedMessage(byte[] message) {
@@ -33,15 +27,7 @@ public abstract class BftsmartMessageService implements MessageService {
 		AsynchServiceProxy asynchServiceProxy = null;
 		try {
 			asynchServiceProxy = asyncPeerProxyPool.borrowObject();
-//            //0: Transaction msg, 1: Commitblock msg
-//            byte[] msgType = BytesUtils.toBytes(0);
-//            byte[] wrapMsg = new byte[message.length + 4];
-//            System.arraycopy(message, 0, wrapMsg, 4, message.length);
-//            System.arraycopy(msgType, 0, wrapMsg, 0, 4);
-//
-//            System.out.printf("BftsmartMessageService invokeOrdered time = %s, id = %s threadId = %s \r\n",
-//                    System.currentTimeMillis(),  asynchServiceProxy.getProcessId(), Thread.currentThread().getId());
-
+			
 			byte[] result = asynchServiceProxy.invokeOrdered(message);
 			asyncFuture.complete(result);
 		} catch (ViewObsoleteException voe) {

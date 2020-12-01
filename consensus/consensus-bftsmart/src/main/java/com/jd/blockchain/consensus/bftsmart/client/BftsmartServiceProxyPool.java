@@ -8,18 +8,20 @@
  */
 package com.jd.blockchain.consensus.bftsmart.client;
 
-import bftsmart.tom.AsynchServiceProxy;
-import org.apache.commons.pool2.PooledObjectFactory;
 import org.apache.commons.pool2.impl.GenericObjectPool;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+
+import bftsmart.tom.AsynchServiceProxy;
 
 public class BftsmartServiceProxyPool extends GenericObjectPool<AsynchServiceProxy> {
 
-    public BftsmartServiceProxyPool(PooledObjectFactory<AsynchServiceProxy> factory) {
-        this(factory, null);
-    }
+	public BftsmartServiceProxyPool(int gatewayId, BftsmartClientSettings clientSettings) {
+		super(new BftsmartPeerProxyFactory((BftsmartClientSettings) clientSettings, gatewayId),
+				new BftsmartPeerProxyPoolConfig());
+	}
 
-    public BftsmartServiceProxyPool(PooledObjectFactory<AsynchServiceProxy> factory, GenericObjectPoolConfig config) {
-        super(factory, config == null ? new BftsmartPeerProxyPoolConfig() : config);
-    }
+	public BftsmartServiceProxyPool(int gatewayId, BftsmartClientSettings clientSettings, int maxTotal, int minIdle,
+			int maxIdle) {
+		super(new BftsmartPeerProxyFactory((BftsmartClientSettings) clientSettings, gatewayId),
+				new BftsmartPeerProxyPoolConfig(maxTotal, minIdle, maxIdle));
+	}
 }

@@ -55,7 +55,7 @@ public class BftsmartClientAuthencationService implements ClientAuthencationServ
 							String.format("Too many clients income from the node server[%s]! -- MAX_CLIENT_COUNT=%s",
 									nodeServer.getId(), MAX_CLIENT_COUNT));
 				}
-				clientIncomingSettings.setClientId(clientCount * nodeServer.getId());
+				clientIncomingSettings.setClientId(clientCount + nodeServer.getId() * BftsmartNodeServer.MAX_SERVER_ID);
 			} finally {
 				authLock.unlock();
 			}

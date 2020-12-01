@@ -10,9 +10,13 @@ package com.jd.blockchain.consensus.bftsmart.client;
 
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
-public class BftsmartPeerProxyPoolConfig extends GenericObjectPoolConfig {
+import com.jd.blockchain.consensus.bftsmart.service.BftsmartClientAuthencationService;
 
-    public static final int MAX_TOTAL = 100;
+import bftsmart.tom.AsynchServiceProxy;
+
+public class BftsmartPeerProxyPoolConfig extends GenericObjectPoolConfig<AsynchServiceProxy> {
+
+    public static final int MAX_TOTAL = BftsmartClientAuthencationService.POOL_SIZE_PEER_CLIENT;
 
     private final int MIN_IDLE = 0;
 
