@@ -299,11 +299,11 @@ public class TransactionBatchProcessorTest {
 				.getTransaction(transactionRequest3.getTransactionHash());
 
 		assertNotNull(tx3);
-		assertEquals(TransactionState.SUCCESS, tx3.getExecutionState());
+		assertEquals(TransactionState.SUCCESS, tx3.getResult().getExecutionState());
 		assertNotNull(tx2);
-		assertEquals(TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST, tx2.getExecutionState());
+		assertEquals(TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST, tx2.getResult().getExecutionState());
 		assertNotNull(tx1);
-		assertEquals(TransactionState.SUCCESS, tx1.getExecutionState());
+		assertEquals(TransactionState.SUCCESS, tx1.getResult().getExecutionState());
 
 		HashDigest txsetRootHash = ledgerRepo.getTransactionSet().getRootHash();
 
@@ -333,11 +333,11 @@ public class TransactionBatchProcessorTest {
 		tx3 = ledgerRepo.getTransactionSet().getTransaction(transactionRequest3.getTransactionHash());
 
 		assertNotNull(tx1);
-		assertEquals(TransactionState.SUCCESS, tx1.getExecutionState());
+		assertEquals(TransactionState.SUCCESS, tx1.getResult().getExecutionState());
 		assertNotNull(tx2);
-		assertEquals(TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST, tx2.getExecutionState());
+		assertEquals(TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST, tx2.getResult().getExecutionState());
 		assertNotNull(tx3);
-		assertEquals(TransactionState.SUCCESS, tx3.getExecutionState());
+		assertEquals(TransactionState.SUCCESS, tx3.getResult().getExecutionState());
 
 		LedgerDataSet ledgerDS = ledgerRepo.getLedgerDataSet(latestBlock);
 		boolean existUser1 = ledgerDS.getUserAccountSet().contains(userKeypair1.getAddress());

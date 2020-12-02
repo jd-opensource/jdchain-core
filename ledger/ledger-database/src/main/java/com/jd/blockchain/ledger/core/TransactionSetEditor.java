@@ -208,7 +208,7 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		if (tx == null) {
 			throw new LedgerException("Transaction[" + txContentHash.toBase58() + "] doesn't exist!");
 		}
-		return tx.getExecutionState();
+		return tx.getResult().getExecutionState();
 	}
 
 	private TransactionResult loadResult(HashDigest txContentHash) {

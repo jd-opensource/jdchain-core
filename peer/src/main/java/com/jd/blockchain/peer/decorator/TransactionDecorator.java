@@ -34,8 +34,8 @@ public class TransactionDecorator implements LedgerTransaction {
         LedgerDataSnapshot ledgerDataSnapshot = initTransactionStagedSnapshot(ledgerTransaction.getResult().getDataSnapshot());
         OperationResult[] operationResults = initOperationResults(ledgerTransaction.getResult().getOperationResults());
 
-		this.request = new TxRequestMessage(ledgerTransaction.getTransactionHash(), transactionContent);
-		this.result = new TransactionResultData(ledgerTransaction.getTransactionHash(), ledgerTransaction.getBlockHeight(), ledgerTransaction.getExecutionState(), ledgerDataSnapshot, operationResults);
+		this.request = new TxRequestMessage(ledgerTransaction.getRequest().getTransactionHash(), transactionContent);
+		this.result = new TransactionResultData(ledgerTransaction.getRequest().getTransactionHash(), ledgerTransaction.getResult().getBlockHeight(), ledgerTransaction.getResult().getExecutionState(), ledgerDataSnapshot, operationResults);
         ((TxRequestMessage)this.request).setNodeSignatures(initNodeSignatures(ledgerTransaction.getRequest().getNodeSignatures()));
         ((TxRequestMessage)this.request).setEndpointSignatures(initEndpointSignatures(ledgerTransaction.getRequest().getEndpointSignatures()));
 	}
