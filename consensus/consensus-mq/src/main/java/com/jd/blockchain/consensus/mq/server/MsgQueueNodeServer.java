@@ -21,6 +21,7 @@ import com.jd.blockchain.consensus.mq.settings.MsgQueueNetworkSettings;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueServerSettings;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.NodeServer;
+import com.jd.blockchain.consensus.service.NodeState;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 
 /**
@@ -128,7 +129,7 @@ public class MsgQueueNodeServer implements NodeServer {
     }
 
     @Override
-    public MsgQueueServerSettings getSettings() {
+    public MsgQueueServerSettings getServerSettings() {
         return serverSettings;
     }
 
@@ -193,5 +194,11 @@ public class MsgQueueNodeServer implements NodeServer {
                 .setMsgProducer(msgProducer)
         ;
         extendExecutor.init();
+    }
+    
+    @Override
+    public NodeState getState() {
+    	// TODO Auto-generated method stub
+    	throw new IllegalStateException("Not implemented!");
     }
 }

@@ -4,7 +4,7 @@ import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
 
 public class BftsmartServerSettingConfig implements BftsmartServerSettings {
-    private NodeSettings replicaSettings;
+    private NodeSettings nodeSettings;
     private String realmName;
     private BftsmartConsensusSettings consensusSettings;
 
@@ -21,11 +21,11 @@ public class BftsmartServerSettingConfig implements BftsmartServerSettings {
 
     @Override
     public NodeSettings getReplicaSettings() {
-        return replicaSettings;
+        return nodeSettings;
     }
 
-    public void setReplicaSettings(NodeSettings replicaSettings) {
-        this.replicaSettings = replicaSettings;
+    public void setReplicaSettings(NodeSettings nodeSettings) {
+        this.nodeSettings = nodeSettings;
     }
 
 

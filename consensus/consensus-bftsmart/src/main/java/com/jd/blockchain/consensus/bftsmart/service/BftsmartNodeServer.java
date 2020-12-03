@@ -225,7 +225,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	}
 
 	@Override
-	public ServerSettings getSettings() {
+	public ServerSettings getServerSettings() {
 		return serverSettings;
 	}
 
@@ -305,6 +305,11 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	@Override
 	public boolean isRunning() {
 		return status == Status.RUNNING;
+	}
+
+	@Override
+	public BftsmartNodeState getState() {
+		return replica == null ? null : new BftsmartNodeStateExporter(replica, this);
 	}
 
 	@Override
@@ -907,7 +912,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		UN_EXECUTED,
 	}
 
-	private static class PeerNodeNetwork implements NodeNetworkAddress {
+	static class PeerNodeNetwork implements NodeNetworkAddress {
 
 		/**
 		 * 域名
