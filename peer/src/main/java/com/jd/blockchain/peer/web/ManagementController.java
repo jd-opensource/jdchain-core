@@ -450,7 +450,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		}
 	}
 
-	@RequestMapping(path = "/monitor/consensus/nodestate/{ledgerHash}", method = RequestMethod.POST)
+	@RequestMapping(path = "/monitor/consensus/nodestate/{ledgerHash}", method = RequestMethod.GET)
 	public String getConsensusNodeState(@PathVariable("ledgerHash") String base58LedgerHash) {
 		byte[] ledgerHashBytes;
 		try {
