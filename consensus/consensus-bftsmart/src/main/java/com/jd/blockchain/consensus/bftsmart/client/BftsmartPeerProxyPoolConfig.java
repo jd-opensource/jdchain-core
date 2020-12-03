@@ -16,11 +16,12 @@ import bftsmart.tom.AsynchServiceProxy;
 
 public class BftsmartPeerProxyPoolConfig extends GenericObjectPoolConfig<AsynchServiceProxy> {
 
-    public static final int MAX_TOTAL = BftsmartClientAuthencationService.POOL_SIZE_PEER_CLIENT;
+//    private int MAX_TOTAL = BftsmartClientAuthencationService.POOL_SIZE_PEER_CLIENT;
+    private int MAX_TOTAL = 30;
 
-    private final int MIN_IDLE = 0;
+    private int MIN_IDLE = 0;
 
-    private final int MAX_IDLE = 100;
+    private int MAX_IDLE = MAX_TOTAL;
 
     public BftsmartPeerProxyPoolConfig() {
         setMaxTotal(MAX_TOTAL);
