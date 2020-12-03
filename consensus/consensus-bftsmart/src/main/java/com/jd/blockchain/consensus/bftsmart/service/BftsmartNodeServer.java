@@ -220,8 +220,6 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 			init_view[i++] = proid;
 		}
 
-		Arrays.sort(init_view);
-
 		this.latestView = new View(setting.getViewId(), init_view, tomConfig.getF(),
 				nodeNetworks.toArray(nodeNetworksArray));
 
