@@ -171,6 +171,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 						String.format("The id of node[%s | %s | %s] is large than MAX_SERVER_ID[%s]!", node.getId(),
 								node.getAddress(), node.getNetworkAddress(), MAX_SERVER_ID));
 			}
+			LOGGER.info("createConfig node id = {}, port = {}", node.getId(), node.getNetworkAddress().getPort());
 			configList.add(new HostsConfig.Config(node.getId(), node.getNetworkAddress().getHost(),
 					node.getNetworkAddress().getPort(), -1));
 			consensusAddresses.put(node.getId(),
@@ -212,8 +213,19 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		Collection<NodeNetwork> nodeNetworks = consensusAddresses.values();
 		NodeNetwork[] nodeNetworksArray = new NodeNetwork[nodeNetworks.size()];
 
-		this.latestView = new View(setting.getViewId(), tomConfig.getInitialView(), tomConfig.getF(),
+		// 保证处理器ID与共识端口一致性
+		int[] init_view = new int[consensusAddresses.size()];
+		int i = 0;
+		for (int proid : consensusAddresses.keySet()) {
+			init_view[i++] = proid;
+		}
+
+		Arrays.sort(init_view);
+
+		this.latestView = new View(setting.getViewId(), init_view, tomConfig.getF(),
 				nodeNetworks.toArray(nodeNetworksArray));
+
+		LOGGER.info("[initConfig] latestview = {}", this.latestView);
 
 		this.outerTomConfig = new TOMConfiguration(id, sysConfClone, outerHostConfig);
 
