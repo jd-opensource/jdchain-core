@@ -88,13 +88,13 @@ class BftsmartNodeStateExporter implements BftsmartNodeState {
 
 		@Override
 		public int[] getProcessIDs() {
-			return replica.getViewController().getCurrentViewProcesses();
+			int[] processIDs = replica.getViewController().getCurrentViewProcesses();
+			return processIDs.clone();
 		}
 
 		@Override
 		public NodeNetworkAddress[] getProcessNetAddresses() {
-
-			int[] procIds = getProcessIDs();
+			int[] procIds = replica.getViewController().getCurrentViewProcesses();
 
 			NodeNetworkAddress[] networkAddresses = new NodeNetworkAddress[procIds.length];
 			for (int i = 0; i < procIds.length; i++) {
@@ -127,7 +127,7 @@ class BftsmartNodeStateExporter implements BftsmartNodeState {
 		public int getNextRegency() {
 			return replica.getTomLayer().getSynchronizer().getLCManager().getNextReg();
 		}
-
+		
 	}
 
 	private class ConsensusStateImpl implements ConsensusState {
