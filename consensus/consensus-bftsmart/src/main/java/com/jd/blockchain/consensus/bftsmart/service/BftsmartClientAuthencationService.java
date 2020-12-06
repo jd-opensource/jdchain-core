@@ -15,7 +15,7 @@ import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 
 public class BftsmartClientAuthencationService implements ClientAuthencationService {
 
-	public static final int MAX_CLIENT_COUNT = 20000;
+	public static final int MAX_CLIENT_COUNT = 200000;
 
 	public static final int POOL_SIZE_PEER_CLIENT = 100;
 	
@@ -50,12 +50,14 @@ public class BftsmartClientAuthencationService implements ClientAuthencationServ
 			authLock.lock();
 			try {
 				int clientCount = clientIdSeed.getAndIncrement();
-				if (clientCount > MAX_CLIENT_COUNT) {
+				if (clientCount >= MAX_CLIENT_COUNT) {
 					throw new IllegalStateException(
 							String.format("Too many clients income from the node server[%s]! -- MAX_CLIENT_COUNT=%s",
 									nodeServer.getId(), MAX_CLIENT_COUNT));
 				}
-				clientIncomingSettings.setClientId(clientCount + nodeServer.getId() * MAX_CLIENT_COUNT);
+				
+				int clientId = allocateClientId(clientCount, nodeServer.getId());
+				clientIncomingSettings.setClientId(clientId);
 			} finally {
 				authLock.unlock();
 			}
@@ -71,5 +73,11 @@ public class BftsmartClientAuthencationService implements ClientAuthencationServ
 		SignatureFunction signatureFunction = Crypto.getSignatureFunction(authId.getPubKey().getAlgorithm());
 
 		return signatureFunction.verify(authId.getSignature(), authId.getPubKey(), authId.getIdentityInfo());
+	}
+	
+	public static int allocateClientId(int clientSeqence, int nodeServerId) {
+		assert clientSeqence >= 0 && nodeServerId >= 0;
+		
+		return BftsmartNodeServer.MAX_SERVER_ID + nodeServerId * MAX_CLIENT_COUNT * POOL_SIZE_PEER_CLIENT + clientSeqence * POOL_SIZE_PEER_CLIENT;
 	}
 }

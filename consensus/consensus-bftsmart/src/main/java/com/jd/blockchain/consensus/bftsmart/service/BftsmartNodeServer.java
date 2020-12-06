@@ -130,8 +130,8 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		this.messageHandle = messageHandler;
 		createConfig();
 		serverId = findServerId();
-		if (serverId > MAX_SERVER_ID) {
-			throw new IllegalArgumentException("Server Id is large than MAX_SERVER_ID[" + MAX_SERVER_ID + "]!");
+		if (serverId >= MAX_SERVER_ID) {
+			throw new IllegalArgumentException("Server Id is greater than or equal to MAX_SERVER_ID[" + MAX_SERVER_ID + "]!");
 		}
 		initConfig(serverId, systemConfig, hostsConfig);
 		this.manageService = new BftsmartClientAuthencationService(this);
