@@ -23,7 +23,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.jd.blockchain.consensus.ConsensusViewSettings;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
@@ -46,12 +45,14 @@ import com.jd.blockchain.consensus.ClientIdentifications;
 import com.jd.blockchain.consensus.ClientIncomingSettings;
 import com.jd.blockchain.consensus.ConsensusProvider;
 import com.jd.blockchain.consensus.ConsensusProviders;
+import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.action.ActionResponse;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.NodeServer;
+import com.jd.blockchain.consensus.service.NodeState;
 import com.jd.blockchain.consensus.service.ServerSettings;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 import com.jd.blockchain.crypto.AsymmetricKeypair;
@@ -131,13 +132,13 @@ import com.jd.blockchain.transaction.SignatureUtils;
 import com.jd.blockchain.transaction.TxBuilder;
 import com.jd.blockchain.transaction.TxRequestMessage;
 import com.jd.blockchain.transaction.TxResponseMessage;
+import com.jd.blockchain.utils.BusinessException;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.PropertiesUtils;
 import com.jd.blockchain.utils.Property;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.ByteArray;
 import com.jd.blockchain.utils.net.NetworkAddress;
-import com.jd.blockchain.utils.serialize.json.JSONSerializeUtils;
 import com.jd.blockchain.utils.web.model.WebResponse;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
 
@@ -451,14 +452,14 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	}
 
 	@RequestMapping(path = "/monitor/consensus/nodestate/{ledgerHash}", method = RequestMethod.GET)
-	public String getConsensusNodeState(@PathVariable("ledgerHash") String base58LedgerHash) {
+	public NodeState getConsensusNodeState(@PathVariable("ledgerHash") String base58LedgerHash) {
 		byte[] ledgerHashBytes;
 		try {
 			ledgerHashBytes = Base58Utils.decode(base58LedgerHash);
 		} catch (Exception e) {
 			String errMsg = "Error occurred while resolving the base58 ledger hash string[" + base58LedgerHash + "]! --" + e.getMessage();
 			LOGGER.error(errMsg, e);
-			return errMsg;
+			throw new BusinessException(errMsg);
 		}
 		HashDigest ledgerHash;
 		try {
@@ -466,19 +467,19 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		} catch (Exception e) {
 			String errMsg = "Error occurred while resolving the ledger hash[" + base58LedgerHash + "]! --" + e.getMessage();
 			LOGGER.error(errMsg, e);
-			return errMsg;
+			throw new BusinessException(errMsg);
 		}
 		NodeServer nodeServer = ledgerPeers.get(ledgerHash);
 		if (nodeServer == null) {
-			return "The consensus node of ledger[" + base58LedgerHash + "] don't exist!";
+			throw new BusinessException( "The consensus node of ledger[" + base58LedgerHash + "] don't exist!");
 		}
 		try {
-			String stateInfo = JSONSerializeUtils.serializeToJSON(nodeServer.getState(), true);
-			return stateInfo;
+//			String stateInfo = JSONSerializeUtils.serializeToJSON(nodeServer.getState(), true);
+			return nodeServer.getState();
 		} catch (Exception e) {
 			String errMsg = "Error occurred while detecting the state info of the current consensus node in ledger[" + base58LedgerHash + "]! --" + e.getMessage();
 			LOGGER.error(errMsg, e);
-			return errMsg;
+			throw new BusinessException(errMsg);
 		}
 	}
 
