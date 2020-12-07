@@ -541,9 +541,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 				List<NodeSettings> origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
 
-				if (isConsensusNodeExist(consensusPort, origConsensusNodes)) {
+				if (isConsensusNodeExist(consensusHost, consensusPort)) {
 					return WebResponse.createFailureResult(-1,
-							"[ManagementController] consensus port is exist, please check input port parameter!");
+							"[ManagementController] consensus node is conflict, please check input consensusHost and consensusPort parameter!");
 				}
 
 				ParticipantNode[] participants = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock())
@@ -626,14 +626,23 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		}
 	}
 
-	// check if consensus node is exist
-	private boolean isConsensusNodeExist(String consensusPort, List<NodeSettings> origConsensusNodes) {
-		for (NodeSettings nodeSettings : origConsensusNodes) {
-			if (((BftsmartNodeSettings) nodeSettings).getNetworkAddress().getPort() == Integer.valueOf(consensusPort)
-					.intValue()) {
-				return true;
+	// check if consensus node is exist in all ledgers, prevent node conflict
+	private boolean isConsensusNodeExist(String consensusHost, String consensusPort) {
+
+		for (LedgerQuery ledgerQuery : ledgerQuerys.values()) {
+			LedgerRepository ledgerRepo = (LedgerRepository) ledgerQuery;
+			List<NodeSettings> origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
+
+			for (NodeSettings nodeSettings : origConsensusNodes) {
+				String host = ((BftsmartNodeSettings)nodeSettings).getNetworkAddress().getHost();
+				int port = ((BftsmartNodeSettings)nodeSettings).getNetworkAddress().getPort();
+
+				if ((host.equals(consensusHost)) && (port == Integer.valueOf(consensusPort).intValue())) {
+					return true;
+				}
 			}
 		}
+
 		return false;
 	}
 
