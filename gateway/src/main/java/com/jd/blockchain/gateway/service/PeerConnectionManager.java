@@ -118,10 +118,6 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 		// 连接成功的话，更新账本
 		ledgerHashLock.lock();
 		try {
-			addPeerAddress(peerAddress);
-			setGateWayKeyPair(defaultKeyPair);
-			setPeerProviders(peerProviders);
-
 			PeerBlockchainServiceFactory peerServiceFactory = PeerBlockchainServiceFactory.connect(defaultKeyPair, peerAddress, peerProviders);
 			if (peerServiceFactory != null) {
 				LOGGER.info("Connect peer {} success !!!", peerAddress);
@@ -132,6 +128,11 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 					LOGGER.info("Most ledgers remote update to {}", peerAddress);
 				}
 				peerBlockchainServiceFactories.put(peerAddress, peerServiceFactory);
+				
+				addPeerAddress(peerAddress);
+				setGateWayKeyPair(defaultKeyPair);
+				setPeerProviders(peerProviders);
+				
 				updateLedgerCache();
 			} else {
 				LOGGER.error("Connect peer {} fail !!!", peerAddress);

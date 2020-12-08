@@ -278,7 +278,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		}
 
 		ClientIdentification[] identificationArray = clientIdentifications.getClientIdentifications();
-		if (identificationArray == null || identificationArray.length <= 0) {
+		if (identificationArray == null || identificationArray.length == 0) {
 			return null;
 		}
 
@@ -327,7 +327,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			// 使用非代理对象，防止JSON序列化异常
 			ledgerIncomingSetting.setCryptoSetting(new CryptoConfigInfo(ledgerCryptoSettings.get(ledgerHash)));
-			ledgerIncomingSetting.setClientSetting(base64ClientIncomingSettings);
+			ledgerIncomingSetting.setConsensusClientSettings(base64ClientIncomingSettings);
 			ledgerIncomingSetting.setProviderName(peerProviderName);
 
 			ledgerIncomingList.add(ledgerIncomingSetting);
