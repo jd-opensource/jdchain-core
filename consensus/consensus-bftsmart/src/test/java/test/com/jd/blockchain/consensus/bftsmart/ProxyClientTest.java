@@ -92,7 +92,7 @@ public class ProxyClientTest {
         BlockchainKeypair keyPair = BlockchainKeyGenerator.getInstance().generate();
         clientIncomingConfig.setPubKey(keyPair.getPubKey());
         clientIncomingConfig.setClientId(0);
-        clientIncomingConfig.setConsensusSettings(nodeServer.getConsensusSetting());
+        clientIncomingConfig.setViewSettings(nodeServer.getConsensusSetting());
         clientIncomingConfig.setTomConfig(BinarySerializeUtils.serialize(nodeServer.getTomConfig()));
         clientIncomingConfig.setTopology(BinarySerializeUtils.serialize(nodeServer.getTopology()));
 

@@ -1,10 +1,11 @@
 package com.jd.blockchain.consensus.bftsmart;
 
+import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.crypto.PubKey;
 
 public class BftsmartClientIncomingConfig implements BftsmartClientIncomingSettings {
 
-    private BftsmartConsensusSettings consensusSettings;
+    private BftsmartConsensusViewSettings consensusSettings;
 
     private byte[] topology;
 
@@ -14,13 +15,13 @@ public class BftsmartClientIncomingConfig implements BftsmartClientIncomingSetti
 
     private PubKey pubKey;
 
-
+    
     @Override
-    public BftsmartConsensusSettings getConsensusSettings() {
-        return consensusSettings;
+    public ConsensusViewSettings getViewSettings() {
+    	return consensusSettings;
     }
 
-    public void setConsensusSettings(BftsmartConsensusSettings consensusSettings) {
+    public void setViewSettings(BftsmartConsensusViewSettings consensusSettings) {
         this.consensusSettings = consensusSettings;
     }
 

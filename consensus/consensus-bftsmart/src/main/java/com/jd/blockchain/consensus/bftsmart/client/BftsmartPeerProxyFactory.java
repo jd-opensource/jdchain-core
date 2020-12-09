@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
-import com.jd.blockchain.consensus.bftsmart.service.BftsmartClientAuthencationService;
 import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 
 import bftsmart.reconfiguration.util.TOMConfiguration;

@@ -1,7 +1,11 @@
-package com.jd.blockchain.consensus.bftsmart;
+package com.jd.blockchain.consensus.bftsmart.binaryproto;
 
 import com.jd.blockchain.binaryproto.DataContractAutoRegistrar;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
+import com.jd.blockchain.consensus.bftsmart.client.BftsmartClientAuthRequest;
 import com.jd.blockchain.consensus.configure.ConsensusDataContractAutoRegistrar;
 
 public class BftsmartDataContractAutoRegistrar implements DataContractAutoRegistrar{
@@ -13,9 +17,10 @@ public class BftsmartDataContractAutoRegistrar implements DataContractAutoRegist
 
 	@Override
 	public void initContext(DataContractRegistry registry) {
-		DataContractRegistry.register(BftsmartConsensusSettings.class);
+		DataContractRegistry.register(BftsmartConsensusViewSettings.class);
 		DataContractRegistry.register(BftsmartNodeSettings.class);
 		DataContractRegistry.register(BftsmartClientIncomingSettings.class);
+		DataContractRegistry.register(BftsmartClientAuthRequest.class);
 	}
 
 }

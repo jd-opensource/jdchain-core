@@ -48,7 +48,7 @@ import com.jd.blockchain.consensus.ConsensusProviders;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.action.ActionResponse;
-import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.NodeServer;
@@ -228,7 +228,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		DataContractRegistry.register(ActionResponse.class);
 
-		DataContractRegistry.register(BftsmartConsensusSettings.class);
+		DataContractRegistry.register(BftsmartConsensusViewSettings.class);
 		DataContractRegistry.register(BftsmartNodeSettings.class);
 
 		DataContractRegistry.register(LedgerAdminInfo.class);
@@ -301,7 +301,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				}
 				try {
 					clientIncomingSettings = peer.getClientAuthencationService().authencateIncoming(authId);
-					for (NodeSettings nodeSettings : clientIncomingSettings.getConsensusSettings().getNodes()) {
+					for (NodeSettings nodeSettings : clientIncomingSettings.getViewSettings().getNodes()) {
 						LOGGER.info("Manager controller, node settings proc id = {}",
 								((BftsmartNodeSettings) nodeSettings).getId());
 					}
@@ -550,9 +550,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 						.getParticipants();
 
 				Properties systemConfig = PropertiesUtils.createProperties(
-						((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getSystemConfigs());
+						((BftsmartConsensusViewSettings) getConsensusSetting(ledgerAdminInfo)).getSystemConfigs());
 
-				int viewId = ((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getViewId();
+				int viewId = ((BftsmartConsensusViewSettings) getConsensusSetting(ledgerAdminInfo)).getViewId();
 
 				// 由本节点准备交易
 
@@ -722,9 +722,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				}
 
 				Properties systemConfig = PropertiesUtils.createProperties(
-						((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getSystemConfigs());
+						((BftsmartConsensusViewSettings) getConsensusSetting(ledgerAdminInfo)).getSystemConfigs());
 
-				int viewId = ((BftsmartConsensusSettings) getConsensusSetting(ledgerAdminInfo)).getViewId();
+				int viewId = ((BftsmartConsensusViewSettings) getConsensusSetting(ledgerAdminInfo)).getViewId();
 
 				// 由本节点准备交易
 				TransactionRequest txRequest = prepareDeActiveTx(ledgerHash, participants, systemConfig);

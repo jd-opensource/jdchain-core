@@ -30,15 +30,15 @@ public class BftsmartSettingsFactory implements SettingsFactory {
 
 		@Override
 		public byte[] encode(ConsensusViewSettings data) {
-			if (data instanceof BftsmartConsensusSettings) {
-				return BinaryProtocol.encode(data, BftsmartConsensusSettings.class);
+			if (data instanceof BftsmartConsensusViewSettings) {
+				return BinaryProtocol.encode(data, BftsmartConsensusViewSettings.class);
 			}
 			throw new IllegalArgumentException("Settings data isn't supported! Accept BftsmartConsensusSettings only!");
 		}
 
 		@Override
 		public ConsensusViewSettings decode(byte[] bytes) {
-			return BinaryProtocol.decode(bytes, BftsmartConsensusSettings.class);
+			return BinaryProtocol.decode(bytes, BftsmartConsensusViewSettings.class);
 		}
 	}
 	

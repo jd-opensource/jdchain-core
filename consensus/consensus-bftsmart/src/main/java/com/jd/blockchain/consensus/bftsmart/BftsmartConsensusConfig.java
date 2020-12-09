@@ -3,7 +3,7 @@ package com.jd.blockchain.consensus.bftsmart;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.utils.Property;
 
-public class BftsmartConsensusConfig implements BftsmartConsensusSettings {
+public class BftsmartConsensusConfig implements BftsmartConsensusViewSettings {
 
 	private Property[] bftsmartSystemConfig;
 
@@ -12,7 +12,7 @@ public class BftsmartConsensusConfig implements BftsmartConsensusSettings {
 	private int viewId;
 
 	static {
-		DataContractRegistry.register(BftsmartConsensusSettings.class);
+		DataContractRegistry.register(BftsmartConsensusViewSettings.class);
 	}
 	/**
 	 * 创建 bftsmart 共识配置；

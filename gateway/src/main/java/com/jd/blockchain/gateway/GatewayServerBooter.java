@@ -12,7 +12,7 @@ import com.jd.blockchain.consensus.*;
 import com.jd.blockchain.consensus.action.ActionRequest;
 import com.jd.blockchain.consensus.action.ActionResponse;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
-import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.consensus.mq.settings.*;
 import com.jd.blockchain.crypto.*;
@@ -280,7 +280,7 @@ public class GatewayServerBooter {
 		DataContractRegistry.register(ConsensusViewSettings.class);
 		DataContractRegistry.register(NodeSettings.class);
 		DataContractRegistry.register(ClientIncomingSettings.class);
-		DataContractRegistry.register(BftsmartConsensusSettings.class);
+		DataContractRegistry.register(BftsmartConsensusViewSettings.class);
 		DataContractRegistry.register(BftsmartNodeSettings.class);
 		DataContractRegistry.register(BftsmartClientIncomingSettings.class);
 		DataContractRegistry.register(MsgQueueConsensusSettings.class);

@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
-import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.NodeServer;
@@ -44,7 +44,7 @@ public class BftsmartNodeServerFactory implements NodeServerFactory {
 
 		serverSettings.setReplicaSettings(nodeSetting);
 
-		serverSettings.setConsensusSettings((BftsmartConsensusSettings) viewSettings);
+		serverSettings.setConsensusSettings((BftsmartConsensusViewSettings) viewSettings);
 
 		return serverSettings;
 

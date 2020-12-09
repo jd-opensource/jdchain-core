@@ -15,11 +15,6 @@ import com.jd.blockchain.crypto.SignatureFunction;
 public class BftsmartConsensusClientFactory implements ClientFactory {
 
 
-//	private AtomicInteger addId = new AtomicInteger();
-//
-//	private String localDomain = "localhost";
-//	private String localIp = "127.0.0.1";
-
 	public BftsmartConsensusClientFactory() {
 
 	}
@@ -56,71 +51,5 @@ public class BftsmartConsensusClientFactory implements ClientFactory {
 	public ConsensusClient setupClient(ClientSettings settings) {
 		return new BftsmartConsensusClient(settings);
 	}
-
-//	@Override
-//	public ConsensusManageService createManageServiceClient(String[] serviceNodes) {
-//		BftsmartConsensusManageService consensusManageService = null;
-//		BftsmartClientIncomingSettings clientIncomingSettings;
-//
-//
-//		try {
-//			if (serviceNodes == null) {
-//				throw new ConsensusSecurityException("createManageServiceClient param error!");
-//			}
-//
-//			for (int i = 0; i < serviceNodes.length; i++) {
-//
-//                NetworkAddress networkAddress = getIpPortFromUrl(serviceNodes[i]);
-//                if (networkAddress == null) {
-//                	continue;
-//				}
-//				ServiceEndpoint peerServer = new ServiceEndpoint(networkAddress.getHost(), networkAddress.getPort(), false);
-//				consensusManageService = HttpServiceAgent.createService(BftsmartConsensusManageService.class, peerServer);
-//				clientIncomingSettings = consensusManageService.authClientIncoming(clientIdentification);
-//
-//				if (clientIncomingSettings == null) {
-//					consensusManageService = null;
-//				} else {
-//					//认证成功
-//					break;
-//				}
-//			}
-//
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-
-//		return consensusManageService;
-//		return null;
-//	}
-
-//	private NetworkAddress getIpPortFromUrl(String url) {
-//
-//		// 1.check null
-//		if (url == null || url.trim().equals("")) {
-//			return null;
-//		}
-//
-//		// 2. localhost replace to 127.0.0.1
-//		if(url.startsWith("http://" + localDomain) ){
-//			url = url.replace("http://" + localDomain, "http://" + localIp) ;
-//		}
-//
-//		String host = "";
-//		Pattern p = Pattern.compile("(?<=//|)((\\w)+\\.)+\\w+(:\\d{0,5})?");
-//		Matcher matcher = p.matcher(url);
-//		if (matcher.find()) {
-//			host = matcher.group() ;
-//		}
-//
-//		if(host.contains(":") == false){
-//			//default port :80
-//			return new NetworkAddress(host, 80);
-//		}
-//		else {
-//			String[] ipPortArr = host.split(":");
-//			return new NetworkAddress(ipPortArr[0], Integer.parseInt(ipPortArr[1]));
-//		}
-//	}
 
 }

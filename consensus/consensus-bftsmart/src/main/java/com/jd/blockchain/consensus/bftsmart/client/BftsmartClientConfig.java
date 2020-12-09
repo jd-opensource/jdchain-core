@@ -26,7 +26,7 @@ public class BftsmartClientConfig implements BftsmartClientSettings {
         this.clientIncomingSettings = clientIncomingSettings;
         this.clientId = clientIncomingSettings.getClientId();
         this.clientPubkey = clientIncomingSettings.getPubKey();
-        this.consensusSettings = clientIncomingSettings.getConsensusSettings();
+        this.consensusSettings = clientIncomingSettings.getViewSettings();
         this.topology = clientIncomingSettings.getTopology();
         this.tomConfig = clientIncomingSettings.getTomConfig();
 

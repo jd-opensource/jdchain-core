@@ -8,8 +8,8 @@ import com.jd.blockchain.consts.DataCodes;
 import com.jd.blockchain.utils.Property;
 import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 
-@DataContract(code = DataCodes.CONSENSUS_BFTSMART_SETTINGS)
-public interface BftsmartConsensusSettings extends ConsensusViewSettings {
+@DataContract(code = DataCodes.CONSENSUS_BFTSMART_VIEW_SETTINGS)
+public interface BftsmartConsensusViewSettings extends ConsensusViewSettings {
 
 	@DataField(order = 1, primitiveType = PrimitiveType.BYTES, list=true)
 	Property[] getSystemConfigs();

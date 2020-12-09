@@ -25,7 +25,7 @@ import com.jd.blockchain.consensus.NodeNetworkAddress;
 import com.jd.blockchain.consensus.NodeNetworkAddresses;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider;
-import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
 import com.jd.blockchain.consensus.service.MessageHandle;
@@ -87,7 +87,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
 	private volatile BftsmartTopology outerTopology;
 
-	private volatile BftsmartConsensusSettings setting;
+	private volatile BftsmartConsensusViewSettings setting;
 
 	private TOMConfiguration tomConfig;
 
@@ -263,7 +263,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	}
 
 	// 注意：该方法获得的共识环境为节点启动时从账本里读取的共识环境，如果运行过程中发生了节点动态入网，该环境没有得到更新
-	public BftsmartConsensusSettings getConsensusSetting() {
+	public BftsmartConsensusViewSettings getConsensusSetting() {
 		return setting;
 	}
 

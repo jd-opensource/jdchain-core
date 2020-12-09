@@ -1,12 +1,12 @@
 package com.jd.blockchain.consensus.bftsmart.service;
 
 import com.jd.blockchain.consensus.NodeSettings;
-import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 
 public class BftsmartServerSettingConfig implements BftsmartServerSettings {
     private NodeSettings nodeSettings;
     private String realmName;
-    private BftsmartConsensusSettings consensusSettings;
+    private BftsmartConsensusViewSettings consensusSettings;
 
 
     @Override
@@ -30,11 +30,11 @@ public class BftsmartServerSettingConfig implements BftsmartServerSettings {
 
 
     @Override
-    public BftsmartConsensusSettings getConsensusSettings() {
+    public BftsmartConsensusViewSettings getConsensusSettings() {
         return consensusSettings;
     }
 
-    public void setConsensusSettings(BftsmartConsensusSettings consensusSettings) {
+    public void setConsensusSettings(BftsmartConsensusViewSettings consensusSettings) {
         this.consensusSettings = consensusSettings;
     }
 }

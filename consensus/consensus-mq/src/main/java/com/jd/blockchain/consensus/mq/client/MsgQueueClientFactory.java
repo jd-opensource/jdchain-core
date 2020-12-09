@@ -52,7 +52,7 @@ public class MsgQueueClientFactory implements ClientFactory {
 
         MsgQueueClientIncomingSettings mqcic = (MsgQueueClientIncomingSettings)incomingSettings;
         if (mqcic != null) {
-            return buildClientSettings(mqcic.getClientId(), mqcic.getPubKey(), (MsgQueueConsensusSettings)(mqcic.getConsensusSettings()));
+            return buildClientSettings(mqcic.getClientId(), mqcic.getPubKey(), (MsgQueueConsensusSettings)(mqcic.getViewSettings()));
         }
         throw new IllegalArgumentException("ClientIncomingSettings data isn't supported! Accept MsgQueueClientIncomingSettings only!");
     }

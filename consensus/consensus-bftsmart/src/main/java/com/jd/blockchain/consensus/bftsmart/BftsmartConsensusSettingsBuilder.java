@@ -130,7 +130,7 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 	}
 
 	@Override
-	public BftsmartConsensusSettings createSettings(Properties props, Replica[] participantNodes) {
+	public BftsmartConsensusViewSettings createSettings(Properties props, Replica[] participantNodes) {
 		Properties resolvingProps = PropertiesUtils.cloneFrom(props);
 		int serversNum = PropertiesUtils.getInt(resolvingProps, SERVER_NUM_KEY);
 		if (serversNum < 0) {
@@ -209,7 +209,7 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 			}
 		}
 
-		BftsmartConsensusSettings bftsmartSettings = (BftsmartConsensusSettings) settings;
+		BftsmartConsensusViewSettings bftsmartSettings = (BftsmartConsensusViewSettings) settings;
 		BftsmartNodeSettings[] nodesSettings = (BftsmartNodeSettings[]) bftsmartSettings.getNodes();
 		serversNum = nodesSettings.length;
 		props.setProperty(SERVER_NUM_KEY, serversNum + "");
@@ -254,16 +254,16 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 		if (newProps != null) {
 			// update system config and node settings
 			Property[] systemConfigs = modifySystemProperties(
-					((BftsmartConsensusSettings) oldConsensusSettings).getSystemConfigs(), newProps);
+					((BftsmartConsensusViewSettings) oldConsensusSettings).getSystemConfigs(), newProps);
 
 			BftsmartNodeSettings[] newNodeSettings = createNewNodeSetting(oldConsensusSettings.getNodes(), newProps);
 
 			if (newProps.getProperty(PARTICIPANT_OP_KEY) != null) {
 				return new BftsmartConsensusConfig(newNodeSettings, systemConfigs,
-						((BftsmartConsensusSettings) oldConsensusSettings).getViewId() + 1);
+						((BftsmartConsensusViewSettings) oldConsensusSettings).getViewId() + 1);
 			} else {
 				return new BftsmartConsensusConfig(newNodeSettings, systemConfigs,
-						((BftsmartConsensusSettings) oldConsensusSettings).getViewId());
+						((BftsmartConsensusViewSettings) oldConsensusSettings).getViewId());
 			}
 		} else {
 			throw new IllegalArgumentException("updateSettings parameters error!");
@@ -383,13 +383,13 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 
 	@Override
 	public ConsensusViewSettings addReplicaSetting(ConsensusViewSettings viewSettings, Replica replica) {
-		if (!(viewSettings instanceof BftsmartConsensusSettings)) {
+		if (!(viewSettings instanceof BftsmartConsensusViewSettings)) {
 			throw new IllegalArgumentException("The specified view-settings is not a bftsmart-consensus-settings!");
 		}
 		if (!(replica instanceof BftsmartReplica)) {
 			throw new IllegalArgumentException("The specified replica is not a bftsmart-replica!");
 		}
-		BftsmartConsensusSettings bftsmartSettings = (BftsmartConsensusSettings) viewSettings;
+		BftsmartConsensusViewSettings bftsmartSettings = (BftsmartConsensusViewSettings) viewSettings;
 		BftsmartReplica newReplica = (BftsmartReplica) replica;
 
 		NodeSettings[] origNodes = bftsmartSettings.getNodes();
