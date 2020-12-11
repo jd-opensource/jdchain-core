@@ -8,14 +8,11 @@
  */
 package com.jd.blockchain.consensus.mq.config;
 
-import com.jd.blockchain.consensus.ClientIncomingSettings;
-import com.jd.blockchain.consensus.ConsensusViewSettings;
+import com.jd.blockchain.consensus.CredentialInfo;
 import com.jd.blockchain.consensus.mq.MsgQueueConsensusProvider;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueClientIncomingSettings;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueConsensusSettings;
 import com.jd.blockchain.crypto.PubKey;
-
-import java.lang.reflect.Method;
 
 /**
  *
@@ -58,12 +55,18 @@ public class MsgQueueClientIncomingConfig implements MsgQueueClientIncomingSetti
     }
 
     @Override
-    public MsgQueueConsensusSettings getConsensusSettings() {
-        return this.consensusSettings;
+    public MsgQueueConsensusSettings getViewSettings() {
+    	return this.consensusSettings;
     }
 
     @Override
     public PubKey getPubKey() {
         return pubKey;
+    }
+    
+    @Override
+    public CredentialInfo getCredential() {
+    	// TODO Auto-generated method stub
+    	throw new IllegalStateException("Not implemented!");
     }
 }

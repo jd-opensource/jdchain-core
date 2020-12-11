@@ -4,11 +4,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.jd.blockchain.consensus.ClientIdentification;
+import com.jd.blockchain.consensus.ClientCredential;
+import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.ClientAuthencationService;
+import com.jd.blockchain.consensus.bftsmart.BftsmartCredentialInfo;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingConfig;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
+import com.jd.blockchain.consensus.bftsmart.client.BftsmartClientId;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.SignatureFunction;
 import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
@@ -17,7 +20,7 @@ public class BftsmartClientAuthencationService implements ClientAuthencationServ
 
 	public static final int MAX_CLIENT_COUNT = 200000;
 
-	public static final int POOL_SIZE_PEER_CLIENT = 100;
+	public static final int POOL_SIZE_PEER_CLIENT = 50;
 
 	private BftsmartNodeServer nodeServer;
 
@@ -31,8 +34,8 @@ public class BftsmartClientAuthencationService implements ClientAuthencationServ
 	}
 
 	@Override
-	public BftsmartClientIncomingSettings authencateIncoming(ClientIdentification authId) {
-		if (verify(authId)) {
+	public BftsmartClientIncomingSettings authencateIncoming(ClientCredential credential) {
+		if (verify(credential)) {
 			BftsmartTopology topology = nodeServer.getTopology();
 			if (topology == null) {
 				throw new IllegalStateException("Topology of node[" + nodeServer.getId() + "] still not created !!!");
@@ -45,7 +48,9 @@ public class BftsmartClientAuthencationService implements ClientAuthencationServ
 
 			clientIncomingSettings.setViewSettings(nodeServer.getConsensusSetting());
 
-			clientIncomingSettings.setPubKey(authId.getPubKey());
+			clientIncomingSettings.setPubKey(credential.getPubKey());
+			
+			
 			// compute gateway id
 			authLock.lock();
 			try {
@@ -56,8 +61,9 @@ public class BftsmartClientAuthencationService implements ClientAuthencationServ
 									nodeServer.getId(), MAX_CLIENT_COUNT));
 				}
 
-				int clientId = allocateClientId(clientCount, nodeServer.getId());
-				clientIncomingSettings.setClientId(clientId);
+				int clientId = allocateClientId(clientCount, nodeServer.getId(), POOL_SIZE_PEER_CLIENT);
+				
+				clientIncomingSettings.setCredentialInfo(new BftsmartClientId(clientId, POOL_SIZE_PEER_CLIENT));
 			} finally {
 				authLock.unlock();
 			}
@@ -68,17 +74,19 @@ public class BftsmartClientAuthencationService implements ClientAuthencationServ
 		return null;
 	}
 
-	public boolean verify(ClientIdentification authId) {
+	private boolean verify(ClientCredential credential) {
 
-		SignatureFunction signatureFunction = Crypto.getSignatureFunction(authId.getPubKey().getAlgorithm());
+		byte[] credentialBytes = BinaryProtocol.encode(credential.getCredentialInfo(), BftsmartCredentialInfo.class);
+		SignatureFunction signatureFunction = Crypto.getSignatureFunction(credential.getPubKey().getAlgorithm());
 
-		return signatureFunction.verify(authId.getSignature(), authId.getPubKey(), authId.getIdentityInfo());
+		return signatureFunction.verify(credential.getSignature(), credential.getPubKey(),
+				credentialBytes);
 	}
 
-	public static int allocateClientId(int clientSeqence, int nodeServerId) {
+	public static int allocateClientId(int clientSeqence, int nodeServerId, int clientIdRange) {
 		assert clientSeqence >= 0 && nodeServerId >= 0;
 
 		return BftsmartNodeServer.MAX_SERVER_ID + nodeServerId * MAX_CLIENT_COUNT * POOL_SIZE_PEER_CLIENT
-				+ clientSeqence * POOL_SIZE_PEER_CLIENT;
+				+ clientSeqence * clientIdRange;
 	}
 }

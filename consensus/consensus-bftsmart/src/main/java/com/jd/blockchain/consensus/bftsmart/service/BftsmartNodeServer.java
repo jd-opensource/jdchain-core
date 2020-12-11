@@ -64,8 +64,6 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
 	private static Logger LOGGER = LoggerFactory.getLogger(BftsmartNodeServer.class);
 
-//    private static final String DEFAULT_BINDING_HOST = "0.0.0.0";
-
 	private List<StateHandle> stateHandles = new CopyOnWriteArrayList<>();
 
 	private final Map<String, BftsmartConsensusMessageContext> contexts = Collections
@@ -266,13 +264,6 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	public BftsmartConsensusViewSettings getConsensusSetting() {
 		return setting;
 	}
-
-//    public BftsmartTopology getTopology() {
-//        if (outerTopology != null) {
-//            return outerTopology;
-//        }
-//        return new BftsmartTopology(replica.getReplicaContext().getCurrentView());
-//    }
 
 	public BftsmartTopology getTopology() {
 		if (!isRunning()) {

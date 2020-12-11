@@ -1,8 +1,9 @@
 package com.jd.blockchain.consensus.bftsmart;
 
 import com.jd.blockchain.binaryproto.BinaryProtocol;
-import com.jd.blockchain.binaryproto.DataContractRegistry;
-import com.jd.blockchain.consensus.*;
+import com.jd.blockchain.consensus.ClientIncomingSettings;
+import com.jd.blockchain.consensus.ConsensusViewSettings;
+import com.jd.blockchain.consensus.SettingsFactory;
 import com.jd.blockchain.utils.io.BytesEncoder;
 
 public class BftsmartSettingsFactory implements SettingsFactory {

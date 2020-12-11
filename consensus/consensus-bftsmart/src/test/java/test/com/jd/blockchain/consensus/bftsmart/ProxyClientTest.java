@@ -16,6 +16,7 @@ import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusConfig;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeConfig;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.consensus.bftsmart.client.BftsmartClientConfig;
+import com.jd.blockchain.consensus.bftsmart.client.BftsmartClientId;
 import com.jd.blockchain.consensus.bftsmart.client.BftsmartConsensusClient;
 import com.jd.blockchain.consensus.bftsmart.client.BftsmartMessageService;
 import com.jd.blockchain.consensus.bftsmart.service.BftsmartNodeServer;
@@ -91,7 +92,7 @@ public class ProxyClientTest {
         BftsmartClientIncomingConfig clientIncomingConfig = new BftsmartClientIncomingConfig();
         BlockchainKeypair keyPair = BlockchainKeyGenerator.getInstance().generate();
         clientIncomingConfig.setPubKey(keyPair.getPubKey());
-        clientIncomingConfig.setClientId(0);
+        clientIncomingConfig.setCredentialInfo(new BftsmartClientId(0, 10));
         clientIncomingConfig.setViewSettings(nodeServer.getConsensusSetting());
         clientIncomingConfig.setTomConfig(BinarySerializeUtils.serialize(nodeServer.getTomConfig()));
         clientIncomingConfig.setTopology(BinarySerializeUtils.serialize(nodeServer.getTopology()));

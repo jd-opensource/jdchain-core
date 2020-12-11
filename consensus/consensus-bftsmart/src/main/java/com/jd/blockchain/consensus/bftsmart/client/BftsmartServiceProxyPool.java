@@ -9,19 +9,31 @@
 package com.jd.blockchain.consensus.bftsmart.client;
 
 import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
 import bftsmart.tom.AsynchServiceProxy;
 
 public class BftsmartServiceProxyPool extends GenericObjectPool<AsynchServiceProxy> {
 
-	public BftsmartServiceProxyPool(int gatewayId, BftsmartClientSettings clientSettings) {
-		super(new BftsmartPeerProxyFactory((BftsmartClientSettings) clientSettings, gatewayId),
-				new BftsmartPeerProxyPoolConfig());
+	public BftsmartServiceProxyPool(BftsmartClientSettings clientSettings) {
+		super(new BftsmartPeerProxyFactory(clientSettings));
+		init(clientSettings);
 	}
 
-	public BftsmartServiceProxyPool(int gatewayId, BftsmartClientSettings clientSettings, int maxTotal, int minIdle,
+	public BftsmartServiceProxyPool(BftsmartClientSettings clientSettings, int maxTotal, int minIdle,
 			int maxIdle) {
-		super(new BftsmartPeerProxyFactory((BftsmartClientSettings) clientSettings, gatewayId),
-				new BftsmartPeerProxyPoolConfig(maxTotal, minIdle, maxIdle));
+		super(new BftsmartPeerProxyFactory(clientSettings));
+		init(clientSettings);
 	}
+	
+	private void init(BftsmartClientSettings clientSettings) {
+		GenericObjectPoolConfig<AsynchServiceProxy> poolConfig = new GenericObjectPoolConfig<>();
+		int maxTotal = clientSettings.getCredentialInfo().getClientIdRange();
+		poolConfig.setMaxTotal(maxTotal);
+		poolConfig.setMaxIdle(maxTotal);
+		poolConfig.setMinIdle(0);
+		
+		setConfig(poolConfig);
+	}
+	
 }

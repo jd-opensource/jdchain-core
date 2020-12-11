@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -40,7 +41,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
-import com.jd.blockchain.consensus.ClientIdentification;
+import com.jd.blockchain.consensus.ClientCredential;
 import com.jd.blockchain.consensus.ClientIdentifications;
 import com.jd.blockchain.consensus.ClientIncomingSettings;
 import com.jd.blockchain.consensus.ConsensusProvider;
@@ -120,6 +121,8 @@ import com.jd.blockchain.peer.ConsensusRealm;
 import com.jd.blockchain.peer.LedgerBindingConfigAware;
 import com.jd.blockchain.peer.PeerManage;
 import com.jd.blockchain.peer.consensus.LedgerStateManager;
+import com.jd.blockchain.sdk.ManagementHttpService;
+import com.jd.blockchain.sdk.SystemStateInfo;
 import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
 import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.setting.GatewayIncomingSetting;
@@ -161,7 +164,7 @@ import bftsmart.tom.ServiceProxy;
  */
 @RestController
 @RequestMapping(path = "/management")
-public class ManagementController implements LedgerBindingConfigAware, PeerManage {
+public class ManagementController implements LedgerBindingConfigAware, PeerManage, ManagementHttpService {
 
 	private static Logger LOGGER = LoggerFactory.getLogger(ManagementController.class);
 
@@ -260,6 +263,19 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		DataContractRegistry.register(CryptoProvider.class);
 		DataContractRegistry.register(CryptoAlgorithm.class);
 	}
+	
+	@RequestMapping(path = URL_GET_SYSTEM_CONFIG, method = RequestMethod.GET)
+	@Override
+	public SystemStateInfo getSystemState() {
+		HashDigest[] ledgers = new HashDigest[ledgerPeers.size()];
+		String[] consensusProviders = new String[ledgers.length];
+		int i = 0;
+		for (Entry<HashDigest, NodeServer> ledgerNode : ledgerPeers.entrySet()) {
+			ledgers[i] = ledgerNode.getKey();
+			consensusProviders[i] = ledgerNode.getValue().getProviderName();
+		}
+		return new SystemStateInfo();
+	}
 
 	/**
 	 * 接入认证；
@@ -267,7 +283,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	 * @param clientIdentifications
 	 * @return
 	 */
-	@RequestMapping(path = "/gateway/auth", method = RequestMethod.POST, consumes = BinaryMessageConverter.CONTENT_TYPE_VALUE)
+	@RequestMapping(path = URL_AUTH_GATEWAY, method = RequestMethod.POST, consumes = BinaryMessageConverter.CONTENT_TYPE_VALUE)
+	@Override
 	public GatewayIncomingSetting authenticateGateway(@RequestBody ClientIdentifications clientIdentifications) {
 		// 去掉不严谨的网关注册和认证逻辑；暂时先放开，不做认证，后续应该在链上注册网关信息，并基于链上的网关信息进行认证；
 		// by: huanghaiquan; at 2018-09-11 18:34;
@@ -277,7 +294,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			return null;
 		}
 
-		ClientIdentification[] identificationArray = clientIdentifications.getClientIdentifications();
+		ClientCredential[] identificationArray = clientIdentifications.getClientIdentifications();
 		if (identificationArray == null || identificationArray.length == 0) {
 			return null;
 		}
@@ -294,7 +311,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			ConsensusProvider provider = ConsensusProviders.getProvider(peer.getProviderName());
 
 			ClientIncomingSettings clientIncomingSettings = null;
-			for (ClientIdentification authId : identificationArray) {
+			// 客户端提交了所有的“共识客户端提供者程序”生成的认证信息；
+			// 过滤后忽略掉与账本配置不匹配的“共识客户端提供者程序”认证信息；
+			for (ClientCredential authId : identificationArray) {
 				if (authId.getProviderName() == null || authId.getProviderName().length() <= 0
 						|| !authId.getProviderName().equalsIgnoreCase(peerProviderName)) {
 					continue;
@@ -457,7 +476,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		try {
 			ledgerHashBytes = Base58Utils.decode(base58LedgerHash);
 		} catch (Exception e) {
-			String errMsg = "Error occurred while resolving the base58 ledger hash string[" + base58LedgerHash + "]! --" + e.getMessage();
+			String errMsg = "Error occurred while resolving the base58 ledger hash string[" + base58LedgerHash + "]! --"
+					+ e.getMessage();
 			LOGGER.error(errMsg, e);
 			throw new BusinessException(errMsg);
 		}
@@ -465,19 +485,21 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		try {
 			ledgerHash = Crypto.resolveAsHashDigest(ledgerHashBytes);
 		} catch (Exception e) {
-			String errMsg = "Error occurred while resolving the ledger hash[" + base58LedgerHash + "]! --" + e.getMessage();
+			String errMsg = "Error occurred while resolving the ledger hash[" + base58LedgerHash + "]! --"
+					+ e.getMessage();
 			LOGGER.error(errMsg, e);
 			throw new BusinessException(errMsg);
 		}
 		NodeServer nodeServer = ledgerPeers.get(ledgerHash);
 		if (nodeServer == null) {
-			throw new BusinessException( "The consensus node of ledger[" + base58LedgerHash + "] don't exist!");
+			throw new BusinessException("The consensus node of ledger[" + base58LedgerHash + "] don't exist!");
 		}
 		try {
 //			String stateInfo = JSONSerializeUtils.serializeToJSON(nodeServer.getState(), true);
 			return nodeServer.getState();
 		} catch (Exception e) {
-			String errMsg = "Error occurred while detecting the state info of the current consensus node in ledger[" + base58LedgerHash + "]! --" + e.getMessage();
+			String errMsg = "Error occurred while detecting the state info of the current consensus node in ledger["
+					+ base58LedgerHash + "]! --" + e.getMessage();
 			LOGGER.error(errMsg, e);
 			throw new BusinessException(errMsg);
 		}
@@ -634,8 +656,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			List<NodeSettings> origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
 
 			for (NodeSettings nodeSettings : origConsensusNodes) {
-				String host = ((BftsmartNodeSettings)nodeSettings).getNetworkAddress().getHost();
-				int port = ((BftsmartNodeSettings)nodeSettings).getNetworkAddress().getPort();
+				String host = ((BftsmartNodeSettings) nodeSettings).getNetworkAddress().getHost();
+				int port = ((BftsmartNodeSettings) nodeSettings).getNetworkAddress().getPort();
 
 				if ((host.equals(consensusHost)) && (port == Integer.valueOf(consensusPort).intValue())) {
 					return true;

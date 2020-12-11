@@ -8,7 +8,8 @@
  */
 package com.jd.blockchain.consensus.mq.client;
 
-import com.jd.blockchain.consensus.ClientIdentification;
+import com.jd.blockchain.consensus.ClientCredential;
+import com.jd.blockchain.consensus.CredentialInfo;
 import com.jd.blockchain.consensus.mq.MsgQueueConsensusProvider;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.crypto.SignatureDigest;
@@ -20,9 +21,9 @@ import com.jd.blockchain.crypto.SignatureDigest;
  * @since 1.0.0
  */
 
-public class MsgQueueClientIdentification implements ClientIdentification {
+public class MsgQueueClientIdentification implements ClientCredential {
 
-    private byte[] identityInfo;
+    private CredentialInfo identityInfo;
 
     private PubKey pubKey;
 
@@ -31,13 +32,13 @@ public class MsgQueueClientIdentification implements ClientIdentification {
     public MsgQueueClientIdentification() {
     }
 
-    public MsgQueueClientIdentification(ClientIdentification clientIdentification) {
-        identityInfo = clientIdentification.getIdentityInfo();
+    public MsgQueueClientIdentification(ClientCredential clientIdentification) {
+        identityInfo = clientIdentification.getCredentialInfo();
         pubKey = clientIdentification.getPubKey();
         signature = clientIdentification.getSignature();
     }
 
-    public MsgQueueClientIdentification setIdentityInfo(byte[] identityInfo) {
+    public MsgQueueClientIdentification setIdentityInfo(CredentialInfo identityInfo) {
         this.identityInfo = identityInfo;
         return this;
     }
@@ -53,7 +54,7 @@ public class MsgQueueClientIdentification implements ClientIdentification {
     }
 
     @Override
-    public byte[] getIdentityInfo() {
+    public CredentialInfo getCredentialInfo() {
         return this.identityInfo;
     }
 
