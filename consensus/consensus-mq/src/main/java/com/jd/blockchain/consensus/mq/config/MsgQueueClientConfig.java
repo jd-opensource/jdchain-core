@@ -65,7 +65,7 @@ public class MsgQueueClientConfig implements MsgQueueClientSettings {
     }
 
 	@Override
-	public SessionCredential getCredentialInfo() {
+	public SessionCredential getSessionCredential() {
 		// TODO Auto-generated method stub
 		throw new IllegalStateException("Not implemented!");
 	}
