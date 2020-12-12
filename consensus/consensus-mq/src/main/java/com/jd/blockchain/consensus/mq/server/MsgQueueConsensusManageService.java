@@ -57,12 +57,12 @@ public class MsgQueueConsensusManageService implements ClientAuthencationService
 	}
 
 	public boolean isLegal(ClientCredential authId) {
-		if (!(authId.getCredentialInfo() instanceof MQCredentialInfo)) {
+		if (!(authId.getSessionCredential() instanceof MQCredentialInfo)) {
 			return false;
 		}
 		boolean isLegal = false;
 		PubKey pubKey = authId.getPubKey();
-		byte[] identityInfo = BinaryProtocol.encode(authId.getCredentialInfo(), MQCredentialInfo.class);
+		byte[] identityInfo = BinaryProtocol.encode(authId.getSessionCredential(), MQCredentialInfo.class);
 		byte[] address = pubKey.toBytes(); // 使用公钥地址作为认证信息
 		if (Arrays.equals(address, identityInfo)) {
 			SignatureFunction signatureFunction = Crypto.getSignatureFunction(pubKey.getAlgorithm());

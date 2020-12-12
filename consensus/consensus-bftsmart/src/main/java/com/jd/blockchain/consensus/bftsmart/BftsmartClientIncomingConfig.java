@@ -1,7 +1,7 @@
 package com.jd.blockchain.consensus.bftsmart;
 
 import com.jd.blockchain.consensus.ConsensusViewSettings;
-import com.jd.blockchain.consensus.CredentialInfo;
+import com.jd.blockchain.consensus.SessionCredential;
 import com.jd.blockchain.crypto.PubKey;
 
 public class BftsmartClientIncomingConfig implements BftsmartClientIncomingSettings {
@@ -16,7 +16,7 @@ public class BftsmartClientIncomingConfig implements BftsmartClientIncomingSetti
 
     private PubKey pubKey;
 
-	private BftsmartCredentialInfo credentialInfo;
+	private BftsmartSessionCredential sessionCredential;
 
     
     @Override
@@ -66,13 +66,13 @@ public class BftsmartClientIncomingConfig implements BftsmartClientIncomingSetti
     }
     
     @Override
-    public BftsmartCredentialInfo getCredential() {
-    	return credentialInfo;
+    public BftsmartSessionCredential getCredential() {
+    	return sessionCredential;
     }
     
-    public void setCredentialInfo(BftsmartCredentialInfo credentialInfo) {
-    	this.clientId = credentialInfo.getClientId();
-		this.credentialInfo = credentialInfo;
+    public void setSessionCredential(BftsmartSessionCredential sessionCredential) {
+    	this.clientId = sessionCredential.getClientId();
+		this.sessionCredential = sessionCredential;
 	}
     
 }

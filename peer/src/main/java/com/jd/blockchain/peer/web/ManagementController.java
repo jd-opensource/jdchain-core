@@ -42,15 +42,19 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.consensus.ClientCredential;
-import com.jd.blockchain.consensus.ClientIdentifications;
 import com.jd.blockchain.consensus.ClientIncomingSettings;
 import com.jd.blockchain.consensus.ConsensusProvider;
 import com.jd.blockchain.consensus.ConsensusProviders;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
+import com.jd.blockchain.consensus.SessionCredential;
 import com.jd.blockchain.consensus.action.ActionResponse;
+import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
+import com.jd.blockchain.consensus.bftsmart.client.BftsmartSessionCredentialConfig;
+import com.jd.blockchain.consensus.bftsmart.service.BftsmartClientAuthencationService;
+import com.jd.blockchain.consensus.bftsmart.service.BftsmartNodeServer;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.NodeState;
@@ -121,9 +125,11 @@ import com.jd.blockchain.peer.ConsensusRealm;
 import com.jd.blockchain.peer.LedgerBindingConfigAware;
 import com.jd.blockchain.peer.PeerManage;
 import com.jd.blockchain.peer.consensus.LedgerStateManager;
+import com.jd.blockchain.sdk.AccessSpecification;
+import com.jd.blockchain.sdk.GatewayAuthRequest;
 import com.jd.blockchain.sdk.ManagementHttpService;
-import com.jd.blockchain.sdk.SystemStateInfo;
 import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
+import com.jd.blockchain.sdk.service.SessionCredentialProvider;
 import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.setting.GatewayIncomingSetting;
 import com.jd.blockchain.setting.LedgerIncomingSetting;
@@ -189,6 +195,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	private DbConnectionFactory connFactory;
 
 //	private Map<HashDigest, MsgQueueMessageDispatcher> ledgerTxConverters = new ConcurrentHashMap<>();
+
+	private final SessionCredentialProvider SESSION_CREDENTIAL_PROVIDER = new PeerInterconnCredentialManager();
 
 	private Map<HashDigest, NodeServer> ledgerPeers = new ConcurrentHashMap<>();
 
@@ -263,10 +271,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		DataContractRegistry.register(CryptoProvider.class);
 		DataContractRegistry.register(CryptoAlgorithm.class);
 	}
-	
-	@RequestMapping(path = URL_GET_SYSTEM_CONFIG, method = RequestMethod.GET)
+
+	@RequestMapping(path = URL_GET_ACCESS_SPEC, method = RequestMethod.GET)
 	@Override
-	public SystemStateInfo getSystemState() {
+	public AccessSpecification getAccessSpecification() {
 		HashDigest[] ledgers = new HashDigest[ledgerPeers.size()];
 		String[] consensusProviders = new String[ledgers.length];
 		int i = 0;
@@ -274,64 +282,61 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			ledgers[i] = ledgerNode.getKey();
 			consensusProviders[i] = ledgerNode.getValue().getProviderName();
 		}
-		return new SystemStateInfo();
+		return new AccessSpecification();
 	}
 
 	/**
 	 * 接入认证；
 	 *
-	 * @param clientIdentifications
+	 * @param authRequest
 	 * @return
 	 */
 	@RequestMapping(path = URL_AUTH_GATEWAY, method = RequestMethod.POST, consumes = BinaryMessageConverter.CONTENT_TYPE_VALUE)
 	@Override
-	public GatewayIncomingSetting authenticateGateway(@RequestBody ClientIdentifications clientIdentifications) {
+	public GatewayIncomingSetting authenticateGateway(@RequestBody GatewayAuthRequest authRequest) {
 		// 去掉不严谨的网关注册和认证逻辑；暂时先放开，不做认证，后续应该在链上注册网关信息，并基于链上的网关信息进行认证；
 		// by: huanghaiquan; at 2018-09-11 18:34;
 		// TODO: 实现网关的链上注册与认证机制；
 		// TODO: 暂时先返回全部账本对应的共识网络配置信息；以账本哈希为 key 标识每一个账本对应的共识域、以及共识配置参数；
-		if (ledgerPeers.size() == 0 || clientIdentifications == null) {
+		if (ledgerPeers.size() == 0 || authRequest == null) {
 			return null;
 		}
 
-		ClientCredential[] identificationArray = clientIdentifications.getClientIdentifications();
-		if (identificationArray == null || identificationArray.length == 0) {
+		HashDigest[] authLedgers = authRequest.getLedgers();
+		ClientCredential[] clientCredentialOfRequests = authRequest.getCredentials();
+		if (authLedgers == null || authLedgers.length == 0 || clientCredentialOfRequests == null
+				|| clientCredentialOfRequests.length == 0) {
 			return null;
 		}
 
-		GatewayIncomingSetting setting = new GatewayIncomingSetting();
+		GatewayIncomingSetting gatewayAuthResponse = new GatewayIncomingSetting();
 		List<LedgerIncomingSetting> ledgerIncomingList = new ArrayList<LedgerIncomingSetting>();
 
-		for (HashDigest ledgerHash : ledgerPeers.keySet()) {
-
+		int i = -1;
+		for (HashDigest ledgerHash : authLedgers) {
+			i++;
 			NodeServer peer = ledgerPeers.get(ledgerHash);
+			if (peer == null) {
+				continue;
+			}
 
 			String peerProviderName = peer.getProviderName();
 
 			ConsensusProvider provider = ConsensusProviders.getProvider(peer.getProviderName());
 
 			ClientIncomingSettings clientIncomingSettings = null;
-			// 客户端提交了所有的“共识客户端提供者程序”生成的认证信息；
-			// 过滤后忽略掉与账本配置不匹配的“共识客户端提供者程序”认证信息；
-			for (ClientCredential authId : identificationArray) {
-				if (authId.getProviderName() == null || authId.getProviderName().length() <= 0
-						|| !authId.getProviderName().equalsIgnoreCase(peerProviderName)) {
-					continue;
-				}
-				try {
-					clientIncomingSettings = peer.getClientAuthencationService().authencateIncoming(authId);
-					for (NodeSettings nodeSettings : clientIncomingSettings.getViewSettings().getNodes()) {
-						LOGGER.info("Manager controller, node settings proc id = {}",
-								((BftsmartNodeSettings) nodeSettings).getId());
-					}
-					break;
-				} catch (Exception e) {
-					// 出现异常，打印日志即可
-					LOGGER.error(String.format("Load ledger[%s] error !", ledgerHash.toBase58()), e);
-					clientIncomingSettings = null;
-					break;
-//                    throw new AuthenticationServiceException(e.getMessage(), e);
-				}
+			ClientCredential clientRedential = clientCredentialOfRequests[i];
+			if (!peerProviderName.equalsIgnoreCase(clientRedential.getProviderName())) {
+				// 忽略掉不匹配的“共识客户端提供者程序”认证信息；
+				continue;
+			}
+			try {
+				clientIncomingSettings = peer.getClientAuthencationService().authencateIncoming(clientRedential);
+				logClientIncoming(clientIncomingSettings);
+			} catch (Exception e) {
+				// 个别账本的认证失败不应该影响其它账本的认证；
+				LOGGER.error(String.format("Load ledger[%s] error !", ledgerHash.toBase58()), e);
+				continue;
 			}
 			if (clientIncomingSettings == null) {
 				continue;
@@ -352,8 +357,16 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			ledgerIncomingList.add(ledgerIncomingSetting);
 
 		}
-		setting.setLedgers(ledgerIncomingList.toArray(new LedgerIncomingSetting[ledgerIncomingList.size()]));
-		return setting;
+		gatewayAuthResponse
+				.setLedgers(ledgerIncomingList.toArray(new LedgerIncomingSetting[ledgerIncomingList.size()]));
+		return gatewayAuthResponse;
+	}
+
+	private void logClientIncoming(ClientIncomingSettings clientIncomingSettings) {
+		for (NodeSettings nodeSettings : clientIncomingSettings.getViewSettings().getNodes()) {
+			LOGGER.info("Manager controller, node settings proc id = {}",
+					((BftsmartNodeSettings) nodeSettings).getId());
+		}
 	}
 
 	@Override
@@ -855,7 +868,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			providers.add(BFTSMART_PROVIDER);
 
 			PeerBlockchainServiceFactory blockchainServiceFactory = PeerBlockchainServiceFactory.connect(localKeyPair,
-					new NetworkAddress(remoteManageHost, Integer.parseInt(remoteManagePort)), providers);
+					new NetworkAddress(remoteManageHost, Integer.parseInt(remoteManagePort)),
+					SESSION_CREDENTIAL_PROVIDER);
 
 			remoteLatestBlockHeight = blockchainServiceFactory.getBlockchainService().getLedger(ledgerHash)
 					.getLatestBlockHeight();
@@ -1336,6 +1350,40 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		ACTIVE,
 
 		DEACTIVE
+
+	}
+
+	/**
+	 * 节点间互联的会话凭证提供者；
+	 * 
+	 * @author huanghaiquan
+	 *
+	 */
+	private class PeerInterconnCredentialManager implements SessionCredentialProvider {
+
+		@Override
+		public SessionCredential getCredential(String key) {
+			HashDigest ledgerHash = Crypto.resolveAsHashDigest(Base58Utils.decode(key));
+
+			NodeServer nodeServer = ledgerPeers.get(ledgerHash);
+			if (nodeServer == null) {
+				return null;
+			}
+			// 除了 BFTSMaRT 共识之外其它的共识不需要会话凭证；
+			if (BftsmartConsensusProvider.NAME.equals(nodeServer.getProviderName())) {
+				int nodeId = ((BftsmartNodeServer) nodeServer).getId();
+				int clientId = BftsmartClientAuthencationService.allocateClientIdForPeer(nodeId);
+				return new BftsmartSessionCredentialConfig(clientId, 1, System.currentTimeMillis());
+			}
+
+			// 除了 BFTSMaRT 共识之外其它的共识不需要会话凭证；
+			return null;
+		}
+
+		@Override
+		public void setCredential(String key, SessionCredential credential) {
+			// 作为 Peer 间互联的凭证管理器，内部的分配规则是固定的，不能被更新；
+		}
 
 	}
 

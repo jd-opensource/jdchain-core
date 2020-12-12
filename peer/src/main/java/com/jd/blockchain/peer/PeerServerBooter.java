@@ -92,6 +92,7 @@ import com.jd.blockchain.ledger.proof.MerklePath;
 import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.peer.web.LedgerLoadTimer;
 import com.jd.blockchain.runtime.RuntimeConstant;
+import com.jd.blockchain.sdk.GatewayAuthRequest;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
 import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
@@ -366,8 +367,6 @@ public class PeerServerBooter {
 		DataContractRegistry.register(DigitalSignature.class);
 		DataContractRegistry.register(DigitalSignatureBody.class);
 		DataContractRegistry.register(ClientCredential.class);
-		DataContractRegistry.register(ClientIdentifications.class);
-		DataContractRegistry.register(ClientIdentifications.class);
 		DataContractRegistry.register(ActionRequest.class);
 		DataContractRegistry.register(ActionResponse.class);
 		DataContractRegistry.register(ConsensusViewSettings.class);

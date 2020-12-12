@@ -4,7 +4,7 @@ import com.jd.blockchain.ump.model.config.PeerLocalConfig;
 
 import java.util.List;
 
-public interface ConsensusService {
+public interface ConsensusConfigService {
 
     String initConsensusConf(String consensusProvider, List<PeerLocalConfig> sharedConfigs);
 }

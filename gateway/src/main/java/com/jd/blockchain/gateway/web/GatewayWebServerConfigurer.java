@@ -4,7 +4,6 @@ import java.util.List;
 
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.consensus.ClientCredential;
-import com.jd.blockchain.consensus.ClientIdentifications;
 import com.jd.blockchain.consensus.action.ActionRequest;
 import com.jd.blockchain.consensus.action.ActionResponse;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
@@ -12,6 +11,7 @@ import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.json.ExtendJsonSerializeUtil;
 import com.jd.blockchain.ledger.json.serialize.JsonSerializeFactory;
 import com.jd.blockchain.ledger.proof.MerkleTrieData;
+import com.jd.blockchain.sdk.GatewayAuthRequest;
 import com.jd.blockchain.ledger.proof.MerkleLeaf;
 import com.jd.blockchain.ledger.proof.MerklePath;
 import com.jd.blockchain.web.serializes.ByteArrayObjectUtil;

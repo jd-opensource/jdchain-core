@@ -2,9 +2,9 @@ package com.jd.blockchain.consensus.bftsmart.client;
 
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.ClientIncomingSettings;
-import com.jd.blockchain.consensus.CredentialInfo;
+import com.jd.blockchain.consensus.SessionCredential;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientAuthCredit;
-import com.jd.blockchain.consensus.bftsmart.BftsmartCredentialInfo;
+import com.jd.blockchain.consensus.bftsmart.BftsmartSessionCredential;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
 import com.jd.blockchain.consensus.client.ClientFactory;
 import com.jd.blockchain.consensus.client.ClientSettings;
@@ -23,14 +23,14 @@ public class BftsmartConsensusClientFactory implements ClientFactory {
 	}
 
 	@Override
-	public BftsmartClientAuthCredit buildAuthId(CredentialInfo credentialInfo, AsymmetricKeypair clientKeyPair) {
-		if (credentialInfo == null) {
-			throw new IllegalArgumentException("No credential info!");
-		}
-		if (!(credentialInfo instanceof BftsmartCredentialInfo)) {
+	public BftsmartClientAuthCredit buildCredential(SessionCredential sessionCredential, AsymmetricKeypair clientKeyPair) {
+		if (sessionCredential == null) {
+			sessionCredential = BftsmartSessionCredentialConfig.createEmptyCredential();
+		}else
+		if (!(sessionCredential instanceof BftsmartSessionCredential)) {
 			throw new IllegalArgumentException(
-					"Illegal credential info type! Requrie [" + BftsmartCredentialInfo.class.getName()
-							+ "] but it is [" + credentialInfo.getClass().getName() + "]!");
+					"Illegal credential info type! Requrie [" + BftsmartSessionCredential.class.getName()
+							+ "] but it is [" + sessionCredential.getClass().getName() + "]!");
 		}
 
 		PubKey pubKey = clientKeyPair.getPubKey();
@@ -38,11 +38,11 @@ public class BftsmartConsensusClientFactory implements ClientFactory {
 
 		SignatureFunction signatureFunction = Crypto.getSignatureFunction(pubKey.getAlgorithm());
 		
-		byte[] credentialBytes = BinaryProtocol.encode(credentialInfo, BftsmartCredentialInfo.class);
+		byte[] credentialBytes = BinaryProtocol.encode(sessionCredential, BftsmartSessionCredential.class);
 		SignatureDigest signatureDigest = signatureFunction.sign(privKey, credentialBytes);
 
 		BftsmartClientAuthCredit bftsmartClientIdentification = new BftsmartClientAuthCredit();
-		bftsmartClientIdentification.setCredentialInfo((BftsmartCredentialInfo)credentialInfo);
+		bftsmartClientIdentification.setCredentialInfo((BftsmartSessionCredential)sessionCredential);
 		bftsmartClientIdentification.setPubKey(pubKey);
 		bftsmartClientIdentification.setSignatureDigest(signatureDigest);
 

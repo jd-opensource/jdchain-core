@@ -1,8 +1,8 @@
 package com.jd.blockchain.consensus.bftsmart.client;
 
 import com.jd.blockchain.consensus.ConsensusViewSettings;
-import com.jd.blockchain.consensus.CredentialInfo;
-import com.jd.blockchain.consensus.bftsmart.BftsmartCredentialInfo;
+import com.jd.blockchain.consensus.SessionCredential;
+import com.jd.blockchain.consensus.bftsmart.BftsmartSessionCredential;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
 import com.jd.blockchain.crypto.PubKey;
 
@@ -16,25 +16,25 @@ public class BftsmartClientConfig implements BftsmartClientSettings {
 	private byte[] topology;
 	private byte[] tomConfig;
 	BftsmartClientIncomingSettings clientIncomingSettings;
-	private BftsmartCredentialInfo credentialInfo;
+	private BftsmartSessionCredential sessionCredential;
 
 	/**
 	 * 创建客户端配置；
 	 * 
 	 * @param clientPubkey   客户端的公钥；
-	 * @param credentialInfo 回复的客户端信息；
+	 * @param sessionCredential 回复的客户端信息；
 	 * @param viewSettings
 	 * @param topology
 	 * @param tomConfig
 	 */
-	public BftsmartClientConfig(PubKey clientPubkey, BftsmartCredentialInfo clientIdCredential, ConsensusViewSettings viewSettings,
+	public BftsmartClientConfig(PubKey clientPubkey, BftsmartSessionCredential sessionCredential, ConsensusViewSettings viewSettings,
 			byte[] topology, byte[] tomConfig) {
-		this.clientId = clientIdCredential.getClientId();
+		this.clientId = sessionCredential.getClientId();
 		this.clientPubkey = clientPubkey;
 		this.viewSettings = viewSettings;
 		this.topology = topology;
 		this.tomConfig = tomConfig;
-		this.credentialInfo = clientIdCredential;
+		this.sessionCredential = sessionCredential;
 	}
 
 	public BftsmartClientConfig(BftsmartClientIncomingSettings clientIncomingSettings) {
@@ -44,6 +44,7 @@ public class BftsmartClientConfig implements BftsmartClientSettings {
 		this.viewSettings = clientIncomingSettings.getViewSettings();
 		this.topology = clientIncomingSettings.getTopology();
 		this.tomConfig = clientIncomingSettings.getTomConfig();
+		this.sessionCredential = (BftsmartSessionCredential) clientIncomingSettings.getCredential();
 	}
 
 	@Override
@@ -91,7 +92,7 @@ public class BftsmartClientConfig implements BftsmartClientSettings {
 	}
 
 	@Override
-	public BftsmartCredentialInfo getCredentialInfo() {
-		return credentialInfo;
+	public BftsmartSessionCredential getSessionCredential() {
+		return sessionCredential;
 	}
 }

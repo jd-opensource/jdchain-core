@@ -9,7 +9,7 @@
 package com.jd.blockchain.consensus.mq.client;
 
 import com.jd.blockchain.consensus.ClientIncomingSettings;
-import com.jd.blockchain.consensus.CredentialInfo;
+import com.jd.blockchain.consensus.SessionCredential;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.ClientAuthencationService;
 import com.jd.blockchain.consensus.client.ClientFactory;
@@ -34,7 +34,7 @@ import com.jd.blockchain.crypto.SignatureFunction;
 public class MsgQueueClientFactory implements ClientFactory {
 
     @Override
-    public MsgQueueClientIdentification buildAuthId(CredentialInfo credentialInfo, AsymmetricKeypair clientKeyPair) {
+    public MsgQueueClientIdentification buildCredential(SessionCredential credentialInfo, AsymmetricKeypair clientKeyPair) {
     	MQCredentialInfo mqCredentialInfo = (MQCredentialInfo) credentialInfo;
     	byte[] credentialBytes = BinaryProtocol.encode(mqCredentialInfo, MQCredentialInfo.class);
     	

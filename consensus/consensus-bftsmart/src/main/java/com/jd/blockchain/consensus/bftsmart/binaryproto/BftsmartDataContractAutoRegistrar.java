@@ -2,7 +2,7 @@ package com.jd.blockchain.consensus.bftsmart.binaryproto;
 
 import com.jd.blockchain.binaryproto.DataContractAutoRegistrar;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
-import com.jd.blockchain.consensus.bftsmart.BftsmartCredentialInfo;
+import com.jd.blockchain.consensus.bftsmart.BftsmartSessionCredential;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
@@ -20,7 +20,7 @@ public class BftsmartDataContractAutoRegistrar implements DataContractAutoRegist
 		DataContractRegistry.register(BftsmartConsensusViewSettings.class);
 		DataContractRegistry.register(BftsmartNodeSettings.class);
 		DataContractRegistry.register(BftsmartClientIncomingSettings.class);
-		DataContractRegistry.register(BftsmartCredentialInfo.class);
+		DataContractRegistry.register(BftsmartSessionCredential.class);
 	}
 
 }

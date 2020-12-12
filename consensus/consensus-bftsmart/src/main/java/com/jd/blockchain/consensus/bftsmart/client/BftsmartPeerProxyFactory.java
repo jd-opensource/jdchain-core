@@ -9,7 +9,7 @@ import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.jd.blockchain.consensus.bftsmart.BftsmartCredentialInfo;
+import com.jd.blockchain.consensus.bftsmart.BftsmartSessionCredential;
 import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
 import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 
@@ -27,14 +27,14 @@ public class BftsmartPeerProxyFactory extends BasePooledObjectFactory<AsynchServ
 	private int idRange;
 	
 	/**
-	 * 已分配 ID 的标记；值在 0 ~ {@link BftsmartCredentialInfo#getClientIdRange()} 之间；
+	 * 已分配 ID 的标记；值在 0 ~ {@link BftsmartSessionCredential#getClientIdRange()} 之间；
 	 */
 	private BitSet allocatedRange;
 
 	public BftsmartPeerProxyFactory(BftsmartClientSettings bftsmartClientSettings) {
 		this.bftsmartClientSettings = bftsmartClientSettings;
-		this.idBase = bftsmartClientSettings.getCredentialInfo().getClientId();
-		this.idRange = bftsmartClientSettings.getCredentialInfo().getClientIdRange();
+		this.idBase = bftsmartClientSettings.getSessionCredential().getClientId();
+		this.idRange = bftsmartClientSettings.getSessionCredential().getClientIdRange();
 		this.allocatedRange = new BitSet(idRange);
 	}
 

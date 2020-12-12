@@ -8,7 +8,7 @@
  */
 package com.jd.blockchain.consensus.mq.config;
 
-import com.jd.blockchain.consensus.CredentialInfo;
+import com.jd.blockchain.consensus.SessionCredential;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueClientSettings;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueConsensusSettings;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueNetworkSettings;
@@ -65,7 +65,7 @@ public class MsgQueueClientConfig implements MsgQueueClientSettings {
     }
 
 	@Override
-	public CredentialInfo getCredentialInfo() {
+	public SessionCredential getCredentialInfo() {
 		// TODO Auto-generated method stub
 		throw new IllegalStateException("Not implemented!");
 	}

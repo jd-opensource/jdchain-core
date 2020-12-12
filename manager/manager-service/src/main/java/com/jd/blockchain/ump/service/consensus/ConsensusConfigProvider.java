@@ -5,7 +5,7 @@ import com.jd.blockchain.ump.model.config.PeerLocalConfig;
 import java.util.List;
 import java.util.Properties;
 
-public interface ConsensusProvider {
+public interface ConsensusConfigProvider {
 
     String NEXT_LINE = "\r\n";
 

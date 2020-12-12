@@ -13,11 +13,11 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
-public class ConsensusServiceHandler implements ConsensusService {
+public class ConsensusServiceHandler implements ConsensusConfigService {
 
     private static final String PATH_INNER = "/";
 
-    private static final Map<String, ConsensusProvider> CONSENSUS_PROVIDERS = new ConcurrentHashMap<>();
+    private static final Map<String, ConsensusConfigProvider> CONSENSUS_PROVIDERS = new ConcurrentHashMap<>();
 
     static {
         try {
@@ -30,7 +30,7 @@ public class ConsensusServiceHandler implements ConsensusService {
     @Override
     public String initConsensusConf(String consensusProvider, List<PeerLocalConfig> sharedConfigs) {
         // 首先根据provider获取对应的配置信息
-        ConsensusProvider provider = CONSENSUS_PROVIDERS.get(consensusProvider);
+        ConsensusConfigProvider provider = CONSENSUS_PROVIDERS.get(consensusProvider);
 
         if (provider == null) {
             throw new IllegalStateException(
@@ -46,15 +46,15 @@ public class ConsensusServiceHandler implements ConsensusService {
         // 初始化所有实现类
         Reflections reflections = new Reflections("com.jd.blockchain.ump.service.consensus");
 
-        Set<Class<? extends ConsensusProvider>> providerSet =
-                reflections.getSubTypesOf(ConsensusProvider.class);
+        Set<Class<? extends ConsensusConfigProvider>> providerSet =
+                reflections.getSubTypesOf(ConsensusConfigProvider.class);
 
-        for (Class<? extends ConsensusProvider> clazz : providerSet) {
+        for (Class<? extends ConsensusConfigProvider> clazz : providerSet) {
 
             if (!clazz.isInterface()) {
                 try {
                     // 根据class生成对象
-                    ConsensusProvider provider = clazz.newInstance();
+                    ConsensusConfigProvider provider = clazz.newInstance();
                     String providerKey = provider.provider();
                     if (providerKey != null && providerKey.length() > 0 &&
                             !CONSENSUS_PROVIDERS.containsKey(providerKey)) {

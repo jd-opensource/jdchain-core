@@ -6,7 +6,7 @@ import com.jd.blockchain.crypto.SignatureDigest;
 
 public class BftsmartClientAuthCredit implements ClientCredential {
 
-	private BftsmartCredentialInfo credentialInfo;
+	private BftsmartSessionCredential credentialInfo;
 	private PubKey pubKey;
 	private SignatureDigest signatureDigest;
 
@@ -14,26 +14,26 @@ public class BftsmartClientAuthCredit implements ClientCredential {
 	}
 
 	public BftsmartClientAuthCredit(ClientCredential clientCredential) {
-		if (clientCredential.getCredentialInfo() == null) {
+		if (clientCredential.getSessionCredential() == null) {
 			throw new IllegalArgumentException("Client credential info is null!");
 		}
-		if (!(clientCredential.getCredentialInfo() instanceof BftsmartCredentialInfo)) {
+		if (!(clientCredential.getSessionCredential() instanceof BftsmartSessionCredential)) {
 			throw new IllegalArgumentException(
-					"Require the client credential info of type [" + BftsmartCredentialInfo.class.getName()
-							+ "], but it is [" + clientCredential.getCredentialInfo().getClass().getName() + "]!");
+					"Require the client credential info of type [" + BftsmartSessionCredential.class.getName()
+							+ "], but it is [" + clientCredential.getSessionCredential().getClass().getName() + "]!");
 		}
-		this.credentialInfo = (BftsmartCredentialInfo) clientCredential.getCredentialInfo();
+		this.credentialInfo = (BftsmartSessionCredential) clientCredential.getSessionCredential();
 		this.pubKey = clientCredential.getPubKey();
 		this.signatureDigest = clientCredential.getSignature();
 	}
 
 
 	@Override
-	public BftsmartCredentialInfo getCredentialInfo() {
+	public BftsmartSessionCredential getSessionCredential() {
 		return credentialInfo;
 	}
 
-	public void setCredentialInfo(BftsmartCredentialInfo credentialInfo) {
+	public void setCredentialInfo(BftsmartSessionCredential credentialInfo) {
 		this.credentialInfo = credentialInfo;
 	}
 

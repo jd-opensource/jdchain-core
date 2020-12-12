@@ -12,12 +12,14 @@ import com.jd.blockchain.gateway.event.EventListenerService;
 import com.jd.blockchain.gateway.event.PullEventListener;
 import com.jd.blockchain.sdk.PeerBlockchainService;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.gateway.PeerConnector;
 import com.jd.blockchain.gateway.PeerService;
 import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
+import com.jd.blockchain.sdk.service.SessionCredentialProvider;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.transaction.TransactionService;
 import com.jd.blockchain.utils.net.NetworkAddress;
@@ -43,6 +45,9 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 	 *         该值表示 ${@link PeerConnectionManager#LEDGER_REFRESH_PERIOD_SECONDS}的倍数
 	 */
 	private static final int PEER_NETWORK_UPDATE_PERIOD = 3;
+	
+	@Autowired
+	private SessionCredentialProvider credentialProviders;
 
 	private final ScheduledThreadPoolExecutor peerConnectExecutor;
 
@@ -60,7 +65,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 
 	private volatile AsymmetricKeypair gateWayKeyPair;
 
-	private volatile List<String> peerProviders;
+//	private volatile List<String> peerProviders;
 
 	private volatile EventListener eventListener;
 
@@ -99,7 +104,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 			peerAddresses.clear();
 			// 重新连接
 			for (NetworkAddress networkAddress : paddress) {
-				connect(networkAddress, gateWayKeyPair, peerProviders);
+				connect(networkAddress, gateWayKeyPair);
 			}
 
 		} catch (Exception e) {
@@ -110,7 +115,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 	}
 
 	@Override
-	public synchronized void connect(NetworkAddress peerAddress, AsymmetricKeypair defaultKeyPair, List<String> peerProviders) {
+	public synchronized void connect(NetworkAddress peerAddress, AsymmetricKeypair defaultKeyPair) {
 		LOGGER.info("Add peerAddress{} to connect list !", peerAddress);
 		if (peerAddresses.contains(peerAddress)) {
 			return;
@@ -118,7 +123,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 		// 连接成功的话，更新账本
 		ledgerHashLock.lock();
 		try {
-			PeerBlockchainServiceFactory peerServiceFactory = PeerBlockchainServiceFactory.connect(defaultKeyPair, peerAddress, peerProviders);
+			PeerBlockchainServiceFactory peerServiceFactory = PeerBlockchainServiceFactory.connect(defaultKeyPair, peerAddress, credentialProviders);
 			if (peerServiceFactory != null) {
 				LOGGER.info("Connect peer {} success !!!", peerAddress);
 				// 连接成功
@@ -131,7 +136,6 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 				
 				addPeerAddress(peerAddress);
 				setGateWayKeyPair(defaultKeyPair);
-				setPeerProviders(peerProviders);
 				
 				updateLedgerCache();
 			} else {
@@ -182,7 +186,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 						// 有新账本的情况下重连，并更新本地账本
 						try {
 							PeerBlockchainServiceFactory peerServiceFactory = PeerBlockchainServiceFactory.connect(
-									gateWayKeyPair, peerAddress, peerProviders);
+									gateWayKeyPair, peerAddress, credentialProviders);
 							if (peerServiceFactory != null) {
 								peerBlockchainServiceFactories.put(peerAddress, peerServiceFactory);
 								localLedgerCache.addAll(Arrays.asList(peerLedgerHashs));
@@ -227,7 +231,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 					for (NetworkAddress peerAddress : peerAddresses) {
 						try {
 							PeerBlockchainServiceFactory peerServiceFactory = PeerBlockchainServiceFactory.connect(
-									gateWayKeyPair, peerAddress, peerProviders);
+									gateWayKeyPair, peerAddress, credentialProviders);
 							if (peerServiceFactory != null) {
 								mostLedgerPeerServiceFactory = new PeerServiceFactory(peerAddress, peerServiceFactory);
 								LOGGER.info("Most ledgers remote update to {}", peerAddress);
@@ -268,7 +272,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 					for (NetworkAddress peerAddress : peerAddresses) {
 						try {
 							PeerBlockchainServiceFactory peerBlockchainServiceFactory = PeerBlockchainServiceFactory.connect(
-									gateWayKeyPair, peerAddress, peerProviders);
+									gateWayKeyPair, peerAddress, credentialProviders);
 							if (peerBlockchainServiceFactory != null) {
 								mostLedgerPeerServiceFactory = new PeerServiceFactory(peerAddress, peerBlockchainServiceFactory);
 								LOGGER.info("Most ledgers remote update to {}", peerAddress);
@@ -298,10 +302,6 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 
 	public void setGateWayKeyPair(AsymmetricKeypair gateWayKeyPair) {
 		this.gateWayKeyPair = gateWayKeyPair;
-	}
-
-	public void setPeerProviders(List<String> peerProviders) {
-		this.peerProviders = peerProviders;
 	}
 
 	@Override
@@ -496,7 +496,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 									NetworkAddress peerAddress = entry.getKey();
 									try {
 										PeerBlockchainServiceFactory peerServiceFactory = PeerBlockchainServiceFactory.connect(
-												gateWayKeyPair, peerAddress, peerProviders);
+												gateWayKeyPair, peerAddress, credentialProviders);
 										if (peerServiceFactory != null) {
 											tmpEntries.put(peerAddress, peerServiceFactory);
 										}
@@ -533,7 +533,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 				if (!peerBlockchainServiceFactories.containsKey(peerAddress)) {
 					// 重连指定节点
 					try {
-						PeerBlockchainServiceFactory peerServiceFactory = PeerBlockchainServiceFactory.connect(gateWayKeyPair, peerAddress, peerProviders);
+						PeerBlockchainServiceFactory peerServiceFactory = PeerBlockchainServiceFactory.connect(gateWayKeyPair, peerAddress, credentialProviders);
 						if (peerServiceFactory != null) {
 							peerBlockchainServiceFactories.put(peerAddress, peerServiceFactory);
 						}
@@ -605,7 +605,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 				for (NetworkAddress peerAddress : peerAddresses) {
 					try {
 						PeerBlockchainServiceFactory peerBlockchainServiceFactory = PeerBlockchainServiceFactory.connect(
-								gateWayKeyPair, peerAddress, peerProviders);
+								gateWayKeyPair, peerAddress, credentialProviders);
 						if (peerBlockchainServiceFactory != null) {
 							mostLedgerPeerServiceFactory = new PeerServiceFactory(peerAddress, peerBlockchainServiceFactory);
 							LOGGER.info("Most ledgers remote update to {}", peerAddress);

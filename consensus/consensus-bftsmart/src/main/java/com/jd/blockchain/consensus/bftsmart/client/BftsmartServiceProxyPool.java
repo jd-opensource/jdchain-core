@@ -28,7 +28,7 @@ public class BftsmartServiceProxyPool extends GenericObjectPool<AsynchServicePro
 	
 	private void init(BftsmartClientSettings clientSettings) {
 		GenericObjectPoolConfig<AsynchServiceProxy> poolConfig = new GenericObjectPoolConfig<>();
-		int maxTotal = clientSettings.getCredentialInfo().getClientIdRange();
+		int maxTotal = clientSettings.getSessionCredential().getClientIdRange();
 		poolConfig.setMaxTotal(maxTotal);
 		poolConfig.setMaxIdle(maxTotal);
 		poolConfig.setMinIdle(0);
