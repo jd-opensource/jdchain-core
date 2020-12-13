@@ -377,10 +377,6 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 			ledgerHashLock.lock();
 			try {
 				LOGGER.info("Start the connection check with the remote peer...... ");
-				if (counter.getAndIncrement() % PEER_NETWORK_UPDATE_PERIOD == 0) {
-					// 更新远端Peer管理网络列表
-					updatePeerAddresses();
-				}
 				// 将远端的列表重新进行连接
 				reconnect();
 				// 更新账本数量最多的节点连接
@@ -389,6 +385,12 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 					LOGGER.info("Most ledgers remote update to {}", mostLedgerPeerServiceFactory.peerAddress);
 					// 更新每个账本对应获取最高区块的缓存
 					updateLatestPeerServiceFactories(ledgerHashs);
+				}
+
+				// 调整到最后，避免在不满足2f+1个节点的场景下，每发送一次unorder消息都要等待响应超时，长时间的等待消息超时导致网关更新到对新节点的绑定无法执行，浏览器无法使用
+				if (counter.getAndIncrement() % PEER_NETWORK_UPDATE_PERIOD == 0) {
+					// 更新远端Peer管理网络列表
+					updatePeerAddresses();
 				}
 			} catch (Exception e) {
 				LOGGER.error("Peer Connect Task Error !!!", e);
