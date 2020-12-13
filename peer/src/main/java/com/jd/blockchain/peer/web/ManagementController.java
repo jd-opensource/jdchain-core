@@ -282,7 +282,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			ledgers[i] = ledgerNode.getKey();
 			consensusProviders[i] = ledgerNode.getValue().getProviderName();
 		}
-		return new AccessSpecification();
+		return new AccessSpecification(ledgers, consensusProviders);
 	}
 
 	/**
