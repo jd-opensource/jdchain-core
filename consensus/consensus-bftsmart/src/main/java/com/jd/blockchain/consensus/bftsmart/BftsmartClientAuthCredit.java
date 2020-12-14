@@ -6,7 +6,7 @@ import com.jd.blockchain.crypto.SignatureDigest;
 
 public class BftsmartClientAuthCredit implements ClientCredential {
 
-	private BftsmartSessionCredential credentialInfo;
+	private BftsmartSessionCredential sessionCredential;
 	private PubKey pubKey;
 	private SignatureDigest signatureDigest;
 
@@ -22,7 +22,7 @@ public class BftsmartClientAuthCredit implements ClientCredential {
 					"Require the client credential info of type [" + BftsmartSessionCredential.class.getName()
 							+ "], but it is [" + clientCredential.getSessionCredential().getClass().getName() + "]!");
 		}
-		this.credentialInfo = (BftsmartSessionCredential) clientCredential.getSessionCredential();
+		this.sessionCredential = (BftsmartSessionCredential) clientCredential.getSessionCredential();
 		this.pubKey = clientCredential.getPubKey();
 		this.signatureDigest = clientCredential.getSignature();
 	}
@@ -30,11 +30,11 @@ public class BftsmartClientAuthCredit implements ClientCredential {
 
 	@Override
 	public BftsmartSessionCredential getSessionCredential() {
-		return credentialInfo;
+		return sessionCredential;
 	}
 
-	public void setCredentialInfo(BftsmartSessionCredential credentialInfo) {
-		this.credentialInfo = credentialInfo;
+	public void setSessionCredential(BftsmartSessionCredential sessionCredential) {
+		this.sessionCredential = sessionCredential;
 	}
 
 	@Override

@@ -41,12 +41,12 @@ public class BftsmartConsensusClientFactory implements ClientFactory {
 		byte[] credentialBytes = BinaryProtocol.encode(sessionCredential, BftsmartSessionCredential.class);
 		SignatureDigest signatureDigest = signatureFunction.sign(privKey, credentialBytes);
 
-		BftsmartClientAuthCredit bftsmartClientIdentification = new BftsmartClientAuthCredit();
-		bftsmartClientIdentification.setCredentialInfo((BftsmartSessionCredential)sessionCredential);
-		bftsmartClientIdentification.setPubKey(pubKey);
-		bftsmartClientIdentification.setSignatureDigest(signatureDigest);
+		BftsmartClientAuthCredit bftsmartClientAuthCredential = new BftsmartClientAuthCredit();
+		bftsmartClientAuthCredential.setSessionCredential((BftsmartSessionCredential)sessionCredential);
+		bftsmartClientAuthCredential.setPubKey(pubKey);
+		bftsmartClientAuthCredential.setSignatureDigest(signatureDigest);
 
-		return bftsmartClientIdentification;
+		return bftsmartClientAuthCredential;
 	}
 
 	@Override

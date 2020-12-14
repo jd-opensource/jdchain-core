@@ -13,6 +13,7 @@ import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.NodeServerFactory;
 import com.jd.blockchain.consensus.service.ServerSettings;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
+import com.jd.blockchain.utils.io.Storage;
 import com.jd.blockchain.utils.net.NetworkAddress;
 
 public class BftsmartNodeServerFactory implements NodeServerFactory {
@@ -52,16 +53,18 @@ public class BftsmartNodeServerFactory implements NodeServerFactory {
 
 	@Override
 	public NodeServer setupServer(ServerSettings serverSettings, MessageHandle messageHandler,
-			StateMachineReplicate stateMachineReplicator) {
+			StateMachineReplicate stateMachineReplicator, Storage runtimeStorage) {
 
 		NodeSettings[] currNodeSettings = (((BftsmartServerSettings) serverSettings).getConsensusSettings()).getNodes();
 
 		String currRealName = serverSettings.getRealmName();
+		
 
 		// check conflict realm
 		if (!hasIntersection(currRealName, currNodeSettings)) {
+			Storage nodeRuntimeStorage = runtimeStorage.getStorage("bftsmart");
 			BftsmartNodeServer nodeServer = new BftsmartNodeServer(serverSettings, messageHandler,
-					stateMachineReplicator);
+					stateMachineReplicator, nodeRuntimeStorage);
 			nodeServerMap.put(serverSettings.getRealmName(), currNodeSettings);
 			return nodeServer;
 		} else {

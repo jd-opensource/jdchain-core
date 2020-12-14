@@ -14,9 +14,9 @@ import com.jd.blockchain.utils.io.Storage;
 public class ComponentConfiguration {
 
 	@Bean
-	public Storage getStorage() {
+	public Storage runtimeStorage() {
 		try {
-			return new FileSystemStorage(GatewayServerBooter.HOME_DIR);
+			return new FileSystemStorage(GatewayServerBooter.RUNTIME_STORAGE_DIR);
 		} catch (IOException e) {
 			throw new RuntimeIOException(e.getMessage(), e);
 		}

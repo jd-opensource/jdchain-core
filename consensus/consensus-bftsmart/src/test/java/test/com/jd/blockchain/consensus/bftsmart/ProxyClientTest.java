@@ -26,6 +26,7 @@ import com.jd.blockchain.ledger.BlockchainKeyGenerator;
 import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.utils.PropertiesUtils;
 import com.jd.blockchain.utils.io.BytesUtils;
+import com.jd.blockchain.utils.io.MemoryStorage;
 import com.jd.blockchain.utils.net.NetworkAddress;
 import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 
@@ -79,7 +80,7 @@ public class ProxyClientTest {
 			BftsmartServerSettingConfig serverSettings = new BftsmartServerSettingConfig();
 			serverSettings.setReplicaSettings(nodesSettings[j]);
 			serverSettings.setConsensusSettings(consensusConfig);
-			BftsmartNodeServer server = new BftsmartNodeServer(serverSettings, null, null);
+			BftsmartNodeServer server = new BftsmartNodeServer(serverSettings, null, null, new MemoryStorage("test"));
 			nodeServers[j] = server;
 			nodeStartPools.execute(() -> {
 				server.start();

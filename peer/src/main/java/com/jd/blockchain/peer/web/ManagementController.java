@@ -131,8 +131,8 @@ import com.jd.blockchain.sdk.ManagementHttpService;
 import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
 import com.jd.blockchain.sdk.service.SessionCredentialProvider;
 import com.jd.blockchain.service.TransactionBatchResultHandle;
-import com.jd.blockchain.setting.GatewayIncomingSetting;
-import com.jd.blockchain.setting.LedgerIncomingSetting;
+import com.jd.blockchain.setting.GatewayAuthResponse;
+import com.jd.blockchain.setting.LedgerIncomingSettings;
 import com.jd.blockchain.storage.service.DbConnection;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
@@ -147,6 +147,7 @@ import com.jd.blockchain.utils.PropertiesUtils;
 import com.jd.blockchain.utils.Property;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.ByteArray;
+import com.jd.blockchain.utils.io.Storage;
 import com.jd.blockchain.utils.net.NetworkAddress;
 import com.jd.blockchain.utils.web.model.WebResponse;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
@@ -172,6 +173,8 @@ import bftsmart.tom.ServiceProxy;
 @RequestMapping(path = "/management")
 public class ManagementController implements LedgerBindingConfigAware, PeerManage, ManagementHttpService {
 
+	private static final String STORAGE_CONSENSUS = "consensus";
+
 	private static Logger LOGGER = LoggerFactory.getLogger(ManagementController.class);
 
 	public static final String BFTSMART_PROVIDER = "com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider";
@@ -187,6 +190,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 //	private int viewId;
 
 //	private static List<NodeSettings> origConsensusNodes;
+
+	@Autowired
+	private Storage storage;
 
 	@Autowired
 	private LedgerManage ledgerManager;
@@ -294,7 +300,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	 */
 	@RequestMapping(path = URL_AUTH_GATEWAY, method = RequestMethod.POST, consumes = BinaryMessageConverter.CONTENT_TYPE_VALUE)
 	@Override
-	public GatewayIncomingSetting authenticateGateway(@RequestBody GatewayAuthRequest authRequest) {
+	public GatewayAuthResponse authenticateGateway(@RequestBody GatewayAuthRequest authRequest) {
 		// 去掉不严谨的网关注册和认证逻辑；暂时先放开，不做认证，后续应该在链上注册网关信息，并基于链上的网关信息进行认证；
 		// by: huanghaiquan; at 2018-09-11 18:34;
 		// TODO: 实现网关的链上注册与认证机制；
@@ -310,8 +316,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			return null;
 		}
 
-		GatewayIncomingSetting gatewayAuthResponse = new GatewayIncomingSetting();
-		List<LedgerIncomingSetting> ledgerIncomingList = new ArrayList<LedgerIncomingSetting>();
+		GatewayAuthResponse gatewayAuthResponse = new GatewayAuthResponse();
+		List<LedgerIncomingSettings> ledgerIncomingList = new ArrayList<LedgerIncomingSettings>();
 
 		int i = -1;
 		for (HashDigest ledgerHash : authLedgers) {
@@ -347,7 +353,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					.encode(clientIncomingSettings);
 			String base64ClientIncomingSettings = ByteArray.toBase64(clientIncomingBytes);
 
-			LedgerIncomingSetting ledgerIncomingSetting = new LedgerIncomingSetting();
+			LedgerIncomingSettings ledgerIncomingSetting = new LedgerIncomingSettings();
 			ledgerIncomingSetting.setLedgerHash(ledgerHash);
 
 			// 使用非代理对象，防止JSON序列化异常
@@ -359,7 +365,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		}
 		gatewayAuthResponse
-				.setLedgers(ledgerIncomingList.toArray(new LedgerIncomingSetting[ledgerIncomingList.size()]));
+				.setLedgers(ledgerIncomingList.toArray(new LedgerIncomingSettings[ledgerIncomingList.size()]));
 		return gatewayAuthResponse;
 	}
 
@@ -436,8 +442,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				((LedgerStateManager) consensusStateManager)
 						.setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
 
+				Storage consensusRuntimeStorage = getConsensusRuntimeStorage(ledgerHash);
 				server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
-						consensusStateManager);
+						consensusStateManager, consensusRuntimeStorage);
 				ledgerPeers.put(ledgerHash, server);
 			}
 
@@ -452,6 +459,16 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		ledgerKeypairs.put(ledgerHash, loadIdentity(currentNode, bindingConfig));
 
 		return server;
+	}
+
+	/**
+	 * 返回指定账本的共识运行时存储；
+	 * 
+	 * @param ledgerHash
+	 * @return
+	 */
+	private Storage getConsensusRuntimeStorage(HashDigest ledgerHash) {
+		return storage.getStorage(ledgerHash.toBase58()).getStorage(STORAGE_CONSENSUS);
 	}
 
 	@Override
@@ -1132,7 +1149,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	private void setupServer(LedgerRepository ledgerRepository) {
 		try {
 
-			ParticipantNode currNode = ledgerCurrNodes.get(ledgerRepository.getHash());
+			ParticipantNode currentNode = ledgerCurrNodes.get(ledgerRepository.getHash());
 
 			LedgerAdminInfo ledgerAdminAccount = ledgerRepository
 					.getAdminInfo(ledgerRepository.getBlock(ledgerRepository.retrieveLatestBlockHeight()));
@@ -1144,12 +1161,13 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			ConsensusViewSettings csSettings = getConsensusSetting(ledgerAdminAccount);
 
 			ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(
-					ledgerRepository.getHash().toBase58(), csSettings, currNode.getAddress().toBase58());
+					ledgerRepository.getHash().toBase58(), csSettings, currentNode.getAddress().toBase58());
 
 			((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
 
+			Storage consensusRuntimeStorage = getConsensusRuntimeStorage(ledgerRepository.getHash());
 			NodeServer server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
-					consensusStateManager);
+					consensusStateManager, consensusRuntimeStorage);
 
 			ledgerPeers.put(ledgerRepository.getHash(), server);
 
@@ -1160,7 +1178,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			}
 			runRealm(server);
 
-			LOGGER.info("[ManagementController] setupServer SUCC!");
+			LOGGER.info("[ManagementController] setupServer success!");
 		} catch (Exception e) {
 			throw new StartServerException("[ManagementController] start server fail exception", e);
 		}

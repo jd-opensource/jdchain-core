@@ -15,14 +15,13 @@ import com.jd.blockchain.utils.io.Storage;
 public class GatewayConsensusCredentialProvider implements SessionCredentialProvider {
 
 	@Autowired
-	private Storage homeStorage;
+	private Storage runtimeStorage;
 
 	private Storage credentialStorage;
 
 	@PostConstruct
 	private void init() {
-		this.credentialStorage = homeStorage.getStorage(GatewayServerBooter.RUNTIME_FOLDER_NAME)
-				.getStorage("consensus").getStorage("credentials");
+		this.credentialStorage = runtimeStorage.getStorage("consensus").getStorage("credentials");
 	}
 
 	@Override

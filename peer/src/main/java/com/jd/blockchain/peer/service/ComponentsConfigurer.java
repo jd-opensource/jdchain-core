@@ -1,4 +1,4 @@
-package com.jd.blockchain.peer.ledger;
+package com.jd.blockchain.peer.service;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -8,10 +8,12 @@ import com.jd.blockchain.ledger.core.DefaultOperationHandleRegisteration;
 import com.jd.blockchain.ledger.core.LedgerManager;
 import com.jd.blockchain.ledger.core.OperationHandleRegisteration;
 import com.jd.blockchain.ledger.core.TransactionEngineImpl;
+import com.jd.blockchain.runtime.RuntimeContext;
 import com.jd.blockchain.service.TransactionEngine;
+import com.jd.blockchain.utils.io.Storage;
 
 @Configuration
-public class LedgerConfigurer {
+public class ComponentsConfigurer {
 
 	@ConditionalOnMissingBean
 	@Bean
@@ -27,5 +29,10 @@ public class LedgerConfigurer {
 	@Bean
 	public OperationHandleRegisteration operationHandleRegisteration() {
 		return new DefaultOperationHandleRegisteration();
+	}
+	
+	@Bean
+	public Storage runtimeStorage() {
+		return RuntimeContext.get().getEnvironment().getRuntimeStorage();
 	}
 }

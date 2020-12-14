@@ -18,6 +18,7 @@ import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.NodeServerFactory;
 import com.jd.blockchain.consensus.service.ServerSettings;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
+import com.jd.blockchain.utils.io.Storage;
 
 /**
  *
@@ -47,7 +48,7 @@ public class MsgQueueNodeServerFactory implements NodeServerFactory {
 
 	@Override
 	public MsgQueueNodeServer setupServer(ServerSettings serverSettings, MessageHandle messageHandler,
-			StateMachineReplicate stateMachineReplicator) {
+			StateMachineReplicate stateMachineReplicator, Storage storage) {
 		if (!(serverSettings instanceof MsgQueueServerSettings)) {
 			throw new IllegalArgumentException(
 					"ServerSettings data isn't supported! Accept MsgQueueServerSettings only!");

@@ -8,10 +8,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.core.util.TypeUtil;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 
+import com.alibaba.fastjson.asm.Type;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.consensus.ClientIncomingSettings;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
@@ -58,6 +60,7 @@ import com.jd.blockchain.utils.ArgumentSet.ArgEntry;
 import com.jd.blockchain.utils.BaseConstant;
 import com.jd.blockchain.utils.ConsoleUtils;
 import com.jd.blockchain.utils.net.NetworkAddress;
+import com.jd.blockchain.utils.reflection.TypeUtils;
 
 public class GatewayServerBooter {
 
@@ -78,9 +81,11 @@ public class GatewayServerBooter {
 
 	public static final String HOME_DIR;
 
-	static {
-		HOME_DIR = bootPath();
+	public static final String RUNTIME_STORAGE_DIR;
 
+	static {
+		HOME_DIR = TypeUtils.getCodeDirOf(GatewayServerBooter.class);
+		RUNTIME_STORAGE_DIR = new File(HOME_DIR, RUNTIME_FOLDER_NAME).getAbsolutePath();
 		GatewayAuthRequest();
 	}
 
@@ -104,8 +109,6 @@ public class GatewayServerBooter {
 				configProps = GatewayConfigProperties.resolve(argHost.getValue());
 			}
 
-			String homeDir = bootPath();
-
 			// spring config location;
 			String springConfigLocation = null;
 			ArgumentSet.ArgEntry spConfigLocation = arguments.getArg(SPRING_CF_LOCATION);
@@ -120,7 +123,7 @@ public class GatewayServerBooter {
 				InputStream in = configResource.getInputStream();
 
 				// 将文件写入至config目录下
-				String configPath = homeDir + CONFIG_FOLDER_NAME + File.separator + DEFAULT_GATEWAY_PROPS;
+				String configPath = HOME_DIR + CONFIG_FOLDER_NAME + File.separator + DEFAULT_GATEWAY_PROPS;
 				File targetFile = new File(configPath);
 
 				// 先将原来文件删除再Copy
@@ -221,24 +224,24 @@ public class GatewayServerBooter {
 		return appCtx;
 	}
 
-	private static String bootPath() {
-		try {
-			URL url = GatewayServerBooter.class.getProtectionDomain().getCodeSource().getLocation();
-			String currPath = java.net.URLDecoder.decode(url.getPath(), "UTF-8");
-			// 处理打包至SpringBoot问题
-			if (currPath.contains("!/")) {
-				currPath = currPath.substring(5, currPath.indexOf("!/"));
-			}
-			if (currPath.endsWith(".jar")) {
-				currPath = currPath.substring(0, currPath.lastIndexOf("/") + 1);
-			}
-			System.out.printf("Current Project Boot Path = %s \r\n", currPath);
-			return new File(currPath).getParent() + File.separator;
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-			throw new IllegalStateException(e.getMessage(), e);
-		}
-	}
+//	private static String bootPath() {
+//		try {
+//			URL url = GatewayServerBooter.class.getProtectionDomain().getCodeSource().getLocation();
+//			String currPath = java.net.URLDecoder.decode(url.getPath(), "UTF-8");
+//			// 处理打包至SpringBoot问题
+//			if (currPath.contains("!/")) {
+//				currPath = currPath.substring(5, currPath.indexOf("!/"));
+//			}
+//			if (currPath.endsWith(".jar")) {
+//				currPath = currPath.substring(0, currPath.lastIndexOf("/") + 1);
+//			}
+//			System.out.printf("Current Project Boot Path = %s \r\n", currPath);
+//			return new File(currPath).getParent() + File.separator;
+//		} catch (UnsupportedEncodingException e) {
+//			e.printStackTrace();
+//			throw new IllegalStateException(e.getMessage(), e);
+//		}
+//	}
 
 	private static void GatewayAuthRequest() {
 		DataContractRegistry.register(MerkleSnapshot.class);

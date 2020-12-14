@@ -46,6 +46,7 @@ import com.jd.blockchain.utils.PropertiesUtils;
 import com.jd.blockchain.utils.StringUtils;
 import com.jd.blockchain.utils.concurrent.AsyncFuture;
 import com.jd.blockchain.utils.io.BytesUtils;
+import com.jd.blockchain.utils.io.Storage;
 import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 
 import bftsmart.consensus.app.BatchAppResultImpl;
@@ -79,7 +80,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
 	private ServerSettings serverSettings;
 
-	private BftsmartClientAuthencationService manageService;
+	private BftsmartClientAuthencationService clientAuthService;
 
 	private volatile BftsmartTopology topology;
 
@@ -112,13 +113,11 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	private volatile InnerStateHolder stateHolder;
 
 	private long timeTolerance = -1L;
-
-	public BftsmartNodeServer() {
-
-	}
+	
+	private Storage nodeRuntimeStorage;
 
 	public BftsmartNodeServer(ServerSettings serverSettings, MessageHandle messageHandler,
-			StateMachineReplicate stateMachineReplicate) {
+			StateMachineReplicate stateMachineReplicate, Storage storage) {
 		this.serverSettings = serverSettings;
 		this.realmName = serverSettings.getRealmName();
 		// used later
@@ -132,7 +131,8 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 			throw new IllegalArgumentException("Server Id is greater than or equal to MAX_SERVER_ID[" + MAX_SERVER_ID + "]!");
 		}
 		initConfig(serverId, systemConfig, hostsConfig);
-		this.manageService = new BftsmartClientAuthencationService(this);
+		this.nodeRuntimeStorage = storage.getStorage("node-" + serverId);
+		this.clientAuthService = new BftsmartClientAuthencationService(this, nodeRuntimeStorage.getStorage("client-auth"));
 		this.timeTolerance = tomConfig.getTimeTolerance();
 	}
 
@@ -229,7 +229,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
 	@Override
 	public ClientAuthencationService getClientAuthencationService() {
-		return manageService;
+		return clientAuthService;
 	}
 
 	@Override

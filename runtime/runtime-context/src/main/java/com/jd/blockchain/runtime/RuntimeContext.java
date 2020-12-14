@@ -11,17 +11,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.jd.blockchain.contract.ContractEntrance;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
+import com.jd.blockchain.utils.io.FileSystemStorage;
 import com.jd.blockchain.utils.io.FileUtils;
 import com.jd.blockchain.utils.io.RuntimeIOException;
+import com.jd.blockchain.utils.io.Storage;
 
 public abstract class RuntimeContext {
-	
+
 	public static interface Environment {
-		
+
 		boolean isProductMode();
-		
+
+		Storage getRuntimeStorage();
+
 	}
-	
+
 	private static final Object mutex = new Object();
 
 	private static volatile RuntimeContext runtimeContext;
@@ -47,7 +51,7 @@ public abstract class RuntimeContext {
 	}
 
 	private Map<String, Module> modules = new ConcurrentHashMap<>();
-	
+
 	public RuntimeContext() {
 	}
 
@@ -70,7 +74,7 @@ public abstract class RuntimeContext {
 
 	public Module getDynamicModule(String name) {
 		return modules.get(name);
-		
+
 	}
 
 	public List<Module> getDynamicModules() {
@@ -124,17 +128,18 @@ public abstract class RuntimeContext {
 	}
 
 	public abstract Environment getEnvironment();
-	
+
 	protected abstract String getRuntimeDir();
 
 	protected abstract URLClassLoader createDynamicModuleClassLoader(URL jarURL);
 
 	// ------------------------- inner types --------------------------
-	
-	private static class EnvSettings implements Environment{
-		
+
+	private static class EnvSettings implements Environment {
+
 		private boolean productMode;
-		
+		private Storage runtimeStorage;
+
 		@Override
 		public boolean isProductMode() {
 			return productMode;
@@ -143,7 +148,20 @@ public abstract class RuntimeContext {
 		public void setProductMode(boolean productMode) {
 			this.productMode = productMode;
 		}
-		
+
+		@Override
+		public Storage getRuntimeStorage() {
+			return runtimeStorage;
+		}
+
+		public void setRuntimeDir(String runtimeDir) {
+			try {
+				this.runtimeStorage = new FileSystemStorage(runtimeDir);
+			} catch (IOException e) {
+				throw new RuntimeIOException(e.getMessage(), e);
+			}
+		}
+
 	}
 
 	private static class DefaultModule extends AbstractModule {
@@ -164,7 +182,6 @@ public abstract class RuntimeContext {
 		public String getMainClass() {
 			return mainClass;
 		}
-
 
 		@Override
 		public String getName() {
@@ -195,22 +212,23 @@ public abstract class RuntimeContext {
 		protected String homeDir;
 
 		protected String runtimeDir;
-		
+
 		protected EnvSettings environment;
 
 		public DefaultRuntimeContext() {
-			
+
 			this.environment = new EnvSettings();
 			this.environment.setProductMode(true);
-			
+
 			try {
 				this.homeDir = new File("./").getCanonicalPath();
 				this.runtimeDir = new File(homeDir, "runtime").getAbsolutePath();
+				this.environment.setRuntimeDir(runtimeDir);
 			} catch (IOException e) {
 				throw new RuntimeIOException(e.getMessage(), e);
 			}
 		}
-		
+
 		@Override
 		public Environment getEnvironment() {
 			return environment;
@@ -261,7 +279,7 @@ public abstract class RuntimeContext {
 
 		private static void initBlacks() {
 			try {
-				InputStream inputStream = ContractURLClassLoader.class.getResourceAsStream("/"+ BLACK_CONFIG);
+				InputStream inputStream = ContractURLClassLoader.class.getResourceAsStream("/" + BLACK_CONFIG);
 				String text = FileUtils.readText(inputStream);
 				String[] textArray = text.split("\n");
 				for (String setting : textArray) {
