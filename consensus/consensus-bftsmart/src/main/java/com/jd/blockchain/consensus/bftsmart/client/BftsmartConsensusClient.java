@@ -1,7 +1,6 @@
 package com.jd.blockchain.consensus.bftsmart.client;
 
 import com.jd.blockchain.consensus.MessageService;
-import com.jd.blockchain.consensus.bftsmart.BftsmartSessionCredential;
 import com.jd.blockchain.consensus.bftsmart.manage.BftsmartConsensusManageService;
 import com.jd.blockchain.consensus.client.ClientSettings;
 import com.jd.blockchain.consensus.client.ConsensusClient;
@@ -29,7 +28,7 @@ public class BftsmartConsensusClient implements ConsensusClient, ConsensusManage
 	}
 
     @Override
-    public ClientSettings getSettings() {
+    public BftsmartClientSettings getSettings() {
         return clientSettings;
     }
 
@@ -41,7 +40,9 @@ public class BftsmartConsensusClient implements ConsensusClient, ConsensusManage
     @Override
     public synchronized void connect() {
         //consensus client pool
-        this.serviceProxyPool = new BftsmartServiceProxyPool(clientSettings);
+    	if (serviceProxyPool == null) {
+    		this.serviceProxyPool = new BftsmartServiceProxyPool(clientSettings);
+		}
     }
 
     @Override

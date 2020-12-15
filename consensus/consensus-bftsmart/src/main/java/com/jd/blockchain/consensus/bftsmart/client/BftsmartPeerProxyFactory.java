@@ -72,14 +72,14 @@ public class BftsmartPeerProxyFactory extends BasePooledObjectFactory<AsynchServ
 		tomConfiguration.setProcessId(processId);
 		AsynchServiceProxy peerProxy = new AsynchServiceProxy(tomConfiguration, viewStorage);
 
-		if (LOGGER.isDebugEnabled()) {
+		if (LOGGER.isInfoEnabled()) {
 			// 打印view
 			int[] processes = view.getProcesses();
 			NodeNetwork[] addresses = new NodeNetwork[processes.length];
 			for (int i = 0; i < addresses.length; i++) {
 				addresses[i] = view.getAddress(processes[i]);
 			}
-			LOGGER.debug(
+			LOGGER.info(
 					"Creating pooled bftsmart client ... [PooledClientID={}] [ViewID={}] [ViewTopology={}] [Peers={}]",
 					processId, view.getId(), Arrays.toString(processes), Arrays.toString(addresses));
 		}

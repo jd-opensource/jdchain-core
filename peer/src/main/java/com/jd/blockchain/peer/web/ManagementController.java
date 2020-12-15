@@ -128,6 +128,7 @@ import com.jd.blockchain.peer.consensus.LedgerStateManager;
 import com.jd.blockchain.sdk.AccessSpecification;
 import com.jd.blockchain.sdk.GatewayAuthRequest;
 import com.jd.blockchain.sdk.ManagementHttpService;
+import com.jd.blockchain.sdk.service.ConsensusClientManager;
 import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
 import com.jd.blockchain.sdk.service.SessionCredentialProvider;
 import com.jd.blockchain.service.TransactionBatchResultHandle;
@@ -199,6 +200,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	@Autowired
 	private DbConnectionFactory connFactory;
+
+	@Autowired
+	private ConsensusClientManager peerSideConsensusClientManager;
 
 //	private Map<HashDigest, MsgQueueMessageDispatcher> ledgerTxConverters = new ConcurrentHashMap<>();
 
@@ -887,7 +891,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			PeerBlockchainServiceFactory blockchainServiceFactory = PeerBlockchainServiceFactory.connect(localKeyPair,
 					new NetworkAddress(remoteManageHost, Integer.parseInt(remoteManagePort)),
-					SESSION_CREDENTIAL_PROVIDER);
+					SESSION_CREDENTIAL_PROVIDER, peerSideConsensusClientManager);
 
 			remoteLatestBlockHeight = blockchainServiceFactory.getBlockchainService().getLedger(ledgerHash)
 					.getLatestBlockHeight();
