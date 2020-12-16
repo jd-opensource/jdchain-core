@@ -2,11 +2,13 @@ package com.jd.blockchain.tools.regparti;
 
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.AsymmetricKeypair;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.base.DefaultCryptoEncoding;
 import com.jd.blockchain.crypto.base.HashDigestBytes;
 import com.jd.blockchain.ledger.BlockchainKeypair;
+import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.PreparedTransaction;
 import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.ledger.TransactionTemplate;
@@ -16,6 +18,7 @@ import com.jd.blockchain.utils.ArgumentSet;
 import com.jd.blockchain.utils.ArgumentSet.Setting;
 import com.jd.blockchain.utils.ConsoleUtils;
 import com.jd.blockchain.utils.codec.Base58Utils;
+import com.jd.blockchain.utils.io.BytesUtils;
 
 /**
  * @Author: zhangshuang
@@ -57,7 +60,7 @@ public class RegPartiCommand {
      */
     public static void main(String[] args) {
         Setting setting = ArgumentSet.setting().prefix(NEW_PARTI_LEDGER_ARG, NEW_PARTI_PUBKEY_ARG, NEW_PARTI_PRIVKEY_ARG, NEW_PARTI_PRIVKEY_PASS_ARG, EXIST_USER_PUBKEY_ARG, EXIST_USER_PRIVKEY_ARG, EXIST_USER_PRIVKEY_PASS_ARG, NEW_PARTI_NAME_ARG, GATEWAY_HOST_ARG, GATEWAY_PORT_ARG)
-                .option(GATEWAY_SECURE_MODE_ARG, OPT_DEBUG);
+                .option(OPT_DEBUG);
         ArgumentSet argSet = ArgumentSet.resolve(args, setting);
         try {
             ArgumentSet.ArgEntry[] argEntries = argSet.getArgs();
@@ -73,7 +76,6 @@ public class RegPartiCommand {
                         + "-existpass : Exist user password info.\r\n"
                         + "-host : Gateway host ip.\r\n"
                         + "-port : Gateway host port.\r\n"
-                        + "-secure : Gateway connect secure moode, optional, defalt false\r\n"
                         + "-debug : Debug mode, optional.\r\n");
                 return;
             }
@@ -158,17 +160,38 @@ public class RegPartiCommand {
 
             //existed signer
             AsymmetricKeypair keyPair = new BlockchainKeypair(KeyGenUtils.decodePubKey(exist_pubkey), KeyGenUtils.decodePrivKey(exist_privkey, exist_privkey_pass));
+            // 校验公私钥对
+            if (!BytesUtils.equals(Crypto.getSignatureFunction(keyPair.getAlgorithm()).retrievePubKey(keyPair.getPrivKey()).toBytes(), keyPair.getPubKey().toBytes())) {
+                throw new IllegalArgumentException("existpub existpriv mismatch");
+            }
 
-            GatewayServiceFactory serviceFactory = GatewayServiceFactory.connect(gw_host, Integer.valueOf(gw_port),false);
+            GatewayServiceFactory serviceFactory = GatewayServiceFactory.connect(gw_host, Integer.valueOf(gw_port), false);
 
             BlockchainService service = serviceFactory.getBlockchainService();
 
-            // 在本地定义注册账号的 TX；
-            TransactionTemplate txTemp = service.newTransaction(ledgerHash);
+            // 验证公钥存在性
+            if (null == service.getUser(ledgerHash, AddressEncoding.generateAddress(keyPair.getPubKey()).toBase58())) {
+                throw new IllegalArgumentException(String.format("public key [%s] not exists in the blockchain"));
+            }
 
             BlockchainKeypair user = new BlockchainKeypair(KeyGenUtils.decodePubKey(pubkey), KeyGenUtils.decodePrivKey(privkey, privKey_pass));
+            // 校验公私钥对
+            if (!BytesUtils.equals(Crypto.getSignatureFunction(user.getAlgorithm()).retrievePubKey(user.getPrivKey()).toBytes(), user.getPubKey().toBytes())) {
+                throw new IllegalArgumentException("pub priv mismatch");
+            }
+
+            // 验证验证节点存在性
+            ParticipantNode[] participantNodes = service.getConsensusParticipants(ledgerHash);
+            for (ParticipantNode node : participantNodes) {
+                if (BytesUtils.equals(node.getPubKey().toBytes(), user.getPubKey().toBytes())) {
+                    throw new IllegalArgumentException(String.format("participant node already exists"));
+                }
+            }
 
             ConsoleUtils.info("Register new participant address = {%s}", AddressEncoding.generateAddress(KeyGenUtils.decodePubKey(pubkey)).toBase58());
+
+            // 在本地定义注册账号的 TX；
+            TransactionTemplate txTemp = service.newTransaction(ledgerHash);
 
             // 注册参与方
             txTemp.participants().register(name, user.getIdentity());
@@ -183,14 +206,14 @@ public class RegPartiCommand {
             TransactionResponse transactionResponse = prepTx.commit();
 
             if (transactionResponse.isSuccess()) {
-                ConsoleUtils.info("Reg participant succ!");
+                ConsoleUtils.info("Reg participant success!");
             } else {
-                ConsoleUtils.info("Reg participant fail!");
+                ConsoleUtils.error("Reg participant fail : %s", transactionResponse.getExecutionState());
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-            ConsoleUtils.info("Error!!! %s", e.getMessage());
+            ConsoleUtils.error("Error!!! %s", e.getMessage());
             if (argSet.hasOption(OPT_DEBUG)) {
                 e.printStackTrace();
             }

@@ -68,27 +68,36 @@ public class DeactivePartiCommand {
                 return;
             }
 
-            if (argSet.getArg(DEACTIVE_PARTI_HTTP_HOST_ARG) == null) {
+            ArgumentSet.ArgEntry httpHost = argSet.getArg(DEACTIVE_PARTI_HTTP_HOST_ARG);
+            if (httpHost == null) {
                 ConsoleUtils.info("Miss deactive participant http host info!");
                 return;
             }
 
-            if (argSet.getArg(DEACTIVE_PARTI_HTTP_PORT_ARG) == null) {
+            ArgumentSet.ArgEntry httpPort = argSet.getArg(DEACTIVE_PARTI_HTTP_PORT_ARG);
+            if (httpPort == null) {
                 ConsoleUtils.info("Miss deactive participant http port info!");
                 return;
             }
 
-            if (argSet.getArg(DEACTIVE_PARTI_SYNC_HTTP_HOST_ARG) == null) {
+            ArgumentSet.ArgEntry syncHost = argSet.getArg(DEACTIVE_PARTI_SYNC_HTTP_HOST_ARG);
+            if (syncHost == null) {
                 ConsoleUtils.info("Miss sync data source host info!");
                 return;
             }
 
-            if (argSet.getArg(DEACTIVE_PARTI_HTTP_PORT_ARG) == null) {
+            ArgumentSet.ArgEntry syncPort = argSet.getArg(DEACTIVE_PARTI_SYNC_HTTP_PORT_ARG);
+            if (syncPort == null) {
                 ConsoleUtils.info("Miss sync data source port info!");
                 return;
             }
 
-            String url = "http://" + argSet.getArg(DEACTIVE_PARTI_HTTP_HOST_ARG).getValue() + ":" +  argSet.getArg(DEACTIVE_PARTI_HTTP_PORT_ARG).getValue() + "/management/delegate/deactiveparticipant";
+            if(httpHost.getValue().equals(syncHost.getValue()) && httpPort.getValue().equals(syncPort.getValue())) {
+                ConsoleUtils.info("Http host/port and sync host/port must be different!");
+                return;
+            }
+
+            String url = "http://" + httpHost.getValue() + ":" +  httpPort.getValue() + "/management/delegate/deactiveparticipant";
 
             System.out.println("url = " + url);
 
@@ -101,8 +110,8 @@ public class DeactivePartiCommand {
 
             BasicNameValuePair deactiveAddress = new BasicNameValuePair("participantAddress", argSet.getArg(DEACTIVE_PARTI_ADDRESS_ARG).getValue());
             // 指定已经启动的其他共识节点的HTTP管理端口
-            BasicNameValuePair manageHost = new BasicNameValuePair("remoteManageHost",  argSet.getArg(DEACTIVE_PARTI_SYNC_HTTP_HOST_ARG).getValue());
-            BasicNameValuePair managePort = new BasicNameValuePair("remoteManagePort", argSet.getArg(DEACTIVE_PARTI_SYNC_HTTP_PORT_ARG).getValue());
+            BasicNameValuePair manageHost = new BasicNameValuePair("remoteManageHost",  syncHost.getValue());
+            BasicNameValuePair managePort = new BasicNameValuePair("remoteManagePort", syncPort.getValue());
 
             para.add(base58LedgerHash);
             para.add(deactiveAddress);

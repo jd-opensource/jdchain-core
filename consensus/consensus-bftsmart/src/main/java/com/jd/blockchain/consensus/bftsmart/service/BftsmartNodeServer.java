@@ -137,18 +137,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	}
 
 	protected int findServerId() {
-		int serverId = 0;
-
-		String host = ((BftsmartNodeSettings) serverSettings.getReplicaSettings()).getNetworkAddress().getHost();
-		int port = ((BftsmartNodeSettings) serverSettings.getReplicaSettings()).getNetworkAddress().getPort();
-		for (int i : hostsConfig.getHostsIds()) {
-			if (hostsConfig.getHost(i).equals(host) && hostsConfig.getPort(i) == port) {
-				serverId = i;
-				break;
-			}
-		}
-
-		return serverId;
+		return ((BftsmartNodeSettings)serverSettings.getReplicaSettings()).getId();
 	}
 
 	public int getServerId() {

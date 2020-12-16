@@ -1,43 +1,13 @@
 package com.jd.blockchain.peer.web;
 
-import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.ACTIVE_PARTICIPANT_ID_KEY;
-import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.CONSENSUS_HOST_PATTERN;
-import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.CONSENSUS_PORT_PATTERN;
-import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.CONSENSUS_SECURE_PATTERN;
-import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.DEACTIVE_PARTICIPANT_ID_KEY;
-import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.F_NUM_KEY;
-import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.PARTICIPANT_OP_KEY;
-import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.PUBKEY_PATTERN;
-import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.SERVER_NUM_KEY;
-import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.SERVER_VIEW_KEY;
-import static com.jd.blockchain.ledger.TransactionState.LEDGER_ERROR;
-
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.HttpClients;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
+import bftsmart.reconfiguration.Reconfiguration;
+import bftsmart.reconfiguration.ReconfigureReply;
+import bftsmart.reconfiguration.util.HostsConfig;
+import bftsmart.reconfiguration.util.TOMConfiguration;
+import bftsmart.reconfiguration.views.MemoryBasedViewStorage;
+import bftsmart.reconfiguration.views.NodeNetwork;
+import bftsmart.reconfiguration.views.View;
+import bftsmart.tom.ServiceProxy;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.binaryproto.DataContractRegistry;
@@ -148,19 +118,43 @@ import com.jd.blockchain.utils.PropertiesUtils;
 import com.jd.blockchain.utils.Property;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.ByteArray;
+import com.jd.blockchain.utils.io.BytesUtils;
 import com.jd.blockchain.utils.io.Storage;
 import com.jd.blockchain.utils.net.NetworkAddress;
 import com.jd.blockchain.utils.web.model.WebResponse;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import bftsmart.reconfiguration.Reconfiguration;
-import bftsmart.reconfiguration.ReconfigureReply;
-import bftsmart.reconfiguration.util.HostsConfig;
-import bftsmart.reconfiguration.util.TOMConfiguration;
-import bftsmart.reconfiguration.views.MemoryBasedViewStorage;
-import bftsmart.reconfiguration.views.NodeNetwork;
-import bftsmart.reconfiguration.views.View;
-import bftsmart.tom.ServiceProxy;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.*;
+import static com.jd.blockchain.ledger.TransactionState.LEDGER_ERROR;
 
 /**
  * 网关管理服务；
@@ -467,7 +461,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	/**
 	 * 返回指定账本的共识运行时存储；
-	 * 
+	 *
 	 * @param ledgerHash
 	 * @return
 	 */
@@ -565,14 +559,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	 */
 	@RequestMapping(path = "/delegate/activeparticipant", method = RequestMethod.POST)
 	public WebResponse activateParticipant(@RequestParam("ledgerHash") String base58LedgerHash,
-			@RequestParam("consensusHost") String consensusHost, @RequestParam("consensusPort") String consensusPort,
-			@RequestParam("remoteManageHost") String remoteManageHost,
-			@RequestParam("remoteManagePort") String remoteManagePort) {
-		TransactionResponse remoteTxResponse;
-		WebResponse webResponse;
-		TransactionBatchResultHandle handle = null;
-		OperationHandleRegisteration opReg = new DefaultOperationHandleRegisteration();
-
+										   @RequestParam("consensusHost") String consensusHost, @RequestParam("consensusPort") int consensusPort,
+										   @RequestParam("remoteManageHost") String remoteManageHost,
+										   @RequestParam("remoteManagePort") int remoteManagePort,
+										   @RequestParam("shutdown") boolean shutdown) {
 		try {
 			HashDigest ledgerHash = Crypto.resolveAsHashDigest(Base58Utils.decode(base58LedgerHash));
 
@@ -587,90 +577,35 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			if (ledgerAdminInfo.getSettings().getConsensusProvider().equals(BFTSMART_PROVIDER)) {
 
 				// 检查本地节点与远端节点在库上是否存在差异,有差异的话需要进行差异交易重放
-				webResponse = checkLedgerDiff(ledgerRepo, ledgerKeypairs.get(ledgerHash), remoteManageHost,
-						remoteManagePort);
-
-				if (!webResponse.isSuccess()) {
+				WebResponse webResponse = checkLedgerDiff(ledgerRepo, ledgerKeypairs.get(ledgerHash), remoteManageHost, remoteManagePort);
+				if (!checkLedgerDiff(ledgerRepo, ledgerKeypairs.get(ledgerHash), remoteManageHost, remoteManagePort).isSuccess()) {
 					return webResponse;
 				}
 
 				ledgerAdminInfo = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock());
 
-				List<NodeSettings> origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
-
-				if (isConsensusNodeExist(consensusHost, consensusPort)) {
-					return WebResponse.createFailureResult(-1,
-							"[ManagementController] consensus node is conflict, please check input consensusHost and consensusPort parameter!");
+				// 检查节点信息
+				ParticipantNode node = getCurrentNode(ledgerAdminInfo, ledgerCurrNodes.get(ledgerHash).getAddress().toString());
+				NodeSettings nodeSettings = getConsensusNodeSettings(ledgerQuerys.values(), consensusHost, consensusPort);
+				if (nodeSettings != null) {
+					if (!BytesUtils.equals(node.getPubKey().toBytes(), nodeSettings.getPubKey().toBytes())) {
+						return WebResponse.createFailureResult(-1, String.format("[ManagementController] %s:%d already occupied!", consensusHost, consensusPort, node.getAddress().toBase58()));
+					} else {
+						LOGGER.info("[ManagementController] node exists and status is CONSENSUS!");
+						// 节点存在且状态为激活，返回成功
+						return WebResponse.createSuccessResult(null);
+					}
 				}
-
-				ParticipantNode[] participants = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock())
-						.getParticipants();
-
-				Properties systemConfig = PropertiesUtils.createProperties(
-						((BftsmartConsensusViewSettings) getConsensusSetting(ledgerAdminInfo)).getSystemConfigs());
 
 				int viewId = ((BftsmartConsensusViewSettings) getConsensusSetting(ledgerAdminInfo)).getViewId();
 
-				// 由本节点准备交易
-
-				TransactionRequest txRequest = prepareActiveTx(ledgerHash, participants, consensusHost, consensusPort,
-						systemConfig);
-
-				// 验证本参与方是否已经被注册，没有被注册的参与方不能进行状态更新
-				if (!verifyState(ledgerRepo, Op.ACTIVE)) {
-					return WebResponse.createSuccessResult(null);
-				}
-
-				// 为交易添加本节点的签名信息，防止无法通过安全策略检查
-				txRequest = addNodeSigner(txRequest);
-
-				// 在本地账本执行交易；
-				// 验证本地区块与远程区块是否一致，如果不一致，本地回滚，返回失败结果；
-				// 如果区块一致，提交区块；
-				TransactionBatchProcessor txbatchProcessor = new TransactionBatchProcessor(ledgerRepo, opReg);
-
-				txbatchProcessor.schedule(txRequest);
-
-				// 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行新参与方的状态激活操作
-				remoteTxResponse = commitTxToOrigConsensus(ledgerRepo, txRequest, systemConfig, viewId,
-						origConsensusNodes);
-
-				// 保证原有共识网络账本状态与共识协议的视图更新信息一致
-				long blockGenerateTime = remoteTxResponse.getBlockGenerateTime();
-				if (remoteTxResponse.isSuccess()) {
-					try {
-						View newView = updateView(ledgerRepo, consensusHost, Integer.parseInt(consensusPort), Op.ACTIVE,
-								systemConfig, viewId, origConsensusNodes);
-						if (newView != null && newView.isMember(ledgerCurrNodes.get(ledgerRepo.getHash()).getId())) {
-							LOGGER.info("[ManagementController] updateView SUCC!");
-						} else if (newView == null) {
-							throw new IllegalStateException(
-									"[ManagementController] client recv response timeout, consensus may be stalemate, please restart all nodes!");
-						}
-					} catch (Exception e) {
-						cancelBlock(blockGenerateTime, txbatchProcessor);
-						return WebResponse.createFailureResult(-1,
-								"[ManagementController] commit tx to orig consensus, tx execute succ but view update failed, please restart all nodes and copy database for new participant node!");
-					}
+				if (node.getParticipantNodeState() != ParticipantNodeState.CONSENSUS) {
+					LOGGER.info("[ManagementController] activate participant!");
+					return activeParticipant(ledgerHash, ledgerRepo, node, ledgerAdminInfo, viewId, consensusHost, consensusPort, shutdown);
 				} else {
-					cancelBlock(remoteTxResponse.getBlockGenerateTime(), txbatchProcessor);
-					return WebResponse.createFailureResult(-1,
-							"[ManagementController] commit tx to orig consensus, tx execute failed, please retry activate participant!");
+					LOGGER.info("[ManagementController] update participant!");
+					return updateParticipant(ledgerHash, ledgerRepo, node, ledgerAdminInfo, viewId, consensusHost, consensusPort, shutdown);
 				}
-				// 进行Prepare
-				LedgerEditor.TIMESTAMP_HOLDER.set(blockGenerateTime);
-				handle = txbatchProcessor.prepare();
-				if (handle.getBlock().getHash().toBase58().equals(remoteTxResponse.getBlockHash().toBase58())) {
-					handle.commit();
-				} else {
-					handle.cancel(LEDGER_ERROR);
-					return WebResponse.createFailureResult(-1,
-							"[ManagementController] activate local participant state, write local ledger, but new block hash is inconsistent with remote consensus network!");
-				}
-
-				setupServer(ledgerRepo);
-
-				return WebResponse.createSuccessResult(null);
 
 			} else {
 				// Todo
@@ -679,28 +614,141 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			}
 
 		} catch (Exception e) {
-			return WebResponse.createFailureResult(-1, "[ManagementController] activate new particpant failed!" + e);
+			LOGGER.error("[ManagementController] activate new particpant failed!", e);
+			return WebResponse.createFailureResult(-1, "[ManagementController] activate new particpant failed! " + e.getMessage());
 		}
 	}
 
-	// check if consensus node is exist in all ledgers, prevent node conflict
-	private boolean isConsensusNodeExist(String consensusHost, String consensusPort) {
+	private WebResponse activeParticipant(HashDigest ledgerHash,
+										  LedgerRepository ledgerRepo,
+										  ParticipantNode node,
+										  LedgerAdminInfo ledgerAdminInfo,
+										  int viewId,
+										  String consensusHost,
+										  int consensusPort,
+										  boolean shutdown) {
 
-		for (LedgerQuery ledgerQuery : ledgerQuerys.values()) {
-			LedgerRepository ledgerRepo = (LedgerRepository) ledgerQuery;
-			List<NodeSettings> origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
+		Properties systemConfig = PropertiesUtils.createProperties(((BftsmartConsensusViewSettings) getConsensusSetting(ledgerAdminInfo)).getSystemConfigs());
+		// 由本节点准备交易
+		TransactionRequest txRequest = prepareActiveTx(ledgerHash, node, consensusHost, consensusPort + "", systemConfig);
 
-			for (NodeSettings nodeSettings : origConsensusNodes) {
+		// 为交易添加本节点的签名信息，防止无法通过安全策略检查
+		txRequest = addNodeSigner(txRequest);
+
+		// 在本地账本执行交易；
+		// 验证本地区块与远程区块是否一致，如果不一致，本地回滚，返回失败结果；
+		// 如果区块一致，提交区块；
+		TransactionBatchProcessor txbatchProcessor = new TransactionBatchProcessor(ledgerRepo, new DefaultOperationHandleRegisteration());
+		txbatchProcessor.schedule(txRequest);
+
+		List<NodeSettings> origConsensusNodes = SearchOtherOrigConsensusNodes(ledgerRepo, node);
+
+		// 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行新参与方的状态激活操作
+		TransactionResponse remoteTxResponse = commitTxToOrigConsensus(ledgerRepo, txRequest, systemConfig, viewId, origConsensusNodes);
+
+		// 保证原有共识网络账本状态与共识协议的视图更新信息一致
+		long blockGenerateTime = remoteTxResponse.getBlockGenerateTime();
+		if (remoteTxResponse.isSuccess()) {
+			try {
+				View newView = updateView(ledgerRepo, consensusHost, consensusPort, ParticipantUpdateType.ACTIVE, systemConfig, viewId, origConsensusNodes);
+				if (newView != null && newView.isMember(ledgerCurrNodes.get(ledgerRepo.getHash()).getId())) {
+					LOGGER.info("[ManagementController] updateView SUCC!");
+				} else if (newView == null) {
+					throw new IllegalStateException(
+							"[ManagementController] client recv response timeout, consensus may be stalemate, please restart all nodes!");
+				}
+			} catch (Exception e) {
+				cancelBlock(blockGenerateTime, txbatchProcessor);
+				return WebResponse.createFailureResult(-1,
+						"[ManagementController] commit tx to orig consensus, tx execute succ but view update failed, please restart all nodes and copy database for new participant node!");
+			}
+		} else {
+			cancelBlock(remoteTxResponse.getBlockGenerateTime(), txbatchProcessor);
+			return WebResponse.createFailureResult(-1,
+					"[ManagementController] commit tx to orig consensus, tx execute failed, please retry activate participant!");
+		}
+		// 进行Prepare
+		LedgerEditor.TIMESTAMP_HOLDER.set(blockGenerateTime);
+		TransactionBatchResultHandle handle = txbatchProcessor.prepare();
+		if (handle.getBlock().getHash().toBase58().equals(remoteTxResponse.getBlockHash().toBase58())) {
+			handle.commit();
+		} else {
+			handle.cancel(LEDGER_ERROR);
+			return WebResponse.createFailureResult(-1,
+					"[ManagementController] activate local participant state, write local ledger, but new block hash is inconsistent with remote consensus network!");
+		}
+
+		setupServer(ledgerRepo, shutdown);
+
+		return WebResponse.createSuccessResult(null);
+	}
+
+	private WebResponse updateParticipant(HashDigest ledgerHash,
+										  LedgerRepository ledgerRepo,
+										  ParticipantNode node,
+										  LedgerAdminInfo ledgerAdminInfo,
+										  int viewId,
+										  String consensusHost,
+										  int consensusPort,
+										  boolean shutdown) {
+		Properties systemConfig = PropertiesUtils.createProperties(((BftsmartConsensusViewSettings) getConsensusSetting(ledgerAdminInfo)).getSystemConfigs());
+		// 由本节点准备交易
+		TransactionRequest txRequest = prepareActiveTx(ledgerHash, node, consensusHost, consensusPort + "", systemConfig);
+
+		// 为交易添加本节点的签名信息，防止无法通过安全策略检查
+		txRequest = addNodeSigner(txRequest);
+
+		List<NodeSettings> origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
+
+		// 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行新参与方的状态激活操作
+		TransactionResponse remoteTxResponse = commitTxToOrigConsensus(ledgerRepo, txRequest, systemConfig, viewId, origConsensusNodes);
+
+		// 保证原有共识网络账本状态与共识协议的视图更新信息一致
+		if (remoteTxResponse.isSuccess()) {
+			try {
+				View newView = updateView(ledgerRepo, consensusHost, consensusPort, ParticipantUpdateType.UPDATE, systemConfig, viewId, origConsensusNodes);
+				if (newView != null && newView.isMember(ledgerCurrNodes.get(ledgerRepo.getHash()).getId())) {
+					LOGGER.info("[ManagementController] updateView SUCC!");
+				} else if (newView == null) {
+					throw new IllegalStateException(
+							"[ManagementController] client recv response timeout, consensus may be stalemate, please restart all nodes!");
+				}
+			} catch (Exception e) {
+				return WebResponse.createFailureResult(-1,
+						"[ManagementController] commit tx to orig consensus, tx execute succ but view update failed, please restart all nodes and copy database for new participant node!");
+			}
+		} else {
+			return WebResponse.createFailureResult(-1,
+					"[ManagementController] commit tx to orig consensus, tx execute failed, please retry activate participant!");
+		}
+
+		setupServer(ledgerRepo, shutdown);
+
+		return WebResponse.createSuccessResult(null);
+	}
+
+	/**
+	 * 根据IP和端口获取处于激活状态的节点NodeSettings，不存在返回null
+	 *
+	 * @param ledgers       账本数据库
+	 * @param consensusHost 节点IP
+	 * @param consensusPort 节点端口
+	 * @return
+	 */
+	private NodeSettings getConsensusNodeSettings(Collection<LedgerQuery> ledgers, String consensusHost, int consensusPort) {
+
+		for (LedgerQuery ledgerRepo : ledgers) {
+			for (NodeSettings nodeSettings : SearchOrigConsensusNodes((LedgerRepository) ledgerRepo)) {
 				String host = ((BftsmartNodeSettings) nodeSettings).getNetworkAddress().getHost();
 				int port = ((BftsmartNodeSettings) nodeSettings).getNetworkAddress().getPort();
 
-				if ((host.equals(consensusHost)) && (port == Integer.valueOf(consensusPort).intValue())) {
-					return true;
+				if ((host.equals(consensusHost)) && port == consensusPort) {
+					return nodeSettings;
 				}
 			}
 		}
 
-		return false;
+		return null;
 	}
 
 	private void cancelBlock(long blockGenerateTime, TransactionBatchProcessor txBatchProcessor) {
@@ -729,9 +777,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	 */
 	@RequestMapping(path = "/delegate/deactiveparticipant", method = RequestMethod.POST)
 	public WebResponse deActivateParticipant(@RequestParam("ledgerHash") String base58LedgerHash,
-			@RequestParam("participantAddress") String participantAddress,
-			@RequestParam("remoteManageHost") String remoteManageHost,
-			@RequestParam("remoteManagePort") String remoteManagePort) {
+											 @RequestParam("participantAddress") String participantAddress,
+											 @RequestParam("remoteManageHost") String remoteManageHost,
+											 @RequestParam("remoteManagePort") int remoteManagePort) {
 		TransactionResponse txResponse;
 		WebResponse webResponse;
 
@@ -762,18 +810,17 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				}
 
 				ledgerAdminInfo = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock());
-				ParticipantNode[] participants = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock())
-						.getParticipants();
 
-				// 已经处于最小节点数环境的共识网络，不能再执行去激活操作
-				int count = 0;
-				for (ParticipantNode participantNode : participants) {
-					if (participantNode.getParticipantNodeState().CODE == ParticipantNodeState.CONSENSUS.CODE) {
-						count++;
-					}
+				// 已经是DECONSENSUS状态
+				ParticipantNode node = getCurrentNode(ledgerAdminInfo, participantAddress);
+				if (node.getParticipantNodeState() == ParticipantNodeState.DECONSENSUS) {
+					return WebResponse.createSuccessResult(null);
 				}
 
-				if (count <= 4) {
+				// 已经处于最小节点数环境的共识网络，不能再执行去激活操作
+				List<NodeSettings> origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
+
+				if (origConsensusNodes.size() <= 4) {
 					return WebResponse.createFailureResult(-1,
 							"[ManagementController] in minimum number of nodes scenario, deactive op is not allowed!");
 				}
@@ -784,14 +831,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				int viewId = ((BftsmartConsensusViewSettings) getConsensusSetting(ledgerAdminInfo)).getViewId();
 
 				// 由本节点准备交易
-				TransactionRequest txRequest = prepareDeActiveTx(ledgerHash, participants, systemConfig);
-
-				// 验证本参与方是否已经被注册，没有被注册的参与方不能进行状态更新, 处于激活状态的参与方才能去激活
-				if (!verifyState(ledgerRepo, Op.DEACTIVE)) {
-					return WebResponse.createSuccessResult(null);
-				}
-
-				List<NodeSettings> origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
+				TransactionRequest txRequest = prepareDeActiveTx(ledgerHash, node, systemConfig);
 
 				// 为交易添加本节点的签名信息，防止无法通过安全策略检查
 				txRequest = addNodeSigner(txRequest);
@@ -803,7 +843,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				if (txResponse.isSuccess()) {
 
 					try {
-						View newView = updateView(ledgerRepo, null, -1, Op.DEACTIVE, systemConfig, viewId,
+						View newView = updateView(ledgerRepo, null, -1, ParticipantUpdateType.DEACTIVE, systemConfig, viewId,
 								origConsensusNodes);
 						if (newView != null && !newView.isMember(ledgerCurrNodes.get(ledgerRepo.getHash()).getId())) {
 							LOGGER.info("[ManagementController] updateView SUCC!");
@@ -830,31 +870,33 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			}
 
 		} catch (Exception e) {
-			return WebResponse.createFailureResult(-1, "[ManagementController] deactivate particpant failed!" + e);
+			return WebResponse.createFailureResult(-1, "[ManagementController] deactivate participant failed!" + e);
 		}
 	}
 
-	private TransactionRequest prepareDeActiveTx(HashDigest ledgerHash, ParticipantNode[] participants,
-			Properties systemConfig) {
-
-		PubKey deActivePubKey = ledgerKeypairs.get(ledgerHash).getPubKey();
-		int deActiveID = 0;
-
-		for (int i = 0; i < participants.length; i++) {
-			if (deActivePubKey.equals(participants[i].getPubKey())) {
-				deActiveID = participants[i].getId();
-				break;
+	private ParticipantNode getCurrentNode(LedgerAdminInfo ledgerAdminInfo, String participantAddress) {
+		for (ParticipantNode participantNode : ledgerAdminInfo.getParticipants()) {
+			if (participantNode.getAddress().toString().equals(participantAddress)) {
+				return participantNode;
 			}
 		}
 
+		throw new IllegalStateException("[ManagementController] participant ["+ participantAddress +"] not exists");
+	}
+
+	private TransactionRequest prepareDeActiveTx(HashDigest ledgerHash, ParticipantNode node,
+												 Properties systemConfig) {
+
+		int deActiveID = node.getId();
+
 		// organize system config properties
-		Property[] properties = createDeactiveProperties(deActivePubKey, deActiveID, systemConfig);
+		Property[] properties = createDeactiveProperties(node.getPubKey(), deActiveID, systemConfig);
 
 		TxBuilder txbuilder = new TxBuilder(ledgerHash, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
 
 		// This transaction contains participant state update and settings update two
 		// ops
-		txbuilder.states().update(new BlockchainIdentityData(deActivePubKey), ParticipantNodeState.DECONSENSUS);
+		txbuilder.states().update(new BlockchainIdentityData(node.getPubKey()), ParticipantNodeState.DECONSENSUS);
 
 		txbuilder.settings().update(properties);
 
@@ -868,7 +910,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	}
 
 	private WebResponse checkLedgerDiff(LedgerRepository ledgerRepository, AsymmetricKeypair localKeyPair,
-			String remoteManageHost, String remoteManagePort) {
+										String remoteManageHost, int remoteManagePort) {
 
 		List<String> providers = new ArrayList<String>();
 
@@ -876,29 +918,24 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		HashDigest localLatestBlockHash = ledgerRepository.getLatestBlockHash();
 
-		HashDigest remoteBlockHash;
-
-		long remoteLatestBlockHeight = -1; // 激活新节点时，远端管理节点最新区块高度
-
 		HashDigest ledgerHash = ledgerRepository.getHash();
 
 		TransactionBatchResultHandle handle = null;
-
-		OperationHandleRegisteration opReg = new DefaultOperationHandleRegisteration();
 
 		try {
 			providers.add(BFTSMART_PROVIDER);
 
 			PeerBlockchainServiceFactory blockchainServiceFactory = PeerBlockchainServiceFactory.connect(localKeyPair,
-					new NetworkAddress(remoteManageHost, Integer.parseInt(remoteManagePort)),
+					new NetworkAddress(remoteManageHost, remoteManagePort),
 					SESSION_CREDENTIAL_PROVIDER, peerSideConsensusClientManager);
 
-			remoteLatestBlockHeight = blockchainServiceFactory.getBlockchainService().getLedger(ledgerHash)
+			// 激活新节点时，远端管理节点最新区块高度
+			long remoteLatestBlockHeight = blockchainServiceFactory.getBlockchainService().getLedger(ledgerHash)
 					.getLatestBlockHeight();
 
 			if ((localLatestBlockHeight <= remoteLatestBlockHeight)) {
 				// 检查本节点与拉取节点相同高度的区块，哈希是否一致,不一致说明其中一个节点的数据库被污染了
-				remoteBlockHash = blockchainServiceFactory.getBlockchainService()
+				HashDigest remoteBlockHash = blockchainServiceFactory.getBlockchainService()
 						.getBlock(ledgerHash, localLatestBlockHeight).getHash();
 
 				if (!(localLatestBlockHash.toBase58().equals(remoteBlockHash.toBase58()))) {
@@ -914,6 +951,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 						"[ManagementController] checkLedgerDiff, local latest block height > remote node latest block height!");
 			}
 
+			OperationHandleRegisteration opReg = new DefaultOperationHandleRegisteration();
 			// 对差异进行交易重放
 			for (int height = (int) localLatestBlockHeight + 1; height <= remoteLatestBlockHeight; height++) {
 				TransactionBatchProcessor txbatchProcessor = new TransactionBatchProcessor(ledgerRepository, opReg);
@@ -925,8 +963,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 							.getTimestamp();
 
 					// 获取区块内的增量交易
-					LedgerTransaction[] addition_transactions = getAdditionalTransactions(ledgerHash, height, 0, -1,
-							remoteManageHost, remoteManagePort);
+					List<LedgerTransaction> addition_transactions = getAdditionalTransactions(ledgerHash, height, remoteManageHost, remoteManagePort);
 
 					for (LedgerTransaction ledgerTransaction : addition_transactions) {
 						txbatchProcessor.schedule(ledgerTransaction.getRequest());
@@ -952,41 +989,52 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error("[ManagementController] checkLedgerDiff error!", e);
 			return WebResponse.createFailureResult(-1, "[ManagementController] checkLedgerDiff error!" + e);
 		}
 
 		return WebResponse.createSuccessResult(null);
 	}
 
-	private LedgerTransaction[] getAdditionalTransactions(HashDigest ledgerHash, int height, int i, int i1,
-			String remoteManageHost, String remoteManagePort) {
+	private List<LedgerTransaction> getAdditionalTransactions(HashDigest ledgerHash, int height, String remoteManageHost, int remoteManagePort) {
+		List<LedgerTransaction> txs = new ArrayList<>();
+		int fromIndex = 0;
 
-		String url = "http://" + remoteManageHost + ":" + remoteManagePort;
-
-		url = url + "/ledgers/" + ledgerHash.toBase58() + "/blocks/height/" + String.valueOf(height)
-				+ "/txs/additional-txs/binary";
-
-		System.out.println("url = " + url);
-
-		HttpPost httpPost = new HttpPost(url);
-
-		try {
-
-			HttpClient httpClient = HttpClients.createDefault();
-
-			HttpResponse response = httpClient.execute(httpPost);
-
-			InputStream respStream = response.getEntity().getContent();
-
-			LedgerTransactions transactions = BinaryProtocol.decode(respStream);
-
-			return transactions.getLedgerTransactions();
-
-		} catch (Exception e) {
-			e.printStackTrace();
+		String url = String.format("http://%s:%d/ledgers/%s/blocks/height/%d/txs/additional-txs/binary",
+				remoteManageHost, remoteManagePort, ledgerHash.toBase58(), height);
+		while (true) {
+			try {
+				HttpClient httpClient = HttpClients.createDefault();
+				HttpPost httpPost = new HttpPost(url);
+				List<BasicNameValuePair> params = new ArrayList<>();
+				params.add(new BasicNameValuePair("fromIndex", fromIndex + ""));
+				params.add(new BasicNameValuePair("count", "100"));
+				httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
+				HttpResponse response = httpClient.execute(httpPost);
+				InputStream respStream = response.getEntity().getContent();
+				if (null != respStream) {
+					LedgerTransactions transactions = BinaryProtocol.decode(respStream);
+					if (null != transactions && null != transactions.getLedgerTransactions()) {
+						LedgerTransaction[] ts = transactions.getLedgerTransactions();
+						fromIndex += ts.length;
+						for (LedgerTransaction tx : ts) {
+							txs.add(tx);
+						}
+						if (ts.length < 100) {
+							break;
+						}
+					} else {
+						break;
+					}
+				} else {
+					break;
+				}
+			} catch (Exception e) {
+				LOGGER.error("get transactions from remote error", e);
+				throw new IllegalStateException("[ManagementController] get transactions from remote error!", e);
+			}
 		}
-		return null;
+		return txs;
 
 	}
 
@@ -1024,7 +1072,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	// organize active participant related system config properties
 	private Property[] createActiveProperties(String host, String port, PubKey activePubKey, int activeID,
-			Properties systemConfig) {
+											  Properties systemConfig) {
 		int oldServerNum = Integer.parseInt(systemConfig.getProperty(SERVER_NUM_KEY));
 		int oldFNum = Integer.parseInt(systemConfig.getProperty(F_NUM_KEY));
 		String oldView = systemConfig.getProperty(SERVER_VIEW_KEY);
@@ -1072,27 +1120,19 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	}
 
 	// 在指定的账本上准备一笔激活参与方状态及系统配置参数的操作
-	private TransactionRequest prepareActiveTx(HashDigest ledgerHash, ParticipantNode[] participants, String host,
-			String port, Properties systemConfig) {
+	private TransactionRequest prepareActiveTx(HashDigest ledgerHash, ParticipantNode node, String host,
+											   String port, Properties systemConfig) {
 
-		PubKey activePubKey = ledgerKeypairs.get(ledgerHash).getPubKey();
-		int activeID = 0;
-
-		for (int i = 0; i < participants.length; i++) {
-			if (activePubKey.equals(participants[i].getPubKey())) {
-				activeID = participants[i].getId();
-				break;
-			}
-		}
+		int activeID = node.getId();
 
 		// organize system config properties
-		Property[] properties = createActiveProperties(host, port, activePubKey, activeID, systemConfig);
+		Property[] properties = createActiveProperties(host, port, node.getPubKey(), activeID, systemConfig);
 
 		TxBuilder txbuilder = new TxBuilder(ledgerHash, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
 
 		// This transaction contains participant state update and settings update two
 		// ops
-		txbuilder.states().update(new BlockchainIdentityData(activePubKey), ParticipantNodeState.CONSENSUS);
+		txbuilder.states().update(new BlockchainIdentityData(node.getPubKey()), ParticipantNodeState.CONSENSUS);
 
 		txbuilder.settings().update(properties);
 
@@ -1103,35 +1143,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		return reqBuilder.buildRequest();
 
-	}
-
-	private boolean verifyState(LedgerRepository ledgerRepo, Op op) {
-		ParticipantNode currNode = ledgerCurrNodes.get(ledgerRepo.getHash());
-
-		if (op == Op.ACTIVE) {
-			for (ParticipantNode participantNode : ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock())
-					.getParticipants()) {
-				if ((participantNode.getAddress().toString().equals(currNode.getAddress().toString()))
-						&& ((participantNode.getParticipantNodeState() == ParticipantNodeState.READY)
-								|| (participantNode.getParticipantNodeState() == ParticipantNodeState.DECONSENSUS))) {
-					return true;
-				}
-			}
-			// 参与方的状态已经处于激活状态，不需要再激活
-			LOGGER.info("Participant state has been activated, no need be activated repeatedly!");
-		} else if (op == Op.DEACTIVE) {
-			for (ParticipantNode participantNode : ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock())
-					.getParticipants()) {
-				if ((participantNode.getAddress().toString().equals(currNode.getAddress().toString()))
-						&& participantNode.getParticipantNodeState() == ParticipantNodeState.CONSENSUS) {
-					return true;
-				}
-			}
-			// 参与方的状态已经处于激活状态，不需要再激活
-			LOGGER.info("Participant state has been deactivated, no need be deactivated repeatedly!");
-		}
-
-		return false;
 	}
 
 	// 加载本参与方的公私钥对身份信息
@@ -1150,8 +1161,26 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	}
 
 	// 视图更新完成，启动共识节点
-	private void setupServer(LedgerRepository ledgerRepository) {
+	private void setupServer(LedgerRepository ledgerRepository, boolean shutdown) {
 		try {
+
+			// 关闭旧的server
+			NodeServer server = ledgerPeers.get(ledgerRepository.getHash());
+			if (null != server) {
+				LOGGER.info("[ManagementController] stop old server");
+				server.stop();
+			}
+
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+				LOGGER.error("[ManagementController] sleep InterruptedException", e);
+			}
+
+			if(shutdown) {
+				LOGGER.info("[ManagementController] shutdown server in this ip");
+				return;
+			}
 
 			ParticipantNode currentNode = ledgerCurrNodes.get(ledgerRepository.getHash());
 
@@ -1170,16 +1199,11 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
 
 			Storage consensusRuntimeStorage = getConsensusRuntimeStorage(ledgerRepository.getHash());
-			NodeServer server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
+			server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
 					consensusStateManager, consensusRuntimeStorage);
 
 			ledgerPeers.put(ledgerRepository.getHash(), server);
 
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
 			runRealm(server);
 
 			LOGGER.info("[ManagementController] setupServer success!");
@@ -1190,8 +1214,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	}
 
 	// 通知原有的共识网络更新共识的视图ID
-	private View updateView(LedgerRepository ledgerRepository, String consensusHost, int consensusPort, Op op,
-			Properties systemConfig, int viewId, List<NodeSettings> origConsensusNodes) {
+	private View updateView(LedgerRepository ledgerRepository, String consensusHost, int consensusPort, ParticipantUpdateType participantUpdateType,
+							Properties systemConfig, int viewId, List<NodeSettings> origConsensusNodes) {
 		ParticipantNode currNode = ledgerCurrNodes.get(ledgerRepository.getHash());
 
 		LOGGER.info("ManagementController start updateView operation!");
@@ -1201,12 +1225,16 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			Reconfiguration reconfiguration = new Reconfiguration(peerProxy.getProcessId(), peerProxy);
 
-			if (op == Op.ACTIVE) {
+			if (participantUpdateType == ParticipantUpdateType.ACTIVE) {
 				// addServer的第一个参数指待加入共识的新参与方的编号
 				reconfiguration.addServer(currNode.getId(), consensusHost, consensusPort);
-			} else if (op == Op.DEACTIVE) {
+			} else if (participantUpdateType == ParticipantUpdateType.DEACTIVE) {
 				// 参数为待移除共识节点的id
 				reconfiguration.removeServer(currNode.getId());
+			} else if (participantUpdateType == ParticipantUpdateType.UPDATE) {
+				// 共识参数修改，先移除后添加
+				reconfiguration.removeServer(currNode.getId());
+				reconfiguration.addServer(currNode.getId(), consensusHost, consensusPort);
 			} else {
 				throw new IllegalArgumentException("[ManagementController] op type error!");
 			}
@@ -1272,7 +1300,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			Properties tempSystemConfig = (Properties) systemConfig.clone();
 
 			// 构建tom 配置
-			TOMConfiguration tomConfig = new TOMConfiguration((int) -System.nanoTime(), tempSystemConfig, hostsConfig);
+			TOMConfiguration tomConfig = new TOMConfiguration(-(new Random().nextInt(Integer.MAX_VALUE-2) - 1), tempSystemConfig, hostsConfig);
 
 			View view = new View(viewId, origConsensusProcesses, tomConfig.getF(),
 					nodeAddresses.toArray(new NodeNetwork[nodeAddresses.size()]));
@@ -1289,7 +1317,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	// SDK 通过Peer节点转发交易到远端的共识网络
 	private TransactionResponse commitTxToOrigConsensus(LedgerRepository ledgerRepository, TransactionRequest txRequest,
-			Properties systemConfig, int viewId, List<NodeSettings> origConsensusNodes) {
+														Properties systemConfig, int viewId, List<NodeSettings> origConsensusNodes) {
 		TransactionResponse transactionResponse = new TxResponseMessage();
 
 		ServiceProxy peerProxy = createPeerProxy(systemConfig, viewId, origConsensusNodes);
@@ -1339,13 +1367,34 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		return nodeState;
 	}
 
+	// 查找原有共识网络中的其他共识节点信息
+	private List<NodeSettings> SearchOtherOrigConsensusNodes(LedgerRepository ledgerRepository, ParticipantNode currentNode) {
+		List<NodeSettings> origConsensusNodes = new ArrayList<>();
+		LedgerAdminInfo ledgerAdminInfo = ledgerRepository.getAdminInfo(ledgerRepository.retrieveLatestBlock());
+		// load consensus setting
+		ConsensusViewSettings csSettings = getConsensusSetting(ledgerAdminInfo);
+
+		NodeSettings[] nodeSettingsArray = csSettings.getNodes();
+		for (NodeSettings nodeSettings : nodeSettingsArray) {
+			// 排除不处于激活状态的共识节点
+			if (getParticipantState(nodeSettings.getAddress(), ledgerAdminInfo) != ParticipantNodeState.CONSENSUS) {
+				continue;
+			}
+
+			// 排除当前节点
+			if (currentNode.getAddress().toBase58().equals(nodeSettings.getAddress())) {
+				continue;
+			}
+
+			origConsensusNodes.add(nodeSettings);
+		}
+		return origConsensusNodes;
+	}
+
 	// 查找原有共识网络中的共识节点信息
 	private List<NodeSettings> SearchOrigConsensusNodes(LedgerRepository ledgerRepository) {
-
 		List<NodeSettings> origConsensusNodes = new ArrayList<>();
-
 		LedgerAdminInfo ledgerAdminInfo = ledgerRepository.getAdminInfo(ledgerRepository.retrieveLatestBlock());
-
 		// load consensus setting
 		ConsensusViewSettings csSettings = getConsensusSetting(ledgerAdminInfo);
 
@@ -1368,17 +1417,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				threadFactory, new ThreadPoolExecutor.AbortPolicy());
 	}
 
-	enum Op {
-
-		ACTIVE,
-
-		DEACTIVE
-
-	}
-
 	/**
 	 * 节点间互联的会话凭证提供者；
-	 * 
+	 *
 	 * @author huanghaiquan
 	 *
 	 */
@@ -1410,4 +1451,13 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	}
 
+	// 节点更新类型
+	private enum ParticipantUpdateType {
+		// 激活
+		ACTIVE,
+		// 移除
+		DEACTIVE,
+		// 更新
+		UPDATE,
+	}
 }
