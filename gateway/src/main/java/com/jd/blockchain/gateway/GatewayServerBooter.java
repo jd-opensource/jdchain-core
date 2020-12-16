@@ -189,6 +189,7 @@ public class GatewayServerBooter {
 		PeerConnector peerConnector = appCtx.getBean(PeerConnector.class);
 
 		NetworkAddress peerAddress = config.masterPeerAddress();
+		peerConnector.setMasterPeer(peerAddress);
 		peerConnector.connect(peerAddress, defaultKeyPair);
 		// 不管连接是否成功，都需要释放许可
 		GatewayLedgerLoadTimer loadTimer = appCtx.getBean(GatewayLedgerLoadTimer.class);

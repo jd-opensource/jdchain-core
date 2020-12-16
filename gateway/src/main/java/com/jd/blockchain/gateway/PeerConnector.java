@@ -42,6 +42,13 @@ public interface PeerConnector {
 	void connect(NetworkAddress peerAddress, AsymmetricKeypair defaultKeyPair);
 
 	/**
+	 * 设置网关配置的默认连接Peer Http 地址
+	 *
+	 * @return void
+	 */
+	void setMasterPeer(NetworkAddress defaultMasterAddress);
+
+	/**
 	 * 监控重连，判断是否需要更新账本信息，再进行重连操作
 	 * Peer地址及其他信息见${@link PeerConnector#connect(com.jd.blockchain.utils.net.NetworkAddress, com.jd.blockchain.crypto.AsymmetricKeypair, java.util.List)}
 	 *
