@@ -33,6 +33,7 @@ public abstract class BftsmartMessageService implements MessageService {
 		} catch (ViewObsoleteException voe) {
 			throw voe;
 		} catch (Exception e) {
+			asyncFuture.error(e);
 			throw new RuntimeException(e);
 		} finally {
 			if (asynchServiceProxy != null) {
@@ -57,8 +58,8 @@ public abstract class BftsmartMessageService implements MessageService {
 			asynchServiceProxy = asyncPeerProxyPool.borrowObject();
 			byte[] result = asynchServiceProxy.invokeUnordered(message);
 			asyncFuture.complete(result);
-
 		} catch (Exception e) {
+			asyncFuture.error(e);
 			throw new RuntimeException(e);
 		} finally {
 			if (asynchServiceProxy != null) {

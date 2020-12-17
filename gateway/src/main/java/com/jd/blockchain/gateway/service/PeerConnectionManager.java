@@ -65,6 +65,8 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 
 	private Set<NetworkAddress> peerAddresses = new HashSet<>();
 
+	private NetworkAddress defaultMasterAddress;
+
 	private volatile PeerServiceFactory mostLedgerPeerServiceFactory;
 
 	private volatile AsymmetricKeypair gateWayKeyPair;
@@ -119,6 +121,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 		}
 	}
 
+
 	@Override
 	public synchronized void connect(NetworkAddress peerAddress, AsymmetricKeypair defaultKeyPair) {
 		LOGGER.info("Add peerAddress{} to connect list !", peerAddress);
@@ -128,6 +131,7 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 		// 连接成功的话，更新账本
 		ledgerHashLock.lock();
 		try {
+			setGateWayKeyPair(defaultKeyPair);
 			PeerBlockchainServiceFactory peerServiceFactory = PeerBlockchainServiceFactory.connect(defaultKeyPair,
 					peerAddress, credentialProviders, consensusClientManager);
 			if (peerServiceFactory != null) {
@@ -141,7 +145,6 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 				peerBlockchainServiceFactories.put(peerAddress, peerServiceFactory);
 
 				addPeerAddress(peerAddress);
-				setGateWayKeyPair(defaultKeyPair);
 
 				updateLedgerCache();
 			} else {
@@ -153,6 +156,11 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 			// 连接成功的话，更新账本
 			ledgerHashLock.unlock();
 		}
+	}
+
+	@Override
+	public void setMasterPeer(NetworkAddress masterPeer) {
+		defaultMasterAddress = masterPeer;
 	}
 
 	@Override
@@ -552,6 +560,21 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 					} catch (Exception e) {
 						LOGGER.error(String.format("Reconnect %s fail !!!", peerAddress), e);
 					}
+				}
+			}
+
+			// 如果网关启动时默认绑定的peer节点未启动，则从各个共识节点统计的peerAddresses地址列表为空，此时通过重连默认的绑定地址来补齐
+			if (peerAddresses.size() == 0 && (!peerBlockchainServiceFactories.containsKey(defaultMasterAddress))) {
+
+				LOGGER.info("Reconnect default master peer!");
+				try {
+					PeerBlockchainServiceFactory peerServiceFactory = PeerBlockchainServiceFactory
+							.connect(gateWayKeyPair, defaultMasterAddress, credentialProviders, consensusClientManager);
+					if (peerServiceFactory != null) {
+						peerBlockchainServiceFactories.put(defaultMasterAddress, peerServiceFactory);
+					}
+				} catch (Exception e) {
+					LOGGER.error(String.format("Reconnect default master peer %s fail !!!", defaultMasterAddress), e);
 				}
 			}
 		}
