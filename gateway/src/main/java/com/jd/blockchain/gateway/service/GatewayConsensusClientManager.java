@@ -23,6 +23,7 @@ public class GatewayConsensusClientManager implements ConsensusClientManager {
 		ConsensusClient client = ledgerConsensusClients.get(ledgerHash);
 		if (client == null) {
 			client = factory.create();
+			client.connect();
 			ledgerConsensusClients.put(ledgerHash, client);
 		} else {
 			if (isCredentialUpated(client, sessionCredential)) {
