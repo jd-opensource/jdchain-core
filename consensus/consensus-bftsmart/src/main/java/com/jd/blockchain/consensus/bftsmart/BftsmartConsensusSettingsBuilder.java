@@ -279,23 +279,30 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 
 			if (newProps.getProperty(PARTICIPANT_OP_KEY).equals("active")) {
 
-				int activeId = Integer.parseInt(newProps.getProperty(ACTIVE_PARTICIPANT_ID_KEY));
-
-				bftsmartNodeSettings = new BftsmartNodeSettings[oldNodeSettings.length + 1];
-
 				// organize new participant node
+				int activeId = Integer.parseInt(newProps.getProperty(ACTIVE_PARTICIPANT_ID_KEY));
 				String host = newProps.getProperty(keyOfNode(CONSENSUS_HOST_PATTERN, activeId));
 				int port = Integer.parseInt(newProps.getProperty(keyOfNode(CONSENSUS_PORT_PATTERN, activeId)));
 				byte[] pubKeyBytes = Base58Utils.decode(newProps.getProperty(keyOfNode(PUBKEY_PATTERN, activeId)));
 				PubKey pubKey = Crypto.resolveAsPubKey(pubKeyBytes);
-				BftsmartNodeConfig bftsmartNodeConfig = new BftsmartNodeConfig(pubKey, activeId,
-						new NetworkAddress(host, port));
+				BftsmartNodeConfig bftsmartNodeConfig = new BftsmartNodeConfig(pubKey, activeId, new NetworkAddress(host, port));
 
+				int index = oldNodeSettings.length;
+				for(int i = 0; i < oldNodeSettings.length; i ++) {
+					NodeSettings settings = oldNodeSettings[i];
+					if(settings.getAddress().equals(bftsmartNodeConfig.getAddress())) {
+						index = i;
+					}
+				}
+				if(index == oldNodeSettings.length) {
+					bftsmartNodeSettings = new BftsmartNodeSettings[oldNodeSettings.length + 1];
+				} else {
+					bftsmartNodeSettings = new BftsmartNodeSettings[oldNodeSettings.length];
+				}
 				for (int i = 0; i < oldNodeSettings.length; i++) {
 					bftsmartNodeSettings[i] = (BftsmartNodeSettings) oldNodeSettings[i];
 				}
-
-				bftsmartNodeSettings[oldNodeSettings.length] = bftsmartNodeConfig;
+				bftsmartNodeSettings[index] = bftsmartNodeConfig;
 
 			} else if (newProps.getProperty(PARTICIPANT_OP_KEY).equals("deactive")) {
 				int deActiveId = Integer.parseInt(newProps.getProperty(DEACTIVE_PARTICIPANT_ID_KEY));
