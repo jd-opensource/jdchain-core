@@ -74,6 +74,9 @@ public class UserAccountSetEditor implements Transactional, UserAccountSet {
 	@Override
 	public UserAccount getAccount(Bytes address) {
 		CompositeAccount baseAccount = accountSet.getAccount(address);
+		if(null == baseAccount) {
+			return null;
+		}
 		return new UserAccount(baseAccount);
 	}
 

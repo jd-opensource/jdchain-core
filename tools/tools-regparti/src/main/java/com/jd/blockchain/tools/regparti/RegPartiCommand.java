@@ -171,7 +171,7 @@ public class RegPartiCommand {
 
             // 验证公钥存在性
             if (null == service.getUser(ledgerHash, AddressEncoding.generateAddress(keyPair.getPubKey()).toBase58())) {
-                throw new IllegalArgumentException(String.format("public key [%s] not exists in the blockchain"));
+                throw new IllegalArgumentException(String.format("public key [%s] not exists in the blockchain", exist_pubkey));
             }
 
             BlockchainKeypair user = new BlockchainKeypair(KeyGenUtils.decodePubKey(pubkey), KeyGenUtils.decodePrivKey(privkey, privKey_pass));
@@ -212,7 +212,6 @@ public class RegPartiCommand {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
             ConsoleUtils.error("Error!!! %s", e.getMessage());
             if (argSet.hasOption(OPT_DEBUG)) {
                 e.printStackTrace();

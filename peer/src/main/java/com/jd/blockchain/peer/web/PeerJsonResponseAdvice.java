@@ -42,7 +42,7 @@ public class PeerJsonResponseAdvice implements ResponseBodyAdvice<Object> {
 			ServerHttpResponse response) {
 		WebResponse result = null;
 		if (body == null) {
-			return JSONSerializeUtils.serializeToJSON("");
+			result = WebResponse.createSuccessResult(null);
 		} else if (body instanceof ResponseEntity) {
 			return body;
 		} else if (body instanceof WebResponse) {

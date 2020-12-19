@@ -150,6 +150,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 			@PathVariable(name = "blockHeight") long blockHeight) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getBlock(blockHeight);
+		if(null == block) {
+			return 0;
+		}
 		TransactionSet txSet = ledger.getTransactionSet(block);
 		return txSet.getTotalCount();
 	}
@@ -160,6 +163,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 			@PathVariable(name = "blockHash") HashDigest blockHash) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getBlock(blockHash);
+		if(null == block) {
+			return 0;
+		}
 		TransactionSet txSet = ledger.getTransactionSet(block);
 		return txSet.getTotalCount();
 	}
@@ -179,6 +185,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 			@PathVariable(name = "blockHeight") long height) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getBlock(height);
+		if(null == block) {
+			return 0;
+		}
 		DataAccountSet dataAccountSet = ledger.getDataAccountSet(block);
 		return dataAccountSet.getTotal();
 	}
@@ -189,6 +198,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 			@PathVariable(name = "blockHash") HashDigest blockHash) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getBlock(blockHash);
+		if(null == block) {
+			return 0;
+		}
 		DataAccountSet dataAccountSet = ledger.getDataAccountSet(block);
 		return dataAccountSet.getTotal();
 	}
@@ -208,6 +220,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 			@PathVariable(name = "blockHeight") long height) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getBlock(height);
+		if(null == block) {
+			return 0;
+		}
 		UserAccountSet userAccountSet = ledger.getUserAccountSet(block);
 		return userAccountSet.getTotal();
 	}
@@ -218,6 +233,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 			@PathVariable(name = "blockHash") HashDigest blockHash) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getBlock(blockHash);
+		if(null == block) {
+			return 0;
+		}
 		UserAccountSet userAccountSet = ledger.getUserAccountSet(block);
 		return userAccountSet.getTotal();
 	}
@@ -237,6 +255,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 			@PathVariable(name = "blockHeight") long height) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getBlock(height);
+		if(null == block) {
+			return 0;
+		}
 		ContractAccountSet contractAccountSet = ledger.getContractAccountSet(block);
 		return contractAccountSet.getTotal();
 	}
@@ -247,6 +268,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 			@PathVariable(name = "blockHash") HashDigest blockHash) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getBlock(blockHash);
+		if(null == block) {
+			return 0;
+		}
 		ContractAccountSet contractAccountSet = ledger.getContractAccountSet(block);
 		return contractAccountSet.getTotal();
 	}
@@ -269,7 +293,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
-
+		if(null == ledgerBlock) {
+			return null;
+		}
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count,
 				(int) ledger.getTransactionSet(ledgerBlock).getTotalCount());
 
@@ -308,7 +334,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
-
+		if(null == ledgerBlock) {
+			return null;
+		}
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count,
 				(int) ledger.getTransactionSet(ledgerBlock).getTotalCount());
 
@@ -359,6 +387,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock ledgerBlock = ledger.getBlock(blockHeight);
+		if(null == ledgerBlock) {
+			return null;
+		}
 		TransactionSet currTransactionSet = ledger.getTransactionSet(ledgerBlock);
 		TransactionSet lastTransactionSet = null;
 
@@ -388,6 +419,9 @@ public class LedgerQueryController implements BlockchainQueryService {
 			@RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock ledgerBlock = ledger.getBlock(blockHash);
+		if(null == ledgerBlock) {
+			return null;
+		}
 		long height = ledgerBlock.getHeight();
 		TransactionSet currTransactionSet = ledger.getTransactionSet(ledgerBlock);
 		TransactionSet lastTransactionSet = null;
@@ -448,11 +482,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		DataAccountSet dataAccountSet = ledger.getDataAccountSet(block);
-		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
-		if (dataAccount == null) {
-			throw new LedgerException("数据账户不存在", TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
-		}
-		return dataAccount;
+		return dataAccountSet.getAccount(Bytes.fromBase58(address));
 	}
 
 	@RequestMapping(method = { RequestMethod.GET,
@@ -468,7 +498,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		DataAccountSet dataAccountSet = ledger.getDataAccountSet(block);
 		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
 		if (dataAccount == null) {
-			throw new LedgerException("数据账户不存在", TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
+			return null;
 		}
 
 		TypedKVEntry[] entries = new TypedKVEntry[keys.length];
@@ -520,7 +550,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		DataAccountSet dataAccountSet = ledger.getDataAccountSet(block);
 		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
 		if (dataAccount == null) {
-			throw new LedgerException("数据账户不存在", TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
+			return null;
 		}
 
 		TypedKVEntry[] entries = new TypedKVEntry[keys.length];
@@ -558,7 +588,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		DataAccountSet dataAccountSet = ledger.getDataAccountSet(block);
 		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
 		if (dataAccount == null) {
-			throw new LedgerException("数据账户不存在", TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
+			return null;
 		}
 
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count,
@@ -586,7 +616,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		DataAccountSet dataAccountSet = ledger.getDataAccountSet(block);
 		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
 		if (dataAccount == null) {
-			throw new LedgerException("数据账户不存在", TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
+			return 0;
 		}
 
 		return dataAccount.getDataset().getDataCount();
@@ -678,7 +708,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		EventAccountSet eventAccountSet = ledger.getEventAccountSet(ledger.getLatestBlock());
 		EventPublishingAccount account = eventAccountSet.getAccount(address);
 		if (null == account) {
-			throw new IllegalArgumentException("Event account:[" + address + "] not exists");
+			return null;
 		}
 		return account.getID();
 	}
@@ -699,7 +729,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		EventAccountSet eventAccountSet = ledger.getEventAccountSet(ledger.getLatestBlock());
 		EventPublishingAccount account = eventAccountSet.getAccount(address);
 		if (null == account) {
-			throw new IllegalArgumentException("Event account:[" + address + "] not exists");
+			return 0;
 		}
 		return account.totalEventNames();
 	}
@@ -714,7 +744,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		EventPublishingAccount account = ledger.getEventAccountSet(block).getAccount(address);
 		if (null == account) {
-			throw new IllegalArgumentException("Event account:[" + address + "] not exists");
+			return null;
 		}
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) account.totalEventNames());
 		return account.getEventNames(queryArgs.getFrom(), queryArgs.getCount());
@@ -727,7 +757,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		EventPublishingAccount account = ledger.getEventAccountSet(ledger.getLatestBlock()).getAccount(address);
 		if (null == account) {
-			throw new IllegalArgumentException("Event account:[" + address + "] not exists");
+			return null;
 		}
 		return account.getLatest(eventName);
 	}
@@ -739,7 +769,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		EventPublishingAccount account = ledger.getEventAccountSet(ledger.getLatestBlock()).getAccount(address);
 		if (null == account) {
-			throw new IllegalArgumentException("Event account:[" + address + "] not exists");
+			return 0;
 		}
 		return account.totalEvents(eventName);
 	}
@@ -754,7 +784,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		EventPublishingAccount account = ledger.getEventAccountSet(block).getAccount(address);
 		if (null == account) {
-			throw new IllegalArgumentException("Event account:[" + address + "] not exists");
+			return null;
 		}
 		return account.getEvents(eventName, fromSequence, count);
 	}
