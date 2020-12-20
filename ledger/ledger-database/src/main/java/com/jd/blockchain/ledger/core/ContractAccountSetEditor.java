@@ -66,6 +66,9 @@ public class ContractAccountSetEditor implements Transactional, ContractAccountS
 	@Override
 	public ContractAccount getAccount(Bytes address) {
 		CompositeAccount accBase = accountSet.getAccount(address);
+		if(null == accBase) {
+			return null;
+		}
 		return new ContractAccount(accBase);
 	}
 
@@ -77,6 +80,9 @@ public class ContractAccountSetEditor implements Transactional, ContractAccountS
 	@Override
 	public ContractAccount getAccount(Bytes address, long version) {
 		CompositeAccount accBase = accountSet.getAccount(address, version);
+		if(null == accBase) {
+			return null;
+		}
 		return new ContractAccount(accBase);
 	}
 

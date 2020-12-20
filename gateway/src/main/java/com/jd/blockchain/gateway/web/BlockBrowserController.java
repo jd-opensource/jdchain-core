@@ -132,10 +132,7 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 			@PathVariable(name = "blockHeight") long blockHeight) {
 		// 获取最新区块高度
 		LedgerBlock latestBlock = getLatestBlock(ledgerHash);
-		if (blockHeight > latestBlock.getHeight()) {
-			throw new BlockNonExistentException(String.format("Ledger[%s] -> height[%s] is non-existent !!!",
-					ledgerHash.toBase58(), blockHeight));
-		} else if (blockHeight == latestBlock.getHeight()) {
+		if (blockHeight >= latestBlock.getHeight() || blockHeight < 0) {
 			return latestBlock;
 		} else {
 			return peerService.getQueryService(ledgerHash).getBlock(ledgerHash, blockHeight);
@@ -343,6 +340,9 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 
 
 	private ContractSettings contractSettings(ContractInfo contractInfo) {
+		if(null == contractInfo) {
+			return null;
+		}
 		ContractSettings contractSettings = new ContractSettings(contractInfo.getAddress(), contractInfo.getPubKey(),
 				contractInfo.getHeaderRootHash(), contractInfo.getDataRootHash());
 		byte[] chainCodeBytes = contractInfo.getChainCode();
