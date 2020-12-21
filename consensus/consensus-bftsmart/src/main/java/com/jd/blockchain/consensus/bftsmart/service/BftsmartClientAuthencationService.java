@@ -25,12 +25,17 @@ public class BftsmartClientAuthencationService implements ClientAuthencationServ
 	public static final int POOL_SIZE_PEER_CLIENT = 20;
 
 	/**
+	 * 保留的系统 ID 范围大小；
+	 */
+	public static final int RESERVED_ID_RANGE = 1000;
+
+	/**
 	 * 全局的客户端ID最小值；
 	 * <p>
 	 * 
-	 * 在最大的共识节点ID 的基础上多预留 1 倍的 ID 分配空间，用于共识节点之间互联的共识客户端 ID；
+	 * 在最大的共识节点ID 的基础上多预留 1 倍的 ID 分配空间，以及系统ID保留区，用于共识节点之间互联的共识客户端 ID；
 	 */
-	private static final int GLOBAL_MIN_CLIENT_ID = BftsmartNodeServer.MAX_SERVER_ID * 2;
+	private static final int GLOBAL_MIN_CLIENT_ID = BftsmartNodeServer.MAX_SERVER_ID * 2 + RESERVED_ID_RANGE;
 
 	/**
 	 * 当前节点分配空间下的客户端ID起始值，也是最小值；
@@ -110,7 +115,6 @@ public class BftsmartClientAuthencationService implements ClientAuthencationServ
 					+ "]! --" + e.getMessage(), e);
 		}
 
-		
 		return clientId;
 	}
 
