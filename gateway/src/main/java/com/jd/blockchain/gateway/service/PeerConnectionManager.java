@@ -109,6 +109,8 @@ public class PeerConnectionManager implements PeerService, PeerConnector, EventL
 			}
 			Set<NetworkAddress> paddress = new HashSet<>(peerAddresses);
 			peerAddresses.clear();
+			// 清空账本维护的共识客户端对象，解决本地视图小于共识节点视图，而又无法触发共识客户端更新的问题；
+			consensusClientManager.reset();
 			// 重新连接
 			for (NetworkAddress networkAddress : paddress) {
 				connect(networkAddress, gateWayKeyPair);
