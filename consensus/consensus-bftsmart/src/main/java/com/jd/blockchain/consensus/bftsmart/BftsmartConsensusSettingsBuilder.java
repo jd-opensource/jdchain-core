@@ -10,6 +10,7 @@ import org.springframework.core.io.ClassPathResource;
 
 import com.jd.blockchain.consensus.ConsensusSettingsBuilder;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
+import com.jd.blockchain.consensus.NetworkReplica;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.Replica;
 import com.jd.blockchain.crypto.Crypto;
@@ -142,11 +143,12 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 		if (participantNodes == null) {
 			throw new IllegalArgumentException("ParticipantNodes is Empty !!!");
 		}
-		if (serversNum != participantNodes.length) {
-			throw new IllegalArgumentException(
-					String.format("Property[%s] which is [%s] unequal " + "ParticipantNodes's length which is [%s] !",
-							SERVER_NUM_KEY, serversNum, participantNodes.length));
-		}
+//		if (serversNum != participantNodes.length) {
+//			throw new IllegalArgumentException(
+//					String.format("Property[%s] which is [%s] unequal " + "ParticipantNodes's length which is [%s] !",
+//							SERVER_NUM_KEY, serversNum, participantNodes.length));
+//		}
+		serversNum = participantNodes.length;
 
 //		BftsmartCommitBlockConfig blockConfig = createBlockConfig(resolvingProps);
 
@@ -160,18 +162,25 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 //			PubKey pubKey = KeyGenCommand.decodePubKey(base58PubKey);
 			PubKey pubKey = participantNodes[i].getPubKey();
 //			resolvingProps.remove(keyOfPubkey);
-
+			
 			String keyOfHost = keyOfNode(CONSENSUS_HOST_PATTERN, id);
-			String networkAddressHost = PropertiesUtils.getRequiredProperty(resolvingProps, keyOfHost);
+			String networkAddressHost = PropertiesUtils.getOptionalProperty(resolvingProps, keyOfHost, null);
 			resolvingProps.remove(keyOfHost);
 
 			String keyOfPort = keyOfNode(CONSENSUS_PORT_PATTERN, id);
-			int networkAddressPort = PropertiesUtils.getInt(resolvingProps, keyOfPort);
+			int networkAddressPort = PropertiesUtils.getIntOptional(resolvingProps, keyOfPort, -1);
 			resolvingProps.remove(keyOfPort);
 
 			String keyOfSecure = keyOfNode(CONSENSUS_SECURE_PATTERN, id);
-			boolean networkAddressSecure = PropertiesUtils.getBoolean(resolvingProps, keyOfSecure);
+			boolean networkAddressSecure = PropertiesUtils.getBooleanOptional(resolvingProps, keyOfSecure, false);
 			resolvingProps.remove(keyOfSecure);
+			
+			if (participantNodes[i] instanceof NetworkReplica) {
+				NetworkReplica replica = (NetworkReplica) participantNodes[i];
+				networkAddressHost = replica.getNetworkAddress().getHost();
+				networkAddressPort = replica.getNetworkAddress().getPort();
+				networkAddressSecure = replica.getNetworkAddress().isSecure();
+			}
 
 			BftsmartNodeConfig nodeConfig = new BftsmartNodeConfig(pubKey, id,
 					new NetworkAddress(networkAddressHost, networkAddressPort, networkAddressSecure));
@@ -184,7 +193,7 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 		return config;
 	}
 
-	private static String keyOfNode(String pattern, int id) {
+	public static String keyOfNode(String pattern, int id) {
 		return String.format(pattern, id);
 	}
 
