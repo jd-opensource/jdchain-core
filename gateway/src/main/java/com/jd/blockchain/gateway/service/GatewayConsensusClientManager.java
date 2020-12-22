@@ -36,6 +36,15 @@ public class GatewayConsensusClientManager implements ConsensusClientManager {
 		}
 		return client;
 	}
+	
+	@Override
+	public void reset() {
+		ConsensusClient[] pooledClients = ledgerConsensusClients.values().toArray(new ConsensusClient[ledgerConsensusClients.size()]);
+		ledgerConsensusClients.clear();
+		for (ConsensusClient client : pooledClients) {
+			client.close();
+		}
+	}
 
 	private boolean isCredentialUpated(ConsensusClient client, SessionCredential sessionCredential) {
 		if (client instanceof BftsmartConsensusClient && sessionCredential instanceof BftsmartSessionCredential) {
