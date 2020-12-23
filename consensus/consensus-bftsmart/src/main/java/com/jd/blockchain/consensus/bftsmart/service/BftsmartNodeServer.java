@@ -28,6 +28,7 @@ import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
+import com.jd.blockchain.consensus.service.Communication;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.MonitorService;
 import com.jd.blockchain.consensus.service.NodeServer;
@@ -45,6 +46,7 @@ import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.PropertiesUtils;
 import com.jd.blockchain.utils.StringUtils;
 import com.jd.blockchain.utils.concurrent.AsyncFuture;
+import com.jd.blockchain.utils.concurrent.CompletableAsyncFuture;
 import com.jd.blockchain.utils.io.BytesUtils;
 import com.jd.blockchain.utils.io.Storage;
 import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
@@ -113,7 +115,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	private volatile InnerStateHolder stateHolder;
 
 	private long timeTolerance = -1L;
-	
+
 	private Storage nodeRuntimeStorage;
 
 	public BftsmartNodeServer(ServerSettings serverSettings, MessageHandle messageHandler,
@@ -128,16 +130,18 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		createConfig();
 		serverId = findServerId();
 		if (serverId >= MAX_SERVER_ID) {
-			throw new IllegalArgumentException("Server Id is greater than or equal to MAX_SERVER_ID[" + MAX_SERVER_ID + "]!");
+			throw new IllegalArgumentException(
+					"Server Id is greater than or equal to MAX_SERVER_ID[" + MAX_SERVER_ID + "]!");
 		}
 		initConfig(serverId, systemConfig, hostsConfig);
 		this.nodeRuntimeStorage = storage.getStorage("node-" + serverId);
-		this.clientAuthService = new BftsmartClientAuthencationService(this, nodeRuntimeStorage.getStorage("client-auth"));
+		this.clientAuthService = new BftsmartClientAuthencationService(this,
+				nodeRuntimeStorage.getStorage("client-auth"));
 		this.timeTolerance = tomConfig.getTimeTolerance();
 	}
 
 	protected int findServerId() {
-		return ((BftsmartNodeSettings)serverSettings.getReplicaSettings()).getId();
+		return ((BftsmartNodeSettings) serverSettings.getReplicaSettings()).getId();
 	}
 
 	public int getServerId() {
@@ -300,6 +304,15 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	@Override
 	public BftsmartNodeState getState() {
 		return replica == null ? null : new BftsmartNodeStateExporter(replica, this);
+	}
+	
+	@Override
+	public Communication getCommunication() {
+		if (replica == null) {
+			return null;
+		}
+		BftsmartCommunication communication = new BftsmartCommunication(replica.getTomLayer(), this);
+		return communication;
 	}
 
 	@Override
@@ -744,38 +757,51 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	public void installSnapshot(byte[] snapshot) {
 //        System.out.println("Not implement!");
 	}
+	
+	
 
 	@Override
-	public void start() {
+	public AsyncFuture<?> start() {
 		if (this.getId() < 0) {
 			throw new IllegalStateException("Unset server node ID！");
 		}
 		LOGGER.info("=============================== Start replica ===================================");
 
 		if (status != Status.STOPPED) {
-			return;
+			return CompletableAsyncFuture.completeFuture(null);
 		}
 		synchronized (mutex) {
 			if (status != Status.STOPPED) {
-				return;
+				return CompletableAsyncFuture.completeFuture(null);
 			}
 			status = Status.STARTING;
 
-			try {
-				LOGGER.info("Start replica...[ID=" + getId() + "]");
-//                this.replica = new ServiceReplica(tomConfig, this, this);
-				this.replica = new ServiceReplica(tomConfig, this, this, (int) latestStateId - 1, latestView,
-						realmName);
-				this.topology = new BftsmartTopology(replica.getReplicaContext().getCurrentView());
+			CompletableAsyncFuture<?> future = new CompletableAsyncFuture<>();
+
+			Thread thrd = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						LOGGER.info("Start replica...[ID=" + getId() + "]");
+						replica = new ServiceReplica(tomConfig, BftsmartNodeServer.this, BftsmartNodeServer.this,
+								(int) latestStateId - 1, latestView, realmName);
+						topology = new BftsmartTopology(replica.getReplicaContext().getCurrentView());
 //                initOutTopology();
-				status = Status.RUNNING;
+						status = Status.RUNNING;
 //                createProxyClient();
-				LOGGER.info(
-						"=============================== Replica started success! ===================================");
-			} catch (RuntimeException e) {
-				status = Status.STOPPED;
-				throw e;
-			}
+						LOGGER.info(
+								"=============================== Replica started success! ===================================");
+						future.complete(null);
+					} catch (Exception e) {
+						status = Status.STOPPED;
+						future.error(e);
+					}
+				}
+			});
+			thrd.setDaemon(true);
+			thrd.start();
+			
+			return future;
 		}
 
 	}

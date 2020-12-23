@@ -24,26 +24,26 @@ public class BftsmartNodeServerFactory implements NodeServerFactory {
 	public ServerSettings buildServerSettings(String realmName, ConsensusViewSettings viewSettings,
 			String nodeAddress) {
 
-		NodeSettings nodeSetting = null;
+		NodeSettings currentNodeSetting = null;
 
 		BftsmartServerSettingConfig serverSettings = new BftsmartServerSettingConfig();
 
 		// find current node according to current address
 		for (NodeSettings nodeSettings : viewSettings.getNodes()) {
 			if (nodeSettings.getAddress().equals(nodeAddress)) {
-				nodeSetting = nodeSettings;
+				currentNodeSetting = nodeSettings;
 				break;
 			}
 		}
 
-		if (nodeSetting == null) {
+		if (currentNodeSetting == null) {
 			throw new IllegalArgumentException("Node address does not exist in view settings!");
 		}
 
 		// set server settings
 		serverSettings.setRealmName(realmName);
 
-		serverSettings.setReplicaSettings(nodeSetting);
+		serverSettings.setReplicaSettings(currentNodeSetting);
 
 		serverSettings.setConsensusSettings((BftsmartConsensusViewSettings) viewSettings);
 
