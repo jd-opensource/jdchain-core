@@ -693,7 +693,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 										  boolean shutdown) {
 		Properties systemConfig = PropertiesUtils.createProperties(((BftsmartConsensusViewSettings) getConsensusSetting(ledgerAdminInfo)).getSystemConfigs());
 		// 由本节点准备交易
-		TransactionRequest txRequest = prepareActiveTx(ledgerHash, node, consensusHost, consensusPort + "", systemConfig);
+		TransactionRequest txRequest = prepareUpdateTx(ledgerHash, node, consensusHost, consensusPort + "", systemConfig);
 
 		// 为交易添加本节点的签名信息，防止无法通过安全策略检查
 		txRequest = addNodeSigner(txRequest);
@@ -708,12 +708,13 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			try {
 				View newView = updateView(ledgerRepo, consensusHost, consensusPort, ParticipantUpdateType.UPDATE, systemConfig, viewId, origConsensusNodes);
 				if (newView != null && newView.isMember(ledgerCurrNodes.get(ledgerRepo.getHash()).getId())) {
-					LOGGER.info("[ManagementController] updateView SUCC!");
+					LOGGER.info("[ManagementController] updateView success!");
 				} else if (newView == null) {
 					throw new IllegalStateException(
 							"[ManagementController] client recv response timeout, consensus may be stalemate, please restart all nodes!");
 				}
 			} catch (Exception e) {
+				LOGGER.error("[ManagementController] updateView exception!", e);
 				return WebResponse.createFailureResult(-1,
 						"[ManagementController] commit tx to orig consensus, tx execute succ but view update failed, please restart all nodes and copy database for new participant node!");
 			}
@@ -1096,6 +1097,25 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		return properties.toArray(new Property[properties.size()]);
 	}
 
+	// organize active participant related system config properties
+	private Property[] createUpdateProperties(String host, String port, PubKey activePubKey, int activeID,
+											  Properties systemConfig) {
+		String oldView = systemConfig.getProperty(SERVER_VIEW_KEY);
+
+		List<Property> properties = new ArrayList<Property>();
+
+		properties.add(new Property(keyOfNode(CONSENSUS_HOST_PATTERN, activeID), host));
+		properties.add(new Property(keyOfNode(CONSENSUS_PORT_PATTERN, activeID), port));
+		properties.add(new Property(keyOfNode(CONSENSUS_SECURE_PATTERN, activeID), "false"));
+		properties.add(new Property(keyOfNode(PUBKEY_PATTERN, activeID), activePubKey.toBase58()));
+		properties.add(new Property(PARTICIPANT_OP_KEY, "active"));
+		properties.add(new Property(ACTIVE_PARTICIPANT_ID_KEY, String.valueOf(activeID)));
+
+		properties.add(new Property(SERVER_VIEW_KEY, createActiveView(oldView, activeID)));
+
+		return properties.toArray(new Property[properties.size()]);
+	}
+
 	// organize deactive participant related system config properties
 	private Property[] createDeactiveProperties(PubKey deActivePubKey, int deActiveID, Properties systemConfig) {
 		int oldServerNum = Integer.parseInt(systemConfig.getProperty(SERVER_NUM_KEY));
@@ -1127,6 +1147,32 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		// organize system config properties
 		Property[] properties = createActiveProperties(host, port, node.getPubKey(), activeID, systemConfig);
+
+		TxBuilder txbuilder = new TxBuilder(ledgerHash, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
+
+		// This transaction contains participant state update and settings update two
+		// ops
+		txbuilder.states().update(new BlockchainIdentityData(node.getPubKey()), ParticipantNodeState.CONSENSUS);
+
+		txbuilder.settings().update(properties);
+
+		TransactionRequestBuilder reqBuilder = txbuilder.prepareRequest();
+
+		reqBuilder.signAsEndpoint(new AsymmetricKeypair(ledgerKeypairs.get(ledgerHash).getPubKey(),
+				ledgerKeypairs.get(ledgerHash).getPrivKey()));
+
+		return reqBuilder.buildRequest();
+
+	}
+
+	// 在指定的账本上准备一笔激活参与方状态及系统配置参数的操作
+	private TransactionRequest prepareUpdateTx(HashDigest ledgerHash, ParticipantNode node, String host,
+											   String port, Properties systemConfig) {
+
+		int activeID = node.getId();
+
+		// organize system config properties
+		Property[] properties = createUpdateProperties(host, port, node.getPubKey(), activeID, systemConfig);
 
 		TxBuilder txbuilder = new TxBuilder(ledgerHash, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
 
@@ -1304,6 +1350,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			View view = new View(viewId, origConsensusProcesses, tomConfig.getF(),
 					nodeAddresses.toArray(new NodeNetwork[nodeAddresses.size()]));
+
+			LOGGER.info("ManagementController start updateView operation!, current view : {}", view.toString());
 
 			// 构建共识的代理客户端，连接目标共识节点，并递交交易进行共识过程
 			return new ServiceProxy(tomConfig, new MemoryBasedViewStorage(view), null, null);
