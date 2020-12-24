@@ -161,7 +161,11 @@ class BftsmartNodeStateExporter implements BftsmartNodeState {
 		public boolean isTomLayerRunning() {
 			return replica.getTomLayer().isRunning();
 		}
-		
+
+		@Override
+		public boolean isDeliverThreadAlived() {
+			return replica.getTomLayer().getDeliveryThread().isAlive();
+		}
 	}
 
 }

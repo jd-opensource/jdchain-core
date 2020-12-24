@@ -101,6 +101,8 @@ public interface BftsmartNodeState extends NodeState {
 
 		boolean isTomLayerRunning();
 
+		boolean isDeliverThreadAlived();
+
 	}
 
 }
