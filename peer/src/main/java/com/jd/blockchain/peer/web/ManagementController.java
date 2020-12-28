@@ -534,6 +534,54 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		}
 	}
 
+    /**
+     * 区块同步：
+     *    从指定节点同步最新区块信息，调用此接口会执行NodeServer重建
+     *
+     * @param ledgerHash    账本
+     * @param syncHost  同步节点IP
+     * @param syncPort  同步节点端口
+     * @return
+     */
+	@RequestMapping(path = "/block/sync", method = RequestMethod.POST)
+	public WebResponse syncBlock(@RequestParam("ledgerHash") String ledgerHash,
+								   @RequestParam("syncHost") String syncHost,
+								   @RequestParam("syncPort") int syncPort) {
+		try {
+			HashDigest ledger = Crypto.resolveAsHashDigest(Base58Utils.decode(ledgerHash));
+			if (!ledgerKeypairs.containsKey(ledger)) {
+				return WebResponse.createFailureResult(-1, "[ManagementController] input ledger hash not exist!");
+			}
+
+			LedgerRepository ledgerRepo = (LedgerRepository) ledgerQuerys.get(ledger);
+			LedgerAdminInfo ledgerAdminInfo = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock());
+
+			// 目前仅支持BFT-SMaRt
+			if (ledgerAdminInfo.getSettings().getConsensusProvider().equals(BFTSMART_PROVIDER)) {
+
+				// 检查本地节点与远端节点在库上是否存在差异,有差异的进行差异交易重放
+				WebResponse webResponse = checkLedgerDiff(ledgerRepo, ledgerKeypairs.get(ledger), syncHost, syncPort);
+				if (!checkLedgerDiff(ledgerRepo, ledgerKeypairs.get(ledger), syncHost, syncPort).isSuccess()) {
+					return webResponse;
+				}
+
+				// 重建 NodeServer
+				setupServer(ledgerRepo, false);
+
+				LOGGER.info("[ManagementController] sync block success!");
+
+                return WebResponse.createSuccessResult(null);
+
+			} else {
+				return WebResponse.createSuccessResult(null);
+			}
+
+		} catch (Exception e) {
+			LOGGER.error("[ManagementController] sync block failed!", e);
+			return WebResponse.createFailureResult(-1, "[ManagementController] sync block failed! " + e.getMessage());
+		}
+	}
+
 	/**
 	 * 代理交易； <br>
 	 *
