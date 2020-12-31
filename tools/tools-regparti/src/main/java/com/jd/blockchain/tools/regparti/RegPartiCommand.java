@@ -19,6 +19,8 @@ import com.jd.blockchain.utils.ArgumentSet.Setting;
 import com.jd.blockchain.utils.ConsoleUtils;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.BytesUtils;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.config.Configurator;
 
 /**
  * @Author: zhangshuang
@@ -59,6 +61,7 @@ public class RegPartiCommand {
      * @param args
      */
     public static void main(String[] args) {
+        Configurator.setRootLevel(Level.ERROR);
         Setting setting = ArgumentSet.setting().prefix(NEW_PARTI_LEDGER_ARG, NEW_PARTI_PUBKEY_ARG, NEW_PARTI_PRIVKEY_ARG, NEW_PARTI_PRIVKEY_PASS_ARG, EXIST_USER_PUBKEY_ARG, EXIST_USER_PRIVKEY_ARG, EXIST_USER_PRIVKEY_PASS_ARG, NEW_PARTI_NAME_ARG, GATEWAY_HOST_ARG, GATEWAY_PORT_ARG)
                 .option(OPT_DEBUG);
         ArgumentSet argSet = ArgumentSet.resolve(args, setting);

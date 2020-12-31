@@ -1,10 +1,6 @@
 package com.jd.blockchain.tools.deactiveparti;
 
-import com.jd.blockchain.crypto.AddressEncoding;
-import com.jd.blockchain.crypto.KeyGenUtils;
-import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.utils.ArgumentSet;
-import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.ConsoleUtils;
 import com.jd.blockchain.utils.http.converters.JsonResponseConverter;
 import com.jd.blockchain.utils.web.model.WebResponse;
