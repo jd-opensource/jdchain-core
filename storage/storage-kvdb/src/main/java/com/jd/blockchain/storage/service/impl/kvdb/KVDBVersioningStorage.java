@@ -32,7 +32,7 @@ public class KVDBVersioningStorage implements VersioningKVStorage {
     }
 
     protected static Bytes encodeDataKey(Bytes dataKey, long version) {
-        return DATA_PREFIX.concat(Bytes.fromLong(version)).concat(dataKey);
+        return DATA_PREFIX.concat(dataKey).concat(Bytes.fromLong(version));
     }
 
     @Override

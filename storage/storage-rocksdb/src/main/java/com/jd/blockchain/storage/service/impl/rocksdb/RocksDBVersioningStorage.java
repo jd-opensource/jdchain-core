@@ -62,7 +62,7 @@ public class RocksDBVersioningStorage implements VersioningKVStorage {
 	}
 
 	protected static Bytes encodeDataKey(Bytes dataKey, long version) {
-		return DATA_PREFIX.concat(Bytes.fromLong(version)).concat(dataKey);
+		return DATA_PREFIX.concat(dataKey).concat(Bytes.fromLong(version));
 	}
 
 	private byte[] dbGet(Bytes key) {

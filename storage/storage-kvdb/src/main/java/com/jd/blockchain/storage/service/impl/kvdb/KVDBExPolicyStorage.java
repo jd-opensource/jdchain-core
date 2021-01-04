@@ -21,7 +21,7 @@ public class KVDBExPolicyStorage implements ExPolicyKVStorage {
     private KVDBClient db;
 
     protected static Bytes encodeDataKey(Bytes dataKey, long version) {
-        return KEY_PREFIX.concat(Bytes.fromLong(version)).concat(dataKey);
+        return KEY_PREFIX.concat(dataKey).concat(Bytes.fromLong(version));
     }
 
     public KVDBExPolicyStorage(KVDBClient db) {
