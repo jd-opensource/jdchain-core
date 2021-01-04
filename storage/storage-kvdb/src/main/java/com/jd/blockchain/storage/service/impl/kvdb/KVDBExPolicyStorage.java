@@ -1,28 +1,27 @@
 package com.jd.blockchain.storage.service.impl.kvdb;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
-import org.apache.commons.collections4.map.LRUMap;
-
 import com.jd.blockchain.kvdb.client.KVDBClient;
 import com.jd.blockchain.kvdb.protocol.exception.KVDBException;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.utils.Bytes;
+import org.apache.commons.collections4.map.LRUMap;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 public class KVDBExPolicyStorage implements ExPolicyKVStorage {
 
     private Map<Bytes, Boolean> existss = new LRUMap<>(1024 * 128);
     private Map<Bytes, Boolean> batchExists;
 
-    private static Bytes KEY_PREFIX = Bytes.fromString("K");
+    private static Bytes KEY_PREFIX = Bytes.fromString("D");
 
     private KVDBClient db;
 
-    protected static Bytes encodeKey(Bytes dataKey) {
-        return KEY_PREFIX.concat(dataKey);
+    protected static Bytes encodeDataKey(Bytes dataKey, long version) {
+        return KEY_PREFIX.concat(dataKey).concat(Bytes.fromLong(version));
     }
 
     public KVDBExPolicyStorage(KVDBClient db) {
@@ -32,7 +31,7 @@ public class KVDBExPolicyStorage implements ExPolicyKVStorage {
     @Override
     public byte[] get(Bytes key) {
         try {
-            Bytes data = db.get(encodeKey(key));
+            Bytes data = db.get(encodeDataKey(key, 0));
             if (null != data) {
                 return data.toBytes();
             } else {
@@ -57,7 +56,7 @@ public class KVDBExPolicyStorage implements ExPolicyKVStorage {
             if (null != exists) {
                 return exists;
             }
-            exists = db.exists(encodeKey(key));
+            exists = db.exists(encodeDataKey(key, 0));
             if (null != batchExists) {
                 batchExists.put(key, exists);
             } else {
@@ -75,7 +74,7 @@ public class KVDBExPolicyStorage implements ExPolicyKVStorage {
             switch (ex) {
                 case EXISTING:
                     if (exist(key)) {
-                        if (db.put(encodeKey(key), new Bytes(value))) {
+                        if (db.put(encodeDataKey(key, 0), new Bytes(value))) {
                             if (null != batchExists) {
                                 batchExists.put(key, true);
                             } else {
@@ -87,7 +86,7 @@ public class KVDBExPolicyStorage implements ExPolicyKVStorage {
                     return false;
                 case NOT_EXISTING:
                     if (!exist(key)) {
-                        if (db.put(encodeKey(key), new Bytes(value))) {
+                        if (db.put(encodeDataKey(key, 0), new Bytes(value))) {
                             if (null != batchExists) {
                                 batchExists.put(key, true);
                             } else {
