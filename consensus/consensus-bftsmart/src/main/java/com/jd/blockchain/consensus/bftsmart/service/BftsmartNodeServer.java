@@ -25,9 +25,10 @@ import com.jd.blockchain.consensus.NodeNetworkAddress;
 import com.jd.blockchain.consensus.NodeNetworkAddresses;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider;
-import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
+import com.jd.blockchain.consensus.service.Communication;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.MonitorService;
 import com.jd.blockchain.consensus.service.NodeServer;
@@ -45,7 +46,9 @@ import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.blockchain.utils.PropertiesUtils;
 import com.jd.blockchain.utils.StringUtils;
 import com.jd.blockchain.utils.concurrent.AsyncFuture;
+import com.jd.blockchain.utils.concurrent.CompletableAsyncFuture;
 import com.jd.blockchain.utils.io.BytesUtils;
+import com.jd.blockchain.utils.io.Storage;
 import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 
 import bftsmart.consensus.app.BatchAppResultImpl;
@@ -64,8 +67,6 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
 	private static Logger LOGGER = LoggerFactory.getLogger(BftsmartNodeServer.class);
 
-//    private static final String DEFAULT_BINDING_HOST = "0.0.0.0";
-
 	private List<StateHandle> stateHandles = new CopyOnWriteArrayList<>();
 
 	private final Map<String, BftsmartConsensusMessageContext> contexts = Collections
@@ -81,13 +82,13 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
 	private ServerSettings serverSettings;
 
-	private BftsmartClientAuthencationService manageService;
+	private BftsmartClientAuthencationService clientAuthService;
 
 	private volatile BftsmartTopology topology;
 
 	private volatile BftsmartTopology outerTopology;
 
-	private volatile BftsmartConsensusSettings setting;
+	private volatile BftsmartConsensusViewSettings setting;
 
 	private TOMConfiguration tomConfig;
 
@@ -115,12 +116,10 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
 	private long timeTolerance = -1L;
 
-	public BftsmartNodeServer() {
-
-	}
+	private Storage nodeRuntimeStorage;
 
 	public BftsmartNodeServer(ServerSettings serverSettings, MessageHandle messageHandler,
-			StateMachineReplicate stateMachineReplicate) {
+			StateMachineReplicate stateMachineReplicate, Storage storage) {
 		this.serverSettings = serverSettings;
 		this.realmName = serverSettings.getRealmName();
 		// used later
@@ -130,27 +129,19 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		this.messageHandle = messageHandler;
 		createConfig();
 		serverId = findServerId();
-		if (serverId > MAX_SERVER_ID) {
-			throw new IllegalArgumentException("Server Id is large than MAX_SERVER_ID[" + MAX_SERVER_ID + "]!");
+		if (serverId >= MAX_SERVER_ID) {
+			throw new IllegalArgumentException(
+					"Server Id is greater than or equal to MAX_SERVER_ID[" + MAX_SERVER_ID + "]!");
 		}
 		initConfig(serverId, systemConfig, hostsConfig);
-		this.manageService = new BftsmartClientAuthencationService(this);
+		this.nodeRuntimeStorage = storage.getStorage("node-" + serverId);
+		this.clientAuthService = new BftsmartClientAuthencationService(this,
+				nodeRuntimeStorage.getStorage("client-auth"));
 		this.timeTolerance = tomConfig.getTimeTolerance();
 	}
 
 	protected int findServerId() {
-		int serverId = 0;
-
-		String host = ((BftsmartNodeSettings) serverSettings.getReplicaSettings()).getNetworkAddress().getHost();
-		int port = ((BftsmartNodeSettings) serverSettings.getReplicaSettings()).getNetworkAddress().getPort();
-		for (int i : hostsConfig.getHostsIds()) {
-			if (hostsConfig.getHost(i).equals(host) && hostsConfig.getPort(i) == port) {
-				serverId = i;
-				break;
-			}
-		}
-
-		return serverId;
+		return ((BftsmartNodeSettings) serverSettings.getReplicaSettings()).getId();
 	}
 
 	public int getServerId() {
@@ -171,6 +162,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 						String.format("The id of node[%s | %s | %s] is large than MAX_SERVER_ID[%s]!", node.getId(),
 								node.getAddress(), node.getNetworkAddress(), MAX_SERVER_ID));
 			}
+			LOGGER.info("createConfig node id = {}, port = {}", node.getId(), node.getNetworkAddress().getPort());
 			configList.add(new HostsConfig.Config(node.getId(), node.getNetworkAddress().getHost(),
 					node.getNetworkAddress().getPort(), -1));
 			consensusAddresses.put(node.getId(),
@@ -212,8 +204,17 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		Collection<NodeNetwork> nodeNetworks = consensusAddresses.values();
 		NodeNetwork[] nodeNetworksArray = new NodeNetwork[nodeNetworks.size()];
 
-		this.latestView = new View(setting.getViewId(), tomConfig.getInitialView(), tomConfig.getF(),
+		// 保证处理器ID与共识端口一致性
+		int[] init_view = new int[consensusAddresses.size()];
+		int i = 0;
+		for (int proid : consensusAddresses.keySet()) {
+			init_view[i++] = proid;
+		}
+
+		this.latestView = new View(setting.getViewId(), init_view, tomConfig.getF(),
 				nodeNetworks.toArray(nodeNetworksArray));
+
+		LOGGER.info("[initConfig] latestview = {}", this.latestView);
 
 		this.outerTomConfig = new TOMConfiguration(id, sysConfClone, outerHostConfig);
 
@@ -221,11 +222,11 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
 	@Override
 	public ClientAuthencationService getClientAuthencationService() {
-		return manageService;
+		return clientAuthService;
 	}
 
 	@Override
-	public ServerSettings getSettings() {
+	public ServerSettings getServerSettings() {
 		return serverSettings;
 	}
 
@@ -253,16 +254,9 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	}
 
 	// 注意：该方法获得的共识环境为节点启动时从账本里读取的共识环境，如果运行过程中发生了节点动态入网，该环境没有得到更新
-	public BftsmartConsensusSettings getConsensusSetting() {
+	public BftsmartConsensusViewSettings getConsensusSetting() {
 		return setting;
 	}
-
-//    public BftsmartTopology getTopology() {
-//        if (outerTopology != null) {
-//            return outerTopology;
-//        }
-//        return new BftsmartTopology(replica.getReplicaContext().getCurrentView());
-//    }
 
 	public BftsmartTopology getTopology() {
 		if (!isRunning()) {
@@ -305,6 +299,20 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	@Override
 	public boolean isRunning() {
 		return status == Status.RUNNING;
+	}
+
+	@Override
+	public BftsmartNodeState getState() {
+		return replica == null ? null : new BftsmartNodeStateExporter(replica, this);
+	}
+	
+	@Override
+	public Communication getCommunication() {
+		if (replica == null) {
+			return null;
+		}
+		BftsmartCommunication communication = new BftsmartCommunication(replica.getTomLayer(), this);
+		return communication;
 	}
 
 	@Override
@@ -749,38 +757,51 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	public void installSnapshot(byte[] snapshot) {
 //        System.out.println("Not implement!");
 	}
+	
+	
 
 	@Override
-	public void start() {
+	public AsyncFuture<?> start() {
 		if (this.getId() < 0) {
 			throw new IllegalStateException("Unset server node ID！");
 		}
 		LOGGER.info("=============================== Start replica ===================================");
 
 		if (status != Status.STOPPED) {
-			return;
+			return CompletableAsyncFuture.completeFuture(null);
 		}
 		synchronized (mutex) {
 			if (status != Status.STOPPED) {
-				return;
+				return CompletableAsyncFuture.completeFuture(null);
 			}
 			status = Status.STARTING;
 
-			try {
-				LOGGER.info("Start replica...[ID=" + getId() + "]");
-//                this.replica = new ServiceReplica(tomConfig, this, this);
-				this.replica = new ServiceReplica(tomConfig, this, this, (int) latestStateId - 1, latestView,
-						realmName);
-				this.topology = new BftsmartTopology(replica.getReplicaContext().getCurrentView());
+			CompletableAsyncFuture<?> future = new CompletableAsyncFuture<>();
+
+			Thread thrd = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						LOGGER.info("Start replica...[ID=" + getId() + "]");
+						replica = new ServiceReplica(tomConfig, BftsmartNodeServer.this, BftsmartNodeServer.this,
+								(int) latestStateId - 1, latestView, realmName);
+						topology = new BftsmartTopology(replica.getReplicaContext().getCurrentView());
 //                initOutTopology();
-				status = Status.RUNNING;
+						status = Status.RUNNING;
 //                createProxyClient();
-				LOGGER.info(
-						"=============================== Replica started success! ===================================");
-			} catch (RuntimeException e) {
-				status = Status.STOPPED;
-				throw e;
-			}
+						LOGGER.info(
+								"=============================== Replica started success! ===================================");
+						future.complete(null);
+					} catch (Exception e) {
+						status = Status.STOPPED;
+						future.error(e);
+					}
+				}
+			});
+			thrd.setDaemon(true);
+			thrd.start();
+			
+			return future;
 		}
 
 	}
@@ -907,7 +928,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		UN_EXECUTED,
 	}
 
-	private static class PeerNodeNetwork implements NodeNetworkAddress {
+	static class PeerNodeNetwork implements NodeNetworkAddress {
 
 		/**
 		 * 域名

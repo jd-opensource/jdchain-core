@@ -21,7 +21,7 @@ import com.jd.blockchain.ump.model.state.PeerInstallSchedule;
 import com.jd.blockchain.ump.model.state.PeerInstallSchedules;
 import com.jd.blockchain.ump.model.state.PeerStartupSchedules;
 import com.jd.blockchain.ump.model.state.ScheduleState;
-import com.jd.blockchain.ump.service.consensus.ConsensusService;
+import com.jd.blockchain.ump.service.consensus.ConsensusConfigService;
 import com.jd.blockchain.ump.util.CommandUtils;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import org.apache.commons.io.FileUtils;
@@ -68,7 +68,7 @@ public class UmpServiceHandler implements UmpService {
     private final Map<String, LedgerConfig> ledgerConfigMemory = new ConcurrentHashMap<>();
 
     @Autowired
-    private ConsensusService consensusService;
+    private ConsensusConfigService consensusService;
 
     @Autowired
     private LedgerService ledgerService;

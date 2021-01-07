@@ -1,7 +1,7 @@
 package com.jd.blockchain.consensus.bftsmart.client;
 
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.BitSet;
 
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
@@ -9,6 +9,7 @@ import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.jd.blockchain.consensus.bftsmart.BftsmartSessionCredential;
 import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
 import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 
@@ -22,13 +23,36 @@ public class BftsmartPeerProxyFactory extends BasePooledObjectFactory<AsynchServ
 	private static Logger LOGGER = LoggerFactory.getLogger(BftsmartPeerProxyFactory.class);
 	private BftsmartClientSettings bftsmartClientSettings;
 
-	private int gatewayId;
+	private int idBase;
+	private int idRange;
+	
+	/**
+	 * 已分配 ID 的标记；值在 0 ~ {@link BftsmartSessionCredential#getClientIdRange()} 之间；
+	 */
+	private BitSet allocatedRange;
 
-	private AtomicInteger index = new AtomicInteger(1);
-
-	public BftsmartPeerProxyFactory(BftsmartClientSettings bftsmartClientSettings, int gatewayId) {
+	public BftsmartPeerProxyFactory(BftsmartClientSettings bftsmartClientSettings) {
 		this.bftsmartClientSettings = bftsmartClientSettings;
-		this.gatewayId = gatewayId;
+		this.idBase = bftsmartClientSettings.getSessionCredential().getClientId();
+		this.idRange = bftsmartClientSettings.getSessionCredential().getClientIdRange();
+		this.allocatedRange = new BitSet(idRange);
+	}
+
+	private synchronized int allocateId() {
+		for (int i = 0; i < idRange; i++) {
+			if (!allocatedRange.get(i)) {
+				allocatedRange.set(i);
+				return idBase + i;
+			}
+		}
+		throw new IllegalStateException("Id allocation is overflow!");
+	}
+	
+	private synchronized void recycleId(int id) {
+		int r = id - idBase;
+		if (r > -1 && r < idRange) {
+			allocatedRange.clear(r);
+		}
 	}
 
 	@Override
@@ -44,23 +68,41 @@ public class BftsmartPeerProxyFactory extends BasePooledObjectFactory<AsynchServ
 		TOMConfiguration tomConfiguration = BinarySerializeUtils.deserialize(bftsmartClientSettings.getTomConfig());
 
 		// every proxy client has unique id;
-		int pooledClientId = gatewayId + index.getAndIncrement();
-		tomConfiguration.setProcessId(pooledClientId);
+		int processId = allocateId();
+		tomConfiguration.setProcessId(processId);
 		AsynchServiceProxy peerProxy = new AsynchServiceProxy(tomConfiguration, viewStorage);
 
-		if (LOGGER.isDebugEnabled()) {
+		if (LOGGER.isInfoEnabled()) {
 			// 打印view
 			int[] processes = view.getProcesses();
 			NodeNetwork[] addresses = new NodeNetwork[processes.length];
 			for (int i = 0; i < addresses.length; i++) {
 				addresses[i] = view.getAddress(processes[i]);
 			}
-			LOGGER.debug(
+			LOGGER.info(
 					"Creating pooled bftsmart client ... [PooledClientID={}] [ViewID={}] [ViewTopology={}] [Peers={}]",
-					pooledClientId, view.getId(), Arrays.toString(processes), Arrays.toString(addresses));
+					processId, view.getId(), Arrays.toString(processes), Arrays.toString(addresses));
 		}
 
 		return peerProxy;
+	}
+
+	@Override
+	public boolean validateObject(PooledObject<AsynchServiceProxy> p) {
+		// TODO Auto-generated method stub
+		return super.validateObject(p);
+	}
+
+	@Override
+	public void activateObject(PooledObject<AsynchServiceProxy> p) throws Exception {
+		// TODO Auto-generated method stub
+		super.activateObject(p);
+	}
+
+	@Override
+	public void passivateObject(PooledObject<AsynchServiceProxy> p) throws Exception {
+		// TODO Auto-generated method stub
+		super.passivateObject(p);
 	}
 
 	@Override
@@ -74,6 +116,7 @@ public class BftsmartPeerProxyFactory extends BasePooledObjectFactory<AsynchServ
 		super.destroyObject(p);
 		AsynchServiceProxy serviceProxy = p.getObject();
 		if (serviceProxy != null) {
+			recycleId(serviceProxy.getProcessId());
 			serviceProxy.close();
 		}
 	}

@@ -1,11 +1,11 @@
 package com.jd.blockchain.consensus.bftsmart;
 
-import com.jd.blockchain.consensus.Replica;
+import com.jd.blockchain.consensus.NetworkReplica;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.net.NetworkAddress;
 
-public class BftsmartReplica implements Replica{
+public class BftsmartReplica implements NetworkReplica{
 	private int id;
 	private Bytes address;
 	private String name;

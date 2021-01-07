@@ -9,6 +9,8 @@
 package com.jd.blockchain.consensus.mq.client;
 
 import com.jd.blockchain.consensus.ClientIncomingSettings;
+import com.jd.blockchain.consensus.SessionCredential;
+import com.jd.blockchain.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.ClientAuthencationService;
 import com.jd.blockchain.consensus.client.ClientFactory;
 import com.jd.blockchain.consensus.client.ClientSettings;
@@ -32,16 +34,19 @@ import com.jd.blockchain.crypto.SignatureFunction;
 public class MsgQueueClientFactory implements ClientFactory {
 
     @Override
-    public MsgQueueClientIdentification buildAuthId(AsymmetricKeypair clientKeyPair) {
+    public MsgQueueClientIdentification buildCredential(SessionCredential credentialInfo, AsymmetricKeypair clientKeyPair) {
+    	MQCredentialInfo mqCredentialInfo = (MQCredentialInfo) credentialInfo;
+    	byte[] credentialBytes = BinaryProtocol.encode(mqCredentialInfo, MQCredentialInfo.class);
+    	
         PubKey pubKey = clientKeyPair.getPubKey();
-        byte[] address = pubKey.toBytes(); // 使用公钥地址作为认证信息
+//        byte[] address = pubKey.toBytes(); // 使用公钥地址作为认证信息
 
         SignatureFunction signatureFunction = Crypto.getSignatureFunction(pubKey.getAlgorithm());
-        SignatureDigest signatureDigest = signatureFunction.sign(clientKeyPair.getPrivKey(), address);
+        SignatureDigest signatureDigest = signatureFunction.sign(clientKeyPair.getPrivKey(), credentialBytes);
 
         MsgQueueClientIdentification mqci = new MsgQueueClientIdentification()
                 .setPubKey(clientKeyPair.getPubKey())
-                .setIdentityInfo(address)
+                .setIdentityInfo(mqCredentialInfo)
                 .setSignature(signatureDigest)
                 ;
         return mqci;
@@ -52,7 +57,7 @@ public class MsgQueueClientFactory implements ClientFactory {
 
         MsgQueueClientIncomingSettings mqcic = (MsgQueueClientIncomingSettings)incomingSettings;
         if (mqcic != null) {
-            return buildClientSettings(mqcic.getClientId(), mqcic.getPubKey(), (MsgQueueConsensusSettings)(mqcic.getConsensusSettings()));
+            return buildClientSettings(mqcic.getClientId(), mqcic.getPubKey(), (MsgQueueConsensusSettings)(mqcic.getViewSettings()));
         }
         throw new IllegalArgumentException("ClientIncomingSettings data isn't supported! Accept MsgQueueClientIncomingSettings only!");
     }

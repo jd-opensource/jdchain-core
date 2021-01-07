@@ -19,9 +19,13 @@ import com.jd.blockchain.consensus.mq.settings.MsgQueueBlockSettings;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueConsensusSettings;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueNetworkSettings;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueServerSettings;
+import com.jd.blockchain.consensus.service.Communication;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.NodeServer;
+import com.jd.blockchain.consensus.service.NodeState;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
+import com.jd.blockchain.utils.concurrent.AsyncFuture;
+import com.jd.blockchain.utils.concurrent.CompletableAsyncFuture;
 
 /**
  *
@@ -128,7 +132,7 @@ public class MsgQueueNodeServer implements NodeServer {
     }
 
     @Override
-    public MsgQueueServerSettings getSettings() {
+    public MsgQueueServerSettings getServerSettings() {
         return serverSettings;
     }
 
@@ -138,18 +142,35 @@ public class MsgQueueNodeServer implements NodeServer {
     }
 
     @Override
-    public synchronized void start() {
-        if (!isRunning) {
-            try {
-                dispatcher.connect();
-                Executors.newSingleThreadExecutor().execute(dispatcher);
-                extendExecutor.connect();
-                Executors.newSingleThreadExecutor().execute(extendExecutor);
-                isRunning = true;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
+    public synchronized AsyncFuture<?> start() {
+    	if (isRunning) {
+			return CompletableAsyncFuture.completeFuture(null);
+		}
+    	
+    	isRunning = true;
+    	CompletableAsyncFuture<?> future = new CompletableAsyncFuture<>();
+    	Thread thrd = new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				try {
+					dispatcher.connect();
+					Executors.newSingleThreadExecutor().execute(dispatcher);
+					extendExecutor.connect();
+					Executors.newSingleThreadExecutor().execute(extendExecutor);
+					isRunning = true;
+					
+					future.complete(null);
+				} catch (Exception e) {
+					isRunning = false;
+					future.error(e);
+				}
+			}
+		});
+    	
+    	thrd.setDaemon(true);
+    	thrd.start();
+    	return future;
     }
 
     @Override
@@ -193,5 +214,17 @@ public class MsgQueueNodeServer implements NodeServer {
                 .setMsgProducer(msgProducer)
         ;
         extendExecutor.init();
+    }
+    
+    @Override
+    public NodeState getState() {
+    	// TODO Auto-generated method stub
+    	throw new IllegalStateException("Not implemented!");
+    }
+    
+    @Override
+    public Communication getCommunication() {
+    	// TODO Auto-generated method stub
+    	throw new IllegalStateException("Not implemented!");
     }
 }

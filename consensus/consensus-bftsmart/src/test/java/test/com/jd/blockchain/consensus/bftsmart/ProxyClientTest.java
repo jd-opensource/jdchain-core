@@ -16,6 +16,7 @@ import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusConfig;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeConfig;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.consensus.bftsmart.client.BftsmartClientConfig;
+import com.jd.blockchain.consensus.bftsmart.client.BftsmartSessionCredentialConfig;
 import com.jd.blockchain.consensus.bftsmart.client.BftsmartConsensusClient;
 import com.jd.blockchain.consensus.bftsmart.client.BftsmartMessageService;
 import com.jd.blockchain.consensus.bftsmart.service.BftsmartNodeServer;
@@ -25,114 +26,115 @@ import com.jd.blockchain.ledger.BlockchainKeyGenerator;
 import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.utils.PropertiesUtils;
 import com.jd.blockchain.utils.io.BytesUtils;
+import com.jd.blockchain.utils.io.MemoryStorage;
 import com.jd.blockchain.utils.net.NetworkAddress;
 import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 
 public class ProxyClientTest {
 
-    int number = 1500000;
+	int number = 1500000;
 
-    int peerStartPort = 11000;
+	int peerStartPort = 11000;
 
-    int nodeNum = 4;
+	int nodeNum = 4;
 
-    Random random = new Random();
+	Random random = new Random();
 
-    byte[] bytes = null;
+	byte[] bytes = null;
 
-    CountDownLatch startPeer = new CountDownLatch(nodeNum);
+	CountDownLatch startPeer = new CountDownLatch(nodeNum);
 
-    private static Properties  bftsmartConf;
+	private static Properties bftsmartConf;
 
-    private final ExecutorService nodeStartPools = Executors.newCachedThreadPool();
+	private final ExecutorService nodeStartPools = Executors.newCachedThreadPool();
 
-    private final ExecutorService txSendPools = Executors.newFixedThreadPool(20);
+	private final ExecutorService txSendPools = Executors.newFixedThreadPool(20);
 
-    static {
-        ClassPathResource configResource = new ClassPathResource("system.config");
-        try {
-            try (InputStream in = configResource.getInputStream()) {
-                bftsmartConf = PropertiesUtils.load(in, BytesUtils.DEFAULT_CHARSET);
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException(e.getMessage(), e);
-        }
-    }
+	static {
+		ClassPathResource configResource = new ClassPathResource("system.config");
+		try {
+			try (InputStream in = configResource.getInputStream()) {
+				bftsmartConf = PropertiesUtils.load(in, BytesUtils.DEFAULT_CHARSET);
+			}
+		} catch (IOException e) {
+			throw new IllegalStateException(e.getMessage(), e);
+		}
+	}
 
-    public void peerStart(BftsmartNodeServer[] nodeServers) {
+	public void peerStart(BftsmartNodeServer[] nodeServers) {
 
-        BftsmartNodeSettings[] nodesSettings = new BftsmartNodeSettings[nodeNum];
+		BftsmartNodeSettings[] nodesSettings = new BftsmartNodeSettings[nodeNum];
 
-        for (int i = 0; i < nodeNum; i++) {
-            BlockchainKeypair keyPair = BlockchainKeyGenerator.getInstance().generate();
-            PubKey pubKey = keyPair.getPubKey();
-            NetworkAddress peerNodeServ = new NetworkAddress("127.0.0.1", peerStartPort + i * 10);
-            NodeSettings node = new BftsmartNodeConfig(pubKey, i, peerNodeServ);
-            nodesSettings[i] = (BftsmartNodeSettings) node;
-        }
+		for (int i = 0; i < nodeNum; i++) {
+			BlockchainKeypair keyPair = BlockchainKeyGenerator.getInstance().generate();
+			PubKey pubKey = keyPair.getPubKey();
+			NetworkAddress peerNodeServ = new NetworkAddress("127.0.0.1", peerStartPort + i * 10);
+			NodeSettings node = new BftsmartNodeConfig(pubKey, i, peerNodeServ);
+			nodesSettings[i] = (BftsmartNodeSettings) node;
+		}
 
-        BftsmartConsensusConfig consensusConfig = new BftsmartConsensusConfig(nodesSettings,
-                PropertiesUtils.getOrderedValues(bftsmartConf), 0);
+		BftsmartConsensusConfig consensusConfig = new BftsmartConsensusConfig(nodesSettings,
+				PropertiesUtils.getOrderedValues(bftsmartConf), 0);
 
-        for (int j = 0; j < nodeNum; j++) {
-            BftsmartServerSettingConfig serverSettings = new BftsmartServerSettingConfig();
-            serverSettings.setReplicaSettings(nodesSettings[j]);
-            serverSettings.setConsensusSettings(consensusConfig);
-            BftsmartNodeServer server = new BftsmartNodeServer(serverSettings, null, null);
-            nodeServers[j] = server;
-            nodeStartPools.execute(() -> {
-                server.start();
-                startPeer.countDown();
-            });
-        }
-    }
+		for (int j = 0; j < nodeNum; j++) {
+			BftsmartServerSettingConfig serverSettings = new BftsmartServerSettingConfig();
+			serverSettings.setReplicaSettings(nodesSettings[j]);
+			serverSettings.setConsensusSettings(consensusConfig);
+			BftsmartNodeServer server = new BftsmartNodeServer(serverSettings, null, null, new MemoryStorage("test"));
+			nodeServers[j] = server;
+			nodeStartPools.execute(() -> {
+				server.start();
+				startPeer.countDown();
+			});
+		}
+	}
 
-    public void proxyClientSend(BftsmartNodeServer nodeServer) {
-        BftsmartClientIncomingConfig clientIncomingConfig = new BftsmartClientIncomingConfig();
-        BlockchainKeypair keyPair = BlockchainKeyGenerator.getInstance().generate();
-        clientIncomingConfig.setPubKey(keyPair.getPubKey());
-        clientIncomingConfig.setClientId(0);
-        clientIncomingConfig.setConsensusSettings(nodeServer.getConsensusSetting());
-        clientIncomingConfig.setTomConfig(BinarySerializeUtils.serialize(nodeServer.getTomConfig()));
-        clientIncomingConfig.setTopology(BinarySerializeUtils.serialize(nodeServer.getTopology()));
+	public void proxyClientSend(BftsmartNodeServer nodeServer) {
+		BftsmartClientIncomingConfig clientIncomingConfig = new BftsmartClientIncomingConfig();
+		BlockchainKeypair keyPair = BlockchainKeyGenerator.getInstance().generate();
+		clientIncomingConfig.setPubKey(keyPair.getPubKey());
+		clientIncomingConfig
+				.setSessionCredential(new BftsmartSessionCredentialConfig(0, 10, System.currentTimeMillis()));
+		clientIncomingConfig.setViewSettings(nodeServer.getConsensusSetting());
+		clientIncomingConfig.setTomConfig(BinarySerializeUtils.serialize(nodeServer.getTomConfig()));
+		clientIncomingConfig.setTopology(BinarySerializeUtils.serialize(nodeServer.getTopology()));
 
-        BftsmartClientConfig clientSettings = new BftsmartClientConfig(clientIncomingConfig);
-        BftsmartConsensusClient consensusClient = new BftsmartConsensusClient(clientSettings);
-        bytes = new byte[1024];
+		BftsmartClientConfig clientSettings = new BftsmartClientConfig(clientIncomingConfig);
+		BftsmartConsensusClient consensusClient = new BftsmartConsensusClient(clientSettings);
+		bytes = new byte[1024];
 
-        BftsmartMessageService messageService = (BftsmartMessageService) consensusClient.getMessageService();
+		BftsmartMessageService messageService = (BftsmartMessageService) consensusClient.getMessageService();
 
-        for (int j = 0; j < number; j++) {
-                txSendPools.execute(() -> {
-                    random.nextBytes(bytes);
-                    messageService.sendOrdered(bytes);
-                });
-        }
+		for (int j = 0; j < number; j++) {
+			txSendPools.execute(() -> {
+				random.nextBytes(bytes);
+				messageService.sendOrdered(bytes);
+			});
+		}
 
-    }
+	}
 
 //    @Test
-    public void sendTest() {
+	public void sendTest() {
 
-        BftsmartNodeServer[] nodeServers = new BftsmartNodeServer[nodeNum];
-        //启动服务
-        peerStart(nodeServers);
+		BftsmartNodeServer[] nodeServers = new BftsmartNodeServer[nodeNum];
+		// 启动服务
+		peerStart(nodeServers);
 
-        try {
-            startPeer.await();
-            Thread.sleep(5000);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+		try {
+			startPeer.await();
+			Thread.sleep(5000);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
-        proxyClientSend(nodeServers[0]);
+		proxyClientSend(nodeServers[0]);
 
-
-        try {
-            Thread.sleep(50000);
-            System.out.println("send test complete!");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+		try {
+			Thread.sleep(50000);
+			System.out.println("send test complete!");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 }

@@ -1,8 +1,9 @@
 package com.jd.blockchain.consensus.bftsmart;
 
 import com.jd.blockchain.binaryproto.BinaryProtocol;
-import com.jd.blockchain.binaryproto.DataContractRegistry;
-import com.jd.blockchain.consensus.*;
+import com.jd.blockchain.consensus.ClientIncomingSettings;
+import com.jd.blockchain.consensus.ConsensusViewSettings;
+import com.jd.blockchain.consensus.SettingsFactory;
 import com.jd.blockchain.utils.io.BytesEncoder;
 
 public class BftsmartSettingsFactory implements SettingsFactory {
@@ -30,15 +31,15 @@ public class BftsmartSettingsFactory implements SettingsFactory {
 
 		@Override
 		public byte[] encode(ConsensusViewSettings data) {
-			if (data instanceof BftsmartConsensusSettings) {
-				return BinaryProtocol.encode(data, BftsmartConsensusSettings.class);
+			if (data instanceof BftsmartConsensusViewSettings) {
+				return BinaryProtocol.encode(data, BftsmartConsensusViewSettings.class);
 			}
 			throw new IllegalArgumentException("Settings data isn't supported! Accept BftsmartConsensusSettings only!");
 		}
 
 		@Override
 		public ConsensusViewSettings decode(byte[] bytes) {
-			return BinaryProtocol.decode(bytes, BftsmartConsensusSettings.class);
+			return BinaryProtocol.decode(bytes, BftsmartConsensusViewSettings.class);
 		}
 	}
 	

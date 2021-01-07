@@ -1,11 +1,10 @@
 package com.jd.blockchain.gateway;
 
+import java.util.Set;
+
 import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.utils.net.NetworkAddress;
-
-import java.util.List;
-import java.util.Set;
 
 public interface PeerConnector {
 
@@ -40,7 +39,14 @@ public interface PeerConnector {
 	 * @param peerProviders
 	 *             支持的Provider解析列表
 	 */
-	void connect(NetworkAddress peerAddress, AsymmetricKeypair defaultKeyPair, List<String> peerProviders);
+	void connect(NetworkAddress peerAddress, AsymmetricKeypair defaultKeyPair);
+
+	/**
+	 * 设置网关配置的默认连接Peer Http 地址
+	 *
+	 * @return void
+	 */
+	void setMasterPeer(NetworkAddress defaultMasterAddress);
 
 	/**
 	 * 监控重连，判断是否需要更新账本信息，再进行重连操作

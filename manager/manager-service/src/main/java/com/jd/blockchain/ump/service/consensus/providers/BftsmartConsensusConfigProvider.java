@@ -3,12 +3,12 @@ package com.jd.blockchain.ump.service.consensus.providers;
 
 import com.jd.blockchain.ump.model.config.PeerLocalConfig;
 import com.jd.blockchain.ump.model.config.PeerSharedConfig;
-import com.jd.blockchain.ump.service.consensus.ConsensusProvider;
+import com.jd.blockchain.ump.service.consensus.ConsensusConfigProvider;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-public class BftsmartConsensusProvider implements ConsensusProvider {
+public class BftsmartConsensusConfigProvider implements ConsensusConfigProvider {
 
     public static final String BFTSMART_PROVIDER = "com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider";
 

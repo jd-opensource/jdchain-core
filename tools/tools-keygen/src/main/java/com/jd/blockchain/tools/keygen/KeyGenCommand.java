@@ -23,6 +23,8 @@ import com.jd.blockchain.utils.ConsoleUtils;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.io.FileUtils;
 import com.jd.blockchain.utils.security.DecryptionException;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.config.Configurator;
 
 public class KeyGenCommand {
 
@@ -50,6 +52,7 @@ public class KeyGenCommand {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		Configurator.setRootLevel(Level.ERROR);
 		Setting setting = ArgumentSet.setting().prefix(READ_ARG, NAME_ARG, OUT_DIR_ARG, LOCAL_CONF_ARG)
 				.option(OPT_DECRYPTING, OPT_DEBUG);
 		ArgumentSet argSet = ArgumentSet.resolve(args, setting);

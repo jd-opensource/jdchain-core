@@ -4,7 +4,7 @@ import com.jd.blockchain.ump.model.config.PeerLocalConfig;
 import com.jd.blockchain.ump.model.config.PeerSharedConfigVv;
 import com.jd.blockchain.ump.model.user.UserKeys;
 import com.jd.blockchain.ump.model.user.UserKeysVv;
-import com.jd.blockchain.ump.service.consensus.providers.BftsmartConsensusProvider;
+import com.jd.blockchain.ump.service.consensus.providers.BftsmartConsensusConfigProvider;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.stereotype.Service;
 
@@ -21,9 +21,9 @@ public class UmpSimulateServiceHandler implements UmpSimulateService {
 
     private static final String LOCALHOST = "127.0.0.1";
 
-    private static final String CONSENSUS_PROVIDER = BftsmartConsensusProvider.BFTSMART_PROVIDER;
+    private static final String CONSENSUS_PROVIDER = BftsmartConsensusConfigProvider.BFTSMART_PROVIDER;
 
-    private static final String CONSENSUS_CONF = BftsmartConsensusProvider.BFTSMART_CONFIG_FILE;
+    private static final String CONSENSUS_CONF = BftsmartConsensusConfigProvider.BFTSMART_CONFIG_FILE;
 
     private static final int INIT_PORT_START = 9000;
 

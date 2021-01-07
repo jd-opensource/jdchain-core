@@ -1,12 +1,12 @@
 package com.jd.blockchain.ump.service.consensus.providers;
 
 import com.jd.blockchain.ump.model.config.PeerLocalConfig;
-import com.jd.blockchain.ump.service.consensus.ConsensusProvider;
+import com.jd.blockchain.ump.service.consensus.ConsensusConfigProvider;
 
 import java.util.List;
 import java.util.Properties;
 
-public class MsgQueueConsensusProvider implements ConsensusProvider {
+public class MsgQueueConsensusConfigProvider implements ConsensusConfigProvider {
 
     private static final String MSGQUEUE_PROVIDER = "com.jd.blockchain.consensus.mq.MsgQueueConsensusProvider";
 

@@ -186,8 +186,13 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 	@Override
 	public LedgerTransaction getTransaction(HashDigest txContentHash) {
 		TransactionRequest txRequest = loadRequest(txContentHash);
+		if(null == txRequest) {
+			return null;
+		}
 		TransactionResult txResult = loadResult(txContentHash);
-
+		if(null == txResult) {
+			return null;
+		}
 		return new LedgerTransactionData(txRequest, txResult);
 	}
 	
@@ -206,9 +211,9 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		// TODO: 待优化性能；
 		LedgerTransaction tx = getTransaction(txContentHash);
 		if (tx == null) {
-			throw new LedgerException("Transaction[" + txContentHash.toBase58() + "] doesn't exist!");
+			return null;
 		}
-		return tx.getExecutionState();
+		return tx.getResult().getExecutionState();
 	}
 
 	private TransactionResult loadResult(HashDigest txContentHash) {

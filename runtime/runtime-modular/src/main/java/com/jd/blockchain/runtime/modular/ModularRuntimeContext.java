@@ -1,9 +1,13 @@
 package com.jd.blockchain.runtime.modular;
 
+import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 
 import com.jd.blockchain.runtime.RuntimeContext;
+import com.jd.blockchain.utils.io.FileSystemStorage;
+import com.jd.blockchain.utils.io.RuntimeIOException;
+import com.jd.blockchain.utils.io.Storage;
 
 public class ModularRuntimeContext extends RuntimeContext {
 
@@ -17,7 +21,7 @@ public class ModularRuntimeContext extends RuntimeContext {
 			boolean productMode) {
 		this.environment = new EnvSettings();
 		this.environment.setProductMode(productMode);
-
+		this.environment.setRuntimeDir(runtimeDir);
 		this.runtimeDir = runtimeDir;
 		this.libModule = libModule;
 	}
@@ -46,6 +50,7 @@ public class ModularRuntimeContext extends RuntimeContext {
 	private static class EnvSettings implements Environment {
 
 		private boolean productMode;
+		private Storage runtimeStorage;
 
 		@Override
 		public boolean isProductMode() {
@@ -56,5 +61,17 @@ public class ModularRuntimeContext extends RuntimeContext {
 			this.productMode = productMode;
 		}
 
+		@Override
+		public Storage getRuntimeStorage() {
+			return runtimeStorage;
+		}
+
+		public void setRuntimeDir(String runtimeDir) {
+			try {
+				this.runtimeStorage = new FileSystemStorage(runtimeDir);
+			} catch (IOException e) {
+				throw new RuntimeIOException(e.getMessage(), e);
+			}
+		}
 	}
 }

@@ -5,7 +5,7 @@ import com.jd.blockchain.consensus.ConsensusProviders;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusConfig;
-import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettings;
+import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeConfig;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.contract.ContractProcessor;
@@ -149,9 +149,9 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 	}
 
 	private ConsensusViewSettings consensusSettingsDecorator(ConsensusViewSettings consensusSettings) {
-		if (consensusSettings instanceof BftsmartConsensusSettings) {
+		if (consensusSettings instanceof BftsmartConsensusViewSettings) {
 			// bft-smart单独处理
-			BftsmartConsensusSettings bftsmartConsensusSettings = (BftsmartConsensusSettings) consensusSettings;
+			BftsmartConsensusViewSettings bftsmartConsensusSettings = (BftsmartConsensusViewSettings) consensusSettings;
 			NodeSettings[] nodes = bftsmartConsensusSettings.getNodes();
 			BftsmartNodeSettings[] bftsmartNodes = null;
 			if (nodes != null && nodes.length > 0) {
