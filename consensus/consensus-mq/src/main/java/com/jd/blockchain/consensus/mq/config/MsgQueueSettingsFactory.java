@@ -8,8 +8,8 @@
  */
 package com.jd.blockchain.consensus.mq.config;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
-import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.binaryproto.BinaryProtocol;
+import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.consensus.ClientIncomingSettings;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;

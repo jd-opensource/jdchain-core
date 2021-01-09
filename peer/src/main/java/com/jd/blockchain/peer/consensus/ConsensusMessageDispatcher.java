@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.BlockStateSnapshot;
 import com.jd.blockchain.consensus.service.ConsensusContext;
 import com.jd.blockchain.consensus.service.ConsensusMessageContext;

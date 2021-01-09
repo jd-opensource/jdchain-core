@@ -1,6 +1,6 @@
 package com.jd.blockchain.peer.decorator;
 
-import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.transaction.UserAuthorizer;
 import com.jd.blockchain.transaction.UserRolesAuthorizer;

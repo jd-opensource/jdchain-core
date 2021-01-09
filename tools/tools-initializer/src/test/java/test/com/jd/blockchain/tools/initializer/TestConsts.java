@@ -10,7 +10,7 @@ package test.com.jd.blockchain.tools.initializer;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.ledger.LedgerInitOperation;
 import com.jd.blockchain.ledger.UserRegisterOperation;
 

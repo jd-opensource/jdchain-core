@@ -2,7 +2,7 @@ package com.jd.blockchain.gateway.web;
 
 import java.util.List;
 
-import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.consensus.ClientCredential;
 import com.jd.blockchain.consensus.action.ActionRequest;
 import com.jd.blockchain.consensus.action.ActionResponse;

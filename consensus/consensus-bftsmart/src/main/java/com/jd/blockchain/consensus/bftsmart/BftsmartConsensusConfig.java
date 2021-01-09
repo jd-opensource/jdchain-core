@@ -1,6 +1,6 @@
 package com.jd.blockchain.consensus.bftsmart;
 
-import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.utils.Property;
 
 public class BftsmartConsensusConfig implements BftsmartConsensusViewSettings {

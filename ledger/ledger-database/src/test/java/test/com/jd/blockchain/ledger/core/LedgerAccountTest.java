@@ -4,7 +4,7 @@ import java.util.Random;
 
 import org.junit.Before;
 
-import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.UserInfo;
 

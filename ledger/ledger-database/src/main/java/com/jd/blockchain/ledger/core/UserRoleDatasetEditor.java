@@ -2,7 +2,7 @@ package com.jd.blockchain.ledger.core;
 
 import java.util.Collection;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.AuthorizationException;
 import com.jd.blockchain.ledger.CryptoSetting;

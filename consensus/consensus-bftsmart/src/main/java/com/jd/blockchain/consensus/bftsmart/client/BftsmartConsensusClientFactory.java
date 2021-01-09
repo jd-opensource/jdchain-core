@@ -1,6 +1,6 @@
 package com.jd.blockchain.consensus.bftsmart.client;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.ClientIncomingSettings;
 import com.jd.blockchain.consensus.SessionCredential;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientAuthCredit;

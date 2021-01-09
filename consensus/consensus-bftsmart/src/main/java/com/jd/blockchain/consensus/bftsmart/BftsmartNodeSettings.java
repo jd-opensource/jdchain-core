@@ -1,8 +1,8 @@
 package com.jd.blockchain.consensus.bftsmart;
 
-import com.jd.blockchain.binaryproto.DataContract;
-import com.jd.blockchain.binaryproto.DataField;
-import com.jd.blockchain.binaryproto.PrimitiveType;
+import com.jd.binaryproto.DataContract;
+import com.jd.binaryproto.DataField;
+import com.jd.binaryproto.PrimitiveType;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consts.DataCodes;
 import com.jd.blockchain.utils.net.NetworkAddress;

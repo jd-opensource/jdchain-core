@@ -11,7 +11,7 @@ package com.jd.blockchain.consensus.mq.server;
 import java.util.Arrays;
 
 import com.jd.blockchain.consensus.ClientCredential;
-import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.ClientAuthencationService;
 import com.jd.blockchain.consensus.ConsensusSecurityException;
 import com.jd.blockchain.consensus.mq.client.MQCredentialInfo;

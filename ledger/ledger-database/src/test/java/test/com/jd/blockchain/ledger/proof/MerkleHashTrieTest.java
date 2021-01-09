@@ -22,10 +22,10 @@ import java.util.Random;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
-import com.jd.blockchain.binaryproto.DataContractEncoder;
-import com.jd.blockchain.binaryproto.DataSpecification;
-import com.jd.blockchain.binaryproto.impl.DataContractContext;
+import com.jd.binaryproto.BinaryProtocol;
+import com.jd.binaryproto.DataContractEncoder;
+import com.jd.binaryproto.DataSpecification;
+import com.jd.binaryproto.impl.DataContractContext;
 import com.jd.blockchain.consts.DataCodes;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;

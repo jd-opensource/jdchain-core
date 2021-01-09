@@ -3,7 +3,7 @@ package com.jd.blockchain.ledger.core;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BlockchainIdentity;

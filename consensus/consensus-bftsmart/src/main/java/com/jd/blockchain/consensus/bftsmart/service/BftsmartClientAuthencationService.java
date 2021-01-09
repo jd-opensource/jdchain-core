@@ -3,7 +3,7 @@ package com.jd.blockchain.consensus.bftsmart.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.ClientAuthencationService;
 import com.jd.blockchain.consensus.ClientCredential;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingConfig;
