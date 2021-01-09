@@ -16,7 +16,7 @@
 
 	<properties>
 		<bftsmart.version>0.6.4.RELEASE</bftsmart.version>
-		<framework.version>1.4.0.RELEASE</framework.version>
+		<framework.version>1.4.1.RELEASE</framework.version>
 		<explorer.version>1.4.0.RELEASE</explorer.version>
 		<kvdb.version>1.1.1.RELEASE</kvdb.version>
 		<utils.version>1.4.1.RELEASE</utils.version>
