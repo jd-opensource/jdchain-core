@@ -121,8 +121,9 @@ import com.jd.blockchain.utils.io.ByteArray;
 import com.jd.blockchain.utils.io.BytesUtils;
 import com.jd.blockchain.utils.io.Storage;
 import com.jd.blockchain.utils.net.NetworkAddress;
-import com.jd.blockchain.utils.web.model.WebResponse;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
+import com.jd.httpservice.utils.web.WebResponse;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;

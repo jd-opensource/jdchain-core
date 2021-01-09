@@ -15,6 +15,8 @@ import com.jd.blockchain.sdk.GatewayAuthRequest;
 import com.jd.blockchain.ledger.proof.MerkleLeaf;
 import com.jd.blockchain.ledger.proof.MerklePath;
 import com.jd.blockchain.web.serializes.ByteArrayObjectUtil;
+import com.jd.httpservice.utils.web.JsonWebResponseMessageConverter;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.format.FormatterRegistry;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -25,7 +27,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.jd.blockchain.utils.io.ByteArray;
 import com.jd.blockchain.utils.serialize.json.JSONSerializeUtils;
-import com.jd.blockchain.utils.web.model.JsonWebResponseMessageConverter;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
 import com.jd.blockchain.web.converters.HashDigestInputConverter;
 
