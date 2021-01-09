@@ -3,11 +3,11 @@ package com.jd.blockchain.tools.initializer.web;
 import com.jd.blockchain.crypto.SignatureDigest;
 import com.jd.blockchain.ledger.core.LedgerInitDecision;
 import com.jd.blockchain.ledger.core.LedgerInitProposal;
-import com.jd.blockchain.utils.http.HttpAction;
-import com.jd.blockchain.utils.http.HttpMethod;
-import com.jd.blockchain.utils.http.HttpService;
-import com.jd.blockchain.utils.http.PathParam;
-import com.jd.blockchain.utils.http.RequestBody;
+import com.jd.httpservice.HttpAction;
+import com.jd.httpservice.HttpMethod;
+import com.jd.httpservice.HttpService;
+import com.jd.httpservice.PathParam;
+import com.jd.httpservice.RequestBody;
 
 @HttpService
 public interface LedgerInitConsensusService {

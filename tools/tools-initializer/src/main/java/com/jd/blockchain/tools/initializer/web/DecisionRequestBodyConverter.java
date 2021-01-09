@@ -5,7 +5,7 @@ import java.io.OutputStream;
 
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.ledger.core.LedgerInitDecision;
-import com.jd.blockchain.utils.http.RequestBodyConverter;
+import com.jd.httpservice.RequestBodyConverter;
 
 public class DecisionRequestBodyConverter implements RequestBodyConverter {
 

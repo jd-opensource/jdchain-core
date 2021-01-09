@@ -1,8 +1,8 @@
 package com.jd.blockchain.tools.initializer.web;
 
-import com.jd.blockchain.utils.http.agent.HttpServiceAgent;
-import com.jd.blockchain.utils.http.agent.ServiceEndpoint;
 import com.jd.blockchain.utils.net.NetworkAddress;
+import com.jd.httpservice.agent.HttpServiceAgent;
+import com.jd.httpservice.agent.ServiceEndpoint;
 
 public class HttpInitConsensServiceFactory implements InitConsensusServiceFactory {
 

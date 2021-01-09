@@ -2,8 +2,9 @@ package com.jd.blockchain.tools.deactiveparti;
 
 import com.jd.blockchain.utils.ArgumentSet;
 import com.jd.blockchain.utils.ConsoleUtils;
-import com.jd.blockchain.utils.http.converters.JsonResponseConverter;
 import com.jd.blockchain.utils.web.model.WebResponse;
+import com.jd.httpservice.converters.JsonResponseConverter;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
