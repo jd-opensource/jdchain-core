@@ -24,11 +24,12 @@ import com.jd.blockchain.consensus.bftsmart.service.BftsmartServerSettingConfig;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BlockchainKeyGenerator;
 import com.jd.blockchain.ledger.BlockchainKeypair;
-import com.jd.blockchain.utils.PropertiesUtils;
-import com.jd.blockchain.utils.io.BytesUtils;
-import com.jd.blockchain.utils.io.MemoryStorage;
-import com.jd.blockchain.utils.net.NetworkAddress;
-import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
+
+import utils.PropertiesUtils;
+import utils.io.BytesUtils;
+import utils.io.MemoryStorage;
+import utils.net.NetworkAddress;
+import utils.serialize.binary.BinarySerializeUtils;
 
 public class ProxyClientTest {
 

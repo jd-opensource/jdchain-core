@@ -6,9 +6,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.jd.blockchain.gateway.GatewayServerBooter;
-import com.jd.blockchain.utils.io.FileSystemStorage;
-import com.jd.blockchain.utils.io.RuntimeIOException;
-import com.jd.blockchain.utils.io.Storage;
+
+import utils.io.FileSystemStorage;
+import utils.io.RuntimeIOException;
+import utils.io.Storage;
 
 @Configuration
 public class ComponentConfiguration {

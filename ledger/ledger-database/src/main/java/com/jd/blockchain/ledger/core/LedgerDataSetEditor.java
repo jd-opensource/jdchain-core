@@ -1,6 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
-import com.jd.blockchain.utils.Transactional;
+import utils.Transactional;
 
 public class LedgerDataSetEditor implements LedgerDataSet, Transactional {
 

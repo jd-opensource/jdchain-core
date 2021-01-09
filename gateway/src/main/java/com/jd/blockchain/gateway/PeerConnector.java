@@ -4,7 +4,8 @@ import java.util.Set;
 
 import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.utils.net.NetworkAddress;
+
+import utils.net.NetworkAddress;
 
 public interface PeerConnector {
 
@@ -50,7 +51,7 @@ public interface PeerConnector {
 
 	/**
 	 * 监控重连，判断是否需要更新账本信息，再进行重连操作
-	 * Peer地址及其他信息见${@link PeerConnector#connect(com.jd.blockchain.utils.net.NetworkAddress, com.jd.blockchain.crypto.AsymmetricKeypair, java.util.List)}
+	 * Peer地址及其他信息见${@link PeerConnector#connect(utils.net.NetworkAddress, com.jd.blockchain.crypto.AsymmetricKeypair, java.util.List)}
 	 *
 	 */
 	void monitorAndReconnect();

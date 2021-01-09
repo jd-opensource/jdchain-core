@@ -3,9 +3,10 @@ package com.jd.blockchain.ledger.core;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.EmptySkippingIterator;
-import com.jd.blockchain.utils.SkippingIterator;
+
+import utils.Bytes;
+import utils.EmptySkippingIterator;
+import utils.SkippingIterator;
 
 public class EmptyAccountSet<T> implements MerkleAccountSet<T> {
 	

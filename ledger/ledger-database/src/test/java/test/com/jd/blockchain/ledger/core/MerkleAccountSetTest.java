@@ -14,7 +14,8 @@ import com.jd.blockchain.ledger.core.CryptoConfig;
 import com.jd.blockchain.ledger.core.MerkleAccountSetEditor;
 import com.jd.blockchain.ledger.core.OpeningAccessPolicy;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class MerkleAccountSetTest {
 

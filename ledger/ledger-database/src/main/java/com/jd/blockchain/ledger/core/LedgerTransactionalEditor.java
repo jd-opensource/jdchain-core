@@ -23,8 +23,9 @@ import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.codec.Base58Utils;
+
+import utils.Bytes;
+import utils.codec.Base58Utils;
 
 public class LedgerTransactionalEditor implements LedgerEditor {
 	private static final boolean PARALLEL_DB_WRITE;

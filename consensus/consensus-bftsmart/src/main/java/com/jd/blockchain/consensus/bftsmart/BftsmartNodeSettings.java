@@ -5,7 +5,8 @@ import com.jd.binaryproto.DataField;
 import com.jd.binaryproto.PrimitiveType;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consts.DataCodes;
-import com.jd.blockchain.utils.net.NetworkAddress;
+
+import utils.net.NetworkAddress;
 
 @DataContract(code = DataCodes.CONSENSUS_BFTSMART_NODE_SETTINGS)
 public interface BftsmartNodeSettings extends NodeSettings {

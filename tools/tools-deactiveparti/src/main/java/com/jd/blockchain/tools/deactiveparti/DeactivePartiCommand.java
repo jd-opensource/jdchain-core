@@ -1,9 +1,10 @@
 package com.jd.blockchain.tools.deactiveparti;
 
-import com.jd.blockchain.utils.ArgumentSet;
-import com.jd.blockchain.utils.ConsoleUtils;
 import com.jd.httpservice.converters.JsonResponseConverter;
 import com.jd.httpservice.utils.web.WebResponse;
+
+import utils.ArgumentSet;
+import utils.ConsoleUtils;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;

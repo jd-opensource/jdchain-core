@@ -2,9 +2,10 @@ package com.jd.blockchain.ledger.merkletree;
 
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.SkippingIterator;
-import com.jd.blockchain.utils.Transactional;
+
+import utils.Bytes;
+import utils.SkippingIterator;
+import utils.Transactional;
 
 public class MerkleList<T> implements Transactional {
 

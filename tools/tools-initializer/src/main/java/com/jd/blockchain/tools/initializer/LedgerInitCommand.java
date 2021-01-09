@@ -2,8 +2,6 @@ package com.jd.blockchain.tools.initializer;
 
 import java.io.File;
 
-import com.jd.blockchain.utils.ConsoleUtils;
-import com.jd.blockchain.utils.StringUtils;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -21,11 +19,15 @@ import com.jd.blockchain.ledger.LedgerInitProperties;
 import com.jd.blockchain.ledger.LedgerInitProperties.ParticipantProperties;
 import com.jd.blockchain.ledger.core.LedgerManager;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig.BindingConfig;
-import com.jd.blockchain.utils.ArgumentSet;
-import com.jd.blockchain.utils.ArgumentSet.ArgEntry;
-import com.jd.blockchain.utils.ArgumentSet.Setting;
-import com.jd.blockchain.utils.io.FileUtils;
-import com.jd.blockchain.utils.net.NetworkAddress;
+
+import utils.ArgumentSet;
+import utils.ConsoleUtils;
+import utils.StringUtils;
+import utils.ArgumentSet.ArgEntry;
+import utils.ArgumentSet.Setting;
+import utils.io.FileUtils;
+import utils.net.NetworkAddress;
+
 import org.springframework.util.NumberUtils;
 
 /**

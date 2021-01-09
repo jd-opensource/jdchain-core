@@ -3,7 +3,8 @@ package com.jd.blockchain.ledger.core;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.EventPublishOperation;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 /**
  * 事件交易处理

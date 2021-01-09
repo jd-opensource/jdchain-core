@@ -2,7 +2,8 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.DataAccountInfo;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class DataAccount extends AccountDecorator implements DataAccountInfo {
 

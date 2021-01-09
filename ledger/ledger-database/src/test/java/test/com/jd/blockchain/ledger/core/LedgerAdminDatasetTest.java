@@ -42,9 +42,10 @@ import com.jd.blockchain.ledger.core.LedgerConfiguration;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.transaction.ConsensusParticipantData;
 import com.jd.blockchain.transaction.LedgerInitData;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.SkippingIterator;
-import com.jd.blockchain.utils.net.NetworkAddress;
+
+import utils.Bytes;
+import utils.SkippingIterator;
+import utils.net.NetworkAddress;
 
 public class LedgerAdminDatasetTest {
 

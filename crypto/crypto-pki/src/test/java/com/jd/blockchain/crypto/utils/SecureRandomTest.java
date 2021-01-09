@@ -10,7 +10,8 @@ import org.junit.Test;
 
 import com.jd.blockchain.crypto.service.pki.SHA1SecureRandom;
 import com.jd.blockchain.crypto.service.pki.SM3SecureRandom;
-import com.jd.blockchain.utils.io.BytesUtils;
+
+import utils.io.BytesUtils;
 
 public class SecureRandomTest {
 

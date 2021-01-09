@@ -5,8 +5,9 @@ import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.AccountSnapshot;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.TypedValue;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.Dataset;
+
+import utils.Bytes;
+import utils.Dataset;
 
 public class AccountDecorator implements Account, HashProvable, AccountSnapshot{
 	

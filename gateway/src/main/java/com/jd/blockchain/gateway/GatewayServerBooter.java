@@ -55,12 +55,13 @@ import com.jd.blockchain.ledger.proof.MerkleLeaf;
 import com.jd.blockchain.ledger.proof.MerklePath;
 import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.sdk.GatewayAuthRequest;
-import com.jd.blockchain.utils.ArgumentSet;
-import com.jd.blockchain.utils.ArgumentSet.ArgEntry;
-import com.jd.blockchain.utils.BaseConstant;
-import com.jd.blockchain.utils.ConsoleUtils;
-import com.jd.blockchain.utils.net.NetworkAddress;
-import com.jd.blockchain.utils.reflection.TypeUtils;
+
+import utils.ArgumentSet;
+import utils.BaseConstant;
+import utils.ConsoleUtils;
+import utils.ArgumentSet.ArgEntry;
+import utils.net.NetworkAddress;
+import utils.reflection.TypeUtils;
 
 public class GatewayServerBooter {
 

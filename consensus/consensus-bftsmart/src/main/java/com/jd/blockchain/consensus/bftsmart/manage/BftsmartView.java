@@ -1,10 +1,10 @@
 package com.jd.blockchain.consensus.bftsmart.manage;
 
 import com.jd.blockchain.consensus.manage.ConsensusView;
-import com.jd.blockchain.utils.net.NetworkAddress;
 
 import bftsmart.reconfiguration.views.NodeNetwork;
 import bftsmart.reconfiguration.views.View;
+import utils.net.NetworkAddress;
 
 public class BftsmartView implements ConsensusView {
 

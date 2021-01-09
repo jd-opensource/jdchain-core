@@ -4,7 +4,8 @@ import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.core.MerkleProofException;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 /**
  * 叶子节点；

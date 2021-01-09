@@ -27,12 +27,13 @@ import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
 import com.jd.blockchain.ledger.UserPrivilegeSet;
 import com.jd.blockchain.transaction.BlockchainQueryService;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.Mapper;
-import com.jd.blockchain.utils.SkippingIterator;
-import com.jd.blockchain.utils.query.QueryArgs;
-import com.jd.blockchain.utils.query.QueryUtils;
+
+import utils.Bytes;
+import utils.DataEntry;
+import utils.Mapper;
+import utils.SkippingIterator;
+import utils.query.QueryArgs;
+import utils.query.QueryUtils;
 
 public class LedgerQueryService implements BlockchainQueryService {
 

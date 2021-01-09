@@ -26,7 +26,8 @@ import com.jd.blockchain.crypto.SignatureFunction;
 import com.jd.blockchain.crypto.base.DefaultCryptoEncoding;
 import com.jd.blockchain.crypto.utils.CSRBuilder;
 import com.jd.blockchain.crypto.utils.CertParser;
-import com.jd.blockchain.utils.io.BytesUtils;
+
+import utils.io.BytesUtils;
 
 /**
  * @author zhanglin33

@@ -14,7 +14,8 @@ import com.jd.binaryproto.PrimitiveType;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.mq.config.MsgQueueBlockConfig;
 import com.jd.blockchain.consts.DataCodes;
-import com.jd.blockchain.utils.Property;
+
+import utils.Property;
 
 /**
  *

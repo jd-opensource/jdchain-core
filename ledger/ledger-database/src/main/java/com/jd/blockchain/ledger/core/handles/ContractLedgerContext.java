@@ -41,7 +41,8 @@ import com.jd.blockchain.transaction.EventPublishOperationBuilder;
 import com.jd.blockchain.transaction.KVData;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilder;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilderImpl;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class ContractLedgerContext implements LedgerContext {
 

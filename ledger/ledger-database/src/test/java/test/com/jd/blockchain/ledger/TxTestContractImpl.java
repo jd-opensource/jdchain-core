@@ -4,7 +4,8 @@ import com.jd.blockchain.contract.ContractEventContext;
 import com.jd.blockchain.contract.ContractLifecycleAware;
 import com.jd.blockchain.contract.EventProcessingAware;
 import com.jd.blockchain.ledger.TypedKVEntry;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class TxTestContractImpl implements TxTestContract, ContractLifecycleAware, EventProcessingAware {
 

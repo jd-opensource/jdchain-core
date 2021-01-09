@@ -28,7 +28,8 @@ import com.jd.blockchain.ledger.core.CryptoConfig;
 import com.jd.blockchain.ledger.core.LedgerAdminDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerConfiguration;
 import com.jd.blockchain.ledger.core.ParticipantCertData;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 /**
  * Created by zhangshuang3 on 2018/8/31.

@@ -4,7 +4,9 @@ import com.jd.blockchain.kvdb.client.KVDBClient;
 import com.jd.blockchain.kvdb.protocol.exception.KVDBException;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
+
 import org.apache.commons.collections4.map.LRUMap;
 
 import java.util.HashMap;

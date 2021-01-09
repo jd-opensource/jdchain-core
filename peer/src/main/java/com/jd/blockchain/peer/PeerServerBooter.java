@@ -96,8 +96,9 @@ import com.jd.blockchain.sdk.GatewayAuthRequest;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
 import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
-import com.jd.blockchain.utils.ArgumentSet;
-import com.jd.blockchain.utils.ConsoleUtils;
+
+import utils.ArgumentSet;
+import utils.ConsoleUtils;
 
 /**
  * 节点服务实例的启动器；

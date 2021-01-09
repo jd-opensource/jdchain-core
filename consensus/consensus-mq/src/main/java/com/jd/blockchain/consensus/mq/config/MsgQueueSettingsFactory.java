@@ -20,7 +20,8 @@ import com.jd.blockchain.consensus.mq.settings.MsgQueueClientIncomingSettings;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueConsensusSettings;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueNetworkSettings;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueNodeSettings;
-import com.jd.blockchain.utils.io.BytesEncoder;
+
+import utils.io.BytesEncoder;
 
 /**
  *

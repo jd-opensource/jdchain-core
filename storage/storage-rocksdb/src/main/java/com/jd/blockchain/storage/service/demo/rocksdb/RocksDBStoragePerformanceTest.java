@@ -11,9 +11,10 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.KVStorageService;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.storage.service.impl.rocksdb.RocksDBConnectionFactory;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.ConsoleUtils;
-import com.jd.blockchain.utils.io.FileUtils;
+
+import utils.Bytes;
+import utils.ConsoleUtils;
+import utils.io.FileUtils;
 
 public class RocksDBStoragePerformanceTest {
 

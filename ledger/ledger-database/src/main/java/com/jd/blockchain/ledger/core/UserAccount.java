@@ -6,7 +6,8 @@ import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 /**
  * 用户账户；

@@ -12,7 +12,8 @@ import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.KVStorageService;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
-import com.jd.blockchain.utils.codec.Base58Utils;
+
+import utils.codec.Base58Utils;
 
 /**
  * 账本管理器；

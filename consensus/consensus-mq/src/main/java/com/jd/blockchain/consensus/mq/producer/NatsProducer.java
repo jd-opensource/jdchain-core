@@ -11,12 +11,11 @@ package com.jd.blockchain.consensus.mq.producer;
 import io.nats.client.Connection;
 import io.nats.client.Nats;
 import io.nats.client.Options;
+import utils.ConsoleUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-
-import com.jd.blockchain.utils.ConsoleUtils;
 
 /**
  *

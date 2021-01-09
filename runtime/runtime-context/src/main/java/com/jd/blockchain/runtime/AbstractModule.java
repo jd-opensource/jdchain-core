@@ -4,8 +4,8 @@ import java.io.InputStream;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.concurrent.Callable;
 
-import com.jd.blockchain.utils.concurrent.AsyncFuture;
-import com.jd.blockchain.utils.concurrent.CompletableAsyncFuture;
+import utils.concurrent.AsyncFuture;
+import utils.concurrent.CompletableAsyncFuture;
 
 public abstract class AbstractModule implements Module {
 	

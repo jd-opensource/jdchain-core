@@ -26,13 +26,14 @@ import com.jd.blockchain.ledger.MerkleProofBuilder;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
-import com.jd.blockchain.utils.ArrayUtils;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.Transactional;
-import com.jd.blockchain.utils.codec.Base58Utils;
-import com.jd.blockchain.utils.io.BytesSerializable;
-import com.jd.blockchain.utils.io.BytesUtils;
-import com.jd.blockchain.utils.io.NumberMask;
+
+import utils.ArrayUtils;
+import utils.Bytes;
+import utils.Transactional;
+import utils.codec.Base58Utils;
+import utils.io.BytesSerializable;
+import utils.io.BytesUtils;
+import utils.io.NumberMask;
 
 /**
  * 默克尔树；

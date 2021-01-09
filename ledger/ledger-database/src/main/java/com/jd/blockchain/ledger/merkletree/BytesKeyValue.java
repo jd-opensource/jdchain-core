@@ -1,6 +1,6 @@
 package com.jd.blockchain.ledger.merkletree;
 
-import com.jd.blockchain.utils.Bytes;
+import utils.Bytes;
 
 public class BytesKeyValue implements KVEntry, HashEntry {
 

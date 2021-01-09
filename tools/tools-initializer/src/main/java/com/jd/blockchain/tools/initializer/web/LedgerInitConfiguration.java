@@ -26,7 +26,8 @@ import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.core.CryptoConfig;
 import com.jd.blockchain.ledger.core.LedgerSecurityManager;
 import com.jd.blockchain.transaction.LedgerInitData;
-import com.jd.blockchain.utils.StringUtils;
+
+import utils.StringUtils;
 
 public class LedgerInitConfiguration {
 

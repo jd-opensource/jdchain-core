@@ -5,7 +5,8 @@ import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.DataVersionConflictException;
 import com.jd.blockchain.ledger.EventInfo;
 import com.jd.blockchain.ledger.EventPublishOperation;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 /**
  * 事件管理器

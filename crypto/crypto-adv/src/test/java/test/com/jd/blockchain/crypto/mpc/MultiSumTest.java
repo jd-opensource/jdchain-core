@@ -4,7 +4,9 @@ import com.jd.blockchain.crypto.mpc.MultiSum;
 import com.jd.blockchain.crypto.paillier.PaillierPrivateKeyParameters;
 import com.jd.blockchain.crypto.paillier.PaillierPublicKeyParameters;
 import com.jd.blockchain.crypto.paillier.PaillierUtils;
-import com.jd.blockchain.utils.io.BytesUtils;
+
+import utils.io.BytesUtils;
+
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.junit.Test;
 

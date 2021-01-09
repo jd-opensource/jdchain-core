@@ -1,10 +1,11 @@
 package com.jd.blockchain.ledger.json;
 
-import com.jd.blockchain.utils.serialize.json.JSONSerializeUtils;
 import com.jd.blockchain.web.serializes.ByteArrayJsonDeserializer;
 import com.jd.blockchain.web.serializes.ByteArrayJsonSerializer;
 import com.jd.blockchain.web.serializes.ExtendJsonDeserializer;
 import com.jd.blockchain.web.serializes.ExtendJsonSerializer;
+
+import utils.serialize.json.JSONSerializeUtils;
 
 /**
  * 扩展JSON序列化/反序列化工具

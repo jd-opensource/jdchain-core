@@ -2,8 +2,9 @@ package com.jd.blockchain.ledger.merkletree;
 
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.SkippingIterator;
+
+import utils.Bytes;
+import utils.SkippingIterator;
 
 /**
  * 键的版本树；<br>

@@ -18,7 +18,8 @@ import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
 import com.jd.blockchain.ledger.core.UserRoleDatasetEditor;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class UserAuthorizeOperationHandle extends AbstractLedgerOperationHandle<UserAuthorizeOperation> {
 

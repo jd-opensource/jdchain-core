@@ -3,7 +3,7 @@ package com.jd.blockchain.gateway.web;
 import javax.servlet.http.HttpServletRequest;
 
 import com.jd.blockchain.gateway.PeerConnector;
-import com.jd.blockchain.utils.exception.ViewObsoleteException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +21,10 @@ import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.transaction.SignatureUtils;
 import com.jd.blockchain.transaction.TransactionService;
-import com.jd.blockchain.utils.BusinessException;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
+
+import utils.BusinessException;
+import utils.exception.ViewObsoleteException;
 
 /**
  * @author huanghaiquan

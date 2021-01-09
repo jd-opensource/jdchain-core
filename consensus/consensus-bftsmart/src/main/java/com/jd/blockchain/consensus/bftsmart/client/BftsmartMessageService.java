@@ -1,10 +1,11 @@
 package com.jd.blockchain.consensus.bftsmart.client;
 
 import bftsmart.tom.AsynchServiceProxy;
+import utils.concurrent.AsyncFuture;
+import utils.concurrent.CompletableAsyncFuture;
+import utils.exception.ViewObsoleteException;
+
 import com.jd.blockchain.consensus.MessageService;
-import com.jd.blockchain.utils.concurrent.AsyncFuture;
-import com.jd.blockchain.utils.concurrent.CompletableAsyncFuture;
-import com.jd.blockchain.utils.exception.ViewObsoleteException;
 
 public abstract class BftsmartMessageService implements MessageService {
 

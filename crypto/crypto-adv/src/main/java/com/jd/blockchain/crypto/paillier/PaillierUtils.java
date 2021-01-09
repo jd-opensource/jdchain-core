@@ -1,7 +1,8 @@
 package com.jd.blockchain.crypto.paillier;
 
-import com.jd.blockchain.utils.io.BytesUtils;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
+
+import utils.io.BytesUtils;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;

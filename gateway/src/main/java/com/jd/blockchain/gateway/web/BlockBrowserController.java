@@ -44,8 +44,9 @@ import com.jd.blockchain.ledger.UserInfo;
 import com.jd.blockchain.ledger.UserPrivilegeSet;
 import com.jd.blockchain.sdk.BlockchainExtendQueryService;
 import com.jd.blockchain.sdk.ContractSettings;
-import com.jd.blockchain.utils.BaseConstant;
-import com.jd.blockchain.utils.ConsoleUtils;
+
+import utils.BaseConstant;
+import utils.ConsoleUtils;
 
 @RestController
 @RequestMapping(path = "/")

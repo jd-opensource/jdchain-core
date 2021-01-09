@@ -5,7 +5,8 @@ import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionResult;
 import com.jd.blockchain.ledger.TransactionState;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public interface TransactionSet extends MerkleProvable<Bytes> {
 

@@ -1,7 +1,8 @@
 package com.jd.blockchain.peer;
 
 import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 /**
  * 共识域；

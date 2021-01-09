@@ -9,10 +9,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.alibaba.fastjson.JSONException;
-import com.jd.blockchain.utils.BusinessException;
 import com.jd.httpservice.utils.web.ErrorCode;
 import com.jd.httpservice.utils.web.WebResponse;
 import com.jd.httpservice.utils.web.WebResponse.ErrorMessage;
+
+import utils.BusinessException;
 
 /**
  * 全局异常处理类

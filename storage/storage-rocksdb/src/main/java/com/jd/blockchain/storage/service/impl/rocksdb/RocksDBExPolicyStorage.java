@@ -2,7 +2,8 @@ package com.jd.blockchain.storage.service.impl.rocksdb;
 
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class RocksDBExPolicyStorage implements ExPolicyKVStorage {
 	

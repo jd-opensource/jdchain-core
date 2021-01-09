@@ -39,8 +39,9 @@ import com.jd.blockchain.ledger.core.TransactionStagedSnapshot;
 import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.transaction.TxBuilder;
-import com.jd.blockchain.utils.ArrayUtils;
-import com.jd.blockchain.utils.codec.Base58Utils;
+
+import utils.ArrayUtils;
+import utils.codec.Base58Utils;
 
 public class TransactionSetTest {
 

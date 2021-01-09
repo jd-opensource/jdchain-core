@@ -2,8 +2,9 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.ledger.ParticipantNodeState;
+
+import utils.Bytes;
 
 /**
  * 参与方证书数据对象；

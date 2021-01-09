@@ -4,7 +4,9 @@ import com.jd.blockchain.crypto.*;
 import com.jd.blockchain.crypto.base.DefaultCryptoEncoding;
 import com.jd.blockchain.crypto.utils.CSRBuilder;
 import com.jd.blockchain.crypto.utils.CertParser;
-import com.jd.blockchain.utils.io.BytesUtils;
+
+import utils.io.BytesUtils;
+
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.Test;
 

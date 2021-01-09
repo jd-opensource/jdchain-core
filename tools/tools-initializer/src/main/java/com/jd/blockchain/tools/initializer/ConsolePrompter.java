@@ -1,6 +1,6 @@
 package com.jd.blockchain.tools.initializer;
 
-import com.jd.blockchain.utils.ConsoleUtils;
+import utils.ConsoleUtils;
 
 public class ConsolePrompter implements Prompter {
 

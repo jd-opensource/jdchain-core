@@ -4,11 +4,12 @@ import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.EmptySkippingIterator;
-import com.jd.blockchain.utils.SkippingIterator;
-import com.jd.blockchain.utils.hash.MurmurHash3;
-import com.jd.blockchain.utils.io.BytesUtils;
+
+import utils.Bytes;
+import utils.EmptySkippingIterator;
+import utils.SkippingIterator;
+import utils.hash.MurmurHash3;
+import utils.io.BytesUtils;
 
 public class MerkleHashSortTree implements MerkleTree {
 

@@ -8,9 +8,10 @@ import org.apache.commons.collections4.map.LRUMap;
 import org.rocksdb.*;
 
 import com.jd.blockchain.storage.service.VersioningKVStorage;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.io.BytesUtils;
+
+import utils.Bytes;
+import utils.DataEntry;
+import utils.io.BytesUtils;
 
 /**
  * 基于 Redis 实现的版本化KV存储；

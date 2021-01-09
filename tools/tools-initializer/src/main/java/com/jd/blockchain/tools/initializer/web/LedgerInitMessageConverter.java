@@ -20,7 +20,8 @@ import com.jd.blockchain.crypto.SignatureDigest;
 import com.jd.blockchain.ledger.core.LedgerInitDecision;
 import com.jd.blockchain.ledger.core.LedgerInitProposal;
 import com.jd.blockchain.ledger.core.LedgerInitProposalData;
-import com.jd.blockchain.utils.io.BytesUtils;
+
+import utils.io.BytesUtils;
 
 /**
  * 针对二进制对象的序列化和反序列化的 HTTP 消息转换器；

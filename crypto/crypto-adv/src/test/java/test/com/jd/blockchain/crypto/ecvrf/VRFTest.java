@@ -2,7 +2,9 @@ package test.com.jd.blockchain.crypto.ecvrf;
 
 import com.jd.blockchain.crypto.CryptoException;
 import com.jd.blockchain.crypto.ecvrf.VRF;
-import com.jd.blockchain.utils.io.BytesUtils;
+
+import utils.io.BytesUtils;
+
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;

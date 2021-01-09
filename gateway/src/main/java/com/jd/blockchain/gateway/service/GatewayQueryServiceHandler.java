@@ -15,9 +15,11 @@ import com.jd.blockchain.gateway.PeerService;
 import com.jd.blockchain.gateway.service.settings.LedgerBaseSettings;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.sdk.ContractSettings;
-import com.jd.blockchain.utils.codec.HexUtils;
-import com.jd.blockchain.utils.query.QueryArgs;
-import com.jd.blockchain.utils.query.QueryUtils;
+
+import utils.codec.HexUtils;
+import utils.query.QueryArgs;
+import utils.query.QueryUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

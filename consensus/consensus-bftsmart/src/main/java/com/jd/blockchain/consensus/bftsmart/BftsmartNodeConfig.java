@@ -2,7 +2,8 @@ package com.jd.blockchain.consensus.bftsmart;
 
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.utils.net.NetworkAddress;
+
+import utils.net.NetworkAddress;
 
 public class BftsmartNodeConfig implements BftsmartNodeSettings {
 

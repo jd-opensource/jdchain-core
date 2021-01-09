@@ -43,13 +43,6 @@ import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.runtime.RuntimeConstant;
 import com.jd.blockchain.transaction.TxResponseMessage;
-import com.jd.blockchain.utils.PropertiesUtils;
-import com.jd.blockchain.utils.StringUtils;
-import com.jd.blockchain.utils.concurrent.AsyncFuture;
-import com.jd.blockchain.utils.concurrent.CompletableAsyncFuture;
-import com.jd.blockchain.utils.io.BytesUtils;
-import com.jd.blockchain.utils.io.Storage;
-import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 
 import bftsmart.consensus.app.BatchAppResultImpl;
 import bftsmart.reconfiguration.util.HostsConfig;
@@ -60,6 +53,13 @@ import bftsmart.tom.MessageContext;
 import bftsmart.tom.ReplyContextMessage;
 import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
+import utils.PropertiesUtils;
+import utils.StringUtils;
+import utils.concurrent.AsyncFuture;
+import utils.concurrent.CompletableAsyncFuture;
+import utils.io.BytesUtils;
+import utils.io.Storage;
+import utils.serialize.binary.BinarySerializeUtils;
 
 public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer {
 

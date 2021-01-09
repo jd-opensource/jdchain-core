@@ -18,8 +18,9 @@ import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.Transactional;
+
+import utils.Bytes;
+import utils.Transactional;
 
 public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataSet, LedgerAdminSettings {
 

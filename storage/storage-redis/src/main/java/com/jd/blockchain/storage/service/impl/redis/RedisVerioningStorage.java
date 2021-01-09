@@ -1,12 +1,12 @@
 package com.jd.blockchain.storage.service.impl.redis;
 
 import com.jd.blockchain.storage.service.VersioningKVStorage;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.util.SafeEncoder;
+import utils.Bytes;
+import utils.DataEntry;
 
 /**
  * 基于 Redis 实现的版本化KV存储；

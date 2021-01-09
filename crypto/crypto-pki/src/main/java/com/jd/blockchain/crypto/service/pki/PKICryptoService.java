@@ -10,7 +10,8 @@ import com.jd.blockchain.crypto.CryptoEncoding;
 import com.jd.blockchain.crypto.CryptoFunction;
 import com.jd.blockchain.crypto.CryptoService;
 import com.jd.blockchain.crypto.base.DefaultCryptoEncoding;
-import com.jd.blockchain.utils.provider.NamedProvider;
+
+import utils.provider.NamedProvider;
 
 /**
  * @author zhanglin33

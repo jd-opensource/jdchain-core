@@ -3,7 +3,7 @@ package com.jd.blockchain.peer.consensus;
 import java.io.Serializable;
 import java.util.ArrayList;
 
-import com.jd.blockchain.utils.net.NetworkAddress;
+import utils.net.NetworkAddress;
 
 public class ConsensusViewDefinition implements Serializable {
 

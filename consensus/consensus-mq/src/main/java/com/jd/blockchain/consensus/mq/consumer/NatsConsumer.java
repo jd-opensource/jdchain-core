@@ -8,9 +8,9 @@
  */
 package com.jd.blockchain.consensus.mq.consumer;
 
-import com.jd.blockchain.utils.ConsoleUtils;
 import com.lmax.disruptor.EventHandler;
 import io.nats.client.*;
+import utils.ConsoleUtils;
 
 import java.io.IOException;
 import java.time.Duration;

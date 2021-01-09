@@ -3,9 +3,11 @@ package com.jd.blockchain.storage.service.impl.kvdb;
 import com.jd.blockchain.kvdb.client.KVDBClient;
 import com.jd.blockchain.kvdb.protocol.exception.KVDBException;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.io.BytesUtils;
+
+import utils.Bytes;
+import utils.DataEntry;
+import utils.io.BytesUtils;
+
 import org.apache.commons.collections4.map.LRUMap;
 
 import java.util.HashMap;

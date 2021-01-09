@@ -1,7 +1,8 @@
 package com.jd.blockchain.ledger.merkletree;
 
 import com.jd.blockchain.ledger.core.MerkleProofException;
-import com.jd.blockchain.utils.SkippingIterator;
+
+import utils.SkippingIterator;
 
 /**
  * 默认的数据策略；

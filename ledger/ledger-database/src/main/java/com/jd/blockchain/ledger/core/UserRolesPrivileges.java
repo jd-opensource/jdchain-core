@@ -9,7 +9,8 @@ import com.jd.blockchain.ledger.RolePrivileges;
 import com.jd.blockchain.ledger.RolesPolicy;
 import com.jd.blockchain.ledger.TransactionPrivilegeBitset;
 import com.jd.blockchain.ledger.UserPrivilegeSet;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 /**
  * {@link UserRolesPrivileges} 表示多角色用户的综合权限；

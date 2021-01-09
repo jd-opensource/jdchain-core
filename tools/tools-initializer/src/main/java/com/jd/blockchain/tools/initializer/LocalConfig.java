@@ -4,9 +4,9 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.Properties;
 
-import com.jd.blockchain.utils.PathUtils;
-import com.jd.blockchain.utils.PropertiesUtils;
-import com.jd.blockchain.utils.io.FileUtils;
+import utils.PathUtils;
+import utils.PropertiesUtils;
+import utils.io.FileUtils;
 
 public class LocalConfig {
 

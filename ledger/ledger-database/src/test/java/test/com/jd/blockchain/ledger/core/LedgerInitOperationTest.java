@@ -22,9 +22,11 @@ import com.jd.blockchain.ledger.core.CryptoConfig;
 import com.jd.blockchain.ledger.core.ParticipantCertData;
 import com.jd.blockchain.transaction.ConsensusParticipantData;
 import com.jd.blockchain.transaction.LedgerInitOpTemplate;
+
+import utils.Bytes;
+import utils.net.NetworkAddress;
+
 import com.jd.blockchain.transaction.LedgerInitData;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.net.NetworkAddress;
 
 public class LedgerInitOperationTest {
 

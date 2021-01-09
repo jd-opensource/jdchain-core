@@ -1,6 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
-import com.jd.blockchain.utils.SkippingIterator;
+import utils.SkippingIterator;
 
 public interface AdminSettingDiffView extends DiffView {
 

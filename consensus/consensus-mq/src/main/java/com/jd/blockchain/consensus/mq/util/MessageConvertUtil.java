@@ -11,7 +11,8 @@ package com.jd.blockchain.consensus.mq.util;
 import com.alibaba.fastjson.JSON;
 import com.jd.blockchain.consensus.mq.event.BlockEvent;
 import com.jd.blockchain.consensus.mq.event.TxBlockedEvent;
-import com.jd.blockchain.utils.security.ShaUtils;
+
+import utils.security.ShaUtils;
 
 import org.springframework.util.Base64Utils;
 

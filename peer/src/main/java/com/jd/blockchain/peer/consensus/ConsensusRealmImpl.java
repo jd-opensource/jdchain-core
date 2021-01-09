@@ -4,7 +4,8 @@ import java.util.Arrays;
 
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.peer.ConsensusRealm;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class ConsensusRealmImpl implements ConsensusRealm {
 

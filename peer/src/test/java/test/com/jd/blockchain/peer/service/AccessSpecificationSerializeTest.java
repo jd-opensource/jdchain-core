@@ -5,8 +5,9 @@ import org.junit.Test;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.sdk.AccessSpecification;
-import com.jd.blockchain.utils.security.RandomUtils;
-import com.jd.blockchain.utils.serialize.json.JSONSerializeUtils;
+
+import utils.security.RandomUtils;
+import utils.serialize.json.JSONSerializeUtils;
 
 public class AccessSpecificationSerializeTest {
 
