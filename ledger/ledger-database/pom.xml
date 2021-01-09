@@ -18,7 +18,6 @@
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>binary-proto</artifactId>
-			<version>${framework.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
@@ -75,7 +74,6 @@
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>utils-common</artifactId>
-			<version>${framework.version}</version>
 			<scope>compile</scope>
 		</dependency>
 
