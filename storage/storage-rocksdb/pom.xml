@@ -19,7 +19,6 @@
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>utils-common</artifactId>
-			<version>${framework.version}</version>
 		</dependency>
 
 		<dependency>
