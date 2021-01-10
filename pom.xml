@@ -53,7 +53,7 @@
 				<version>${utils.version}</version>
 			</dependency>
 			<dependency>
-				<groupId>com.jd.blockchain</groupId>
+				<groupId>com.jd.binaryproto</groupId>
 				<artifactId>binary-proto</artifactId>
 				<version>${binaryproto.version}</version>
 			</dependency>

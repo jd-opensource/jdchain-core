@@ -16,7 +16,7 @@
 			<version>${framework.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>com.jd.blockchain</groupId>
+			<groupId>com.jd.binaryproto</groupId>
 			<artifactId>binary-proto</artifactId>
 		</dependency>
 		<dependency>
