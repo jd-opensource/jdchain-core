@@ -39,13 +39,11 @@
         <dependency>
             <groupId>com.jd.httpservice</groupId>
             <artifactId>httpservice-agent</artifactId>
-            <version>${httpservice.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.jd.httpservice</groupId>
             <artifactId>httpservice-utils</artifactId>
-            <version>${httpservice.version}</version>
             <scope>compile</scope>
         </dependency>
 

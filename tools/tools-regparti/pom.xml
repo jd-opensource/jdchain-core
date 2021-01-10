@@ -34,13 +34,13 @@
         <dependency>
             <groupId>com.jd.blockchain</groupId>
             <artifactId>sdk-client</artifactId>
-            <version>${project.version}</version>
+            <version>${framework.version}</version>
         </dependency>
-        <dependency>
+        <!-- <dependency>
             <groupId>com.jd.blockchain</groupId>
             <artifactId>crypto-base</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+            <version>${framework.version}</version>
+        </dependency> -->
 
     </dependencies>
 
