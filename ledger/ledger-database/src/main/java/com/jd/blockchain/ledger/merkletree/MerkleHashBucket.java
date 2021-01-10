@@ -4,10 +4,11 @@ import java.util.Arrays;
 
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
-import com.jd.blockchain.utils.AbstractSkippingIterator;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.EmptySkippingIterator;
-import com.jd.blockchain.utils.SkippingIterator;
+
+import utils.AbstractSkippingIterator;
+import utils.Bytes;
+import utils.EmptySkippingIterator;
+import utils.SkippingIterator;
 
 /**
  * 默克尔哈希桶；

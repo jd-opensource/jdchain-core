@@ -11,7 +11,8 @@ import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.contract.ContractType;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.runtime.Module;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 /**
  * 基于 java jar 包并且以模块化方式独立加载的合约代码；

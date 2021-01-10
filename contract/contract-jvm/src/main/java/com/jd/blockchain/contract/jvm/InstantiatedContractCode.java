@@ -1,7 +1,8 @@
 package com.jd.blockchain.contract.jvm;
 
 import com.jd.blockchain.contract.ContractType;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class InstantiatedContractCode<T> extends AbstractContractCode {
 

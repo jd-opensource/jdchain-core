@@ -2,7 +2,7 @@ package com.jd.blockchain.ledger.core;
 
 import java.util.Set;
 
-import com.jd.blockchain.utils.Bytes;
+import utils.Bytes;
 
 /**
  * 账本的安全管理器；

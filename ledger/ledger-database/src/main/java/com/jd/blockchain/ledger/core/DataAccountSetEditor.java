@@ -8,9 +8,11 @@ import com.jd.blockchain.ledger.DigitalSignature;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.SkippingIterator;
-import com.jd.blockchain.utils.Transactional;
+
+import utils.Bytes;
+import utils.SkippingIterator;
+import utils.Transactional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

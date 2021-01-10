@@ -11,7 +11,9 @@ import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
+
 import com.jd.blockchain.ledger.core.EventManager;
 
 

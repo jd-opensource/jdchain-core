@@ -18,8 +18,9 @@ import com.jd.blockchain.consensus.mq.util.MessageConvertUtil;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 import com.jd.blockchain.ledger.TransactionState;
-import com.jd.blockchain.utils.concurrent.AsyncFuture;
 import com.lmax.disruptor.EventHandler;
+
+import utils.concurrent.AsyncFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -2,8 +2,9 @@ package com.jd.blockchain.ledger.merkletree;
 
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.utils.SkippingIterator;
-import com.jd.blockchain.utils.Transactional;
+
+import utils.SkippingIterator;
+import utils.Transactional;
 
 /**
  * 默克尔树；

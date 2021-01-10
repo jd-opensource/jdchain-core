@@ -2,7 +2,8 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.LedgerTransaction;
-import com.jd.blockchain.utils.SkippingIterator;
+
+import utils.SkippingIterator;
 
 /**
  * 账本的差异视图；

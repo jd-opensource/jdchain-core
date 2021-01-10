@@ -1,7 +1,7 @@
 package com.jd.blockchain.ledger.merkletree;
 
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
+import utils.Bytes;
+import utils.DataEntry;
 
 public interface KVEntry extends DataEntry<Bytes, Bytes> {
 	

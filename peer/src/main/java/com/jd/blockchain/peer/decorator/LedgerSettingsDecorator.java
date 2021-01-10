@@ -3,7 +3,8 @@ package com.jd.blockchain.peer.decorator;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerSettings;
 import com.jd.blockchain.ledger.json.CryptoConfigInfo;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class LedgerSettingsDecorator implements LedgerSettings {
 

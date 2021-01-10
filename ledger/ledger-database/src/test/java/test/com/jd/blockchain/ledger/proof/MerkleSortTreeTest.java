@@ -33,11 +33,12 @@ import com.jd.blockchain.ledger.merkletree.MerkleTreeKeyExistException;
 import com.jd.blockchain.ledger.merkletree.MerkleValue;
 import com.jd.blockchain.ledger.merkletree.TreeOptions;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
-import com.jd.blockchain.utils.AbstractSkippingIterator;
-import com.jd.blockchain.utils.ArrayUtils;
-import com.jd.blockchain.utils.SkippingIterator;
-import com.jd.blockchain.utils.io.BytesEncoding;
-import com.jd.blockchain.utils.io.BytesUtils;
+
+import utils.AbstractSkippingIterator;
+import utils.ArrayUtils;
+import utils.SkippingIterator;
+import utils.io.BytesEncoding;
+import utils.io.BytesUtils;
 
 public class MerkleSortTreeTest {
 

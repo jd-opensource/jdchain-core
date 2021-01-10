@@ -1,6 +1,6 @@
 package com.jd.blockchain.ledger.merkletree;
 
-import com.jd.blockchain.utils.MathUtils;
+import utils.MathUtils;
 
 /**
  * Degree Of Tree；

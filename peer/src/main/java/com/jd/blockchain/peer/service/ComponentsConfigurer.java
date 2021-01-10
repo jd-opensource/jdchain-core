@@ -10,7 +10,8 @@ import com.jd.blockchain.ledger.core.OperationHandleRegisteration;
 import com.jd.blockchain.ledger.core.TransactionEngineImpl;
 import com.jd.blockchain.runtime.RuntimeContext;
 import com.jd.blockchain.service.TransactionEngine;
-import com.jd.blockchain.utils.io.Storage;
+
+import utils.io.Storage;
 
 @Configuration
 public class ComponentsConfigurer {

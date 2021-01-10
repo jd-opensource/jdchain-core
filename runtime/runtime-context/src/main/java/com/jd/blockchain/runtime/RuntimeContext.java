@@ -11,10 +11,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.jd.blockchain.contract.ContractEntrance;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
-import com.jd.blockchain.utils.io.FileSystemStorage;
-import com.jd.blockchain.utils.io.FileUtils;
-import com.jd.blockchain.utils.io.RuntimeIOException;
-import com.jd.blockchain.utils.io.Storage;
+
+import utils.io.FileSystemStorage;
+import utils.io.FileUtils;
+import utils.io.RuntimeIOException;
+import utils.io.Storage;
 
 public abstract class RuntimeContext {
 

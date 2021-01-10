@@ -14,7 +14,8 @@ import org.bouncycastle.math.ec.ECPoint;
 
 import com.jd.blockchain.crypto.utils.sm.SM2Utils;
 import com.jd.blockchain.crypto.utils.sm.SM3Utils;
-import com.jd.blockchain.utils.io.BytesUtils;
+
+import utils.io.BytesUtils;
 
 public class MultiSum {
 

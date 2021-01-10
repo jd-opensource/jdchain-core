@@ -4,8 +4,8 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.*;
 
-import com.jd.blockchain.utils.io.FileUtils;
-import com.jd.blockchain.utils.net.NetworkAddress;
+import utils.io.FileUtils;
+import utils.net.NetworkAddress;
 
 public class GatewayConfigProperties {
 

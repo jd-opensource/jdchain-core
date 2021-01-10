@@ -13,8 +13,9 @@ import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.NodeServerFactory;
 import com.jd.blockchain.consensus.service.ServerSettings;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
-import com.jd.blockchain.utils.io.Storage;
-import com.jd.blockchain.utils.net.NetworkAddress;
+
+import utils.io.Storage;
+import utils.net.NetworkAddress;
 
 public class BftsmartNodeServerFactory implements NodeServerFactory {
 

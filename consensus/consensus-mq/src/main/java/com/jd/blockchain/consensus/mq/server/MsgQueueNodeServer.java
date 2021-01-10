@@ -24,8 +24,9 @@ import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.NodeState;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
-import com.jd.blockchain.utils.concurrent.AsyncFuture;
-import com.jd.blockchain.utils.concurrent.CompletableAsyncFuture;
+
+import utils.concurrent.AsyncFuture;
+import utils.concurrent.CompletableAsyncFuture;
 
 /**
  *

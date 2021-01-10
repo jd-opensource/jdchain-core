@@ -25,13 +25,11 @@
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcpkix-jdk15on</artifactId>
-			<version>1.61</version>
 		</dependency>
 
 		<dependency>
-			<groupId>com.jd.blockchain</groupId>
+			<groupId>com.jd.binaryproto</groupId>
 			<artifactId>binary-proto</artifactId>
-			<version>${framework.version}</version>
 		</dependency>
 
 		<dependency>

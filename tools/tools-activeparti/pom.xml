@@ -20,21 +20,22 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
+            <version>2.4</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.jd.blockchain</groupId>
-            <artifactId>utils-http</artifactId>
-            <version>1.4.0.RELEASE</version>
+            <groupId>com.jd.httpservice</groupId>
+            <artifactId>httpservice-agent</artifactId>
+            <version>${httpservice.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>com.jd.blockchain</groupId>
-            <artifactId>utils-web</artifactId>
-            <version>1.4.0.RELEASE</version>
+            <groupId>com.jd.httpservice</groupId>
+            <artifactId>httpservice-utils</artifactId>
+            <version>${httpservice.version}</version>
             <scope>compile</scope>
         </dependency>
 

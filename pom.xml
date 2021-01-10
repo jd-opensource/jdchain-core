@@ -15,13 +15,15 @@
 	<packaging>pom</packaging>
 
 	<properties>
+		<utils.version>2.0.0.RELEASE</utils.version>
+		<httpservice.version>2.0.0.RELEASE</httpservice.version>
+		<binaryproto.version>1.5.0.RELEASE</binaryproto.version>
 		<bftsmart.version>0.6.4.RELEASE</bftsmart.version>
-
-		<framework.version>1.4.0.RELEASE</framework.version>
-
-		<explorer.version>1.4.0.RELEASE</explorer.version>
-
 		<kvdb.version>1.1.1.RELEASE</kvdb.version>
+		
+		<framework.version>1.4.1.RELEASE</framework.version>
+		
+		<explorer.version>1.4.0.RELEASE</explorer.version>
 	</properties>
 
 	<modules>
@@ -42,6 +44,31 @@
 		<module>tools</module>
 	</modules>
 
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>com.jd.utils</groupId>
+				<artifactId>utils-common</artifactId>
+				<version>${utils.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.jd.binaryproto</groupId>
+				<artifactId>binary-proto</artifactId>
+				<version>${binaryproto.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.jd.httpservice</groupId>
+				<artifactId>httpservice-agent</artifactId>
+				<version>${httpservice.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.jd.httpservice</groupId>
+				<artifactId>httpservice-utils</artifactId>
+				<version>${httpservice.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<licenses>
 		<license>

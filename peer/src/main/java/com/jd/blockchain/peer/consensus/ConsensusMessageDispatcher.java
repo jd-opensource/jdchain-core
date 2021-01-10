@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.BlockStateSnapshot;
 import com.jd.blockchain.consensus.service.ConsensusContext;
 import com.jd.blockchain.consensus.service.ConsensusMessageContext;
@@ -31,9 +31,10 @@ import com.jd.blockchain.ledger.core.TransactionEngineImpl;
 import com.jd.blockchain.service.TransactionBatchProcess;
 import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.service.TransactionEngine;
-import com.jd.blockchain.utils.codec.Base58Utils;
-import com.jd.blockchain.utils.concurrent.AsyncFuture;
-import com.jd.blockchain.utils.concurrent.CompletableAsyncFuture;
+
+import utils.codec.Base58Utils;
+import utils.concurrent.AsyncFuture;
+import utils.concurrent.CompletableAsyncFuture;
 
 /**
  * @author huanghaiquan

@@ -29,10 +29,11 @@ import com.jd.blockchain.consensus.mq.settings.MsgQueueNodeSettings;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.PropertiesUtils;
-import com.jd.blockchain.utils.io.BytesUtils;
-import com.jd.blockchain.utils.io.FileUtils;
+
+import utils.Bytes;
+import utils.PropertiesUtils;
+import utils.io.BytesUtils;
+import utils.io.FileUtils;
 
 /**
  *

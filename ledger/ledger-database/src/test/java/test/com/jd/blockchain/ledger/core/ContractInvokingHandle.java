@@ -7,7 +7,8 @@ import com.jd.blockchain.contract.engine.ContractCode;
 import com.jd.blockchain.contract.jvm.InstantiatedContractCode;
 import com.jd.blockchain.ledger.core.ContractAccount;
 import com.jd.blockchain.ledger.core.handles.AbtractContractEventSendOperationHandle;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class ContractInvokingHandle extends AbtractContractEventSendOperationHandle {
 

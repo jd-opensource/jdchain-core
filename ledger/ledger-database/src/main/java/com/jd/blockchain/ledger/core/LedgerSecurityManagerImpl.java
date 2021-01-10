@@ -16,8 +16,10 @@ import com.jd.blockchain.ledger.RolesPolicy;
 import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.UserDoesNotExistException;
 import com.jd.blockchain.ledger.UserRoles;
+
+import utils.Bytes;
+
 import com.jd.blockchain.ledger.UserAuthorizationSettings;
-import com.jd.blockchain.utils.Bytes;
 
 /**
  * 账本安全管理器；

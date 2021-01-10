@@ -4,7 +4,8 @@ import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
 import com.jd.blockchain.ledger.TypedValue;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class ContractAccount extends AccountDecorator implements ContractInfo {
 

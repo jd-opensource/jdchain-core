@@ -3,7 +3,7 @@ package com.jd.blockchain.consensus.bftsmart.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.ClientAuthencationService;
 import com.jd.blockchain.consensus.ClientCredential;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingConfig;
@@ -13,8 +13,9 @@ import com.jd.blockchain.consensus.bftsmart.BftsmartTopology;
 import com.jd.blockchain.consensus.bftsmart.client.BftsmartSessionCredentialConfig;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.SignatureFunction;
-import com.jd.blockchain.utils.io.Storage;
-import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
+
+import utils.io.Storage;
+import utils.serialize.binary.BinarySerializeUtils;
 
 public class BftsmartClientAuthencationService implements ClientAuthencationService {
 

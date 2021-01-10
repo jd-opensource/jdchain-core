@@ -11,9 +11,10 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
-import com.jd.blockchain.utils.serialize.json.JSONSerializeUtils;
-import com.jd.blockchain.utils.web.model.JsonWebResponseMessageConverter;
-import com.jd.blockchain.utils.web.model.WebResponse;
+import com.jd.httpservice.utils.web.JsonWebResponseMessageConverter;
+import com.jd.httpservice.utils.web.WebResponse;
+
+import utils.serialize.json.JSONSerializeUtils;
 
 @RestControllerAdvice
 public class PeerJsonResponseAdvice implements ResponseBodyAdvice<Object> {

@@ -5,7 +5,8 @@ import java.util.Set;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerSecurityException;
 import com.jd.blockchain.ledger.TransactionPermission;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 class FullPermissionedSecurityManager implements LedgerSecurityManager {
 

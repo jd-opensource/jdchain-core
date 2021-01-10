@@ -1,6 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
-import com.jd.blockchain.utils.SkippingIterator;
+import utils.SkippingIterator;
 
 /**
  * 账本管理数据的差异;

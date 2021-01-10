@@ -7,8 +7,9 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleSnapshot;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.Transactional;
+
+import utils.Bytes;
+import utils.Transactional;
 
 public class MerkleDataCluster implements Transactional, MerkleSnapshot {
 

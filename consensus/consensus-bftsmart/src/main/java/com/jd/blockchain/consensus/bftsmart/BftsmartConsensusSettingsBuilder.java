@@ -15,11 +15,12 @@ import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.Replica;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.utils.PropertiesUtils;
-import com.jd.blockchain.utils.Property;
-import com.jd.blockchain.utils.codec.Base58Utils;
-import com.jd.blockchain.utils.io.BytesUtils;
-import com.jd.blockchain.utils.net.NetworkAddress;
+
+import utils.PropertiesUtils;
+import utils.Property;
+import utils.codec.Base58Utils;
+import utils.io.BytesUtils;
+import utils.net.NetworkAddress;
 
 public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilder {
 

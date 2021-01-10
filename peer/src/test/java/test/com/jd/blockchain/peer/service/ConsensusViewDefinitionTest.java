@@ -5,7 +5,8 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 import com.jd.blockchain.peer.consensus.ConsensusViewDefinition;
-import com.jd.blockchain.utils.net.NetworkAddress;
+
+import utils.net.NetworkAddress;
 
 public class ConsensusViewDefinitionTest {
 

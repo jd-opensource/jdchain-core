@@ -5,10 +5,10 @@ import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.storage.service.impl.redis.RedisConnectionFactory;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.io.BytesUtils;
 
 import redis.clients.jedis.Jedis;
+import utils.Bytes;
+import utils.io.BytesUtils;
 
 public class Test {
 

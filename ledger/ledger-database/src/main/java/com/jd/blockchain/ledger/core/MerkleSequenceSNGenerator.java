@@ -3,7 +3,8 @@ package com.jd.blockchain.ledger.core;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.jd.blockchain.ledger.proof.MerkleSequenceTree;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class MerkleSequenceSNGenerator implements SNGenerator {
 	

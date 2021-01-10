@@ -11,11 +11,12 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
 import com.jd.blockchain.storage.service.utils.VersioningKVData;
-import com.jd.blockchain.utils.AbstractSkippingIterator;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.SkippingIterator;
-import com.jd.blockchain.utils.io.BytesUtils;
+
+import utils.AbstractSkippingIterator;
+import utils.Bytes;
+import utils.DataEntry;
+import utils.SkippingIterator;
+import utils.io.BytesUtils;
 
 /**
  * {@link MerkleSequenceDataset} 是对数据的键维护 {@link MerkleSequenceTree} 索引的一种数据集结构；

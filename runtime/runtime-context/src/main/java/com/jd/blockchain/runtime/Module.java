@@ -3,7 +3,7 @@ package com.jd.blockchain.runtime;
 import java.io.InputStream;
 import java.util.concurrent.Callable;
 
-import com.jd.blockchain.utils.concurrent.AsyncFuture;
+import utils.concurrent.AsyncFuture;
 
 public interface Module {
 

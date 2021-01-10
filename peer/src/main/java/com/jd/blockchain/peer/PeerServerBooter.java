@@ -17,7 +17,7 @@ import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 
-import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.consensus.*;
 import com.jd.blockchain.consensus.action.ActionRequest;
 import com.jd.blockchain.consensus.action.ActionResponse;
@@ -96,8 +96,9 @@ import com.jd.blockchain.sdk.GatewayAuthRequest;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
 import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
-import com.jd.blockchain.utils.ArgumentSet;
-import com.jd.blockchain.utils.ConsoleUtils;
+
+import utils.ArgumentSet;
+import utils.ConsoleUtils;
 
 /**
  * 节点服务实例的启动器；

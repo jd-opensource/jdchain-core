@@ -16,6 +16,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.jd.blockchain.consensus.event.EventEntity;
 import com.lmax.disruptor.EventHandler;
+
+import utils.concurrent.AsyncFuture;
+import utils.concurrent.CompletableAsyncFuture;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,8 +28,6 @@ import com.jd.blockchain.consensus.mq.consumer.MsgQueueConsumer;
 import com.jd.blockchain.consensus.mq.event.TxBlockedEvent;
 import com.jd.blockchain.consensus.mq.producer.MsgQueueProducer;
 import com.jd.blockchain.consensus.mq.util.MessageConvertUtil;
-import com.jd.blockchain.utils.concurrent.AsyncFuture;
-import com.jd.blockchain.utils.concurrent.CompletableAsyncFuture;
 
 /**
  *

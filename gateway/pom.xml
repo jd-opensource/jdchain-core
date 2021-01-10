@@ -50,9 +50,8 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.jd.blockchain</groupId>
-			<artifactId>utils-web</artifactId>
-			<version>${framework.version}</version>
+			<groupId>com.jd.httpservice</groupId>
+			<artifactId>httpservice-utils</artifactId>
 		</dependency>
 
 		<dependency>

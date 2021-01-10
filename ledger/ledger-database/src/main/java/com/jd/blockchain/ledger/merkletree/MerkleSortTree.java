@@ -3,7 +3,7 @@ package com.jd.blockchain.ledger.merkletree;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
@@ -11,12 +11,13 @@ import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.core.MerkleProofException;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
-import com.jd.blockchain.utils.ArrayUtils;
-import com.jd.blockchain.utils.ByteSequence;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.MathUtils;
-import com.jd.blockchain.utils.SkippingIterator;
-import com.jd.blockchain.utils.Transactional;
+
+import utils.ArrayUtils;
+import utils.ByteSequence;
+import utils.Bytes;
+import utils.MathUtils;
+import utils.SkippingIterator;
+import utils.Transactional;
 
 /**
  * 默克尔排序树；

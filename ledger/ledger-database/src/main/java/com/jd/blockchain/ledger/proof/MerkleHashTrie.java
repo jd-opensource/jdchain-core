@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
@@ -20,12 +20,13 @@ import com.jd.blockchain.ledger.merkletree.KVEntry;
 import com.jd.blockchain.ledger.merkletree.MerkleTree;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
-import com.jd.blockchain.utils.AbstractSkippingIterator;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.EmptySkippingIterator;
-import com.jd.blockchain.utils.SkippingIterator;
-import com.jd.blockchain.utils.codec.Base58Utils;
-import com.jd.blockchain.utils.io.BytesUtils;
+
+import utils.AbstractSkippingIterator;
+import utils.Bytes;
+import utils.EmptySkippingIterator;
+import utils.SkippingIterator;
+import utils.codec.Base58Utils;
+import utils.io.BytesUtils;
 
 /**
  * {@link MerkleHashTrie} 默克尔哈希前缀树；

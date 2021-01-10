@@ -1,6 +1,6 @@
 package com.jd.blockchain.ledger.merkletree;
 
-import com.jd.blockchain.utils.AbstractSkippingIterator;
+import utils.AbstractSkippingIterator;
 
 class MerkleDataIteratorWrapper<T> extends AbstractSkippingIterator<MerkleValue<T>> {
 

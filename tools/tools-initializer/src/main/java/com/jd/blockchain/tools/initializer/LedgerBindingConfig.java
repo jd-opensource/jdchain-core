@@ -14,9 +14,10 @@ import java.util.Properties;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
-import com.jd.blockchain.utils.codec.Base58Utils;
-import com.jd.blockchain.utils.io.FileUtils;
-import com.jd.blockchain.utils.io.RuntimeIOException;
+
+import utils.codec.Base58Utils;
+import utils.io.FileUtils;
+import utils.io.RuntimeIOException;
 
 public class LedgerBindingConfig {
 

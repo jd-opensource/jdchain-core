@@ -2,7 +2,9 @@ package com.jd.blockchain.ump.web;
 
 import com.jd.blockchain.ump.model.web.ErrorCode;
 import com.jd.blockchain.ump.model.web.WebResponse;
-import com.jd.blockchain.utils.BusinessException;
+
+import utils.BusinessException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.ExceptionHandler;

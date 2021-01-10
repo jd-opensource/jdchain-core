@@ -4,9 +4,10 @@ import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.io.BytesUtils;
-import com.jd.blockchain.utils.io.NumberMask;
+
+import utils.Bytes;
+import utils.io.BytesUtils;
+import utils.io.NumberMask;
 
 /**
  * A copy of previous version of

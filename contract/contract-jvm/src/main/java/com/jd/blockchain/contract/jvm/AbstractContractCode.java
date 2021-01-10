@@ -13,7 +13,8 @@ import com.jd.blockchain.contract.engine.ContractCode;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.BytesValueEncoding;
 import com.jd.blockchain.ledger.BytesValueList;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 /**
  * @author huanghaiquan

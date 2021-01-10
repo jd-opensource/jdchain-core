@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PrivKey;
@@ -42,9 +42,10 @@ import com.jd.blockchain.tools.initializer.LedgerInitProcess;
 import com.jd.blockchain.tools.initializer.Prompter;
 import com.jd.blockchain.transaction.DigitalSignatureBlob;
 import com.jd.blockchain.transaction.SignatureUtils;
-import com.jd.blockchain.utils.concurrent.InvocationResult;
-import com.jd.blockchain.utils.io.BytesUtils;
-import com.jd.blockchain.utils.net.NetworkAddress;
+
+import utils.concurrent.InvocationResult;
+import utils.io.BytesUtils;
+import utils.net.NetworkAddress;
 
 /**
  * 账本初始化控制器；

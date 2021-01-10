@@ -22,10 +22,10 @@ import java.util.Random;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
-import com.jd.blockchain.binaryproto.DataContractEncoder;
-import com.jd.blockchain.binaryproto.DataSpecification;
-import com.jd.blockchain.binaryproto.impl.DataContractContext;
+import com.jd.binaryproto.BinaryProtocol;
+import com.jd.binaryproto.DataContractEncoder;
+import com.jd.binaryproto.DataSpecification;
+import com.jd.binaryproto.impl.DataContractContext;
 import com.jd.blockchain.consts.DataCodes;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
@@ -46,15 +46,15 @@ import com.jd.blockchain.ledger.proof.PathNode;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.storage.service.utils.VersioningKVData;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.SkippingIterator;
-import com.jd.blockchain.utils.codec.Base58Utils;
-import com.jd.blockchain.utils.hash.MurmurHash3;
-import com.jd.blockchain.utils.io.BytesUtils;
-import com.jd.blockchain.utils.io.NumberMask;
-import com.jd.blockchain.utils.security.RandomUtils;
 
 import test.com.jd.blockchain.ledger.core.LedgerTestUtils;
+import utils.Bytes;
+import utils.SkippingIterator;
+import utils.codec.Base58Utils;
+import utils.hash.MurmurHash3;
+import utils.io.BytesUtils;
+import utils.io.NumberMask;
+import utils.security.RandomUtils;
 
 public class MerkleHashTrieTest {
 

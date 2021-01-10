@@ -31,7 +31,8 @@ import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.UserAccountSet;
 import com.jd.blockchain.ledger.core.UserRoleDatasetEditor;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class LedgerSecurityManagerTest {
 

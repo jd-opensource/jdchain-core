@@ -5,9 +5,10 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.core.MerkleDataNodeEncoder;
 import com.jd.blockchain.ledger.proof.MerkleSequenceTree.DataNode;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.io.BytesUtils;
-import com.jd.blockchain.utils.io.NumberMask;
+
+import utils.Bytes;
+import utils.io.BytesUtils;
+import utils.io.NumberMask;
 
 /**
  * The first version of the DataNode binary sequence encoder, which's version

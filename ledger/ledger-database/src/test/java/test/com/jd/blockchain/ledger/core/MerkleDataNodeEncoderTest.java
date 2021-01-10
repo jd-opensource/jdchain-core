@@ -15,7 +15,8 @@ import com.jd.blockchain.ledger.core.MerkleDataNodeEncoder;
 import com.jd.blockchain.ledger.proof.MerkleDataNodeEncoder_V0;
 import com.jd.blockchain.ledger.proof.MerkleDataNodeEncoder_V1;
 import com.jd.blockchain.ledger.proof.MerkleSequenceTree.DataNode;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class MerkleDataNodeEncoderTest {
 

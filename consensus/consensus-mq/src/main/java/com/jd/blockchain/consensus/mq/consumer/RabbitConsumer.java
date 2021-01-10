@@ -9,9 +9,10 @@
 package com.jd.blockchain.consensus.mq.consumer;
 
 import com.jd.blockchain.consensus.mq.factory.RabbitFactory;
-import com.jd.blockchain.utils.ConsoleUtils;
 import com.lmax.disruptor.EventHandler;
 import com.rabbitmq.client.*;
+
+import utils.ConsoleUtils;
 
 import java.io.IOException;
 

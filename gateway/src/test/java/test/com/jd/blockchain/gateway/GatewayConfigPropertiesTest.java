@@ -12,14 +12,15 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
-import com.jd.blockchain.utils.net.NetworkAddress;
 import org.junit.Test;
 import org.springframework.core.io.ClassPathResource;
 
 import com.jd.blockchain.gateway.GatewayConfigProperties;
-import com.jd.blockchain.utils.codec.Base58Utils;
-import com.jd.blockchain.utils.io.BytesUtils;
-import com.jd.blockchain.utils.security.ShaUtils;
+
+import utils.codec.Base58Utils;
+import utils.io.BytesUtils;
+import utils.net.NetworkAddress;
+import utils.security.ShaUtils;
 
 public class GatewayConfigPropertiesTest {
 

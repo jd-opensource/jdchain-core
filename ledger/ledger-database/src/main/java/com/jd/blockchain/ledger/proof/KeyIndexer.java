@@ -1,7 +1,7 @@
 package com.jd.blockchain.ledger.proof;
 
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.hash.MurmurHash3;
+import utils.Bytes;
+import utils.hash.MurmurHash3;
 
 public class KeyIndexer {
 

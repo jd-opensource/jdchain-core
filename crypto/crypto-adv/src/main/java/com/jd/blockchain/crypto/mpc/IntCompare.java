@@ -2,7 +2,9 @@ package com.jd.blockchain.crypto.mpc;
 
 import com.jd.blockchain.crypto.CryptoException;
 import com.jd.blockchain.crypto.elgamal.ElGamalUtils;
-import com.jd.blockchain.utils.io.BytesUtils;
+
+import utils.io.BytesUtils;
+
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.params.ElGamalParameters;
 import org.bouncycastle.crypto.params.ElGamalPrivateKeyParameters;

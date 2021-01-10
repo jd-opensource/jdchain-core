@@ -2,7 +2,8 @@ package com.jd.blockchain.ledger.proof;
 
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.core.MerkleProofException;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class MerkleTrieDataEntry implements MerkleTrieData {
 

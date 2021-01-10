@@ -5,11 +5,12 @@ import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.SessionCredential;
 import com.jd.blockchain.gateway.GatewayServerBooter;
 import com.jd.blockchain.sdk.service.SessionCredentialProvider;
-import com.jd.blockchain.utils.io.Storage;
+
+import utils.io.Storage;
 
 @Component
 public class GatewayConsensusCredentialProvider implements SessionCredentialProvider {

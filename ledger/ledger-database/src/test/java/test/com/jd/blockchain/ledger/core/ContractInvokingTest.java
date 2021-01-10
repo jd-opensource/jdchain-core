@@ -20,8 +20,8 @@ import com.jd.blockchain.ledger.*;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
-import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.binaryproto.BinaryProtocol;
+import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.core.DefaultOperationHandleRegisteration;
 import com.jd.blockchain.ledger.core.LedgerDataSet;
@@ -41,12 +41,12 @@ import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 import com.jd.blockchain.transaction.BooleanValueHolder;
 import com.jd.blockchain.transaction.TxBuilder;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.io.BytesUtils;
 
 import test.com.jd.blockchain.ledger.TxTestContract;
 import test.com.jd.blockchain.ledger.TxTestContractImpl;
+import utils.Bytes;
+import utils.DataEntry;
+import utils.io.BytesUtils;
 
 public class ContractInvokingTest {
 	static {

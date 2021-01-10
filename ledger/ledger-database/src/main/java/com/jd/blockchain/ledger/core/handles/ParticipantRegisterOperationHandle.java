@@ -5,7 +5,9 @@ import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.*;
 import com.jd.blockchain.transaction.UserRegisterOpTemplate;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
+
 import com.jd.blockchain.ledger.core.EventManager;
 
 

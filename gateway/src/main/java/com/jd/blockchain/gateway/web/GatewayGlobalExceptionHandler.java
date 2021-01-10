@@ -8,10 +8,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.jd.blockchain.utils.BusinessException;
-import com.jd.blockchain.utils.web.model.ErrorCode;
-import com.jd.blockchain.utils.web.model.WebResponse;
-import com.jd.blockchain.utils.web.model.WebResponse.ErrorMessage;
+import com.jd.httpservice.utils.web.ErrorCode;
+import com.jd.httpservice.utils.web.WebResponse;
+import com.jd.httpservice.utils.web.WebResponse.ErrorMessage;
+
+import utils.BusinessException;
 
 /**
  * 全局异常处理类

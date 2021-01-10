@@ -1,8 +1,9 @@
 package com.jd.blockchain.consensus.bftsmart;
 
 import bftsmart.reconfiguration.views.View;
+import utils.serialize.binary.BinarySerializeUtils;
+
 import com.jd.blockchain.consensus.Topology;
-import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 
 public class BftsmartTopology implements Topology {
 

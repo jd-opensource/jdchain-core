@@ -7,7 +7,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.rocksdb.RocksDB;
 
-import com.jd.blockchain.utils.io.BytesUtils;
+import utils.io.BytesUtils;
 
 public class KVWritingCache implements Closeable {
 

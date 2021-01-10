@@ -2,11 +2,12 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.Dataset;
-import com.jd.blockchain.utils.Mapper;
-import com.jd.blockchain.utils.SkippingIterator;
+
+import utils.Bytes;
+import utils.DataEntry;
+import utils.Dataset;
+import utils.Mapper;
+import utils.SkippingIterator;
 
 /**
  * Helper for {@link Dataset};

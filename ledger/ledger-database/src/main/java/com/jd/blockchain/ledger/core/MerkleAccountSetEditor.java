@@ -3,7 +3,7 @@ package com.jd.blockchain.ledger.core;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.jd.blockchain.binaryproto.BinaryProtocol;
+import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
@@ -17,11 +17,12 @@ import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.Mapper;
-import com.jd.blockchain.utils.SkippingIterator;
-import com.jd.blockchain.utils.Transactional;
+
+import utils.Bytes;
+import utils.DataEntry;
+import utils.Mapper;
+import utils.SkippingIterator;
+import utils.Transactional;
 
 public class MerkleAccountSetEditor implements Transactional, MerkleAccountSet<CompositeAccount> {
 

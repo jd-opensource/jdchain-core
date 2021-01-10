@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import com.jd.blockchain.crypto.SignatureDigest;
-import com.jd.blockchain.utils.http.RequestBodyConverter;
+import com.jd.httpservice.RequestBodyConverter;
 
 public class SignatureDigestRequestBodyConverter implements RequestBodyConverter {
 

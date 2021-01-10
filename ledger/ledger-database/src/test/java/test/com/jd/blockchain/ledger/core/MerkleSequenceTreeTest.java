@@ -23,7 +23,8 @@ import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.proof.MerkleSequenceTree;
 import com.jd.blockchain.ledger.proof.MerkleSequenceTree.DataNode;
 import com.jd.blockchain.storage.service.utils.ExistancePolicyKVStorageMap;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class MerkleSequenceTreeTest {
 

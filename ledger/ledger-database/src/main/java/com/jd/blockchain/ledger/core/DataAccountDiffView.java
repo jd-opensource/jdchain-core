@@ -1,8 +1,9 @@
 package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.ledger.BytesValue;
-import com.jd.blockchain.utils.DataEntry;
-import com.jd.blockchain.utils.SkippingIterator;
+
+import utils.DataEntry;
+import utils.SkippingIterator;
 
 public interface DataAccountDiffView extends AccountDiffView {
 	

@@ -1,6 +1,6 @@
 package com.jd.blockchain.ledger.merkletree;
 
-import com.jd.blockchain.utils.SkippingIterator;
+import utils.SkippingIterator;
 
 /**
  * 数据处理策略；

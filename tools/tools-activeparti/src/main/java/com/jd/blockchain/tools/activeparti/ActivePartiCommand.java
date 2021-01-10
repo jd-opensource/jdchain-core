@@ -1,9 +1,11 @@
 package com.jd.blockchain.tools.activeparti;
 
-import com.jd.blockchain.utils.ArgumentSet;
-import com.jd.blockchain.utils.ConsoleUtils;
-import com.jd.blockchain.utils.http.converters.JsonResponseConverter;
-import com.jd.blockchain.utils.web.model.WebResponse;
+import com.jd.httpservice.converters.JsonResponseConverter;
+import com.jd.httpservice.utils.web.WebResponse;
+
+import utils.ArgumentSet;
+import utils.ConsoleUtils;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;

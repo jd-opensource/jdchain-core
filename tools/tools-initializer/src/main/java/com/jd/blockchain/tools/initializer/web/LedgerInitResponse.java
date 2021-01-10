@@ -5,11 +5,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.Serializable;
 
-import com.jd.blockchain.utils.io.ByteArray;
-import com.jd.blockchain.utils.io.BytesEncoding;
-import com.jd.blockchain.utils.io.BytesSerializable;
-import com.jd.blockchain.utils.io.BytesUtils;
-import com.jd.blockchain.utils.io.NumberMask;
+import utils.io.ByteArray;
+import utils.io.BytesEncoding;
+import utils.io.BytesSerializable;
+import utils.io.BytesUtils;
+import utils.io.NumberMask;
 
 public class LedgerInitResponse implements BytesSerializable, Serializable {
 

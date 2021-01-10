@@ -4,7 +4,9 @@ import com.alibaba.fastjson.JSONObject;
 import com.jd.blockchain.ump.model.UmpConstant;
 import com.jd.blockchain.ump.service.DataRetrievalService;
 import com.jd.blockchain.ump.web.RetrievalConfig;
-import com.jd.blockchain.utils.ConsoleUtils;
+
+import utils.ConsoleUtils;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;

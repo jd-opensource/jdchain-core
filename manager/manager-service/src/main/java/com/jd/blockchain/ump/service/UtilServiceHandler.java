@@ -9,8 +9,10 @@ import com.jd.blockchain.crypto.utils.classic.ED25519Utils;
 import com.jd.blockchain.crypto.utils.classic.SHA256Utils;
 import com.jd.blockchain.ump.model.user.UserKeyBuilder;
 import com.jd.blockchain.ump.model.user.UserKeys;
-import com.jd.blockchain.utils.codec.Base58Utils;
-import com.jd.blockchain.utils.security.ShaUtils;
+
+import utils.codec.Base58Utils;
+import utils.security.ShaUtils;
+
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters;

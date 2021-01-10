@@ -1,7 +1,8 @@
 package com.jd.blockchain.ledger.proof;
 
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class MerkleKeyEntry implements MerkleKey {
 

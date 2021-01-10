@@ -10,7 +10,7 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
-import com.jd.blockchain.utils.web.model.WebResponse;
+import com.jd.httpservice.utils.web.WebResponse;
 
 @RestControllerAdvice
 public class GatewayJsonResponseAdvice implements ResponseBodyAdvice<Object> {

@@ -4,7 +4,8 @@ import com.jd.blockchain.contract.engine.ContractCode;
 import com.jd.blockchain.contract.engine.ContractEngine;
 import com.jd.blockchain.runtime.Module;
 import com.jd.blockchain.runtime.RuntimeContext;
-import com.jd.blockchain.utils.Bytes;
+
+import utils.Bytes;
 
 public class JVMContractEngine implements ContractEngine {
 

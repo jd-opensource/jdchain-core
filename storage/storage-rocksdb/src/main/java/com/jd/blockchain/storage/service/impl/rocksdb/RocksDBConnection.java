@@ -8,7 +8,8 @@ import org.rocksdb.RocksDBException;
 
 import com.jd.blockchain.storage.service.DbConnection;
 import com.jd.blockchain.storage.service.KVStorageService;
-import com.jd.blockchain.utils.io.FileUtils;
+
+import utils.io.FileUtils;
 
 public class RocksDBConnection implements DbConnection {
 

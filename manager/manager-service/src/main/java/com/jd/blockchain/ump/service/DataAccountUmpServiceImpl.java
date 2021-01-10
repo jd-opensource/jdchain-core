@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import static com.jd.blockchain.ump.model.UmpConstant.SCHEMA_PREFIX;
-import static com.jd.blockchain.utils.BaseConstant.DELIMETER_UNDERLINE;
+import static utils.BaseConstant.DELIMETER_UNDERLINE;
 
 /**
  * @author zhaogw

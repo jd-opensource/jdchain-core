@@ -4,9 +4,10 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.LedgerAdminSettings;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.EmptySkippingIterator;
-import com.jd.blockchain.utils.SkippingIterator;
+
+import utils.Bytes;
+import utils.EmptySkippingIterator;
+import utils.SkippingIterator;
 
 /**
  * 一个只读的空的账本数据集；

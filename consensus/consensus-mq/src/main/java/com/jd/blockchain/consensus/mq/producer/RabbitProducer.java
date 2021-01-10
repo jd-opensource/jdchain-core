@@ -9,10 +9,11 @@
 package com.jd.blockchain.consensus.mq.producer;
 
 import com.jd.blockchain.consensus.mq.factory.RabbitFactory;
-import com.jd.blockchain.utils.ConsoleUtils;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+
+import utils.ConsoleUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

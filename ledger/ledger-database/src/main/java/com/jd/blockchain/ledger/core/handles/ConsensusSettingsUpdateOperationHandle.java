@@ -7,8 +7,9 @@ import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.*;
-import com.jd.blockchain.utils.Bytes;
-import com.jd.blockchain.utils.PropertiesUtils;
+
+import utils.Bytes;
+import utils.PropertiesUtils;
 
 
 public class ConsensusSettingsUpdateOperationHandle extends AbstractLedgerOperationHandle<ConsensusSettingsUpdateOperation> {

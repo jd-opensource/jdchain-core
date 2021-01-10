@@ -18,7 +18,8 @@ import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.NodeServerFactory;
 import com.jd.blockchain.consensus.service.ServerSettings;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
-import com.jd.blockchain.utils.io.Storage;
+
+import utils.io.Storage;
 
 /**
  *

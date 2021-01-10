@@ -12,8 +12,9 @@ import com.jd.blockchain.consensus.event.EventEntity;
 import com.jd.blockchain.consensus.mq.consumer.MsgQueueConsumer;
 import com.jd.blockchain.consensus.mq.producer.MsgQueueProducer;
 import com.jd.blockchain.consensus.service.MessageHandle;
-import com.jd.blockchain.utils.concurrent.AsyncFuture;
 import com.lmax.disruptor.EventHandler;
+
+import utils.concurrent.AsyncFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

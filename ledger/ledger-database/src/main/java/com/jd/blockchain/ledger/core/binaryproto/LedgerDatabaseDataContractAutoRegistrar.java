@@ -1,7 +1,7 @@
 package com.jd.blockchain.ledger.core.binaryproto;
 
-import com.jd.blockchain.binaryproto.DataContractAutoRegistrar;
-import com.jd.blockchain.binaryproto.DataContractRegistry;
+import com.jd.binaryproto.DataContractAutoRegistrar;
+import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.CryptoProvider;
 import com.jd.blockchain.ledger.core.LedgerInitDecision;

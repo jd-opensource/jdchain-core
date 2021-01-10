@@ -1,6 +1,6 @@
 package com.jd.blockchain.tools.initializer.web;
 
-import com.jd.blockchain.utils.net.NetworkAddress;
+import utils.net.NetworkAddress;
 
 public interface InitConsensusServiceFactory {
 	

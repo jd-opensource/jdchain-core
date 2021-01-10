@@ -5,12 +5,12 @@ import com.jd.blockchain.consensus.bftsmart.BftsmartReplica;
 import com.jd.blockchain.consensus.bftsmart.client.BftsmartServiceProxyPool;
 import com.jd.blockchain.consensus.manage.ConsensusManageService;
 import com.jd.blockchain.consensus.manage.ConsensusView;
-import com.jd.blockchain.utils.concurrent.AsyncFuture;
-import com.jd.blockchain.utils.concurrent.CompletableAsyncFuture;
 
 import bftsmart.reconfiguration.Reconfiguration;
 import bftsmart.reconfiguration.ReconfigureReply;
 import bftsmart.tom.AsynchServiceProxy;
+import utils.concurrent.AsyncFuture;
+import utils.concurrent.CompletableAsyncFuture;
 
 public abstract class BftsmartConsensusManageService implements ConsensusManageService {
 
