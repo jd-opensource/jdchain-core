@@ -20,7 +20,7 @@
 		<explorer.version>1.4.0.RELEASE</explorer.version>
 		<kvdb.version>1.1.1.RELEASE</kvdb.version>
 		<utils.version>1.4.1.RELEASE</utils.version>
-		<httpservice.version>1.4.1.RELEASE</httpservice.version>
+		<httpservice.version>2.0.0.RELEASE</httpservice.version>
 		<binaryproto.version>1.4.1.RELEASE</binaryproto.version>
 	</properties>
 
@@ -54,6 +54,16 @@
 				<groupId>com.jd.blockchain</groupId>
 				<artifactId>binary-proto</artifactId>
 				<version>${binaryproto.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.jd.httpservice</groupId>
+				<artifactId>httpservice-agent</artifactId>
+				<version>${httpservice.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.jd.httpservice</groupId>
+				<artifactId>httpservice-utils</artifactId>
+				<version>${httpservice.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
