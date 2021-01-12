@@ -90,7 +90,7 @@ public class BftsmartCommunication implements Communication {
 
 		@Override
 		public void reset() {
-			tomLayer.getCommunication().getServersConn().updateConnection(targetId);
+			tomLayer.getCommunication().getServersCommunication().resetConnection(targetId);
 		}
 
 	}
