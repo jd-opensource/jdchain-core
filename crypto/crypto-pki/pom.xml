@@ -19,6 +19,14 @@
             <version>${framework.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.jd.utils</groupId>
+            <artifactId>utils-crypto-classic</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.jd.utils</groupId>
+            <artifactId>utils-crypto-sm</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15on</artifactId>
         </dependency>
