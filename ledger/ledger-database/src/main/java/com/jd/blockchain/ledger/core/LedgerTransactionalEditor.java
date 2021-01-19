@@ -667,6 +667,11 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		}
 
 		@Override
+		public TransactionSet getTransactionSet() {
+			return ledgerEditor.getTransactionSet();
+		}
+
+		@Override
 		public TransactionRequest getTransactionRequest() {
 			return txRequest;
 		}

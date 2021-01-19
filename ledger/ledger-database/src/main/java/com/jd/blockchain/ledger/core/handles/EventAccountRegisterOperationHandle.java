@@ -11,7 +11,7 @@ public class EventAccountRegisterOperationHandle extends AbstractLedgerOperation
     }
 
     @Override
-    protected void doProcess(EventAccountRegisterOperation op, LedgerDataSetEditor newBlockDataset, TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager) {
+    protected void doProcess(EventAccountRegisterOperation op, LedgerTransactionContext transactionContext, TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager) {
 // TODO: 请求者应该提供数据账户的公钥签名，以更好地确保注册人对该地址和公钥具有合法使用权；
 
         // 权限校验；

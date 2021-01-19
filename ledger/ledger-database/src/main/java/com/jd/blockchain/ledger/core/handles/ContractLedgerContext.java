@@ -39,269 +39,204 @@ import com.jd.blockchain.transaction.EventAccountRegisterOperationBuilderImpl;
 import com.jd.blockchain.transaction.EventData;
 import com.jd.blockchain.transaction.EventPublishOperationBuilder;
 import com.jd.blockchain.transaction.KVData;
+import com.jd.blockchain.ledger.LedgerQueryService;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilder;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilderImpl;
 
 import utils.Bytes;
 
+/**
+ * 合约内账本上下文
+ *
+ */
 public class ContractLedgerContext implements LedgerContext {
 
-	private BlockchainQueryService innerQueryService;
+	private LedgerQueryService innerQueryService;
+	private BlockchainQueryService multiLedgerQueryService;
 
 	private OperationHandleContext opHandleContext;
 
 	private List<Operation> generatedOpList = new ArrayList<>();
 
-	public ContractLedgerContext(BlockchainQueryService innerQueryService, OperationHandleContext opHandleContext) {
-		this.innerQueryService = innerQueryService;
+	public ContractLedgerContext(OperationHandleContext opHandleContext, LedgerQueryService innerQueryService, BlockchainQueryService multiLedgerQueryService) {
 		this.opHandleContext = opHandleContext;
+		this.innerQueryService = innerQueryService;
+		this.multiLedgerQueryService = multiLedgerQueryService;
 	}
 
 	@Override
-	public HashDigest[] getLedgerHashs() {
-		return innerQueryService.getLedgerHashs();
+	public LedgerAdminInfo getLedgerAdminInfo() {
+		return innerQueryService.getLedgerAdminInfo();
 	}
 
 	@Override
-	public LedgerInfo getLedger(HashDigest ledgerHash) {
-		return innerQueryService.getLedger(ledgerHash);
+	public ParticipantNode[] getConsensusParticipants() {
+		return innerQueryService.getConsensusParticipants();
 	}
 
 	@Override
-	public LedgerAdminInfo getLedgerAdminInfo(HashDigest ledgerHash) {
-		return innerQueryService.getLedgerAdminInfo(ledgerHash);
+	public LedgerMetadata getLedgerMetadata() {
+		return innerQueryService.getLedgerMetadata();
 	}
 
 	@Override
-	public ParticipantNode[] getConsensusParticipants(HashDigest ledgerHash) {
-		return innerQueryService.getConsensusParticipants(ledgerHash);
+	public long getTransactionTotalCount() {
+		return innerQueryService.getTransactionTotalCount();
 	}
 
 	@Override
-	public LedgerMetadata getLedgerMetadata(HashDigest ledgerHash) {
-		return innerQueryService.getLedgerMetadata(ledgerHash);
+	public long getDataAccountTotalCount() {
+		return innerQueryService.getDataAccountTotalCount();
 	}
 
 	@Override
-	public LedgerBlock getBlock(HashDigest ledgerHash, long height) {
-		return innerQueryService.getBlock(ledgerHash, height);
+	public long getUserTotalCount() {
+		return innerQueryService.getUserTotalCount();
 	}
 
 	@Override
-	public LedgerBlock getBlock(HashDigest ledgerHash, HashDigest blockHash) {
-		return innerQueryService.getBlock(ledgerHash, blockHash);
+	public long getContractTotalCount() {
+		return innerQueryService.getContractTotalCount();
 	}
 
 	@Override
-	public long getTransactionCount(HashDigest ledgerHash, long height) {
-		return innerQueryService.getTransactionCount(ledgerHash, height);
+	public LedgerTransaction getTransactionByContentHash(HashDigest contentHash) {
+		return innerQueryService.getTransactionByContentHash(contentHash);
 	}
 
 	@Override
-	public long getTransactionCount(HashDigest ledgerHash, HashDigest blockHash) {
-		return innerQueryService.getTransactionCount(ledgerHash, blockHash);
+	public TransactionState getTransactionStateByContentHash(HashDigest contentHash) {
+		return innerQueryService.getTransactionStateByContentHash(contentHash);
 	}
 
 	@Override
-	public long getTransactionTotalCount(HashDigest ledgerHash) {
-		return innerQueryService.getTransactionTotalCount(ledgerHash);
+	public UserInfo getUser(String address) {
+		return innerQueryService.getUser(address);
 	}
 
 	@Override
-	public long getDataAccountCount(HashDigest ledgerHash, long height) {
-		return innerQueryService.getDataAccountCount(ledgerHash, height);
+	public DataAccountInfo getDataAccount(String address) {
+		return innerQueryService.getDataAccount(address);
 	}
 
 	@Override
-	public long getDataAccountCount(HashDigest ledgerHash, HashDigest blockHash) {
-		return innerQueryService.getDataAccountCount(ledgerHash, blockHash);
+	public TypedKVEntry[] getDataEntries(String address, String... keys) {
+		return innerQueryService.getDataEntries(address, keys);
 	}
 
 	@Override
-	public long getDataAccountTotalCount(HashDigest ledgerHash) {
-		return innerQueryService.getDataAccountTotalCount(ledgerHash);
+	public TypedKVEntry[] getDataEntries(String address, KVInfoVO kvInfoVO) {
+		return innerQueryService.getDataEntries(address, kvInfoVO);
 	}
 
 	@Override
-	public long getUserCount(HashDigest ledgerHash, long height) {
-		return innerQueryService.getUserCount(ledgerHash, height);
+	public long getDataEntriesTotalCount(String address) {
+		return innerQueryService.getDataEntriesTotalCount(address);
 	}
 
 	@Override
-	public long getUserCount(HashDigest ledgerHash, HashDigest blockHash) {
-		return innerQueryService.getUserCount(ledgerHash, blockHash);
+	public TypedKVEntry[] getDataEntries(String address, int fromIndex, int count) {
+		return innerQueryService.getDataEntries(address, fromIndex, count);
 	}
 
 	@Override
-	public long getUserTotalCount(HashDigest ledgerHash) {
-		return innerQueryService.getUserTotalCount(ledgerHash);
+	public ContractInfo getContract(String address) {
+		return innerQueryService.getContract(address);
 	}
 
 	@Override
-	public long getContractCount(HashDigest ledgerHash, long height) {
-		return innerQueryService.getContractCount(ledgerHash, height);
+	public Event[] getSystemEvents(String eventName, long fromSequence, int count) {
+		return innerQueryService.getSystemEvents(eventName, fromSequence, count);
 	}
 
 	@Override
-	public long getContractCount(HashDigest ledgerHash, HashDigest blockHash) {
-		return innerQueryService.getContractCount(ledgerHash, blockHash);
+	public long getSystemEventNameTotalCount() {
+		return innerQueryService.getSystemEventNameTotalCount();
 	}
 
 	@Override
-	public long getContractTotalCount(HashDigest ledgerHash) {
-		return innerQueryService.getContractTotalCount(ledgerHash);
+	public String[] getSystemEventNames(int fromIndex, int count) {
+		return innerQueryService.getSystemEventNames(fromIndex, count);
 	}
 
 	@Override
-	public LedgerTransaction[] getTransactions(HashDigest ledgerHash, long height, int fromIndex, int count) {
-		return innerQueryService.getTransactions(ledgerHash, height, fromIndex, count);
+	public Event getLatestEvent(String eventName) {
+		return innerQueryService.getLatestEvent(eventName);
 	}
 
 	@Override
-	public LedgerTransaction[] getTransactions(HashDigest ledgerHash, HashDigest blockHash, int fromIndex, int count) {
-		return innerQueryService.getTransactions(ledgerHash, blockHash, fromIndex, count);
+	public long getSystemEventsTotalCount(String eventName) {
+		return innerQueryService.getSystemEventsTotalCount(eventName);
 	}
 
 	@Override
-	public LedgerTransaction[] getAdditionalTransactions(HashDigest ledgerHash, long height, int fromIndex, int count) {
-		return innerQueryService.getAdditionalTransactions(ledgerHash, height, fromIndex, count);
+	public BlockchainIdentity[] getUserEventAccounts(int fromIndex, int count) {
+		return innerQueryService.getUserEventAccounts(fromIndex, count);
 	}
 
 	@Override
-	public LedgerTransaction[] getAdditionalTransactions(HashDigest ledgerHash, HashDigest blockHash, int fromIndex, int count) {
-		return innerQueryService.getAdditionalTransactions(ledgerHash, blockHash, fromIndex, count);
+	public BlockchainIdentity getUserEventAccount(String address) {
+		return innerQueryService.getUserEventAccount(address);
 	}
 
 	@Override
-	public LedgerTransaction getTransactionByContentHash(HashDigest ledgerHash, HashDigest contentHash) {
-		return innerQueryService.getTransactionByContentHash(ledgerHash, contentHash);
+	public long getUserEventAccountTotalCount() {
+		return innerQueryService.getUserEventAccountTotalCount();
 	}
 
 	@Override
-	public TransactionState getTransactionStateByContentHash(HashDigest ledgerHash, HashDigest contentHash) {
-		return innerQueryService.getTransactionStateByContentHash(ledgerHash, contentHash);
+	public long getUserEventNameTotalCount(String address) {
+		return innerQueryService.getUserEventNameTotalCount(address);
 	}
 
 	@Override
-	public UserInfo getUser(HashDigest ledgerHash, String address) {
-		return innerQueryService.getUser(ledgerHash, address);
+	public String[] getUserEventNames(String address, int fromIndex, int count) {
+		return innerQueryService.getUserEventNames(address, fromIndex, count);
 	}
 
 	@Override
-	public DataAccountInfo getDataAccount(HashDigest ledgerHash, String address) {
-		return innerQueryService.getDataAccount(ledgerHash, address);
+	public Event getLatestEvent(String address, String eventName) {
+		return innerQueryService.getLatestEvent(address, eventName);
 	}
 
 	@Override
-	public TypedKVEntry[] getDataEntries(HashDigest ledgerHash, String address, String... keys) {
-		return innerQueryService.getDataEntries(ledgerHash, address, keys);
+	public long getUserEventsTotalCount(String address, String eventName) {
+		return innerQueryService.getUserEventsTotalCount(address, eventName);
 	}
 
 	@Override
-	public TypedKVEntry[] getDataEntries(HashDigest ledgerHash, String address, KVInfoVO kvInfoVO) {
-		return innerQueryService.getDataEntries(ledgerHash, address, kvInfoVO);
+	public Event[] getUserEvents(String address, String eventName, long fromSequence, int count) {
+		return innerQueryService.getUserEvents(address, eventName, fromSequence, count);
 	}
 
 	@Override
-	public TypedKVEntry[] getDataEntries(HashDigest ledgerHash, String address, int fromIndex, int count) {
-		return innerQueryService.getDataEntries(ledgerHash, address, fromIndex, count);
+	public ContractInfo getContract(String address, long version) {
+		return innerQueryService.getContract(address, version);
 	}
 
 	@Override
-	public long getDataEntriesTotalCount(HashDigest ledgerHash, String address) {
-		return innerQueryService.getDataEntriesTotalCount(ledgerHash, address);
+	public BlockchainIdentity[] getUsers(int fromIndex, int count) {
+		return innerQueryService.getUsers(fromIndex, count);
 	}
 
 	@Override
-	public ContractInfo getContract(HashDigest ledgerHash, String address) {
-		return innerQueryService.getContract(ledgerHash, address);
+	public BlockchainIdentity[] getDataAccounts(int fromIndex, int count) {
+		return innerQueryService.getDataAccounts(fromIndex, count);
 	}
 
 	@Override
-	public Event[] getSystemEvents(HashDigest ledgerHash, String eventName, long fromSequence, int maxCount) {
-		return innerQueryService.getSystemEvents(ledgerHash, eventName, fromSequence, maxCount);
+	public BlockchainIdentity[] getContractAccounts(int fromIndex, int count) {
+		return innerQueryService.getContractAccounts(fromIndex, count);
 	}
 
 	@Override
-	public long getSystemEventNameTotalCount(HashDigest ledgerHash) {
-		return innerQueryService.getSystemEventNameTotalCount(ledgerHash);
+	public PrivilegeSet getRolePrivileges(String roleName) {
+		return innerQueryService.getRolePrivileges(roleName);
 	}
 
 	@Override
-	public String[] getSystemEventNames(HashDigest ledgerHash, int fromIndex, int count) {
-		return innerQueryService.getSystemEventNames(ledgerHash, fromIndex, count);
-	}
-
-	@Override
-	public Event getLatestEvent(HashDigest ledgerHash, String eventName) {
-		return innerQueryService.getLatestEvent(ledgerHash, eventName);
-	}
-
-	@Override
-	public long getSystemEventsTotalCount(HashDigest ledgerHash, String eventName) {
-		return innerQueryService.getSystemEventsTotalCount(ledgerHash, eventName);
-	}
-
-	@Override
-	public BlockchainIdentity[] getUserEventAccounts(HashDigest ledgerHash, int fromIndex, int count) {
-		return innerQueryService.getUserEventAccounts(ledgerHash, fromIndex, count);
-	}
-
-	@Override
-	public BlockchainIdentity getUserEventAccount(HashDigest ledgerHash, String address) {
-		return innerQueryService.getUserEventAccount(ledgerHash, address);
-	}
-
-	@Override
-	public long getUserEventAccountTotalCount(HashDigest ledgerHash) {
-		return innerQueryService.getUserEventAccountTotalCount(ledgerHash);
-	}
-
-	@Override
-	public long getUserEventNameTotalCount(HashDigest ledgerHash, String address) {
-		return innerQueryService.getUserEventNameTotalCount(ledgerHash, address);
-	}
-
-	@Override
-	public String[] getUserEventNames(HashDigest ledgerHash, String address, int fromSequence, int count) {
-		return innerQueryService.getUserEventNames(ledgerHash, address, fromSequence, count);
-	}
-
-	@Override
-	public Event getLatestEvent(HashDigest ledgerHash, String address, String eventName) {
-		return innerQueryService.getLatestEvent(ledgerHash, address, eventName);
-	}
-
-	@Override
-	public long getUserEventsTotalCount(HashDigest ledgerHash, String address, String eventName) {
-		return innerQueryService.getUserEventsTotalCount(ledgerHash, address, eventName);
-	}
-
-	@Override
-	public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int count) {
-		return innerQueryService.getUserEvents(ledgerHash, address, eventName, fromSequence, count);
-	}
-
-	@Override
-	public ContractInfo getContract(HashDigest ledgerHash, String address, long version) {
-		return innerQueryService.getContract(ledgerHash, address, version);
-	}
-
-	// ---------------------------user()----------------------------
-
-	@Override
-	public BlockchainIdentity[] getUsers(HashDigest ledgerHash, int fromIndex, int count) {
-		return innerQueryService.getUsers(ledgerHash, fromIndex, count);
-	}
-
-	@Override
-	public BlockchainIdentity[] getDataAccounts(HashDigest ledgerHash, int fromIndex, int count) {
-		return innerQueryService.getDataAccounts(ledgerHash, fromIndex, count);
-	}
-
-	@Override
-	public BlockchainIdentity[] getContractAccounts(HashDigest ledgerHash, int fromIndex, int count) {
-		return innerQueryService.getContractAccounts(ledgerHash, fromIndex, count);
+	public UserPrivilegeSet getUserPrivileges(String userAddress) {
+		return innerQueryService.getUserPrivileges(userAddress);
 	}
 
 	@Override
@@ -339,18 +274,6 @@ public class ContractLedgerContext implements LedgerContext {
 		return new EventPublishOperationExecBuilder(accountAddress);
 	}
 
-	@Override
-	public PrivilegeSet getRolePrivileges(HashDigest ledgerHash, String roleName) {
-		return innerQueryService.getRolePrivileges(ledgerHash, roleName);
-	}
-
-	@Override
-	public UserPrivilegeSet getUserPrivileges(HashDigest ledgerHash, String userAddress) {
-		return innerQueryService.getUserPrivileges(ledgerHash, userAddress);
-	}
-
-	// ========end=============
-
 	private class DataAccountRegisterOperationBuilder1 implements DataAccountRegisterOperationBuilder {
 		@Override
 		public DataAccountRegisterOperation register(BlockchainIdentity accountID) {
@@ -385,8 +308,6 @@ public class ContractLedgerContext implements LedgerContext {
 		}
 	}
 
-	// --------------------------------
-
 	private class DataAccountKVSetOperationExecBuilder implements DataAccountKVSetOperationBuilder {
 
 		private Bytes accountAddress;
@@ -401,14 +322,6 @@ public class ContractLedgerContext implements LedgerContext {
 		public DataAccountKVSetOperation getOperation() {
 			return op;
 		}
-
-//		@Override
-//		public DataAccountKVSetOperationBuilder set(String key, byte[] value, long expVersion) {
-//			BytesValue bytesValue = BytesValueEntry.fromBytes(value);
-//			this.op = new SingleKVSetOpTemplate(key, bytesValue, expVersion);
-//			handle(op);
-//			return this;
-//		}
 
 		@Override
 		public DataAccountKVSetOperationBuilder setText(String key, String value, long expVersion) {
@@ -433,15 +346,6 @@ public class ContractLedgerContext implements LedgerContext {
 			handle(op);
 			return this;
 		}
-
-//		@Deprecated
-//		@Override
-//		public DataAccountKVSetOperationBuilder set(String key, String value, long expVersion) {
-//			BytesValue bytesValue = BytesValueEntry.fromText(value);
-//			this.op = new SingleKVSetOpTemplate(key, bytesValue, expVersion);
-//			handle(op);
-//			return this;
-//		}
 
 		@Override
 		public DataAccountKVSetOperationBuilder setJSON(String key, String value, long expVersion) {
@@ -621,4 +525,313 @@ public class ContractLedgerContext implements LedgerContext {
 			}
 		}
 	}
+
+	// 以下查询为了兼容旧版本
+
+	@Override
+	@Deprecated
+	public HashDigest[] getLedgerHashs() {
+		return multiLedgerQueryService.getLedgerHashs();
+	}
+
+	@Override
+	@Deprecated
+	public LedgerInfo getLedger(HashDigest ledgerHash) {
+		return multiLedgerQueryService.getLedger(ledgerHash);
+	}
+
+	@Override
+	@Deprecated
+	public LedgerAdminInfo getLedgerAdminInfo(HashDigest ledgerHash) {
+		return multiLedgerQueryService.getLedgerAdminInfo(ledgerHash);
+	}
+
+	@Override
+	@Deprecated
+	public ParticipantNode[] getConsensusParticipants(HashDigest ledgerHash) {
+		return multiLedgerQueryService.getConsensusParticipants(ledgerHash);
+	}
+
+	@Override
+	@Deprecated
+	public LedgerMetadata getLedgerMetadata(HashDigest ledgerHash) {
+		return multiLedgerQueryService.getLedgerMetadata(ledgerHash);
+	}
+
+	@Override
+	@Deprecated
+	public LedgerBlock getBlock(HashDigest ledgerHash, long height) {
+		return multiLedgerQueryService.getBlock(ledgerHash, height);
+	}
+
+	@Override
+	@Deprecated
+	public LedgerBlock getBlock(HashDigest ledgerHash, HashDigest blockHash) {
+		return multiLedgerQueryService.getBlock(ledgerHash, blockHash);
+	}
+
+	@Override
+	@Deprecated
+	public long getTransactionCount(HashDigest ledgerHash, long height) {
+		return multiLedgerQueryService.getTransactionCount(ledgerHash, height);
+	}
+
+	@Override
+	@Deprecated
+	public long getTransactionCount(HashDigest ledgerHash, HashDigest blockHash) {
+		return multiLedgerQueryService.getTransactionCount(ledgerHash, blockHash);
+	}
+
+	@Override
+	@Deprecated
+	public long getTransactionTotalCount(HashDigest ledgerHash) {
+		return multiLedgerQueryService.getTransactionTotalCount(ledgerHash);
+	}
+
+	@Override
+	@Deprecated
+	public long getDataAccountCount(HashDigest ledgerHash, long height) {
+		return multiLedgerQueryService.getDataAccountCount(ledgerHash, height);
+	}
+
+	@Override
+	@Deprecated
+	public long getDataAccountCount(HashDigest ledgerHash, HashDigest blockHash) {
+		return multiLedgerQueryService.getDataAccountCount(ledgerHash, blockHash);
+	}
+
+	@Override
+	@Deprecated
+	public long getDataAccountTotalCount(HashDigest ledgerHash) {
+		return multiLedgerQueryService.getDataAccountTotalCount(ledgerHash);
+	}
+
+	@Override
+	@Deprecated
+	public long getUserCount(HashDigest ledgerHash, long height) {
+		return multiLedgerQueryService.getUserCount(ledgerHash, height);
+	}
+
+	@Override
+	@Deprecated
+	public long getUserCount(HashDigest ledgerHash, HashDigest blockHash) {
+		return multiLedgerQueryService.getUserCount(ledgerHash, blockHash);
+	}
+
+	@Override
+	@Deprecated
+	public long getUserTotalCount(HashDigest ledgerHash) {
+		return multiLedgerQueryService.getUserTotalCount(ledgerHash);
+	}
+
+	@Override
+	@Deprecated
+	public long getContractCount(HashDigest ledgerHash, long height) {
+		return multiLedgerQueryService.getContractCount(ledgerHash, height);
+	}
+
+	@Override
+	@Deprecated
+	public long getContractCount(HashDigest ledgerHash, HashDigest blockHash) {
+		return multiLedgerQueryService.getContractCount(ledgerHash, blockHash);
+	}
+
+	@Override
+	@Deprecated
+	public long getContractTotalCount(HashDigest ledgerHash) {
+		return multiLedgerQueryService.getContractTotalCount(ledgerHash);
+	}
+
+	@Override
+	@Deprecated
+	public LedgerTransaction[] getTransactions(HashDigest ledgerHash, long height, int fromIndex, int count) {
+		return multiLedgerQueryService.getTransactions(ledgerHash, height, fromIndex, count);
+	}
+
+	@Override
+	@Deprecated
+	public LedgerTransaction[] getTransactions(HashDigest ledgerHash, HashDigest blockHash, int fromIndex, int count) {
+		return multiLedgerQueryService.getTransactions(ledgerHash, blockHash, fromIndex, count);
+	}
+
+	@Override
+	@Deprecated
+	public LedgerTransaction[] getAdditionalTransactions(HashDigest ledgerHash, long height, int fromIndex, int count) {
+		return multiLedgerQueryService.getAdditionalTransactions(ledgerHash, height, fromIndex, count);
+	}
+
+	@Override
+	@Deprecated
+	public LedgerTransaction[] getAdditionalTransactions(HashDigest ledgerHash, HashDigest blockHash, int fromIndex, int count) {
+		return multiLedgerQueryService.getAdditionalTransactions(ledgerHash, blockHash, fromIndex, count);
+	}
+
+	@Override
+	@Deprecated
+	public LedgerTransaction getTransactionByContentHash(HashDigest ledgerHash, HashDigest contentHash) {
+		return multiLedgerQueryService.getTransactionByContentHash(ledgerHash, contentHash);
+	}
+
+	@Override
+	@Deprecated
+	public TransactionState getTransactionStateByContentHash(HashDigest ledgerHash, HashDigest contentHash) {
+		return multiLedgerQueryService.getTransactionStateByContentHash(ledgerHash, contentHash);
+	}
+
+	@Override
+	@Deprecated
+	public UserInfo getUser(HashDigest ledgerHash, String address) {
+		return multiLedgerQueryService.getUser(ledgerHash, address);
+	}
+
+	@Override
+	@Deprecated
+	public DataAccountInfo getDataAccount(HashDigest ledgerHash, String address) {
+		return multiLedgerQueryService.getDataAccount(ledgerHash, address);
+	}
+
+	@Override
+	@Deprecated
+	public TypedKVEntry[] getDataEntries(HashDigest ledgerHash, String address, String... keys) {
+		return multiLedgerQueryService.getDataEntries(ledgerHash, address, keys);
+	}
+
+	@Override
+	@Deprecated
+	public TypedKVEntry[] getDataEntries(HashDigest ledgerHash, String address, KVInfoVO kvInfoVO) {
+		return multiLedgerQueryService.getDataEntries(ledgerHash, address, kvInfoVO);
+	}
+
+	@Override
+	@Deprecated
+	public TypedKVEntry[] getDataEntries(HashDigest ledgerHash, String address, int fromIndex, int count) {
+		return multiLedgerQueryService.getDataEntries(ledgerHash, address, fromIndex, count);
+	}
+
+	@Override
+	@Deprecated
+	public long getDataEntriesTotalCount(HashDigest ledgerHash, String address) {
+		return multiLedgerQueryService.getDataEntriesTotalCount(ledgerHash, address);
+	}
+
+	@Override
+	@Deprecated
+	public ContractInfo getContract(HashDigest ledgerHash, String address) {
+		return multiLedgerQueryService.getContract(ledgerHash, address);
+	}
+
+	@Override
+	@Deprecated
+	public Event[] getSystemEvents(HashDigest ledgerHash, String eventName, long fromSequence, int maxCount) {
+		return multiLedgerQueryService.getSystemEvents(ledgerHash, eventName, fromSequence, maxCount);
+	}
+
+	@Override
+	@Deprecated
+	public long getSystemEventNameTotalCount(HashDigest ledgerHash) {
+		return multiLedgerQueryService.getSystemEventNameTotalCount(ledgerHash);
+	}
+
+	@Override
+	@Deprecated
+	public String[] getSystemEventNames(HashDigest ledgerHash, int fromIndex, int count) {
+		return multiLedgerQueryService.getSystemEventNames(ledgerHash, fromIndex, count);
+	}
+
+	@Override
+	@Deprecated
+	public Event getLatestEvent(HashDigest ledgerHash, String eventName) {
+		return multiLedgerQueryService.getLatestEvent(ledgerHash, eventName);
+	}
+
+	@Override
+	@Deprecated
+	public long getSystemEventsTotalCount(HashDigest ledgerHash, String eventName) {
+		return multiLedgerQueryService.getSystemEventsTotalCount(ledgerHash, eventName);
+	}
+
+	@Override
+	@Deprecated
+	public BlockchainIdentity[] getUserEventAccounts(HashDigest ledgerHash, int fromIndex, int count) {
+		return multiLedgerQueryService.getUserEventAccounts(ledgerHash, fromIndex, count);
+	}
+
+	@Override
+	@Deprecated
+	public BlockchainIdentity getUserEventAccount(HashDigest ledgerHash, String address) {
+		return multiLedgerQueryService.getUserEventAccount(ledgerHash, address);
+	}
+
+	@Override
+	@Deprecated
+	public long getUserEventAccountTotalCount(HashDigest ledgerHash) {
+		return multiLedgerQueryService.getUserEventAccountTotalCount(ledgerHash);
+	}
+
+	@Override
+	@Deprecated
+	public long getUserEventNameTotalCount(HashDigest ledgerHash, String address) {
+		return multiLedgerQueryService.getUserEventNameTotalCount(ledgerHash, address);
+	}
+
+	@Override
+	@Deprecated
+	public String[] getUserEventNames(HashDigest ledgerHash, String address, int fromSequence, int count) {
+		return multiLedgerQueryService.getUserEventNames(ledgerHash, address, fromSequence, count);
+	}
+
+	@Override
+	@Deprecated
+	public Event getLatestEvent(HashDigest ledgerHash, String address, String eventName) {
+		return multiLedgerQueryService.getLatestEvent(ledgerHash, address, eventName);
+	}
+
+	@Override
+	@Deprecated
+	public long getUserEventsTotalCount(HashDigest ledgerHash, String address, String eventName) {
+		return multiLedgerQueryService.getUserEventsTotalCount(ledgerHash, address, eventName);
+	}
+
+	@Override
+	@Deprecated
+	public Event[] getUserEvents(HashDigest ledgerHash, String address, String eventName, long fromSequence, int count) {
+		return multiLedgerQueryService.getUserEvents(ledgerHash, address, eventName, fromSequence, count);
+	}
+
+	@Override
+	@Deprecated
+	public ContractInfo getContract(HashDigest ledgerHash, String address, long version) {
+		return multiLedgerQueryService.getContract(ledgerHash, address, version);
+	}
+
+	@Override
+	@Deprecated
+	public BlockchainIdentity[] getUsers(HashDigest ledgerHash, int fromIndex, int count) {
+		return multiLedgerQueryService.getUsers(ledgerHash, fromIndex, count);
+	}
+
+	@Override
+	@Deprecated
+	public BlockchainIdentity[] getDataAccounts(HashDigest ledgerHash, int fromIndex, int count) {
+		return multiLedgerQueryService.getDataAccounts(ledgerHash, fromIndex, count);
+	}
+
+	@Override
+	@Deprecated
+	public BlockchainIdentity[] getContractAccounts(HashDigest ledgerHash, int fromIndex, int count) {
+		return multiLedgerQueryService.getContractAccounts(ledgerHash, fromIndex, count);
+	}
+
+	@Override
+	@Deprecated
+	public PrivilegeSet getRolePrivileges(HashDigest ledgerHash, String roleName) {
+		return multiLedgerQueryService.getRolePrivileges(ledgerHash, roleName);
+	}
+
+	@Override
+	@Deprecated
+	public UserPrivilegeSet getUserPrivileges(HashDigest ledgerHash, String userAddress) {
+		return multiLedgerQueryService.getUserPrivileges(ledgerHash, userAddress);
+	}
+
 }

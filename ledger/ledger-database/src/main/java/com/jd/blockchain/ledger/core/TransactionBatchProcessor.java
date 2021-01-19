@@ -251,7 +251,6 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 		EventManager eventManager;
 		List<OperationResult> operationResults = new ArrayList<>();
 		try {
-			LedgerDataSetEditor dataset = txCtx.getDataset();
 			eventManager = new EventManager(request, txCtx);
 
 			// 执行操作；
@@ -262,14 +261,14 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 					// assert; Instance of operation are one of User related operations or
 					// DataAccount related operations;
 					OperationHandle hdl = handlesRegisteration.getHandle(operation.getClass());
-					hdl.process(operation, dataset, request, ledger, this, eventManager);
+					hdl.process(operation, txCtx, request, ledger, this, eventManager);
 				}
 			};
 			OperationHandle opHandle;
 			int opIndex = 0;
 			for (Operation op : ops) {
 				opHandle = handlesRegisteration.getHandle(op.getClass());
-				BytesValue opResult = opHandle.process(op, dataset, request, ledger, handleContext, eventManager);
+				BytesValue opResult = opHandle.process(op, txCtx, request, ledger, handleContext, eventManager);
 				if (opResult != null) {
 					operationResults.add(new OperationResultData(opIndex, opResult));
 				}
