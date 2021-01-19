@@ -39,7 +39,7 @@ public class GatewayConfigPropertiesTest {
 
 			assertEquals("http://127.0.0.1:10001", configProps.dataRetrievalUrl());
 
-			assertEquals("3snPdw7i7PjVKiTH2VnXZu5H8QmNaSXpnk4ei533jFpuifyjS5zzH9", configProps.keys().getDefault().getPubKeyValue());
+			assertEquals("7VeRLdGtSz1Y91gjLTqEdnkotzUfaAqdap3xw6fQ1yKHkvVq", configProps.keys().getDefault().getPubKeyValue());
 			assertNull(configProps.keys().getDefault().getPrivKeyPath());
 			assertEquals("177gjzHTznYdPgWqZrH43W3yp37onm74wYXT4v9FukpCHBrhRysBBZh7Pzdo5AMRyQGJD7x", configProps.keys().getDefault().getPrivKeyValue());
 			assertEquals("DYu3G8aGTMBW1WrTw76zxQJQU4DHLw9MLyy7peG4LKkY", configProps.keys().getDefault().getPrivKeyPassword());
