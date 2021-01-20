@@ -44,6 +44,8 @@ import com.jd.blockchain.crypto.SignatureDigest;
 import com.jd.blockchain.crypto.SignatureFunction;
 import com.jd.blockchain.crypto.base.DefaultCryptoEncoding;
 
+import utils.crypto.sm.SM3SecureRandom;
+
 /**
  * @author zhanglin33
  * @title: SM3WITHSM2SignatureFunction

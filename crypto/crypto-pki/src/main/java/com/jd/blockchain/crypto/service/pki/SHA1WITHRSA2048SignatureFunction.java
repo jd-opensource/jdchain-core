@@ -40,6 +40,8 @@ import com.jd.blockchain.crypto.SignatureDigest;
 import com.jd.blockchain.crypto.SignatureFunction;
 import com.jd.blockchain.crypto.base.DefaultCryptoEncoding;
 
+import utils.crypto.classic.SHA1SecureRandom;
+
 /**
  * @author zhanglin33
  * @title: SHA1WITHRSA2048SignatureFunction

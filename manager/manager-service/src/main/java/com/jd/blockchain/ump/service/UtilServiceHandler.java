@@ -5,12 +5,12 @@ import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.PrivKey;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
-import com.jd.blockchain.crypto.utils.classic.ED25519Utils;
-import com.jd.blockchain.crypto.utils.classic.SHA256Utils;
 import com.jd.blockchain.ump.model.user.UserKeyBuilder;
 import com.jd.blockchain.ump.model.user.UserKeys;
 
 import utils.codec.Base58Utils;
+import utils.crypto.classic.ED25519Utils;
+import utils.crypto.classic.SHA256Utils;
 import utils.security.ShaUtils;
 
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;

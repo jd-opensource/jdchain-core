@@ -1,7 +1,8 @@
-package com.jd.blockchain.crypto.service.pki;
+package test.com.jd.blockchain.crypto.service.pki;
 
 import com.jd.blockchain.crypto.*;
 import com.jd.blockchain.crypto.base.DefaultCryptoEncoding;
+import com.jd.blockchain.crypto.service.pki.PKIAlgorithm;
 import com.jd.blockchain.crypto.utils.CSRBuilder;
 import com.jd.blockchain.crypto.utils.CertParser;
 
