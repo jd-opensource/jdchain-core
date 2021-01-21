@@ -38,6 +38,7 @@ import com.jd.blockchain.crypto.PrivKey;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.crypto.SignatureDigest;
 import com.jd.blockchain.crypto.SignatureFunction;
+import com.jd.blockchain.crypto.base.AlgorithmUtils;
 import com.jd.blockchain.crypto.base.DefaultCryptoEncoding;
 
 /**
@@ -131,7 +132,7 @@ public class SHA1WITHRSA4096SignatureFunction implements SignatureFunction {
 	@Override
 	public boolean supportPubKey(byte[] pubKeyBytes) {
 		return pubKeyBytes.length > (CryptoAlgorithm.CODE_SIZE + CryptoKeyType.TYPE_CODE_SIZE + RAW_PUBKEY_SIZE)
-				&& CryptoAlgorithm.match(SHA1WITHRSA4096, pubKeyBytes)
+				&& AlgorithmUtils.match(SHA1WITHRSA4096, pubKeyBytes)
 				&& pubKeyBytes[CryptoAlgorithm.CODE_SIZE] == PUBLIC.CODE;
 	}
 
@@ -147,7 +148,7 @@ public class SHA1WITHRSA4096SignatureFunction implements SignatureFunction {
 	@Override
 	public boolean supportPrivKey(byte[] privKeyBytes) {
 		return privKeyBytes.length > (CryptoAlgorithm.CODE_SIZE + CryptoKeyType.TYPE_CODE_SIZE + RAW_PRIVKEY_SIZE)
-				&& CryptoAlgorithm.match(SHA1WITHRSA4096, privKeyBytes)
+				&& AlgorithmUtils.match(SHA1WITHRSA4096, privKeyBytes)
 				&& privKeyBytes[CryptoAlgorithm.CODE_SIZE] == PRIVATE.CODE;
 	}
 
@@ -195,7 +196,7 @@ public class SHA1WITHRSA4096SignatureFunction implements SignatureFunction {
 	@Override
 	public boolean supportDigest(byte[] digestBytes) {
 		return digestBytes.length == (RAW_SIGNATUREDIGEST_SIZE + CryptoAlgorithm.CODE_SIZE)
-				&& CryptoAlgorithm.match(SHA1WITHRSA4096, digestBytes);
+				&& AlgorithmUtils.match(SHA1WITHRSA4096, digestBytes);
 	}
 
 	@Override

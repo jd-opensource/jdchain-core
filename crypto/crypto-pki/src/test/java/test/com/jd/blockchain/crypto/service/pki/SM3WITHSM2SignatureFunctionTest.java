@@ -23,6 +23,7 @@ import com.jd.blockchain.crypto.PrivKey;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.crypto.SignatureDigest;
 import com.jd.blockchain.crypto.SignatureFunction;
+import com.jd.blockchain.crypto.base.AlgorithmUtils;
 import com.jd.blockchain.crypto.base.DefaultCryptoEncoding;
 import com.jd.blockchain.crypto.service.pki.PKIAlgorithm;
 import com.jd.blockchain.crypto.utils.CSRBuilder;
@@ -80,7 +81,7 @@ public class SM3WITHSM2SignatureFunctionTest {
         assertEquals(algorithm.code(), pubKey.getAlgorithm());
         assertEquals(algorithm.code(), privKey.getAlgorithm());
 
-        byte[] algoBytes = CryptoAlgorithm.getCodeBytes(algorithm);
+        byte[] algoBytes = AlgorithmUtils.getCodeBytes(algorithm);
         byte[] pubKeyTypeBytes = new byte[] { PUBLIC.CODE };
         byte[] privKeyTypeBytes = new byte[] { PRIVATE.CODE };
         byte[] rawPubKeyBytes = pubKey.getRawKeyBytes();
