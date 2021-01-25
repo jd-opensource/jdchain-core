@@ -11,7 +11,7 @@
 
 	<groupId>com.jd.blockchain</groupId>
 	<artifactId>jdchain-core</artifactId>
-	<version>1.4.1.RELEASE</version>
+	<version>1.4.2.RELEASE</version>
 	<packaging>pom</packaging>
 
 	<properties>
