@@ -24,7 +24,7 @@ cons_parti.0.name=jd.com
 #第0个参与方的公钥文件路径；
 cons_parti.0.pubkey-path=
 #第0个参与方的公钥内容（由keygen工具生成）；此参数优先于 pubkey-path 参数；
-cons_parti.0.pubkey=3snPdw7i7PjVKiTH2VnXZu5H8QmNaSXpnk4ei533jFpuifyjS5zzH9
+cons_parti.0.pubkey=7VeRLdGtSz1Y91gjLTqEdnkotzUfaAqdap3xw6fQ1yKHkvVq
 #第0个参与方的账本初始服务的主机；
 cons_parti.0.initializer.host=127.0.0.1
 #第0个参与方的账本初始服务的端口；
@@ -37,7 +37,7 @@ cons_parti.1.name=at.com
 #第1个参与方的公钥文件路径；
 cons_parti.1.pubkey-path=
 #第1个参与方的公钥内容（由keygen工具生成）；此参数优先于 pubkey-path 参数；
-cons_parti.1.pubkey=3snPdw7i7PajLB35tEau1kmixc6ZrjLXgxwKbkv5bHhP7nT5dhD9eX
+cons_parti.1.pubkey=7VeRBsHM2nsGwP8b2ufRxz36hhNtSqjKTquzoa4WVKWty5sD
 #第1个参与方的账本初始服务的主机；
 cons_parti.1.initializer.host=127.0.0.1
 #第1个参与方的账本初始服务的端口；
@@ -50,7 +50,7 @@ cons_parti.2.name=bt.com
 #第2个参与方的公钥文件路径；
 cons_parti.2.pubkey-path=
 #第2个参与方的公钥内容（由keygen工具生成）；此参数优先于 pubkey-path 参数；
-cons_parti.2.pubkey=3snPdw7i7PZi6TStiyc6mzjprnNhgs2atSGNS8wPYzhbKaUWGFJt7x
+cons_parti.2.pubkey=7VeRAr3dSbi1xatq11ZcF7sEPkaMmtZhV9shonGJWk9T4pLe
 #第2个参与方的账本初始服务的主机；
 cons_parti.2.initializer.host=127.0.0.1
 #第2个参与方的账本初始服务的端口；
@@ -63,7 +63,7 @@ cons_parti.3.name=xt.com
 #第3个参与方的公钥文件路径；
 cons_parti.3.pubkey-path=
 #第3个参与方的公钥内容（由keygen工具生成）；此参数优先于 pubkey-path 参数；
-cons_parti.3.pubkey=3snPdw7i7PifPuRX7fu3jBjsb3rJRfDe9GtbDfvFJaJ4V4hHXQfhwk
+cons_parti.3.pubkey=7VeRKoM5RE6iFXr214Hsiic2aoqCQ7MEU1dHQFRnjXQcReAS
 #第3个参与方的账本初始服务的主机；
 cons_parti.3.initializer.host=127.0.0.1
 #第3个参与方的账本初始服务的端口；
@@ -77,7 +77,7 @@ cons_parti.4.name=mt.com
 #第4个参与方的公钥文件路径；
 cons_parti.4.pubkey-path=
 #第4个参与方的公钥内容（由keygen工具生成）；此参数优先于 pubkey-path 参数；
-cons_parti.4.pubkey=3snPdw7i7PXPRMp3EAjsxJkHe7aZJRLNzdW8kEHBWeQsSgcPAiHP2J
+cons_parti.4.pubkey=7VeR8XNXokDD6N591ULwSyUnhYgZ1esnpwqMX4PQed3v3KEz
 #第4个参与方的账本初始服务的主机；
 cons_parti.4.initializer.host=127.0.0.1
 #第4个参与方的账本初始服务的端口；
@@ -90,7 +90,7 @@ cons_parti.5.name=nt.com
 #第5个参与方的公钥文件路径；
 cons_parti.5.pubkey-path=
 #第5个参与方的公钥内容（由keygen工具生成）；此参数优先于 pubkey-path 参数；
-cons_parti.5.pubkey=3snPdw7i7PmmQoPgUpUmmAUj6nakHj8wMSQmiMi1RaiZp4YU1D4AXk
+cons_parti.5.pubkey=7VeRNuMyPPTrqFszjuocTAU6W73MvHqvFmkHpkknahtQp6kS
 #第5个参与方的账本初始服务的主机；
 cons_parti.5.initializer.host=127.0.0.1
 #第5个参与方的账本初始服务的端口；
@@ -103,7 +103,7 @@ cons_parti.6.name=yt.com
 #第6个参与方的公钥文件路径；
 cons_parti.6.pubkey-path=
 #第6个参与方的公钥内容（由keygen工具生成）；此参数优先于 pubkey-path 参数；
-cons_parti.6.pubkey=3snPdw7i7PiJKsa94q3EcLT1y6GRJ7LeFGe799hdzRRHmf6LNodyiM
+cons_parti.6.pubkey=7VeRKSH3Zr3sPijAiCfv8qUUhowC9dGiFQK8XUiP8aG1Puw3
 #第6个参与方的账本初始服务的主机；
 cons_parti.6.initializer.host=127.0.0.1
 #第6个参与方的账本初始服务的端口；
@@ -116,7 +116,7 @@ cons_parti.7.name=zt.com
 #第7个参与方的公钥文件路径；
 cons_parti.7.pubkey-path=
 #第7个参与方的公钥内容（由keygen工具生成）；此参数优先于 pubkey-path 参数；
-cons_parti.7.pubkey=3snPdw7i7Pm2wJwEnKn8kK8eGTkN36C2BZRRjVTr9FPB2rqtcgTq7h
+cons_parti.7.pubkey=7VeRNAtUvwmN8cs9PpyHcnDTZBsUvws41cTxVMyat8VtDmLP
 #第7个参与方的账本初始服务的主机；
 cons_parti.7.initializer.host=127.0.0.1
 #第7个参与方的账本初始服务的端口；
