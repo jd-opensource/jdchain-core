@@ -35,7 +35,10 @@ import utils.SkippingIterator;
 import utils.query.QueryArgs;
 import utils.query.QueryUtils;
 
-public class LedgerQueryService implements BlockchainQueryService {
+/**
+ * 多账本查询
+ */
+public class MultiLedgerQueryService implements BlockchainQueryService {
 
 	private static final TypedKVEntry[] EMPTY_ENTRIES = new TypedKVEntry[0];
 
@@ -43,7 +46,7 @@ public class LedgerQueryService implements BlockchainQueryService {
 
 	private LedgerQuery ledger;
 
-	public LedgerQueryService(LedgerQuery ledger) {
+	public MultiLedgerQueryService(LedgerQuery ledger) {
 		this.ledger = ledger;
 		this.ledgerHashs = new HashDigest[] { ledger.getHash() };
 	}

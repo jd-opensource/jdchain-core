@@ -26,13 +26,6 @@ public interface LedgerTransactionContext {
 	 */
 	LedgerDataSetEditor getDataset();
 
-//	/**
-//	 * 事务集合；
-//	 * 
-//	 * @return
-//	 */
-//	TransactionQuery getTransactionSet();
-
 	/**
 	 * 交易请求；
 	 * 
@@ -90,4 +83,11 @@ public interface LedgerTransactionContext {
 	 * @return
 	 */
 	LedgerEventSetEditor getEventSet();
+
+	/**
+	 * 交易数据集合；
+	 *
+	 * @return
+	 */
+	TransactionSet getTransactionSet();
 }

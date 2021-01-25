@@ -5,8 +5,8 @@ import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.core.EventManager;
-import com.jd.blockchain.ledger.core.LedgerDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerQuery;
+import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
 import com.jd.blockchain.ledger.core.OperationHandle;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
@@ -47,7 +47,7 @@ public abstract class AbstractLedgerOperationHandle<T extends Operation> impleme
 	}
 
 	@Override
-	public final BytesValue process(Operation op, LedgerDataSetEditor newBlockDataset,
+	public final BytesValue process(Operation op, LedgerTransactionContext transactionContext,
 			TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager) {
 		// 权限校验；
 		SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
@@ -58,7 +58,7 @@ public abstract class AbstractLedgerOperationHandle<T extends Operation> impleme
 		T concretedOp = (T) op;
 		LOGGER.debug("before doProcess()... --[RequestHash={}][TxHash={}]",
 				requestContext.getTransactionHash(), requestContext.getTransactionHash());
-		doProcess(concretedOp, newBlockDataset, requestContext, ledger, handleContext, manager);
+		doProcess(concretedOp, transactionContext, requestContext, ledger, handleContext, manager);
 		LOGGER.debug("after doProcess()... --[RequestHash={}][TxHash={}]",
 				requestContext.getTransactionHash(), requestContext.getTransactionHash());
 		
@@ -66,6 +66,6 @@ public abstract class AbstractLedgerOperationHandle<T extends Operation> impleme
 		return null;
 	}
 
-	protected abstract void doProcess(T op, LedgerDataSetEditor newBlockDataset, TransactionRequestExtension requestContext,
+	protected abstract void doProcess(T op, LedgerTransactionContext transactionContext, TransactionRequestExtension requestContext,
 			LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager);
 }

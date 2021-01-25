@@ -17,7 +17,7 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
     }
 
     @Override
-    protected void doProcess(ParticipantRegisterOperation op, LedgerDataSetEditor newBlockDataset,
+    protected void doProcess(ParticipantRegisterOperation op, LedgerTransactionContext transactionContext,
                              TransactionRequestExtension requestContext, LedgerQuery previousBlockDataset,
                              OperationHandleContext handleContext, EventManager manager) {
 
@@ -27,7 +27,7 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
 
         ParticipantRegisterOperation participantRegOp = (ParticipantRegisterOperation) op;
 
-        LedgerAdminDataSetEditor adminAccountDataSet = newBlockDataset.getAdminDataset();
+        LedgerAdminDataSetEditor adminAccountDataSet = transactionContext.getDataset().getAdminDataset();
 
         ParticipantNode participantNode = new PartNode((int)(adminAccountDataSet.getParticipantCount()), participantRegOp.getParticipantName(), participantRegOp.getParticipantID().getPubKey(), ParticipantNodeState.READY);
 
