@@ -33,7 +33,7 @@ public class MerkleHashDataset implements MerkleDataset<Bytes, byte[]> {
 	/**
 	 * 4 MB MaxSize of value;
 	 */
-	public static final int MAX_SIZE_OF_VALUE = 4 * 1024 * 1024;
+	public static final int MAX_SIZE_OF_VALUE = 8 * 1024 * 1024;
 
 //	public static final Bytes SN_PREFIX = Bytes.fromString("SN" + LedgerConsts.KEY_SEPERATOR);
 	public static final Bytes DATA_PREFIX = Bytes.fromString("KV" + LedgerConsts.KEY_SEPERATOR);

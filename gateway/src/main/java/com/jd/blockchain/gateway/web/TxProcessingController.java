@@ -2,8 +2,7 @@ package com.jd.blockchain.gateway.web;
 
 import javax.servlet.http.HttpServletRequest;
 
-import com.jd.blockchain.gateway.PeerConnector;
-
+import com.jd.blockchain.gateway.service.LedgersManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +13,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.gateway.PeerService;
+import com.jd.blockchain.gateway.service.LedgersService;
 import com.jd.blockchain.gateway.service.GatewayInterceptService;
 import com.jd.blockchain.ledger.DigitalSignature;
 import com.jd.blockchain.ledger.TransactionRequest;
@@ -39,13 +38,13 @@ public class TxProcessingController implements TransactionService {
 	private HttpServletRequest request;
 
 	@Autowired
-	private PeerService peerService;
+	private LedgersService peerService;
 
 	@Autowired
 	private GatewayInterceptService interceptService;
 
 	@Autowired
-	private PeerConnector peerConnector;
+	private LedgersManager peerConnector;
 
 	@RequestMapping(path = "rpc/tx", method = RequestMethod.POST, consumes = BinaryMessageConverter.CONTENT_TYPE_VALUE, produces = BinaryMessageConverter.CONTENT_TYPE_VALUE)
 	@Override
@@ -85,9 +84,9 @@ public class TxProcessingController implements TransactionService {
 
 		TransactionResponse transactionResponse = null;
 		try {
-			transactionResponse =  peerService.getTransactionService().process(txRequest);
+			transactionResponse =  peerService.getTransactionService(ledgerHash).process(txRequest);
 		} catch (ViewObsoleteException voe) {
-			peerConnector.reconnect(txRequest.getTransactionContent().getLedgerHash());
+			peerConnector.reset(ledgerHash);
 			throw new IllegalArgumentException(voe);
 		}
 		LOGGER.info("[contentHash={}],after peerService.getTransactionService().process(txRequest)",txRequest.getTransactionHash());

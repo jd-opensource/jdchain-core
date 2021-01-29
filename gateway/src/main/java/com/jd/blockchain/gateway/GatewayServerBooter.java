@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jd.blockchain.gateway.service.LedgersManager;
+import com.jd.blockchain.gateway.service.topology.LedgerPeersTopology;
 import org.apache.commons.io.FileUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -31,7 +33,6 @@ import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.PrivKey;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.gateway.web.DataSearchController;
-import com.jd.blockchain.gateway.web.GatewayLedgerLoadTimer;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.BytesValueList;
 import com.jd.blockchain.ledger.ConsensusSettingsUpdateOperation;
@@ -183,14 +184,11 @@ public class GatewayServerBooter {
 		DataSearchController dataSearchController = appCtx.getBean(DataSearchController.class);
 		dataSearchController.setDataRetrievalUrl(config.dataRetrievalUrl());
 		dataSearchController.setSchemaRetrievalUrl(config.getSchemaRetrievalUrl());
-		PeerConnector peerConnector = appCtx.getBean(PeerConnector.class);
+		LedgersManager peerConnector = appCtx.getBean(LedgersManager.class);
 
 		NetworkAddress peerAddress = config.masterPeerAddress();
-		peerConnector.setMasterPeer(peerAddress);
-		peerConnector.connect(peerAddress, defaultKeyPair);
-		// 不管连接是否成功，都需要释放许可
-		GatewayLedgerLoadTimer loadTimer = appCtx.getBean(GatewayLedgerLoadTimer.class);
-		loadTimer.release();
+		peerConnector.init(peerAddress, defaultKeyPair, config.isStoreTopology());
+
 		ConsoleUtils.info("Peer[%s] is connected success!", peerAddress.toString());
 	}
 
@@ -221,25 +219,6 @@ public class GatewayServerBooter {
 		ConfigurableApplicationContext appCtx = SpringApplication.run(GatewayConfiguration.class, args);
 		return appCtx;
 	}
-
-//	private static String bootPath() {
-//		try {
-//			URL url = GatewayServerBooter.class.getProtectionDomain().getCodeSource().getLocation();
-//			String currPath = java.net.URLDecoder.decode(url.getPath(), "UTF-8");
-//			// 处理打包至SpringBoot问题
-//			if (currPath.contains("!/")) {
-//				currPath = currPath.substring(5, currPath.indexOf("!/"));
-//			}
-//			if (currPath.endsWith(".jar")) {
-//				currPath = currPath.substring(0, currPath.lastIndexOf("/") + 1);
-//			}
-//			System.out.printf("Current Project Boot Path = %s \r\n", currPath);
-//			return new File(currPath).getParent() + File.separator;
-//		} catch (UnsupportedEncodingException e) {
-//			e.printStackTrace();
-//			throw new IllegalStateException(e.getMessage(), e);
-//		}
-//	}
 
 	private static void GatewayAuthRequest() {
 		DataContractRegistry.register(MerkleSnapshot.class);
@@ -280,5 +259,7 @@ public class GatewayServerBooter {
 		DataContractRegistry.register(NodeNetworkAddress.class);
 		DataContractRegistry.register(NodeNetworkAddresses.class);
 		DataContractRegistry.register(LedgerTransactions.class);
+
+		DataContractRegistry.register(LedgerPeersTopology.class);
 	}
 }

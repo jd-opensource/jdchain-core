@@ -11,7 +11,6 @@ import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.gateway.PeerService;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.sdk.DecompliedContractInfo;
 import com.jd.blockchain.sdk.LedgerInitAttributes;
@@ -38,18 +37,18 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 	private static final ContractProcessor CONTRACT_PROCESSOR = OnLineContractProcessor.getInstance();
 
 	@Autowired
-	private PeerService peerService;
+	private LedgersService peerService;
 
 	@Override
 	public HashDigest[] getLedgersHash(int fromIndex, int count) {
-		HashDigest[] ledgersHashs = peerService.getQueryService().getLedgerHashs();
+		HashDigest[] ledgersHashs = peerService.getLedgerHashs();
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, ledgersHashs.length);
 		return Arrays.copyOfRange(ledgersHashs, queryArgs.getFrom(), queryArgs.getFrom() + queryArgs.getCount());
 	}
 
 	@Override
 	public ParticipantNode[] getConsensusParticipants(HashDigest ledgerHash, int fromIndex, int count) {
-		ParticipantNode[] participantNodes = peerService.getQueryService().getConsensusParticipants(ledgerHash);
+		ParticipantNode[] participantNodes = peerService.getQueryService(ledgerHash).getConsensusParticipants(ledgerHash);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, participantNodes.length);
 		ParticipantNode[] participantNodesNews = Arrays.copyOfRange(participantNodes, queryArgs.getFrom(),
 				queryArgs.getFrom() + queryArgs.getCount());
@@ -58,13 +57,13 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 
 	@Override
 	public LedgerInitAttributes getLedgerBaseSettings(HashDigest ledgerHash) {
-		LedgerAdminInfo ledgerAdminInfo = peerService.getQueryService().getLedgerAdminInfo(ledgerHash);
+		LedgerAdminInfo ledgerAdminInfo = peerService.getQueryService(ledgerHash).getLedgerAdminInfo(ledgerHash);
 		return initLedgerBaseSettings(ledgerAdminInfo);
 	}
 
 	@Override
 	public DecompliedContractInfo getContractSettings(HashDigest ledgerHash, String address) {
-		ContractInfo contractInfo = peerService.getQueryService().getContract(ledgerHash, address);
+		ContractInfo contractInfo = peerService.getQueryService(ledgerHash).getContract(ledgerHash, address);
 		return contractSettings(contractInfo);
 	}
 

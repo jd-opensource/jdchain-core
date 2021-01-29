@@ -143,6 +143,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -337,6 +338,23 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				// 忽略掉不匹配的“共识客户端提供者程序”认证信息；
 				continue;
 			}
+
+			// 用户账户校验，必须为非移除状态的共识节点
+			LedgerRepository ledgerRepo = (LedgerRepository) ledgerQuerys.get(ledgerHash);
+			if(null == ledgerRepo) {
+				continue;
+			}
+			boolean isParticipantNode = false;
+			for(ParticipantNode participantNode : ledgerRepo.getAdminInfo().getParticipants()) {
+				if(Arrays.equals(participantNode.getPubKey().toBytes(), clientRedential.getPubKey().toBytes())) {
+					isParticipantNode = true;
+					break;
+				}
+			}
+			if(!isParticipantNode) {
+				continue;
+			}
+
 			try {
 				clientIncomingSettings = peer.getClientAuthencationService().authencateIncoming(clientRedential);
 				logClientIncoming(clientIncomingSettings);
@@ -973,12 +991,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		TransactionBatchResultHandle handle = null;
 
-		try {
-			providers.add(BFTSMART_PROVIDER);
-
-			PeerBlockchainServiceFactory blockchainServiceFactory = PeerBlockchainServiceFactory.connect(localKeyPair,
-					new NetworkAddress(remoteManageHost, remoteManagePort),
-					SESSION_CREDENTIAL_PROVIDER, peerSideConsensusClientManager);
+		providers.add(BFTSMART_PROVIDER);
+		try (PeerBlockchainServiceFactory blockchainServiceFactory = PeerBlockchainServiceFactory.connect(localKeyPair,
+				new NetworkAddress(remoteManageHost, remoteManagePort),
+				SESSION_CREDENTIAL_PROVIDER, peerSideConsensusClientManager)) {
 
 			// 激活新节点时，远端管理节点最新区块高度
 			long remoteLatestBlockHeight = blockchainServiceFactory.getBlockchainService().getLedger(ledgerHash)

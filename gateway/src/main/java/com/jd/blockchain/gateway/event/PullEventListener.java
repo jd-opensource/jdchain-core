@@ -2,12 +2,12 @@ package com.jd.blockchain.gateway.event;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.gateway.service.LedgersService;
 import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.LedgerInfo;
 import com.jd.blockchain.sdk.EventPoint;
 import com.jd.blockchain.sdk.SystemEventPoint;
 import com.jd.blockchain.sdk.UserEventPoint;
-import com.jd.blockchain.transaction.BlockchainQueryService;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,10 +44,10 @@ public class PullEventListener implements EventListener {
      * queryService
      *         用于调用http从Peer查询数据
      */
-    private BlockchainQueryService blockchainQueryService;
+    private LedgersService peerService;
 
-    public PullEventListener(BlockchainQueryService blockchainQueryService) {
-        this.blockchainQueryService = blockchainQueryService;
+    public PullEventListener(LedgersService peerService) {
+        this.peerService = peerService;
         pullExecutor = scheduledThreadPoolExecutor();
         initCache();
     }
@@ -86,7 +86,7 @@ public class PullEventListener implements EventListener {
     }
 
     private void initCache() {
-        HashDigest[] ledgerHashs = blockchainQueryService.getLedgerHashs();
+        HashDigest[] ledgerHashs = peerService.getLedgerHashs();
         if (ledgerHashs != null) {
             for (HashDigest ledgerHash : ledgerHashs) {
                 userEventCaches.put(ledgerHash, new EventCacheHandle(ledgerHash));
@@ -176,10 +176,10 @@ public class PullEventListener implements EventListener {
     private Event[] getEventsByQuery(HashDigest ledgerHash, EventPoint eventPoint, long fromSequence, int maxCount) {
         if (eventPoint instanceof UserEventPoint) {
             UserEventPoint userEventPoint = (UserEventPoint) eventPoint;
-            return blockchainQueryService.getUserEvents(ledgerHash, userEventPoint.getEventAccount(),
+            return peerService.getQueryService(ledgerHash).getUserEvents(ledgerHash, userEventPoint.getEventAccount(),
                     userEventPoint.getEventName(), fromSequence, maxCount);
         }
-        return blockchainQueryService.getSystemEvents(ledgerHash, eventPoint.getEventName(), fromSequence, maxCount);
+        return peerService.getQueryService(ledgerHash).getSystemEvents(ledgerHash, eventPoint.getEventName(), fromSequence, maxCount);
     }
 
     private Event getEventByQuery(HashDigest ledgerHash, EventPoint eventPoint, long fromSequence) {
@@ -206,10 +206,10 @@ public class PullEventListener implements EventListener {
 
         @Override
         public void run() {
-            HashDigest[] ledgerHashs = blockchainQueryService.getLedgerHashs();
+            HashDigest[] ledgerHashs = peerService.getLedgerHashs();
             if (ledgerHashs != null && ledgerHashs.length > 0) {
                 for (HashDigest ledgerHash : ledgerHashs) {
-                    LedgerInfo ledgerInfo = blockchainQueryService.getLedger(ledgerHash);
+                    LedgerInfo ledgerInfo = peerService.getQueryService(ledgerHash).getLedger(ledgerHash);
                     flushCache(ledgerInfo);
                 }
             }

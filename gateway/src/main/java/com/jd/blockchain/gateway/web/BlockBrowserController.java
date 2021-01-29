@@ -16,8 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.gateway.PeerService;
 import com.jd.blockchain.gateway.service.GatewayQueryService;
+import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.ContractInfo;
 import com.jd.blockchain.ledger.DataAccountInfo;
@@ -47,7 +47,7 @@ public class BlockBrowserController implements BlockchainBrowserService {
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	@Autowired
-	private PeerService peerService;
+	private LedgersManager peerService;
 
 	@Autowired
 	private GatewayQueryService gatewayQueryService;
@@ -59,7 +59,7 @@ public class BlockBrowserController implements BlockchainBrowserService {
 	@RequestMapping(method = RequestMethod.GET, path = GET_LEGDER_HASH_LIST)
 	@Override
 	public HashDigest[] getLedgerHashs() {
-		return peerService.getQueryService().getLedgerHashs();
+		return peerService.getLedgerHashs();
 	}
 
 //	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}")
@@ -754,7 +754,7 @@ public class BlockBrowserController implements BlockchainBrowserService {
 	@RequestMapping(method = RequestMethod.GET, path = BlockchainBrowserService.GET_LEGDER_COUNT)
 	@Override
 	public int getLedgersCount() {
-		return peerService.getQueryService().getLedgerHashs().length;
+		return peerService.getLedgerHashs().length;
 	}
 
 	// 注： 账本的数量不会很多，不需要分页；

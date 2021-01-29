@@ -29,6 +29,9 @@ public class GatewayConfigProperties {
 	// 支持共识的Provider列表，以英文逗号分隔
 	public static final String PEER_PROVIDERS = PEER_PREFIX + "providers";
 
+	// 账本配置拓扑信息落盘，默认false
+	public static final String TOPOLOGY_STORE = "topology.store";
+
 	// 数据检索服务URL地址
 	public static final String DATA_RETRIEVAL_URL="data.retrieval.url";
 	public static final String SCHEMA_RETRIEVAL_URL="schema.retrieval.url";
@@ -52,6 +55,7 @@ public class GatewayConfigProperties {
 	private ProviderConfig providerConfig = new ProviderConfig();
 
 	private NetworkAddress masterPeerAddress = null;
+	private boolean storeTopology;
 
 	private String dataRetrievalUrl;
 	private String schemaRetrievalUrl;
@@ -126,6 +130,8 @@ public class GatewayConfigProperties {
 		boolean peerSecure = getBoolean(props, PEER_SECURE_FORMAT, false);
 		configProps.setMasterPeerAddress(new NetworkAddress(peerHost, peerPort, peerSecure));
 
+		configProps.setStoreTopology(getBoolean(props, TOPOLOGY_STORE, false));
+
 		String dataRetrievalUrl = getProperty(props, DATA_RETRIEVAL_URL, true);
 		configProps.dataRetrievalUrl = dataRetrievalUrl;
 
@@ -184,6 +190,14 @@ public class GatewayConfigProperties {
 
 	private static int getInt(String strInt) {
 		return Integer.parseInt(strInt.trim());
+	}
+
+	public boolean isStoreTopology() {
+		return storeTopology;
+	}
+
+	public void setStoreTopology(boolean storeTopology) {
+		this.storeTopology = storeTopology;
 	}
 
 	// ------------------------------------------------------------
