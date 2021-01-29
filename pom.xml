@@ -23,7 +23,7 @@
 		
 		<framework.version>1.4.2.RELEASE</framework.version>
 		
-		<explorer.version>1.4.0.RELEASE</explorer.version>
+		<explorer.version>1.4.1.RELEASE</explorer.version>
 	</properties>
 
 	<modules>
