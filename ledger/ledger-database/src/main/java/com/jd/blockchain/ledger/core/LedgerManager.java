@@ -118,7 +118,7 @@ public class LedgerManager implements LedgerManage {
 			if (!regAlg.name().equals(alg.name())) {
 				throw new LedgerException(String.format(
 						"Crypto algorithm[%s] do not match the same code algorithm[%s] defined by provider[%s] in runtime of current peer!",
-						CryptoAlgorithm.getString(alg), CryptoAlgorithm.getString(regAlg),
+						alg.name(), regAlg.name(),
 						registeredProvider.getName()));
 			}
 		}

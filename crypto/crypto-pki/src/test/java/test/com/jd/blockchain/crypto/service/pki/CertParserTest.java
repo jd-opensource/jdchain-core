@@ -1,6 +1,8 @@
-package com.jd.blockchain.crypto.utils;
+package test.com.jd.blockchain.crypto.service.pki;
 
 import org.junit.Test;
+
+import com.jd.blockchain.crypto.utils.CertParser;
 
 import static org.junit.Assert.assertEquals;
 

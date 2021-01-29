@@ -3,8 +3,6 @@ package com.jd.blockchain.ledger.core.handles;
 import com.jd.blockchain.consensus.ConsensusProvider;
 import com.jd.blockchain.consensus.ConsensusProviders;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
-import com.jd.blockchain.crypto.AddressEncoding;
-import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.*;
 
@@ -18,7 +16,7 @@ public class ConsensusSettingsUpdateOperationHandle extends AbstractLedgerOperat
     }
 
     @Override
-    protected void doProcess(ConsensusSettingsUpdateOperation op, LedgerDataSetEditor newBlockDataset,
+    protected void doProcess(ConsensusSettingsUpdateOperation op, LedgerTransactionContext transactionContext,
                              TransactionRequestExtension requestContext, LedgerQuery previousBlockDataset,
                              OperationHandleContext handleContext, EventManager manager) {
 
@@ -26,7 +24,7 @@ public class ConsensusSettingsUpdateOperationHandle extends AbstractLedgerOperat
         SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
         securityPolicy.checkEndpointPermission(LedgerPermission.REGISTER_PARTICIPANT, MultiIDsPolicy.AT_LEAST_ONE);
 
-        LedgerAdminDataSetEditor adminAccountDataSet = newBlockDataset.getAdminDataset();
+        LedgerAdminDataSetEditor adminAccountDataSet = transactionContext.getDataset().getAdminDataset();
 
         ConsensusProvider provider = ConsensusProviders.getProvider(adminAccountDataSet.getSettings().getConsensusProvider());
 

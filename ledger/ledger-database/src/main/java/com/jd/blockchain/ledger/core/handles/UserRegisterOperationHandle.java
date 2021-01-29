@@ -3,8 +3,8 @@ package com.jd.blockchain.ledger.core.handles;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.UserRegisterOperation;
-import com.jd.blockchain.ledger.core.LedgerDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerQuery;
+import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.SecurityContext;
@@ -22,7 +22,7 @@ public class UserRegisterOperationHandle extends AbstractLedgerOperationHandle<U
 	}
 
 	@Override
-	protected void doProcess(UserRegisterOperation op, LedgerDataSetEditor newBlockDataset,
+	protected void doProcess(UserRegisterOperation op, LedgerTransactionContext transactionContext,
 							 TransactionRequestExtension requestContext, LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager) {
 		// 权限校验；
 		SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
@@ -34,7 +34,7 @@ public class UserRegisterOperationHandle extends AbstractLedgerOperationHandle<U
 
 		Bytes userAddress = bid.getAddress();
 
-		newBlockDataset.getUserAccountSet().register(userAddress, bid.getPubKey());
+		transactionContext.getDataset().getUserAccountSet().register(userAddress, bid.getPubKey());
 	}
 
 }

@@ -12,9 +12,8 @@ import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.math.ec.ECCurve;
 import org.bouncycastle.math.ec.ECPoint;
 
-import com.jd.blockchain.crypto.utils.sm.SM2Utils;
-import com.jd.blockchain.crypto.utils.sm.SM3Utils;
-
+import utils.crypto.sm.SM2Utils;
+import utils.crypto.sm.SM3Utils;
 import utils.io.BytesUtils;
 
 public class MultiSum {

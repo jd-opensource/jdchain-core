@@ -1,4 +1,4 @@
-package com.jd.blockchain.crypto.utils;
+package test.com.jd.blockchain.crypto.service.pki;
 
 import static org.junit.Assert.assertArrayEquals;
 
@@ -8,9 +8,8 @@ import java.security.SecureRandom;
 
 import org.junit.Test;
 
-import com.jd.blockchain.crypto.service.pki.SHA1SecureRandom;
-import com.jd.blockchain.crypto.service.pki.SM3SecureRandom;
-
+import utils.crypto.classic.SHA1SecureRandom;
+import utils.crypto.sm.SM3SecureRandom;
 import utils.io.BytesUtils;
 
 public class SecureRandomTest {

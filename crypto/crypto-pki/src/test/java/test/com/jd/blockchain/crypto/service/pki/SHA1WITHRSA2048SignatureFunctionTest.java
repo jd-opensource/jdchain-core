@@ -1,22 +1,35 @@
-package com.jd.blockchain.crypto.service.pki;
+package test.com.jd.blockchain.crypto.service.pki;
 
-import com.jd.blockchain.crypto.*;
-import com.jd.blockchain.crypto.base.DefaultCryptoEncoding;
-import com.jd.blockchain.crypto.utils.CSRBuilder;
-import com.jd.blockchain.crypto.utils.CertParser;
+import static com.jd.blockchain.crypto.CryptoAlgorithm.ASYMMETRIC_KEY;
+import static com.jd.blockchain.crypto.CryptoAlgorithm.SIGNATURE_ALGORITHM;
+import static com.jd.blockchain.crypto.CryptoKeyType.PRIVATE;
+import static com.jd.blockchain.crypto.CryptoKeyType.PUBLIC;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
-import utils.io.BytesUtils;
+import java.security.PublicKey;
+import java.util.Random;
 
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.Test;
 
-import java.security.*;
-import java.util.Random;
+import com.jd.blockchain.crypto.AsymmetricKeypair;
+import com.jd.blockchain.crypto.Crypto;
+import com.jd.blockchain.crypto.CryptoAlgorithm;
+import com.jd.blockchain.crypto.PrivKey;
+import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.crypto.SignatureDigest;
+import com.jd.blockchain.crypto.SignatureFunction;
+import com.jd.blockchain.crypto.base.AlgorithmUtils;
+import com.jd.blockchain.crypto.base.DefaultCryptoEncoding;
+import com.jd.blockchain.crypto.service.pki.PKIAlgorithm;
+import com.jd.blockchain.crypto.utils.CSRBuilder;
+import com.jd.blockchain.crypto.utils.CertParser;
 
-import static com.jd.blockchain.crypto.CryptoAlgorithm.*;
-import static com.jd.blockchain.crypto.CryptoKeyType.PRIVATE;
-import static com.jd.blockchain.crypto.CryptoKeyType.PUBLIC;
-import static org.junit.Assert.*;
+import utils.io.BytesUtils;
 
 /**
  * @author zhanglin33
@@ -63,7 +76,7 @@ public class SHA1WITHRSA2048SignatureFunctionTest {
         assertTrue(privKey.getRawKeyBytes().length > 1155);
         assertEquals(algorithm.code(), pubKey.getAlgorithm());
         assertEquals(algorithm.code(), privKey.getAlgorithm());
-        byte[] algoBytes = CryptoAlgorithm.getCodeBytes(algorithm);
+        byte[] algoBytes = AlgorithmUtils.getCodeBytes(algorithm);
         byte[] pubKeyTypeBytes = new byte[] { PUBLIC.CODE };
         byte[] privKeyTypeBytes = new byte[] { PRIVATE.CODE };
         byte[] rawPubKeyBytes = pubKey.getRawKeyBytes();

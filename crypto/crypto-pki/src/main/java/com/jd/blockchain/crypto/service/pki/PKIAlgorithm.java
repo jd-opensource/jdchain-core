@@ -1,7 +1,7 @@
 package com.jd.blockchain.crypto.service.pki;
 
 import com.jd.blockchain.crypto.CryptoAlgorithm;
-import com.jd.blockchain.crypto.CryptoAlgorithmDefinition;
+import com.jd.blockchain.crypto.base.CryptoAlgorithmDefinition;
 
 /**
  * @author zhanglin33

@@ -70,7 +70,7 @@ cons_parti.0.name=jd.com
 #第0个参与方的公钥文件路径；
 cons_parti.0.pubkey-path=keys/jd-com.pub
 #第0个参与方的公钥内容（由keygen工具生成）；此参数优先于 pubkey-path 参数；
-cons_parti.0.pubkey=3snPdw7i7PjVKiTH2VnXZu5H8QmNaSXpnk4ei533jFpuifyjS5zzH9
+cons_parti.0.pubkey=7VeRLdGtSz1Y91gjLTqEdnkotzUfaAqdap3xw6fQ1yKHkvVq
 #第0个参与方的角色清单；可选项；
 cons_parti.0.roles=ADMIN, MANAGER
 #第0个参与方的角色权限策略，可选值有：UNION（并集），INTERSECT（交集）；可选项；
@@ -93,7 +93,7 @@ cons_parti.1.name=at.com
 #第1个参与方的公钥文件路径；
 cons_parti.1.pubkey-path=keys/at-com.pub
 #第1个参与方的公钥内容（由keygen工具生成）；此参数优先于 pubkey-path 参数；
-cons_parti.1.pubkey=3snPdw7i7PajLB35tEau1kmixc6ZrjLXgxwKbkv5bHhP7nT5dhD9eX
+cons_parti.1.pubkey=7VeRBsHM2nsGwP8b2ufRxz36hhNtSqjKTquzoa4WVKWty5sD
 #第1个参与方的角色清单；可选项；
 cons_parti.1.roles=MANAGER
 #第1个参与方的角色权限策略，可选值有：UNION（并集），INTERSECT（交集）；可选项；
@@ -139,7 +139,7 @@ cons_parti.3.name=xt.com
 #第3个参与方的公钥文件路径；
 cons_parti.3.pubkey-path=keys/xt-com.pub
 #第3个参与方的公钥内容（由keygen工具生成）；此参数优先于 pubkey-path 参数；
-cons_parti.3.pubkey=3snPdw7i7PifPuRX7fu3jBjsb3rJRfDe9GtbDfvFJaJ4V4hHXQfhwk
+cons_parti.3.pubkey=7VeRKoM5RE6iFXr214Hsiic2aoqCQ7MEU1dHQFRnjXQcReAS
 #第3个参与方的角色清单；可选项；
 cons_parti.3.roles=GUEST
 #第3个参与方的角色权限策略，可选值有：UNION（并集），INTERSECT（交集）；可选项；

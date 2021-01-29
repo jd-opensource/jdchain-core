@@ -28,6 +28,6 @@ public class LedgerDatabaseDataContractAutoRegistrar implements DataContractAuto
 		DataContractRegistry.register(LedgerInitProposal.class);
 		DataContractRegistry.register(LedgerInitDecision.class);
 		DataContractRegistry.register(CryptoProvider.class);
-		DataContractRegistry.register(CryptoAlgorithm.class);
+//		DataContractRegistry.register(CryptoAlgorithm.class);
 	}
 }

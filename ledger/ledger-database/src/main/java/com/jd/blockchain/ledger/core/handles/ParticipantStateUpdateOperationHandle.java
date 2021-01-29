@@ -4,8 +4,8 @@ import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.LedgerAdminDataSetEditor;
-import com.jd.blockchain.ledger.core.LedgerDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerQuery;
+import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.SecurityContext;
@@ -23,7 +23,7 @@ public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperati
     }
 
     @Override
-    protected void doProcess(ParticipantStateUpdateOperation op, LedgerDataSetEditor newBlockDataset,
+    protected void doProcess(ParticipantStateUpdateOperation op, LedgerTransactionContext transactionContext,
                              TransactionRequestExtension requestContext, LedgerQuery previousBlockDataset,
                              OperationHandleContext handleContext, EventManager manager) {
 
@@ -31,7 +31,7 @@ public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperati
         SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
         securityPolicy.checkEndpointPermission(LedgerPermission.REGISTER_PARTICIPANT, MultiIDsPolicy.AT_LEAST_ONE);
 
-        LedgerAdminDataSetEditor adminAccountDataSet = newBlockDataset.getAdminDataset();
+        LedgerAdminDataSetEditor adminAccountDataSet = transactionContext.getDataset().getAdminDataset();
 
         ParticipantNode[] participants = adminAccountDataSet.getParticipants();
 

@@ -5,8 +5,8 @@ import com.jd.blockchain.ledger.RolePrivileges;
 import com.jd.blockchain.ledger.RolesConfigureOperation;
 import com.jd.blockchain.ledger.RolesConfigureOperation.RolePrivilegeEntry;
 import com.jd.blockchain.ledger.core.EventManager;
-import com.jd.blockchain.ledger.core.LedgerDataSetEditor;
 import com.jd.blockchain.ledger.core.LedgerQuery;
+import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.RolePrivilegeDataset;
@@ -21,7 +21,7 @@ public class RolesConfigureOperationHandle extends AbstractLedgerOperationHandle
 	}
 
 	@Override
-	protected void doProcess(RolesConfigureOperation operation, LedgerDataSetEditor newBlockDataset,
+	protected void doProcess(RolesConfigureOperation operation, LedgerTransactionContext transactionContext,
 							 TransactionRequestExtension request, LedgerQuery ledger, OperationHandleContext handleContext, EventManager manager) {
 		// 权限校验；
 		SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
@@ -29,7 +29,7 @@ public class RolesConfigureOperationHandle extends AbstractLedgerOperationHandle
 
 		// 操作账本；
 		RolePrivilegeEntry[] rpcfgs = operation.getRoles();
-		RolePrivilegeDataset rpSettings = newBlockDataset.getAdminDataset().getRolePrivileges();
+		RolePrivilegeDataset rpSettings = transactionContext.getDataset().getAdminDataset().getRolePrivileges();
 		if (rpcfgs != null) {
 			for (RolePrivilegeEntry rpcfg : rpcfgs) {
 				RolePrivileges rp = rpSettings.getRolePrivilege(rpcfg.getRoleName());

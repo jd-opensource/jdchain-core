@@ -1,4 +1,4 @@
-package com.jd.blockchain.crypto.utils;
+package test.com.jd.blockchain.crypto.service.pki;
 
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.DERSet;
@@ -8,6 +8,8 @@ import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.util.encoders.Base64;
 import org.junit.Test;
+
+import com.jd.blockchain.crypto.utils.CSRBuilder;
 
 import java.io.IOException;
 import java.security.*;
