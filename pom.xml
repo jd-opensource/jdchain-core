@@ -15,15 +15,15 @@
 	<packaging>pom</packaging>
 
 	<properties>
-		<utils.version>2.0.0.RELEASE</utils.version>
-		<httpservice.version>2.0.0.RELEASE</httpservice.version>
-		<binaryproto.version>1.5.0.RELEASE</binaryproto.version>
+		<utils.version>2.0.1.RELEASE</utils.version>
+		<httpservice.version>2.0.1.RELEASE</httpservice.version>
+		<binaryproto.version>1.5.1.RELEASE</binaryproto.version>
 		<bftsmart.version>0.7.0-SNAPSHOT</bftsmart.version>
-		<kvdb.version>1.1.1.RELEASE</kvdb.version>
-		
-		<framework.version>1.4.1.RELEASE</framework.version>
-		
-		<explorer.version>1.4.0.RELEASE</explorer.version>
+		<kvdb.version>1.1.2.RELEASE</kvdb.version>
+
+		<framework.version>1.4.2.RELEASE</framework.version>
+
+		<explorer.version>1.4.1.RELEASE</explorer.version>
 	</properties>
 
 	<modules>
@@ -50,6 +50,16 @@
 			<dependency>
 				<groupId>com.jd.utils</groupId>
 				<artifactId>utils-common</artifactId>
+				<version>${utils.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.jd.utils</groupId>
+				<artifactId>utils-crypto-classic</artifactId>
+				<version>${utils.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.jd.utils</groupId>
+				<artifactId>utils-crypto-sm</artifactId>
 				<version>${utils.version}</version>
 			</dependency>
 			<dependency>
