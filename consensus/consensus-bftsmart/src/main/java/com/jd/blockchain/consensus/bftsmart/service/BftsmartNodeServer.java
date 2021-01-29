@@ -50,6 +50,7 @@ import bftsmart.reconfiguration.util.TOMConfiguration;
 import bftsmart.reconfiguration.views.NodeNetwork;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.MessageContext;
+import bftsmart.tom.ReplicaConfiguration;
 import bftsmart.tom.ReplyContextMessage;
 import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
@@ -92,7 +93,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
 	private TOMConfiguration tomConfig;
 
-	private TOMConfiguration outerTomConfig;
+	private ReplicaConfiguration outerTomConfig;
 
 	private HostsConfig hostsConfig;
 
@@ -236,21 +237,12 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	}
 
 	// 由于节点动态入网的原因，共识的配置环境是随时可能变化的，需要每次get时从replica动态读取
-	public TOMConfiguration getTomConfig() {
+	public ReplicaConfiguration getTomConfig() {
 		return outerTomConfig;
 	}
 
 	public int getId() {
 		return tomConfig.getProcessId();
-	}
-
-	public void setId(int id) {
-		if (id < 0) {
-			throw new IllegalArgumentException("ReplicaID is negative!");
-		}
-		this.tomConfig.setProcessId(id);
-		this.outerTomConfig.setProcessId(id);
-
 	}
 
 	// 注意：该方法获得的共识环境为节点启动时从账本里读取的共识环境，如果运行过程中发生了节点动态入网，该环境没有得到更新
