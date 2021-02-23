@@ -862,9 +862,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 				ledgerAdminInfo = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock());
 
-				// 已经是DECONSENSUS状态
+				// 已经是DEACTIVATED状态
 				ParticipantNode node = getCurrentNode(ledgerAdminInfo, participantAddress);
-				if (node.getParticipantNodeState() == ParticipantNodeState.DECONSENSUS) {
+				if (node.getParticipantNodeState() == ParticipantNodeState.DEACTIVATED) {
 					return WebResponse.createSuccessResult(null);
 				}
 
@@ -947,7 +947,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		// This transaction contains participant state update and settings update two
 		// ops
-		txbuilder.states().update(new BlockchainIdentityData(node.getPubKey()), ParticipantNodeState.DECONSENSUS);
+		txbuilder.states().update(new BlockchainIdentityData(node.getPubKey()), ParticipantNodeState.DEACTIVATED);
 
 		txbuilder.settings().update(properties);
 
