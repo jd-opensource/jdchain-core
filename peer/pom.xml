@@ -23,7 +23,6 @@
 		<dependency>
 			<groupId>com.jd.httpservice</groupId>
 			<artifactId>httpservice-utils</artifactId>
-			<version>${httpservice.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>

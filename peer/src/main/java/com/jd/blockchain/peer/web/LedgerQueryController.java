@@ -66,13 +66,13 @@ public class LedgerQueryController implements BlockchainQueryService {
 	@Autowired
 	private LedgerService ledgerService;
 
-	@RequestMapping(method = RequestMethod.GET, path = URL_GET_LEGDER_HASHS)
+	@RequestMapping(method = RequestMethod.GET, path = GET_TOTAL_LEGDER_HASHS)
 	@Override
 	public HashDigest[] getLedgerHashs() {
 		return ledgerService.getLedgerHashs();
 	}
 
-	@RequestMapping(method = RequestMethod.GET, path = URL_GET_LEDGER)
+	@RequestMapping(method = RequestMethod.GET, path = GET_LEDGER)
 	@Override
 	public LedgerInfo getLedger(@PathVariable(name = "ledgerHash") HashDigest ledgerHash) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
