@@ -1,4 +1,4 @@
-package com.jd.blockchain.peer.web;
+package com.jd.blockchain.peer.service.web;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,8 +47,8 @@ import com.jd.blockchain.ledger.core.LedgerService;
 import com.jd.blockchain.ledger.core.ParticipantCertData;
 import com.jd.blockchain.ledger.core.TransactionSet;
 import com.jd.blockchain.ledger.core.UserAccountSet;
-import com.jd.blockchain.peer.decorator.LedgerAdminInfoDecorator;
-import com.jd.blockchain.peer.decorator.TransactionDecorator;
+import com.jd.blockchain.peer.service.web.utils.LedgerAdminInfoDecorator;
+import com.jd.blockchain.peer.service.web.utils.TransactionDecorator;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
 

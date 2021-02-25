@@ -8,7 +8,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import com.jd.blockchain.ledger.LedgerTransactions;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -18,7 +17,12 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 
 import com.jd.binaryproto.DataContractRegistry;
-import com.jd.blockchain.consensus.*;
+import com.jd.blockchain.consensus.ClientCredential;
+import com.jd.blockchain.consensus.ClientIncomingSettings;
+import com.jd.blockchain.consensus.ConsensusViewSettings;
+import com.jd.blockchain.consensus.NodeNetworkAddress;
+import com.jd.blockchain.consensus.NodeNetworkAddresses;
+import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.action.ActionRequest;
 import com.jd.blockchain.consensus.action.ActionResponse;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
@@ -59,6 +63,7 @@ import com.jd.blockchain.ledger.LedgerMetadata;
 import com.jd.blockchain.ledger.LedgerMetadata_V2;
 import com.jd.blockchain.ledger.LedgerSettings;
 import com.jd.blockchain.ledger.LedgerTransaction;
+import com.jd.blockchain.ledger.LedgerTransactions;
 import com.jd.blockchain.ledger.MerkleSnapshot;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.OperationResult;
@@ -92,7 +97,6 @@ import com.jd.blockchain.ledger.proof.MerklePath;
 import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.peer.web.LedgerLoadTimer;
 import com.jd.blockchain.runtime.RuntimeConstant;
-import com.jd.blockchain.sdk.GatewayAuthRequest;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
 import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
@@ -131,10 +135,7 @@ public class PeerServerBooter {
 		registerDataContracts();
 	}
 
-	public static void main(String[] args) {
-		PeerServerBooter peerServerBooter = new PeerServerBooter();
-		peerServerBooter.handle(args);
-	}
+	
 
 	public void handle(String[] args){
 		LedgerBindingConfig ledgerBindingConfig = null;

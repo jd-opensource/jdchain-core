@@ -54,17 +54,15 @@
 			<artifactId>tools-initializer</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		
-
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>org.springframework.boot</groupId>
-					<artifactId>spring-boot-starter-logging</artifactId>
-				</exclusion>
-			</exclusions>
+			<groupId>com.jd.blockchain</groupId>
+			<artifactId>peer-ledger-service</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.jd.blockchain</groupId>
+			<artifactId>peer-web-server</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
