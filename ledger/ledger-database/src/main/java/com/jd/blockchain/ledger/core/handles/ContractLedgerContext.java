@@ -740,8 +740,8 @@ public class ContractLedgerContext implements LedgerContext {
 
 	@Override
 	@Deprecated
-	public Event getLatestEvent(HashDigest ledgerHash, String eventName) {
-		return multiLedgerQueryService.getLatestEvent(ledgerHash, eventName);
+	public Event getLatestSystemEvent(HashDigest ledgerHash, String eventName) {
+		return multiLedgerQueryService.getLatestSystemEvent(ledgerHash, eventName);
 	}
 
 	@Override

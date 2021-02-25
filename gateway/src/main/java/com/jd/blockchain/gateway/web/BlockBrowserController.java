@@ -391,9 +391,9 @@ public class BlockBrowserController implements BlockchainExtendQueryService {
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names/{eventName}/latest")
 	@Override
-	public Event getLatestEvent(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+	public Event getLatestSystemEvent(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 								@PathVariable(name = "eventName") String eventName) {
-		return peerService.getQueryService(ledgerHash).getLatestEvent(ledgerHash, eventName);
+		return peerService.getQueryService(ledgerHash).getLatestSystemEvent(ledgerHash, eventName);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/system/names/{eventName}/count")
