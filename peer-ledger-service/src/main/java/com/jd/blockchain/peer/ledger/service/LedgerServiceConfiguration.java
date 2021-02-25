@@ -1,4 +1,4 @@
-package com.jd.blockchain.peer.service;
+package com.jd.blockchain.peer.ledger.service;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;

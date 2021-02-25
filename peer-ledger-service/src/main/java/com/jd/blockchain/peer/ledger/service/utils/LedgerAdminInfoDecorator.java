@@ -1,4 +1,4 @@
-package com.jd.blockchain.peer.service.web.utils;
+package com.jd.blockchain.peer.ledger.service.utils;
 
 import com.jd.blockchain.ledger.LedgerAdminInfo;
 import com.jd.blockchain.ledger.LedgerMetadata_V2;

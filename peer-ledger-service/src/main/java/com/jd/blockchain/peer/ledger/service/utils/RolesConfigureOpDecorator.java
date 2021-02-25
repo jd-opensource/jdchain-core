@@ -1,4 +1,4 @@
-package com.jd.blockchain.peer.service.web.utils;
+package com.jd.blockchain.peer.ledger.service.utils;
 
 import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.ledger.*;
