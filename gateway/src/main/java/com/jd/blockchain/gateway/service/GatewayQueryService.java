@@ -1,9 +1,9 @@
 package com.jd.blockchain.gateway.service;
 
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.gateway.service.settings.LedgerBaseSettings;
 import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.sdk.ContractSettings;
+import com.jd.blockchain.sdk.DecompliedContractInfo;
+import com.jd.blockchain.sdk.LedgerInitAttributes;
 
 /**
  * queryService only for gateway;
@@ -34,7 +34,7 @@ public interface GatewayQueryService {
      *     账本Hash
      * @return
      */
-    LedgerBaseSettings getLedgerBaseSettings(HashDigest ledgerHash);
+    LedgerInitAttributes getLedgerBaseSettings(HashDigest ledgerHash);
 
     /**
      * 获取账本指定合约信息
@@ -45,5 +45,5 @@ public interface GatewayQueryService {
      *     合约地址
      * @return
      */
-    ContractSettings getContractSettings(HashDigest ledgerHash, String address);
+    DecompliedContractInfo getContractSettings(HashDigest ledgerHash, String address);
 }

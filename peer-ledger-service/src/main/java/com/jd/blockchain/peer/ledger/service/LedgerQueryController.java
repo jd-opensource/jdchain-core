@@ -66,7 +66,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 	@Autowired
 	private LedgerService ledgerService;
 
-	@RequestMapping(method = RequestMethod.GET, path = GET_TOTAL_LEGDER_HASHS)
+	@RequestMapping(method = RequestMethod.GET, path = GET_LEGDER_HASH_LIST)
 	@Override
 	public HashDigest[] getLedgerHashs() {
 		return ledgerService.getLedgerHashs();
@@ -622,7 +622,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		return dataAccount.getDataset().getDataCount();
 	}
 
-	@RequestMapping(method = RequestMethod.GET, path = GET_LATEST_CONTRACT)
+	@RequestMapping(method = RequestMethod.GET, path = GET_LATEST_COMPILED_CONTRACT)
 	@Override
 	public ContractInfo getContract(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 			@PathVariable(name = "address") String address) {
@@ -789,7 +789,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		return account.getEvents(eventName, fromSequence, count);
 	}
 
-	@RequestMapping(method = RequestMethod.GET, path = GET_CONTRACT)
+	@RequestMapping(method = RequestMethod.GET, path = GET_COMPILED_CONTRACT)
 	@Override
 	public ContractInfo getContract(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 			@PathVariable(name = "address") String address, @PathVariable(name = "version") long version) {

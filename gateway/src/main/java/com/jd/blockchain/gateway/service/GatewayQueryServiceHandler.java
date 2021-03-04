@@ -12,9 +12,9 @@ import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.gateway.PeerService;
-import com.jd.blockchain.gateway.service.settings.LedgerBaseSettings;
 import com.jd.blockchain.ledger.*;
-import com.jd.blockchain.sdk.ContractSettings;
+import com.jd.blockchain.sdk.DecompliedContractInfo;
+import com.jd.blockchain.sdk.LedgerInitAttributes;
 
 import utils.codec.HexUtils;
 import utils.query.QueryArgs;
@@ -57,19 +57,19 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 	}
 
 	@Override
-	public LedgerBaseSettings getLedgerBaseSettings(HashDigest ledgerHash) {
+	public LedgerInitAttributes getLedgerBaseSettings(HashDigest ledgerHash) {
 		LedgerAdminInfo ledgerAdminInfo = peerService.getQueryService().getLedgerAdminInfo(ledgerHash);
 		return initLedgerBaseSettings(ledgerAdminInfo);
 	}
 
 	@Override
-	public ContractSettings getContractSettings(HashDigest ledgerHash, String address) {
+	public DecompliedContractInfo getContractSettings(HashDigest ledgerHash, String address) {
 		ContractInfo contractInfo = peerService.getQueryService().getContract(ledgerHash, address);
 		return contractSettings(contractInfo);
 	}
 
-	private ContractSettings contractSettings(ContractInfo contractInfo) {
-		ContractSettings contractSettings = new ContractSettings(contractInfo.getAddress(), contractInfo.getPubKey(),
+	private DecompliedContractInfo contractSettings(ContractInfo contractInfo) {
+		DecompliedContractInfo contractSettings = new DecompliedContractInfo(contractInfo.getAddress(), contractInfo.getPubKey(),
 				contractInfo.getHeaderRootHash(), contractInfo.getDataRootHash());
 		byte[] chainCodeBytes = contractInfo.getChainCode();
 
@@ -92,11 +92,11 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 	 *
 	 * @return
 	 */
-	private LedgerBaseSettings initLedgerBaseSettings(LedgerAdminInfo ledgerAdminInfo) {
+	private LedgerInitAttributes initLedgerBaseSettings(LedgerAdminInfo ledgerAdminInfo) {
 
 		LedgerMetadata_V2 ledgerMetadata = ledgerAdminInfo.getMetadata();
 
-		LedgerBaseSettings ledgerBaseSettings = new LedgerBaseSettings();
+		LedgerInitAttributes ledgerBaseSettings = new LedgerInitAttributes();
 		// 设置参与方
 		ledgerBaseSettings.setParticipantNodes(ledgerAdminInfo.getParticipants());
 		// 设置共识设置

@@ -2,24 +2,6 @@ package com.jd.blockchain.gateway.web;
 
 import java.util.List;
 
-import com.jd.binaryproto.DataContractRegistry;
-import com.jd.blockchain.consensus.ClientCredential;
-import com.jd.blockchain.consensus.action.ActionRequest;
-import com.jd.blockchain.consensus.action.ActionResponse;
-import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
-import com.jd.blockchain.ledger.*;
-import com.jd.blockchain.ledger.json.ExtendJsonSerializeUtil;
-import com.jd.blockchain.ledger.json.serialize.JsonSerializeFactory;
-import com.jd.blockchain.ledger.proof.MerkleTrieData;
-import com.jd.blockchain.sdk.GatewayAuthRequest;
-import com.jd.blockchain.ledger.proof.MerkleLeaf;
-import com.jd.blockchain.ledger.proof.MerklePath;
-import com.jd.blockchain.web.serializes.ByteArrayObjectUtil;
-import com.jd.httpservice.utils.web.JsonWebResponseMessageConverter;
-
-import utils.io.ByteArray;
-import utils.serialize.json.JSONSerializeUtils;
-
 import org.springframework.context.annotation.Configuration;
 import org.springframework.format.FormatterRegistry;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -28,8 +10,29 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import com.jd.binaryproto.DataContractRegistry;
+import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
+import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.LedgerMetadata_V2;
+import com.jd.blockchain.ledger.PrivilegeSet;
+import com.jd.blockchain.ledger.RoleInitSettings;
+import com.jd.blockchain.ledger.RoleSet;
+import com.jd.blockchain.ledger.RolesConfigureOperation;
+import com.jd.blockchain.ledger.SecurityInitSettings;
+import com.jd.blockchain.ledger.UserAuthInitSettings;
+import com.jd.blockchain.ledger.UserAuthorizeOperation;
+import com.jd.blockchain.ledger.json.ExtendJsonSerializeUtil;
+import com.jd.blockchain.ledger.json.serialize.JsonSerializeFactory;
+import com.jd.blockchain.ledger.proof.MerkleLeaf;
+import com.jd.blockchain.ledger.proof.MerklePath;
+import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
 import com.jd.blockchain.web.converters.HashDigestInputConverter;
+import com.jd.blockchain.web.serializes.ByteArrayObjectUtil;
+import com.jd.httpservice.utils.web.JsonWebResponseMessageConverter;
+
+import utils.io.ByteArray;
+import utils.serialize.json.JSONSerializeUtils;
 
 /**
  * @author zhuguang
