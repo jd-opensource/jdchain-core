@@ -2,18 +2,14 @@ package com.jd.blockchain.gateway;
 
 import java.io.File;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.logging.log4j.core.util.TypeUtil;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 
-import com.alibaba.fastjson.asm.Type;
 import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.consensus.ClientIncomingSettings;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
@@ -34,7 +30,7 @@ import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.PrivKey;
 import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.gateway.web.BlockBrowserController;
+import com.jd.blockchain.gateway.web.DataSearchController;
 import com.jd.blockchain.gateway.web.GatewayLedgerLoadTimer;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.BytesValueList;
@@ -57,9 +53,9 @@ import com.jd.blockchain.ledger.proof.MerkleTrieData;
 import com.jd.blockchain.sdk.GatewayAuthRequest;
 
 import utils.ArgumentSet;
+import utils.ArgumentSet.ArgEntry;
 import utils.BaseConstant;
 import utils.ConsoleUtils;
-import utils.ArgumentSet.ArgEntry;
 import utils.net.NetworkAddress;
 import utils.reflection.TypeUtils;
 
@@ -184,9 +180,9 @@ public class GatewayServerBooter {
 				config.http().getContextPath());
 
 		ConsoleUtils.info("\r\n\r\nStart connecting to peer ....");
-		BlockBrowserController blockBrowserController = appCtx.getBean(BlockBrowserController.class);
-		blockBrowserController.setDataRetrievalUrl(config.dataRetrievalUrl());
-		blockBrowserController.setSchemaRetrievalUrl(config.getSchemaRetrievalUrl());
+		DataSearchController dataSearchController = appCtx.getBean(DataSearchController.class);
+		dataSearchController.setDataRetrievalUrl(config.dataRetrievalUrl());
+		dataSearchController.setSchemaRetrievalUrl(config.getSchemaRetrievalUrl());
 		PeerConnector peerConnector = appCtx.getBean(PeerConnector.class);
 
 		NetworkAddress peerAddress = config.masterPeerAddress();

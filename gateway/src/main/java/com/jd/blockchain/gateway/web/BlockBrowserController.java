@@ -3,8 +3,6 @@ package com.jd.blockchain.gateway.web;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,13 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
-import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.crypto.KeyGenUtils;
-import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.gateway.service.DataRetrievalService;
+import com.jd.blockchain.gateway.PeerService;
 import com.jd.blockchain.gateway.service.GatewayQueryService;
-import com.jd.blockchain.gateway.service.PeerConnectionManager;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.ContractInfo;
 import com.jd.blockchain.ledger.DataAccountInfo;
@@ -44,9 +38,6 @@ import com.jd.blockchain.sdk.BlockchainBrowserService;
 import com.jd.blockchain.sdk.DecompliedContractInfo;
 import com.jd.blockchain.sdk.LedgerInitAttributes;
 
-import utils.BaseConstant;
-import utils.ConsoleUtils;
-
 @RestController
 @RequestMapping(path = "/")
 public class BlockBrowserController implements BlockchainBrowserService {
@@ -56,16 +47,10 @@ public class BlockBrowserController implements BlockchainBrowserService {
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	@Autowired
-	private PeerConnectionManager peerService;
+	private PeerService peerService;
 
 	@Autowired
 	private GatewayQueryService gatewayQueryService;
-
-	@Autowired
-	private DataRetrievalService dataRetrievalService;
-
-	private String dataRetrievalUrl;
-	private String schemaRetrievalUrl;
 
 	private static final int BLOCK_MAX_DISPLAY = 3;
 
@@ -828,63 +813,4 @@ public class BlockBrowserController implements BlockchainBrowserService {
 		return peerService.getQueryService(ledgerHash).getUserPrivileges(ledgerHash, userAddress);
 	}
 
-	// ----------------------- 穿透式检索相关的接口 -----------------------
-
-	@RequestMapping(method = RequestMethod.GET, path = "utils/pubkey/{pubkey}/addr")
-	public String getAddrByPubKey(@PathVariable(name = "pubkey") String strPubKey) {
-		PubKey pubKey = KeyGenUtils.decodePubKey(strPubKey);
-		return AddressEncoding.generateAddress(pubKey).toBase58();
-	}
-
-	@RequestMapping(method = RequestMethod.GET, value = "ledgers/{ledgerHash}/**/search")
-	public Object dataRetrieval(@PathVariable(name = "ledgerHash") HashDigest ledgerHash, HttpServletRequest request) {
-		String result;
-		if (dataRetrievalUrl == null || dataRetrievalUrl.length() <= 0) {
-			result = "{'message':'OK','data':'" + "data.retrieval.url is empty" + "'}";
-		} else {
-			String queryParams = request.getQueryString() == null ? "" : request.getQueryString();
-			String fullQueryUrl = new StringBuffer(dataRetrievalUrl).append(request.getRequestURI())
-					.append(BaseConstant.DELIMETER_QUESTION).append(queryParams).toString();
-			try {
-				result = dataRetrievalService.retrieval(fullQueryUrl);
-				ConsoleUtils.info("request = {%s} \r\n result = {%s} \r\n", fullQueryUrl, result);
-			} catch (Exception e) {
-				result = "{'message':'OK','data':'" + e.getMessage() + "'}";
-			}
-		}
-		return result;
-	}
-
-	/**
-	 * querysql;
-	 * 
-	 * @param request
-	 * @return
-	 */
-	@RequestMapping(method = RequestMethod.POST, value = "schema/querysql")
-	public Object queryBySql(HttpServletRequest request, @RequestBody String queryString) {
-		String result;
-		if (schemaRetrievalUrl == null || schemaRetrievalUrl.length() <= 0) {
-			result = "{'message':'OK','data':'" + "schema.retrieval.url is empty" + "'}";
-		} else {
-			String queryParams = request.getQueryString() == null ? "" : request.getQueryString();
-			String fullQueryUrl = new StringBuffer(schemaRetrievalUrl).append(request.getRequestURI())
-					.append(BaseConstant.DELIMETER_QUESTION).append(queryParams).toString();
-			try {
-				result = dataRetrievalService.retrievalPost(fullQueryUrl, queryString);
-				ConsoleUtils.info("request = {%s} \r\n result = {%s} \r\n", fullQueryUrl, result);
-			} catch (Exception e) {
-				result = "{'message':'error','data':'" + e.getMessage() + "'}";
-			}
-		}
-		return result;
-	}
-
-	public void setSchemaRetrievalUrl(String schemaRetrievalUrl) {
-		this.schemaRetrievalUrl = schemaRetrievalUrl;
-	}
-
-	public void setDataRetrievalUrl(String dataRetrievalUrl) {
-		this.dataRetrievalUrl = dataRetrievalUrl;
-	}
 }

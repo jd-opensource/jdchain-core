@@ -1,10 +1,11 @@
 package com.jd.blockchain.gateway;
 
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.gateway.event.EventListenerService;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.transaction.TransactionService;
 
-public interface PeerService {
+public interface PeerService extends EventListenerService{
 
 	/**
 	 * 获取账本数量最多的查询器

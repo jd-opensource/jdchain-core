@@ -1,23 +1,38 @@
 package com.jd.blockchain.gateway.service;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import javax.annotation.PreDestroy;
+
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.jd.blockchain.consensus.NodeNetworkAddress;
 import com.jd.blockchain.consensus.NodeNetworkAddresses;
 import com.jd.blockchain.consensus.service.MonitorService;
-import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.gateway.event.EventListener;
-import com.jd.blockchain.gateway.event.EventListenerService;
-import com.jd.blockchain.gateway.event.PullEventListener;
-import com.jd.blockchain.sdk.PeerBlockchainService;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import com.jd.blockchain.crypto.AsymmetricKeypair;
+import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.gateway.PeerConnector;
 import com.jd.blockchain.gateway.PeerService;
+import com.jd.blockchain.gateway.event.EventListener;
+import com.jd.blockchain.gateway.event.PullEventListener;
+import com.jd.blockchain.sdk.PeerBlockchainService;
 import com.jd.blockchain.sdk.service.ConsensusClientManager;
 import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
 import com.jd.blockchain.sdk.service.SessionCredentialProvider;
@@ -26,14 +41,8 @@ import com.jd.blockchain.transaction.TransactionService;
 
 import utils.net.NetworkAddress;
 
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
 @Component
-public class PeerConnectionManager implements PeerService, PeerConnector, EventListenerService {
+public class PeerConnectionManager implements PeerService, PeerConnector {
 
 	private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(PeerConnectionManager.class);
 
