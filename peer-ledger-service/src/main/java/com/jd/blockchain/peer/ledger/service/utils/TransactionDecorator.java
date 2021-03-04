@@ -1,4 +1,4 @@
-package com.jd.blockchain.peer.decorator;
+package com.jd.blockchain.peer.ledger.service.utils;
 
 import com.jd.blockchain.ledger.DigitalSignature;
 import com.jd.blockchain.ledger.LedgerDataSnapshot;

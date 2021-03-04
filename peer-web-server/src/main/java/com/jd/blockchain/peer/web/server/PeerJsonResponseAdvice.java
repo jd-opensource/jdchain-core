@@ -1,4 +1,4 @@
-package com.jd.blockchain.peer.web;
+package com.jd.blockchain.peer.web.server;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;

@@ -1,4 +1,4 @@
-package com.jd.blockchain.peer.web;
+package com.jd.blockchain.peer.web.server;
 
 import java.util.List;
 

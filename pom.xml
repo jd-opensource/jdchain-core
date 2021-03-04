@@ -39,6 +39,8 @@
 		<module>runtime</module>
 		<module>storage</module>
 		<module>gateway</module>
+		<module>peer-ledger-service</module>
+		<module>peer-web-server</module>
 		<module>peer</module>
 		<module>manager</module>
 		<module>tools</module>

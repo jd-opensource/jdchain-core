@@ -1,4 +1,4 @@
-package com.jd.blockchain.peer.web;
+package com.jd.blockchain.peer.web.server;
 
 import javax.servlet.http.HttpServletRequest;
 

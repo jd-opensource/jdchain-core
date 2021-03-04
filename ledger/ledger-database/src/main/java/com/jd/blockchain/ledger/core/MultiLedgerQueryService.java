@@ -488,7 +488,7 @@ public class MultiLedgerQueryService implements BlockchainQueryService {
 	}
 
 	@Override
-	public Event getLatestEvent(HashDigest ledgerHash, String eventName) {
+	public Event getLatestSystemEvent(HashDigest ledgerHash, String eventName) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventGroup systemEvents = ledger.getSystemEventGroup(block);
