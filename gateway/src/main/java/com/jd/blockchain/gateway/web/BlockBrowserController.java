@@ -487,13 +487,20 @@ public class BlockBrowserController implements BlockchainBrowserService {
 			@RequestParam(name = "count", required = false, defaultValue = "-1") int count) {
 		return peerService.getQueryService(ledgerHash).getUserEventNames(ledgerHash, address, fromIndex, count);
 	}
+	
+	@Deprecated
+	@Override
+	public Event getLatestEvent(HashDigest ledgerHash,
+			String address, String eventName) {
+		return getLatestUserEvent(ledgerHash, address, eventName);
+	}
 
 //	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/{eventName}/latest")
 	@RequestMapping(method = RequestMethod.GET, path = GET_LATEST_EVENT)
 	@Override
-	public Event getLatestEvent(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+	public Event getLatestUserEvent(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 			@PathVariable(name = "address") String address, @PathVariable(name = "eventName") String eventName) {
-		return peerService.getQueryService(ledgerHash).getLatestEvent(ledgerHash, address, eventName);
+		return peerService.getQueryService(ledgerHash).getLatestUserEvent(ledgerHash, address, eventName);
 	}
 
 //	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}/names/{eventName}/count")

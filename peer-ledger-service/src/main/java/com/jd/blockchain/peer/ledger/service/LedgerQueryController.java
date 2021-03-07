@@ -750,9 +750,15 @@ public class LedgerQueryController implements BlockchainQueryService {
 		return account.getEventNames(queryArgs.getFrom(), queryArgs.getCount());
 	}
 
+	@Deprecated
+	@Override
+	public Event getLatestEvent(HashDigest ledgerHash, String address, String eventName) {
+		return getLatestUserEvent(ledgerHash, address, eventName);
+	}
+
 	@RequestMapping(method = RequestMethod.GET, path = GET_LATEST_EVENT)
 	@Override
-	public Event getLatestEvent(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+	public Event getLatestUserEvent(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 			@PathVariable(name = "address") String address, @PathVariable(name = "eventName") String eventName) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		EventPublishingAccount account = ledger.getEventAccountSet(ledger.getLatestBlock()).getAccount(address);
