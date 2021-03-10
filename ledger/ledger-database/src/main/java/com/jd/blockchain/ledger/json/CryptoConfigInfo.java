@@ -42,7 +42,7 @@ public class CryptoConfigInfo implements CryptoSetting {
             }
             CryptoAlgorithmInfo[] cryptoAlgorithmInfos = new CryptoAlgorithmInfo[cpAlgorithms.length];
             for (int j = 0; j < cpAlgorithms.length; j++) {
-                cryptoAlgorithmInfos[i] = new CryptoAlgorithmInfo(cpAlgorithms[i]);
+                cryptoAlgorithmInfos[j] = new CryptoAlgorithmInfo(cpAlgorithms[j]);
             }
             CryptoProviderInfo cryptoProviderInfo = new CryptoProviderInfo(cp.getName(), cryptoAlgorithmInfos);
             supportedProviders[i] = cryptoProviderInfo;
