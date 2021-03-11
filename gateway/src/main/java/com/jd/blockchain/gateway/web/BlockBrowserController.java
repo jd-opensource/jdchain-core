@@ -532,6 +532,9 @@ public class BlockBrowserController implements BlockchainBrowserService {
 		if (blockHeight == GENESIS_BLOCK_HEIGHT) {
 			return currentBlockTxCount;
 		}
+		if(currentBlockTxCount == 0) {
+			return 0;
+		}
 		long lastBlockHeight = blockHeight - 1;
 		long lastBlockTxCount = peerService.getQueryService(ledgerHash).getTransactionCount(ledgerHash,
 				lastBlockHeight);
@@ -549,6 +552,9 @@ public class BlockBrowserController implements BlockchainBrowserService {
 		if (currentBlock.getHeight() == GENESIS_BLOCK_HEIGHT) {
 			return currentBlockTxCount;
 		}
+		if(currentBlockTxCount == 0) {
+			return 0;
+		}
 		HashDigest previousHash = currentBlock.getPreviousHash();
 		long lastBlockTxCount = peerService.getQueryService(ledgerHash).getTransactionCount(ledgerHash, previousHash);
 		// 当前区块交易数减上个区块交易数
@@ -565,6 +571,9 @@ public class BlockBrowserController implements BlockchainBrowserService {
 		if (maxBlockHeight == GENESIS_BLOCK_HEIGHT) { // 只有一个创世区块
 			return totalCount;
 		}
+		if(totalCount == 0) {
+			return 0;
+		}
 		long lastTotalCount = peerService.getQueryService(ledgerHash).getTransactionCount(ledgerHash,
 				maxBlockHeight - 1);
 		return totalCount - lastTotalCount;
@@ -578,6 +587,9 @@ public class BlockBrowserController implements BlockchainBrowserService {
 		long currentDaCount = peerService.getQueryService(ledgerHash).getDataAccountCount(ledgerHash, blockHeight);
 		if (blockHeight == GENESIS_BLOCK_HEIGHT) {
 			return currentDaCount;
+		}
+		if(currentDaCount == 0) {
+			return 0;
 		}
 		long lastBlockHeight = blockHeight - 1;
 		long lastDaCount = peerService.getQueryService(ledgerHash).getDataAccountCount(ledgerHash, lastBlockHeight);
@@ -593,6 +605,9 @@ public class BlockBrowserController implements BlockchainBrowserService {
 		long currentBlockDaCount = peerService.getQueryService(ledgerHash).getDataAccountCount(ledgerHash, blockHash);
 		if (currentBlock.getHeight() == GENESIS_BLOCK_HEIGHT) {
 			return currentBlockDaCount;
+		}
+		if(currentBlockDaCount == 0) {
+			return 0;
 		}
 		HashDigest previousHash = currentBlock.getPreviousHash();
 		long lastBlockDaCount = peerService.getQueryService(ledgerHash).getDataAccountCount(ledgerHash, previousHash);
@@ -610,6 +625,9 @@ public class BlockBrowserController implements BlockchainBrowserService {
 		if (maxBlockHeight == GENESIS_BLOCK_HEIGHT) { // 只有一个创世区块
 			return totalCount;
 		}
+		if(totalCount == 0) {
+			return 0;
+		}
 		long lastTotalCount = peerService.getQueryService(ledgerHash).getDataAccountCount(ledgerHash,
 				maxBlockHeight - 1);
 		return totalCount - lastTotalCount;
@@ -623,6 +641,9 @@ public class BlockBrowserController implements BlockchainBrowserService {
 		long currentUserCount = peerService.getQueryService(ledgerHash).getUserCount(ledgerHash, blockHeight);
 		if (blockHeight == GENESIS_BLOCK_HEIGHT) {
 			return currentUserCount;
+		}
+		if(currentUserCount == 0) {
+			return 0;
 		}
 		long lastBlockHeight = blockHeight - 1;
 		long lastUserCount = peerService.getQueryService(ledgerHash).getUserCount(ledgerHash, lastBlockHeight);
@@ -638,6 +659,9 @@ public class BlockBrowserController implements BlockchainBrowserService {
 		long currentBlockUserCount = peerService.getQueryService(ledgerHash).getUserCount(ledgerHash, blockHash);
 		if (currentBlock.getHeight() == GENESIS_BLOCK_HEIGHT) {
 			return currentBlockUserCount;
+		}
+		if(currentBlockUserCount == 0) {
+			return 0;
 		}
 		HashDigest previousHash = currentBlock.getPreviousHash();
 		long lastBlockUserCount = peerService.getQueryService(ledgerHash).getUserCount(ledgerHash, previousHash);
@@ -655,6 +679,9 @@ public class BlockBrowserController implements BlockchainBrowserService {
 		if (maxBlockHeight == GENESIS_BLOCK_HEIGHT) { // 只有一个创世区块
 			return totalCount;
 		}
+		if(totalCount == 0) {
+			return 0;
+		}
 		long lastTotalCount = peerService.getQueryService(ledgerHash).getUserCount(ledgerHash, maxBlockHeight - 1);
 		return totalCount - lastTotalCount;
 	}
@@ -667,6 +694,9 @@ public class BlockBrowserController implements BlockchainBrowserService {
 		long currentContractCount = peerService.getQueryService(ledgerHash).getContractCount(ledgerHash, blockHeight);
 		if (blockHeight == GENESIS_BLOCK_HEIGHT) {
 			return currentContractCount;
+		}
+		if(currentContractCount == 0) {
+			return 0;
 		}
 		long lastBlockHeight = blockHeight - 1;
 		long lastContractCount = peerService.getQueryService(ledgerHash).getContractCount(ledgerHash, lastBlockHeight);
@@ -684,6 +714,9 @@ public class BlockBrowserController implements BlockchainBrowserService {
 		if (currentBlock.getHeight() == GENESIS_BLOCK_HEIGHT) {
 			return currentBlockContractCount;
 		}
+		if(currentBlockContractCount == 0) {
+			return 0;
+		}
 		HashDigest previousHash = currentBlock.getPreviousHash();
 		long lastBlockContractCount = peerService.getQueryService(ledgerHash).getContractCount(ledgerHash,
 				previousHash);
@@ -700,6 +733,9 @@ public class BlockBrowserController implements BlockchainBrowserService {
 		long totalCount = peerService.getQueryService(ledgerHash).getContractTotalCount(ledgerHash);
 		if (maxBlockHeight == GENESIS_BLOCK_HEIGHT) { // 只有一个创世区块
 			return totalCount;
+		}
+		if(totalCount == 0) {
+			return 0;
 		}
 		long lastTotalCount = peerService.getQueryService(ledgerHash).getContractCount(ledgerHash, maxBlockHeight - 1);
 		return totalCount - lastTotalCount;
