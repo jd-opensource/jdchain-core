@@ -21,7 +21,7 @@
 		<bftsmart.version>0.7.0-SNAPSHOT</bftsmart.version>
 		<kvdb.version>1.1.2.RELEASE</kvdb.version>
 
-		<framework.version>1.4.2.RELEASE</framework.version>
+		<framework.version>1.4.3-SNAPSHOT</framework.version>
 
 		<explorer.version>1.4.1.RELEASE</explorer.version>
 	</properties>
