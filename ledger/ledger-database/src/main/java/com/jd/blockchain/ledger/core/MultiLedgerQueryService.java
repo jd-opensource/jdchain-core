@@ -546,9 +546,15 @@ public class MultiLedgerQueryService implements BlockchainQueryService {
 		EventAccountSet eventAccountSet = ledger.getEventAccountSet(block);
 		return eventAccountSet.getAccount(address).getEventNames(fromIndex, count);
 	}
-
+	
+	@Deprecated
 	@Override
 	public Event getLatestEvent(HashDigest ledgerHash, String address, String eventName) {
+		return getLatestUserEvent(ledgerHash, address, eventName);
+	}
+
+	@Override
+	public Event getLatestUserEvent(HashDigest ledgerHash, String address, String eventName) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventAccountSet eventAccountSet = ledger.getEventAccountSet(block);

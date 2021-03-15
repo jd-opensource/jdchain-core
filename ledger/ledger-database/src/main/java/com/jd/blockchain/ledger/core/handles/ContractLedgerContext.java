@@ -779,11 +779,17 @@ public class ContractLedgerContext implements LedgerContext {
 	public String[] getUserEventNames(HashDigest ledgerHash, String address, int fromSequence, int count) {
 		return multiLedgerQueryService.getUserEventNames(ledgerHash, address, fromSequence, count);
 	}
+	
+	@Deprecated
+	@Override
+	public Event getLatestEvent(HashDigest ledgerHash, String address, String eventName) {
+		return getLatestUserEvent(ledgerHash, address, eventName);
+	}
 
 	@Override
 	@Deprecated
-	public Event getLatestEvent(HashDigest ledgerHash, String address, String eventName) {
-		return multiLedgerQueryService.getLatestEvent(ledgerHash, address, eventName);
+	public Event getLatestUserEvent(HashDigest ledgerHash, String address, String eventName) {
+		return multiLedgerQueryService.getLatestUserEvent(ledgerHash, address, eventName);
 	}
 
 	@Override
