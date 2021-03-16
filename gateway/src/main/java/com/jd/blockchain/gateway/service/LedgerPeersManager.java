@@ -115,12 +115,10 @@ public class LedgerPeersManager {
         connectionsLock.readLock().lock();
         try {
             long highestHeight = -1;
-            int unAuthorizedSize = 0;
             Map<Long, Set<NetworkAddress>> connectionGroupByHeight = new HashMap<>();
             for (Map.Entry<NetworkAddress, LedgerPeerConnectionManager> entry : connections.entrySet()) {
                 // 去除未认证连接
                 if (!entry.getValue().isAuthorized()) {
-                    unAuthorizedSize++;
                     continue;
                 }
                 long height = entry.getValue().getLatestHeight();
@@ -135,12 +133,7 @@ public class LedgerPeersManager {
 
             if (highestHeight > -1) {
                 Set<NetworkAddress> selectedConnections = connectionGroupByHeight.get(highestHeight);
-                // 3f+1验证
-                if (3 * selectedConnections.size() >= 2 * (connections.size() - unAuthorizedSize) + 1) {
-                    return connections.get(new ArrayList(selectedConnections).get(new Random().nextInt(selectedConnections.size()))).getTransactionService();
-                } else {
-                    logger.warn("No enough available peer tx services for ledger {}", ledger);
-                }
+                return connections.get(new ArrayList(selectedConnections).get(new Random().nextInt(selectedConnections.size()))).getTransactionService();
             }
 
             throw new IllegalStateException("No available tx service for ledger: " + ledger);

@@ -135,7 +135,10 @@ public class PeerServerBooter {
 		registerDataContracts();
 	}
 
-	
+	public static void main(String[] args) {
+		PeerServerBooter peerServerBooter = new PeerServerBooter();
+		peerServerBooter.handle(args);
+	}
 
 	public void handle(String[] args){
 		LedgerBindingConfig ledgerBindingConfig = null;
