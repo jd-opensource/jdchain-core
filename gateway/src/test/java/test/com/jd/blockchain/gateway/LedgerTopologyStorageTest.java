@@ -75,6 +75,9 @@ public class LedgerTopologyStorageTest {
     static LedgerPeersManager newMockLedgerPeersManager(HashDigest ledger, AsymmetricKeypair keyPair, LedgerPeerConnectionManager[] connectionManagers, LedgersListener ledgersListener, LedgerPeersTopologyStorage storage) {
         LedgerPeersManager ledgerPeersManager = new LedgerPeersManager(ledger, connectionManagers, keyPair, null, null, ledgersListener, storage);
         LedgerPeersManager mLedgerPeersManager = spy(ledgerPeersManager);
+        for(LedgerPeerConnectionManager manager : connectionManagers) {
+            manager.setConnectionListener(mLedgerPeersManager);
+        }
 
         return mLedgerPeersManager;
     }

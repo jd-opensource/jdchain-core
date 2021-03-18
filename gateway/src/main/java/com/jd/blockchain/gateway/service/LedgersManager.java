@@ -3,6 +3,7 @@ package com.jd.blockchain.gateway.service;
 import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.gateway.event.EventListener;
 import com.jd.blockchain.gateway.event.EventListenerService;
 import com.jd.blockchain.gateway.event.PullEventListener;
@@ -21,6 +22,7 @@ import utils.codec.Base58Utils;
 import utils.io.Storage;
 import utils.net.NetworkAddress;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -91,8 +93,8 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
     private void initWithStorage(NetworkAddress address, AsymmetricKeypair keyPair, Set<String> ledgersInStorage) {
         // 存储拓扑中是否包含配置文件中节点地址
         boolean configPeerInStorage = false;
-        // 存储拓扑中涉及到配置文件中节点地址的拓扑对应的身份信息与配置文件中的身份信息是否一致
-        boolean configPeerKeyPairSameInStorage = true;
+        // 存储拓扑中身份信息只包含配置文件中的身份信息
+        boolean configKeyPairSameInStorage = true;
         for (String ledger : ledgersInStorage) {
             LedgerPeersTopology topology = topologyStorage.getTopology(ledger);
             if (null == topology.getPeerAddresses()) {
@@ -101,28 +103,24 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
             for (NetworkAddress peer : topology.getPeerAddresses()) {
                 if (peer.equals(address)) {
                     configPeerInStorage = true;
-                    if (!topology.getPrivKey().equal(keyPair.getPrivKey().toBytes())) {
-                        configPeerKeyPairSameInStorage = false;
-                    }
-                    break;
                 }
             }
-            if (configPeerInStorage && !configPeerKeyPairSameInStorage) {
-                break;
+            if (!topology.getPrivKey().equal(keyPair.getPrivKey().toBytes())) {
+                configKeyPairSameInStorage = false;
             }
         }
 
-        // 如果存储拓扑中是否包含配置文件中节点地址，且存储拓扑中涉及到配置文件中节点地址的拓扑对应的身份信息与配置文件中的身份信息一致，使用存储拓扑初始化
-        if (configPeerInStorage && configPeerKeyPairSameInStorage) {
-            initFromStorage(ledgersInStorage);
+        // 如果存储拓扑中是否包含配置文件中节点地址，且存储拓扑中的身份信息只包含配置文件中的身份信息，使用存储拓扑初始化
+        if (configPeerInStorage && configKeyPairSameInStorage) {
+            initFromStorage(ledgersInStorage, keyPair);
         } else {
             // 根据配置文件初始化，返回可访问账本列表
-            HashDigest[] ledgers = init(address, keyPair, 3);
+            HashDigest[] ledgers = init(address, keyPair, -1);
             // 根据存储拓扑初始化未初始化账本
             for (int i = 0; null != ledgers && i < ledgers.length; i++) {
                 ledgersInStorage.remove(ledgers[i].toBase58());
             }
-            initFromStorage(ledgersInStorage);
+            initFromStorage(ledgersInStorage, keyPair);
         }
 
     }
@@ -136,8 +134,9 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
      * @return 返回初始化的账本列表
      */
     private HashDigest[] init(NetworkAddress address, AsymmetricKeypair keyPair, int retryTimes) {
+        logger.info("Init from config {}, keyPair {}", address, KeyGenUtils.encodePubKey(keyPair.getPubKey()));
         // 从初始连接查询可访问账本列表
-        HashDigest[] ledgers = getLedgers(keyPair, address);
+        HashDigest[] ledgers = null;
         // 网关初始化时，初始连接失败或者无可访问账本，将持续定时轮询等待
         int count = 0;
         while (count <= retryTimes || retryTimes < 0) {
@@ -157,10 +156,10 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
         }
 
         // 创建账本管理
-        for (HashDigest ledger : ledgers) {
-            LedgerPeersManager peersManager = newLedgerPeersManager(ledger, keyPair, address);
+        for (int i = 0; null != ledgers && i < ledgers.length; i++) {
+            LedgerPeersManager peersManager = newLedgerPeersManager(ledgers[i], keyPair, address);
             peersManager.startTimerTask();
-            ledgerServices.put(ledger, peersManager);
+            ledgerServices.put(ledgers[i], peersManager);
         }
 
         return ledgers;
@@ -170,9 +169,11 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
      * 从磁盘中保存的拓扑信息初始化
      *
      * @param ledgers 账本列表
+     * @param keyPair 接入身份
      * @return
      */
-    private boolean initFromStorage(Set<String> ledgers) {
+    private boolean initFromStorage(Set<String> ledgers, AsymmetricKeypair keyPair) {
+        logger.info("Init from storage {}, keyPair {}", ledgers, KeyGenUtils.encodePubKey(keyPair.getPubKey()));
         int ledgerSize = 0;
         for (String ledgerHash : ledgers) {
             LedgerPeersTopology topology = topologyStorage.getTopology(ledgerHash);
@@ -183,7 +184,6 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
                 if (null == topology.getPeerAddresses() || topology.getPeerAddresses().length == 0) {
                     continue;
                 }
-                AsymmetricKeypair keyPair = new AsymmetricKeypair(topology.getPubKey(), topology.getPrivKey());
                 HashDigest ledger = Crypto.resolveAsHashDigest(Base58Utils.decode(ledgerHash));
                 LedgerPeersManager peersManager = newLedgerPeersManager(ledger, keyPair, topology.getPeerAddresses());
                 peersManager.startTimerTask();
@@ -222,7 +222,13 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
     public HashDigest[] getLedgerHashs() {
         ledgersLock.readLock().lock();
         try {
-            return ledgerServices.keySet().toArray(new HashDigest[ledgerServices.size()]);
+            Set<HashDigest> hashDigests = new HashSet<>();
+            for (LedgerPeersManager peersService : ledgerServices.values()) {
+                if (peersService.isReady()) {
+                    hashDigests.add(peersService.getLedger());
+                }
+            }
+            return hashDigests.toArray(new HashDigest[hashDigests.size()]);
         } finally {
             ledgersLock.readLock().unlock();
         }

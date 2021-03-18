@@ -31,7 +31,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * 账本-共识节点管理
  */
-public class LedgerPeersManager {
+public class LedgerPeersManager implements LedgerPeerConnectionListener {
 
     // query topology 定时周期，毫秒
     public static final int UPDATE_TOPOLOGY_INTERVAL = 15000;
@@ -51,6 +51,9 @@ public class LedgerPeersManager {
 
     private ReadWriteLock connectionsLock = new ReentrantReadWriteLock();
 
+    // 是否准备就绪，已经有可用连接
+    private volatile boolean ready;
+
     public LedgerPeersManager(HashDigest ledger, LedgerPeerConnectionManager[] peerConnectionServices, AsymmetricKeypair keyPair,
                               SessionCredentialProvider credentialProvider, ConsensusClientManager clientManager,
                               LedgersListener ledgersListener, LedgerPeersTopologyStorage topologyStorage) {
@@ -63,6 +66,7 @@ public class LedgerPeersManager {
         executorService = Executors.newSingleThreadScheduledExecutor();
         this.connections = new ConcurrentHashMap<>();
         for (LedgerPeerConnectionManager manager : peerConnectionServices) {
+            manager.setConnectionListener(this);
             connections.put(manager.getPeerAddress(), manager);
         }
     }
@@ -159,6 +163,7 @@ public class LedgerPeersManager {
             }
             logger.debug("Add peer {} in {}", peer, ledger);
             LedgerPeerConnectionManager connectionManager = newPeerConnectionManager(peer);
+            connectionManager.setConnectionListener(this);
             connectionManager.startTimerTask();
             connections.put(peer, connectionManager);
         } finally {
@@ -303,6 +308,7 @@ public class LedgerPeersManager {
             Map<NetworkAddress, LedgerPeerConnectionManager> newConnections = new ConcurrentHashMap<>();
             for (NetworkAddress address : peers) {
                 LedgerPeerConnectionManager connectionManager = newPeerConnectionManager(address);
+                connectionManager.setConnectionListener(this);
                 connectionManager.startTimerTask();
                 newConnections.put(address, connectionManager);
             }
@@ -328,5 +334,15 @@ public class LedgerPeersManager {
         } finally {
             connectionsLock.writeLock().unlock();
         }
+    }
+
+    @Override
+    public void connected(NetworkAddress peer) {
+        logger.info("LedgerManager {} is ready", ledger);
+        this.ready = true;
+    }
+
+    public boolean isReady() {
+        return ready;
     }
 }

@@ -41,7 +41,7 @@ public class LedgerPeerConnectionManager {
     private AsymmetricKeypair keyPair;
     private SessionCredentialProvider credentialProvider;
     private ConsensusClientManager clientManager;
-
+    private LedgerPeerConnectionListener connectionListener;
     // 是否有效
     private volatile State state;
     // 连接工厂
@@ -68,6 +68,10 @@ public class LedgerPeerConnectionManager {
         this.credentialProvider = credentialProvider;
         this.clientManager = clientManager;
         this.ledgersListener = ledgersListener;
+    }
+
+    public void setConnectionListener(LedgerPeerConnectionListener connectionListener) {
+        this.connectionListener = connectionListener;
     }
 
     public HashDigest getLedger() {
@@ -161,7 +165,10 @@ public class LedgerPeerConnectionManager {
             executorService.shutdownNow();
             if (null != blockchainServiceFactory) {
                 blockchainServiceFactory.close();
+                blockchainServiceFactory = null;
             }
+            connectionListener = null;
+            ledgersListener = null;
             logger.info("Shutdown {}:{}", ledger, peerAddress);
         } catch (Exception e) {
             logger.error("Shutdown {}:{}", ledger, peerAddress, e);
@@ -178,6 +185,9 @@ public class LedgerPeerConnectionManager {
             logger.debug("Connect {}:{}", peerAddress, ledgers);
             if (ledgers.contains(ledger)) {
                 state = State.AVAILABLE;
+                if (null != connectionListener) {
+                    connectionListener.connected(peerAddress);
+                }
             } else {
                 state = State.UnAuthorized;
             }

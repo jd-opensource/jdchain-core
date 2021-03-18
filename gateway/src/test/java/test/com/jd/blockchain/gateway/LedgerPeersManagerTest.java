@@ -252,16 +252,16 @@ public class LedgerPeersManagerTest {
         Thread.sleep(LedgerPeerConnectionManager.PING_INTERVAL * 2);
         try {
             ledgerPeersManager.getTransactionService();
-            Assert.fail("Should never come here");
         } catch (Exception e) {
+            Assert.fail("Should never come here");
         }
 
         doReturn(-1l).when(cm3).ping();
         Thread.sleep(LedgerPeerConnectionManager.PING_INTERVAL * 2);
         try {
             ledgerPeersManager.getTransactionService();
-            Assert.fail("Should never come here");
         } catch (Exception e) {
+            Assert.fail("Should never come here");
         }
 
         doReturn(-1l).when(cm4).ping();

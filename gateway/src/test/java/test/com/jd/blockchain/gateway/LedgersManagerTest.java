@@ -4,6 +4,7 @@ import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
+import com.jd.blockchain.gateway.service.LedgerPeerConnectionListener;
 import com.jd.blockchain.gateway.service.LedgerPeerConnectionManager;
 import com.jd.blockchain.gateway.service.LedgerPeersManager;
 import com.jd.blockchain.gateway.service.LedgersListener;
@@ -45,8 +46,10 @@ public class LedgersManagerTest {
         return mConnectionManager;
     }
 
-    static LedgerPeerConnectionManager newMockLedgerPeerConnectionManager(HashDigest ledger, AsymmetricKeypair keyPair, NetworkAddress peerAddress) {
-        return newMockLedgerPeerConnectionManager(ledger, keyPair, peerAddress, null);
+    static LedgerPeerConnectionManager newMockLedgerPeerConnectionManager(LedgerPeerConnectionListener connectionListener, HashDigest ledger, AsymmetricKeypair keyPair, NetworkAddress peerAddress) {
+        LedgerPeerConnectionManager manager = newMockLedgerPeerConnectionManager(ledger, keyPair, peerAddress, null);
+        manager.setConnectionListener(connectionListener);
+        return manager;
     }
 
     static LedgerPeersManager newMockLedgerPeersManager(HashDigest ledger, AsymmetricKeypair keyPair, NetworkAddress[] peerAddresses, LedgersListener ledgersListener) {
@@ -65,7 +68,9 @@ public class LedgersManagerTest {
     static LedgerPeersManager newMockLedgerPeersManager(HashDigest ledger, AsymmetricKeypair keyPair, LedgerPeerConnectionManager[] connectionManagers, LedgersListener ledgersListener) {
         LedgerPeersManager ledgerPeersManager = new LedgerPeersManager(ledger, connectionManagers, keyPair, null, null, ledgersListener, null);
         LedgerPeersManager mLedgerPeersManager = spy(ledgerPeersManager);
-
+        for(LedgerPeerConnectionManager manager : connectionManagers) {
+            manager.setConnectionListener(mLedgerPeersManager);
+        }
         return mLedgerPeersManager;
     }
 
@@ -92,7 +97,7 @@ public class LedgersManagerTest {
         LedgerPeersManager peersManager = newMockLedgerPeersManager(ledger, keyPair, peerAddresses[0], mLedgersManager);
         doReturn(topology).when(peersManager).updateTopology();
         for (NetworkAddress peer : topology) {
-            doReturn(newMockLedgerPeerConnectionManager(ledger, keyPair, peer)).when(peersManager).newPeerConnectionManager(peer);
+            doReturn(newMockLedgerPeerConnectionManager(peersManager, ledger, keyPair, peer)).when(peersManager).newPeerConnectionManager(peer);
         }
         doReturn(peersManager).when(mLedgersManager).newLedgerPeersManager(ledger, keyPair, peerAddresses[0]);
         mLedgersManager.init(peerAddresses[0], keyPair, false);
