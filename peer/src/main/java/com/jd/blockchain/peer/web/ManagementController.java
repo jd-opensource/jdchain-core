@@ -346,7 +346,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			}
 			boolean isParticipantNode = false;
 			for(ParticipantNode participantNode : ledgerRepo.getAdminInfo().getParticipants()) {
-				if(Arrays.equals(participantNode.getPubKey().toBytes(), clientRedential.getPubKey().toBytes())) {
+				if(Arrays.equals(participantNode.getPubKey().toBytes(), clientRedential.getPubKey().toBytes()) &&
+						participantNode.getParticipantNodeState() != ParticipantNodeState.DEACTIVATED) {
 					isParticipantNode = true;
 					break;
 				}
