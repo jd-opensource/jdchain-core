@@ -167,7 +167,7 @@ import static com.jd.blockchain.ledger.TransactionState.LEDGER_ERROR;
  *
  */
 @RestController
-@RequestMapping(path = "/management")
+@RequestMapping(path = ManagementHttpService.URL_MANAGEMENT)
 public class ManagementController implements LedgerBindingConfigAware, PeerManage, ManagementHttpService {
 
 	private static final String STORAGE_CONSENSUS = "consensus";
