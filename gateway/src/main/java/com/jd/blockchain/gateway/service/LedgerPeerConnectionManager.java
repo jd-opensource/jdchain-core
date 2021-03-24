@@ -117,7 +117,7 @@ public class LedgerPeerConnectionManager {
                     connectTask();
                 }
             } catch (Exception e) {
-                logger.error("Ping or Reconnect {} error", peerAddress, e);
+                logger.error("Ping or Reconnect {}-{} error", ledger, peerAddress, e);
             }
         }, randomDelay, PING_INTERVAL, TimeUnit.MILLISECONDS);
 
@@ -163,10 +163,7 @@ public class LedgerPeerConnectionManager {
     public synchronized void close() {
         try {
             executorService.shutdownNow();
-            if (null != blockchainServiceFactory) {
-                blockchainServiceFactory.close();
-                blockchainServiceFactory = null;
-            }
+            blockchainServiceFactory = null;
             connectionListener = null;
             ledgersListener = null;
             logger.info("Shutdown {}:{}", ledger, peerAddress);
@@ -179,10 +176,10 @@ public class LedgerPeerConnectionManager {
      * 连接
      */
     private synchronized void connectTask() {
-        logger.debug("Connect {}", peerAddress);
+        logger.debug("Connect {}-{}", ledger, peerAddress);
         try {
             Set<HashDigest> ledgers = new HashSet<>(Arrays.asList(connect()));
-            logger.debug("Connect {}:{}", peerAddress, ledgers);
+            logger.debug("Connect {}-{}:{}", ledger, peerAddress, ledgers);
             if (ledgers.contains(ledger)) {
                 state = State.AVAILABLE;
                 if (null != connectionListener) {
@@ -205,7 +202,7 @@ public class LedgerPeerConnectionManager {
 
         } catch (Exception e) {
             state = State.UNAVAILABLE;
-            logger.error("Connect {} error", peerAddress, e);
+            logger.error("Connect {}-{} error", ledger, peerAddress, e);
         }
     }
 
