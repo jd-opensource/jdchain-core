@@ -24,6 +24,7 @@ import org.mockito.Mockito;
 
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.binaryproto.DataContractEncoder;
+import com.jd.binaryproto.DataContractRegistry;
 import com.jd.binaryproto.DataSpecification;
 import com.jd.binaryproto.impl.DataContractContext;
 import com.jd.blockchain.consts.DataCodes;
@@ -199,7 +200,7 @@ public class MerkleHashTrieTest {
 
 		assertEquals(expectedSize, dataBytes.length);
 
-		DataContractEncoder dataContractEncoder = DataContractContext.resolve(MerkleTrieData.class);
+		DataContractEncoder dataContractEncoder = DataContractRegistry.register(MerkleTrieData.class);
 		DataSpecification dataSpec = dataContractEncoder.getSpecification();
 		assertEquals(4, dataSpec.getFields().size());
 		assertEquals(5, dataSpec.getSlices().size());
