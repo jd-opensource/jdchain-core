@@ -115,7 +115,11 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
             initFromStorage(ledgersInStorage, keyPair);
         } else {
             // 根据配置文件初始化，返回可访问账本列表
-            HashDigest[] ledgers = init(address, keyPair, -1);
+            HashDigest[] ledgers = init(address, keyPair, 2);
+            if (null == ledgers || ledgers.length == 0) {
+                ledgers = new HashDigest[0];
+                new Thread(() -> init(address, keyPair, -1)).start();
+            }
             // 根据存储拓扑初始化未初始化账本
             for (int i = 0; null != ledgers && i < ledgers.length; i++) {
                 ledgersInStorage.remove(ledgers[i].toBase58());
@@ -156,10 +160,20 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
         }
 
         // 创建账本管理
-        for (int i = 0; null != ledgers && i < ledgers.length; i++) {
-            LedgerPeersManager peersManager = newLedgerPeersManager(ledgers[i], keyPair, address);
-            peersManager.startTimerTask();
-            ledgerServices.put(ledgers[i], peersManager);
+        ledgersLock.writeLock().lock();
+        try {
+            for (int i = 0; null != ledgers && i < ledgers.length; i++) {
+                if (!ledgerServices.containsKey(ledgers[i]) || !ledgerServices.get(ledgers[i]).isReady()) {
+                    if (ledgerServices.containsKey(ledgers[i])) {
+                        ledgerServices.get(ledgers[i]).close();
+                    }
+                    LedgerPeersManager peersManager = newLedgerPeersManager(ledgers[i], keyPair, address);
+                    ledgerServices.put(ledgers[i], peersManager);
+                    peersManager.startTimerTask();
+                }
+            }
+        } finally {
+            ledgersLock.writeLock().unlock();
         }
 
         return ledgers;
@@ -175,22 +189,32 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
     private boolean initFromStorage(Set<String> ledgers, AsymmetricKeypair keyPair) {
         logger.info("Init from storage {}, keyPair {}", ledgers, KeyGenUtils.encodePubKey(keyPair.getPubKey()));
         int ledgerSize = 0;
-        for (String ledgerHash : ledgers) {
-            LedgerPeersTopology topology = topologyStorage.getTopology(ledgerHash);
-            if (null != topology) {
-                if (null == topology.getPubKey() || null == topology.getPrivKey()) {
-                    continue;
-                }
-                if (null == topology.getPeerAddresses() || topology.getPeerAddresses().length == 0) {
-                    continue;
-                }
-                HashDigest ledger = Crypto.resolveAsHashDigest(Base58Utils.decode(ledgerHash));
-                LedgerPeersManager peersManager = newLedgerPeersManager(ledger, keyPair, topology.getPeerAddresses());
-                peersManager.startTimerTask();
-                ledgerServices.put(ledger, peersManager);
+        ledgersLock.writeLock().lock();
+        try {
+            for (String ledgerHash : ledgers) {
+                LedgerPeersTopology topology = topologyStorage.getTopology(ledgerHash);
+                if (null != topology) {
+                    if (null == topology.getPubKey() || null == topology.getPrivKey()) {
+                        continue;
+                    }
+                    if (null == topology.getPeerAddresses() || topology.getPeerAddresses().length == 0) {
+                        continue;
+                    }
+                    HashDigest ledger = Crypto.resolveAsHashDigest(Base58Utils.decode(ledgerHash));
+                    if (!ledgerServices.containsKey(ledger) || !ledgerServices.get(ledger).isReady()) {
+                        if (ledgerServices.containsKey(ledger)) {
+                            ledgerServices.get(ledger).close();
+                        }
+                        LedgerPeersManager peersManager = newLedgerPeersManager(ledger, keyPair, topology.getPeerAddresses());
+                        ledgerServices.put(ledger, peersManager);
+                        peersManager.startTimerTask();
+                    }
 
-                ledgerSize++;
+                    ledgerSize++;
+                }
             }
+        } finally {
+            ledgersLock.writeLock().unlock();
         }
 
         return ledgerSize > 0;
