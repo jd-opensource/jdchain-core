@@ -8,6 +8,12 @@ import bftsmart.reconfiguration.views.MemoryBasedViewStorage;
 import bftsmart.reconfiguration.views.NodeNetwork;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.ServiceProxy;
+import com.jd.blockchain.sdk.proxy.HttpBlockchainBrowserService;
+import com.jd.blockchain.transaction.BlockchainQueryService;
+import com.jd.httpservice.agent.HttpServiceAgent;
+import com.jd.httpservice.agent.ServiceConnection;
+import com.jd.httpservice.agent.ServiceConnectionManager;
+import com.jd.httpservice.agent.ServiceEndpoint;
 import utils.BusinessException;
 import utils.Bytes;
 import utils.PropertiesUtils;
@@ -108,8 +114,6 @@ import com.jd.blockchain.peer.consensus.LedgerStateManager;
 import com.jd.blockchain.sdk.AccessSpecification;
 import com.jd.blockchain.sdk.GatewayAuthRequest;
 import com.jd.blockchain.sdk.ManagementHttpService;
-import com.jd.blockchain.sdk.service.ConsensusClientManager;
-import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
 import com.jd.blockchain.sdk.service.SessionCredentialProvider;
 import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.setting.GatewayAuthResponse;
@@ -197,13 +201,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	@Autowired
 	private DbConnectionFactory connFactory;
-
-	@Autowired
-	private ConsensusClientManager peerSideConsensusClientManager;
-
-//	private Map<HashDigest, MsgQueueMessageDispatcher> ledgerTxConverters = new ConcurrentHashMap<>();
-
-	private final SessionCredentialProvider SESSION_CREDENTIAL_PROVIDER = new PeerInterconnCredentialManager();
 
 	private Map<HashDigest, NodeServer> ledgerPeers = new ConcurrentHashMap<>();
 
@@ -647,7 +644,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 				// 检查本地节点与远端节点在库上是否存在差异,有差异的话需要进行差异交易重放
 				WebResponse webResponse = checkLedgerDiff(ledgerRepo, ledgerKeypairs.get(ledgerHash), remoteManageHost, remoteManagePort);
-				if (!checkLedgerDiff(ledgerRepo, ledgerKeypairs.get(ledgerHash), remoteManageHost, remoteManagePort).isSuccess()) {
+				if (!webResponse.isSuccess()) {
 					return webResponse;
 				}
 
@@ -993,18 +990,18 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		TransactionBatchResultHandle handle = null;
 
 		providers.add(BFTSMART_PROVIDER);
-		try (PeerBlockchainServiceFactory blockchainServiceFactory = PeerBlockchainServiceFactory.connect(localKeyPair,
-				new NetworkAddress(remoteManageHost, remoteManagePort),
-				SESSION_CREDENTIAL_PROVIDER, peerSideConsensusClientManager)) {
+
+		try (ServiceConnection httpConnection = new ServiceConnectionManager().create(new ServiceEndpoint(new NetworkAddress(remoteManageHost, remoteManagePort)))) {
+
+			BlockchainQueryService queryService = HttpServiceAgent.createService(HttpBlockchainBrowserService.class, httpConnection, null);
 
 			// 激活新节点时，远端管理节点最新区块高度
-			long remoteLatestBlockHeight = blockchainServiceFactory.getBlockchainService().getLedger(ledgerHash)
+			long remoteLatestBlockHeight = queryService.getLedger(ledgerHash)
 					.getLatestBlockHeight();
 
 			if ((localLatestBlockHeight <= remoteLatestBlockHeight)) {
 				// 检查本节点与拉取节点相同高度的区块，哈希是否一致,不一致说明其中一个节点的数据库被污染了
-				HashDigest remoteBlockHash = blockchainServiceFactory.getBlockchainService()
-						.getBlock(ledgerHash, localLatestBlockHeight).getHash();
+				HashDigest remoteBlockHash = queryService.getBlock(ledgerHash, localLatestBlockHeight).getHash();
 
 				if (!(localLatestBlockHash.toBase58().equals(remoteBlockHash.toBase58()))) {
 					throw new IllegalStateException(
@@ -1025,10 +1022,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				TransactionBatchProcessor txbatchProcessor = new TransactionBatchProcessor(ledgerRepository, opReg);
 				// transactions replay
 				try {
-					HashDigest pullBlockHash = blockchainServiceFactory.getBlockchainService()
-							.getBlock(ledgerHash, height).getHash();
-					long pullBlockTime = blockchainServiceFactory.getBlockchainService().getBlock(ledgerHash, height)
-							.getTimestamp();
+					HashDigest pullBlockHash = queryService.getBlock(ledgerHash, height).getHash();
+					long pullBlockTime = queryService.getBlock(ledgerHash, height).getTimestamp();
 
 					// 获取区块内的增量交易
 					List<LedgerTransaction> addition_transactions = getAdditionalTransactions(ledgerHash, height, remoteManageHost, remoteManagePort);
