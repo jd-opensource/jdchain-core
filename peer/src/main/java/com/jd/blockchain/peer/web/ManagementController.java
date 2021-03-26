@@ -979,8 +979,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	private WebResponse checkLedgerDiff(LedgerRepository ledgerRepository, AsymmetricKeypair localKeyPair,
 										String remoteManageHost, int remoteManagePort) {
 
-		List<String> providers = new ArrayList<String>();
-
 		long localLatestBlockHeight = ledgerRepository.getLatestBlockHeight();
 
 		HashDigest localLatestBlockHash = ledgerRepository.getLatestBlockHash();
@@ -988,8 +986,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		HashDigest ledgerHash = ledgerRepository.getHash();
 
 		TransactionBatchResultHandle handle = null;
-
-		providers.add(BFTSMART_PROVIDER);
 
 		try (ServiceConnection httpConnection = new ServiceConnectionManager().create(new ServiceEndpoint(new NetworkAddress(remoteManageHost, remoteManagePort)))) {
 
@@ -1525,40 +1521,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		return new ThreadPoolExecutor(coreSize, coreSize, 60, TimeUnit.SECONDS, new LinkedBlockingQueue<>(1024),
 				threadFactory, new ThreadPoolExecutor.AbortPolicy());
-	}
-
-	/**
-	 * 节点间互联的会话凭证提供者；
-	 *
-	 * @author huanghaiquan
-	 *
-	 */
-	private class PeerInterconnCredentialManager implements SessionCredentialProvider {
-
-		@Override
-		public SessionCredential getCredential(String key) {
-			HashDigest ledgerHash = Crypto.resolveAsHashDigest(Base58Utils.decode(key));
-
-			NodeServer nodeServer = ledgerPeers.get(ledgerHash);
-			if (nodeServer == null) {
-				return null;
-			}
-			// 除了 BFTSMaRT 共识之外其它的共识不需要会话凭证；
-			if (BftsmartConsensusProvider.NAME.equals(nodeServer.getProviderName())) {
-				int nodeId = ((BftsmartNodeServer) nodeServer).getId();
-				int clientId = BftsmartClientAuthencationService.allocateClientIdForPeer(nodeId);
-				return new BftsmartSessionCredentialConfig(clientId, 1, System.currentTimeMillis());
-			}
-
-			// 除了 BFTSMaRT 共识之外其它的共识不需要会话凭证；
-			return null;
-		}
-
-		@Override
-		public void setCredential(String key, SessionCredential credential) {
-			// 作为 Peer 间互联的凭证管理器，内部的分配规则是固定的，不能被更新；
-		}
-
 	}
 
 	// 节点更新类型

@@ -163,6 +163,9 @@ public class LedgerPeerConnectionManager {
     public synchronized void close() {
         try {
             executorService.shutdownNow();
+            if (null != blockchainServiceFactory) {
+                blockchainServiceFactory.close();
+            }
             blockchainServiceFactory = null;
             connectionListener = null;
             ledgersListener = null;
@@ -207,8 +210,12 @@ public class LedgerPeerConnectionManager {
     }
 
     public synchronized HashDigest[] connect() {
-        blockchainServiceFactory = PeerBlockchainServiceFactory.connect(keyPair, peerAddress, credentialProvider, clientManager);
-        return blockchainServiceFactory.getLedgerHashs();
+        PeerBlockchainServiceFactory factory = PeerBlockchainServiceFactory.connect(keyPair, peerAddress, credentialProvider, clientManager);
+        if (null != blockchainServiceFactory) {
+            blockchainServiceFactory.close();
+        }
+        blockchainServiceFactory = factory;
+        return factory.getLedgerHashs();
     }
 
     /**

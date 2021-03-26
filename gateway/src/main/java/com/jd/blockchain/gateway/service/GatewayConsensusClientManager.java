@@ -3,6 +3,8 @@ package com.jd.blockchain.gateway.service;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.jd.blockchain.consensus.SessionCredential;
@@ -15,6 +17,8 @@ import com.jd.blockchain.sdk.service.ConsensusClientManager;
 @Component
 public class GatewayConsensusClientManager implements ConsensusClientManager {
 
+	private static final Logger logger = LoggerFactory.getLogger(GatewayConsensusClientManager.class);
+
 	private Map<HashDigest, ConsensusClient> ledgerConsensusClients = new ConcurrentHashMap<HashDigest, ConsensusClient>();
 
 	@Override
@@ -22,15 +26,18 @@ public class GatewayConsensusClientManager implements ConsensusClientManager {
 			ConsensusClientFactory factory) {
 		ConsensusClient client = ledgerConsensusClients.get(ledgerHash);
 		if (client == null) {
+			logger.info("Create new consensus client for {}", ledgerHash);
 			client = factory.create();
 			client.connect();
 			ledgerConsensusClients.put(ledgerHash, client);
 		} else {
 			if (isCredentialUpated(client, sessionCredential)) {
+				logger.info("Update consensus client for {}", ledgerHash);
 				client.close();
 				ledgerConsensusClients.remove(ledgerHash);
 
 				client = factory.create();
+				client.connect();
 				ledgerConsensusClients.put(ledgerHash, client);
 			}
 		}
@@ -38,7 +45,7 @@ public class GatewayConsensusClientManager implements ConsensusClientManager {
 	}
 	
 	@Override
-	public void reset() {
+	public synchronized void reset() {
 		ConsensusClient[] pooledClients = ledgerConsensusClients.values().toArray(new ConsensusClient[ledgerConsensusClients.size()]);
 		ledgerConsensusClients.clear();
 		for (ConsensusClient client : pooledClients) {
