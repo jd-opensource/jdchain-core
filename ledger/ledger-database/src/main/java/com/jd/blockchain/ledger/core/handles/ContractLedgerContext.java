@@ -322,6 +322,13 @@ public class ContractLedgerContext implements LedgerContext {
 		public DataAccountKVSetOperation getOperation() {
 			return op;
 		}
+		
+		@Override
+		public DataAccountKVSetOperationBuilder set(String key, BytesValue value, long expVersion) {
+			this.op = new SingleKVSetOpTemplate(key, value, expVersion);
+			handle(op);
+			return this;
+		}
 
 		@Override
 		public DataAccountKVSetOperationBuilder setText(String key, String value, long expVersion) {
