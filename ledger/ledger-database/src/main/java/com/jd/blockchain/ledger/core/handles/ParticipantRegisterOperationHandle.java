@@ -30,7 +30,7 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
 
 		ParticipantNode participantNode = new PartNode((int) (adminAccountDataSet.getParticipantCount()),
 				participantRegOp.getParticipantName(), participantRegOp.getParticipantID().getPubKey(),
-				ParticipantNodeState.READY);
+				ParticipantRegisterOperation.DEFAULT_STATE);
 
 		// add new participant
 		adminAccountDataSet.addParticipant(participantNode);
