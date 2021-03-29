@@ -295,6 +295,8 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
                 }
             }
 
+            closeConsensusClient();
+
             // 关闭旧的连接，替换新连接
             Map<NetworkAddress, LedgerPeerConnectionManager> oldConnections = new HashMap<>();
             oldConnections.putAll(connections);
@@ -324,6 +326,9 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
     public void close() {
         connectionsLock.writeLock().lock();
         try {
+
+            closeConsensusClient();
+
             for (Map.Entry<NetworkAddress, LedgerPeerConnectionManager> entry : connections.entrySet()) {
                 entry.getValue().close();
             }
@@ -344,5 +349,13 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
 
     public boolean isReady() {
         return ready;
+    }
+
+    /**
+     * 关闭 consensus client
+     */
+    private void closeConsensusClient() {
+        logger.info("Close consensus client for {}", getLedger());
+        clientManager.remove(getLedger());
     }
 }

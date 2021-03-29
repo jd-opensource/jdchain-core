@@ -6,14 +6,19 @@ import com.jd.blockchain.consensus.client.ClientSettings;
 import com.jd.blockchain.consensus.client.ConsensusClient;
 import com.jd.blockchain.consensus.manage.ConsensusManageClient;
 import com.jd.blockchain.consensus.manage.ConsensusManageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BftsmartConsensusClient implements ConsensusClient, ConsensusManageClient {
+
+    private static final Logger logger = LoggerFactory.getLogger(BftsmartConsensusClient.class);
 
     private BftsmartServiceProxyPool serviceProxyPool;
 
     private BftsmartClientSettings clientSettings;
 
     public BftsmartConsensusClient(BftsmartClientSettings clientSettings) {
+        logger.info("New consensus client : {}", clientSettings.getClientId());
         this.clientSettings = clientSettings;
     }
 
@@ -41,12 +46,14 @@ public class BftsmartConsensusClient implements ConsensusClient, ConsensusManage
     public synchronized void connect() {
         //consensus client pool
     	if (serviceProxyPool == null) {
+            logger.info("Connect consensus client : {}", clientSettings.getClientId());
     		this.serviceProxyPool = new BftsmartServiceProxyPool(clientSettings);
 		}
     }
 
     @Override
     public void close() {
+        logger.info("Close consensus client : {}", clientSettings.getClientId());
     	BftsmartServiceProxyPool serviceProxyPool = this.serviceProxyPool;
     	this.serviceProxyPool = null;
         if (serviceProxyPool != null) {

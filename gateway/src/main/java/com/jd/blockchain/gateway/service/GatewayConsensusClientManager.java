@@ -26,19 +26,20 @@ public class GatewayConsensusClientManager implements ConsensusClientManager {
 			ConsensusClientFactory factory) {
 		ConsensusClient client = ledgerConsensusClients.get(ledgerHash);
 		if (client == null) {
-			logger.info("Create new consensus client for {}", ledgerHash);
 			client = factory.create();
 			client.connect();
 			ledgerConsensusClients.put(ledgerHash, client);
+			logger.info("Create new consensus client for {}-{}", ledgerHash, client.getSettings().getClientId());
 		} else {
 			if (isCredentialUpated(client, sessionCredential)) {
-				logger.info("Update consensus client for {}", ledgerHash);
+				int oldId = client.getSettings().getClientId();
 				client.close();
 				ledgerConsensusClients.remove(ledgerHash);
 
 				client = factory.create();
 				client.connect();
 				ledgerConsensusClients.put(ledgerHash, client);
+				logger.info("Update consensus client for {}-{}-{}", ledgerHash, oldId, client.getSettings().getClientId());
 			}
 		}
 		return client;
@@ -49,6 +50,15 @@ public class GatewayConsensusClientManager implements ConsensusClientManager {
 		ConsensusClient[] pooledClients = ledgerConsensusClients.values().toArray(new ConsensusClient[ledgerConsensusClients.size()]);
 		ledgerConsensusClients.clear();
 		for (ConsensusClient client : pooledClients) {
+			client.close();
+		}
+	}
+
+	@Override
+	public synchronized void remove(HashDigest ledger) {
+		ConsensusClient client = ledgerConsensusClients.get(ledger);
+		ledgerConsensusClients.remove(ledger);
+		if(null != client) {
 			client.close();
 		}
 	}
