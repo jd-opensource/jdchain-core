@@ -70,9 +70,6 @@ public class GatewayServerBooter {
 	// sp;针对spring.config.location这个参数进行包装;
 	private static final String SPRING_CF_LOCATION = BaseConstant.SPRING_CF_LOCATION;
 
-	// 是否输出调试信息；
-	private static final String DEBUG_OPT = "-debug";
-
 	public static final String CONFIG_FOLDER_NAME = "config";
 
 	public static final String RUNTIME_FOLDER_NAME = "runtime";
@@ -88,11 +85,8 @@ public class GatewayServerBooter {
 	}
 
 	public static void main(String[] args) {
-		boolean debug = false;
 		try {
-			ArgumentSet arguments = ArgumentSet.resolve(args,
-					ArgumentSet.setting().prefix(HOST_ARG, SPRING_CF_LOCATION).option(DEBUG_OPT));
-			debug = arguments.hasOption(DEBUG_OPT);
+			ArgumentSet arguments = ArgumentSet.resolve(args, ArgumentSet.setting().prefix(HOST_ARG, SPRING_CF_LOCATION));
 			ArgEntry argHost = arguments.getArg(HOST_ARG);
 			String configFile = argHost == null ? null : argHost.getValue();
 			GatewayConfigProperties configProps;
@@ -138,10 +132,7 @@ public class GatewayServerBooter {
 			GatewayServerBooter booter = new GatewayServerBooter(configProps, springConfigLocation);
 			booter.start();
 		} catch (Exception e) {
-			ConsoleUtils.error("Error!! %s", e.getMessage());
-			if (debug) {
-				e.printStackTrace();
-			}
+			ConsoleUtils.error("Starting web server......", e);
 		}
 	}
 

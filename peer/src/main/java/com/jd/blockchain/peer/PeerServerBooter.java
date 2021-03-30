@@ -2,14 +2,14 @@ package com.jd.blockchain.peer;
 
 import java.io.File;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContextInitializer;
@@ -103,6 +103,7 @@ import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
 
 import utils.ArgumentSet;
 import utils.ConsoleUtils;
+import utils.StringUtils;
 
 /**
  * 节点服务实例的启动器；
@@ -112,20 +113,19 @@ import utils.ConsoleUtils;
  */
 public class PeerServerBooter {
 
-	private static final Log log = LogFactory.getLog(PeerServerBooter.class);
-
 	// 初始化账本绑定配置文件的路径；
 	public static final String LEDGERBIND_ARG = "-c";
 	// 服务地址；
 	private static final String HOST_ARG = "-h";
 	// 服务端口；
 	private static final String PORT_ARG = "-p";
-	// 是否输出调试信息；
-	private static final String DEBUG_OPT = "-debug";
 
 	public static final String LEDGER_BIND_CONFIG_NAME = "ledger-binding.conf";
 
 	public static String ledgerBindConfigFile;
+
+	// 日志配置文件
+	public static final String LOG_CONFIG_FILE = "logging.config";
 
 	static {
 		// 加载 Global ，初始化全局设置；
@@ -136,15 +136,25 @@ public class PeerServerBooter {
 	}
 
 	public static void main(String[] args) {
-		PeerServerBooter peerServerBooter = new PeerServerBooter();
-		peerServerBooter.handle(args);
+		configLogger();
+		handle(args);
 	}
 
-	public void handle(String[] args){
+	private static void configLogger() {
+		String conFile = System.getProperty(LOG_CONFIG_FILE);
+		if(!StringUtils.isEmpty(conFile)) {
+			URI uri = URI.create(conFile);
+			File log4jFile = new File(uri);
+			if (log4jFile.exists()) {
+				Configurator.initialize("Log4j2", log4jFile.getAbsolutePath()).start();
+			}
+		}
+	}
+
+	public static void handle(String[] args){
 		LedgerBindingConfig ledgerBindingConfig = null;
 		ArgumentSet arguments = ArgumentSet.resolve(args,
-				ArgumentSet.setting().prefix(LEDGERBIND_ARG, HOST_ARG, PORT_ARG).option(DEBUG_OPT));
-		boolean debug = false;
+				ArgumentSet.setting().prefix(LEDGERBIND_ARG, HOST_ARG, PORT_ARG));
 		try {
 			ArgumentSet.ArgEntry argLedgerBindConf = arguments.getArg(LEDGERBIND_ARG);
 			ledgerBindConfigFile = argLedgerBindConf == null ? null : argLedgerBindConf.getValue();
@@ -182,17 +192,11 @@ public class PeerServerBooter {
 				}
 			}
 
-			debug = arguments.hasOption(DEBUG_OPT);
 			PeerServerBooter booter = new PeerServerBooter(ledgerBindingConfig, host, port);
-			if(log.isDebugEnabled()){
-				log.debug("PeerServerBooter's urls="+ Arrays.toString(((URLClassLoader) booter.getClass().getClassLoader()).getURLs()));
-			}
+			ConsoleUtils.info("PeerServerBooter's urls="+ Arrays.toString(((URLClassLoader) booter.getClass().getClassLoader()).getURLs()));
 			booter.start();
 		} catch (Exception e) {
-			ConsoleUtils.error("Error occurred on startup! --%s", e.getMessage());
-			if (debug) {
-				e.printStackTrace();
-			}
+			ConsoleUtils.error("Error occurred on startup!", e);
 		}
 	}
 

@@ -7,8 +7,6 @@ import com.jd.blockchain.ump.web.RetrievalConfig;
 
 import utils.ConsoleUtils;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -23,10 +21,6 @@ import javax.servlet.http.HttpServletRequest;
 @RestController
 @RequestMapping(path = "/tasks")
 public class TaskRetrievalController {
-    private static final Log log = LogFactory.getLog(TaskRetrievalController.class);
-
-//    @Value("${task.retrieval.url}")
-//    private String taskRetrievalUrl;
 
     @Autowired
     private DataRetrievalService dataRetrievalService;
