@@ -4,8 +4,10 @@ import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
+import com.jd.blockchain.gateway.service.GatewayConsensusClientManager;
 import com.jd.blockchain.gateway.service.LedgerPeerConnectionManager;
 import com.jd.blockchain.ledger.BlockchainKeypair;
+import com.jd.blockchain.sdk.service.ConsensusClientManager;
 import com.jd.blockchain.setting.GatewayAuthResponse;
 import com.jd.blockchain.setting.LedgerIncomingSettings;
 import org.junit.Assert;
@@ -28,8 +30,10 @@ public class LedgerPeerConnectionManagerTest {
     static HashDigest ledger = Crypto.resolveAsHashDigest(Base58Utils.decode("j5kVBDweKVYVXBmUS3TRE2r9UrqPH1ojt8PKuP6rfF2UYx"));
     static NetworkAddress peerAddress = new NetworkAddress("127.0.0.1", 7080);
 
+    static ConsensusClientManager clientManager = new GatewayConsensusClientManager();
+
     static LedgerPeerConnectionManager newMockLedgerPeerConnectionManager(HashDigest ledger, NetworkAddress peerAddress) {
-        LedgerPeerConnectionManager mConnectionManager = spy(new LedgerPeerConnectionManager(ledger, peerAddress, keyPair, null, null, null));
+        LedgerPeerConnectionManager mConnectionManager = spy(new LedgerPeerConnectionManager(ledger, peerAddress, keyPair, null, clientManager, null));
         doReturn(new HashDigest[]{ledger}).when(mConnectionManager).connect();
         GatewayAuthResponse authResponse = new GatewayAuthResponse();
         LedgerIncomingSettings settings = new LedgerIncomingSettings();

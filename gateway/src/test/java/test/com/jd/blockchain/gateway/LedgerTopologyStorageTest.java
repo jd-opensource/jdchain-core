@@ -4,6 +4,7 @@ import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
+import com.jd.blockchain.gateway.service.GatewayConsensusClientManager;
 import com.jd.blockchain.gateway.service.LedgerPeerConnectionManager;
 import com.jd.blockchain.gateway.service.LedgerPeersManager;
 import com.jd.blockchain.gateway.service.LedgersListener;
@@ -11,11 +12,13 @@ import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.gateway.service.topology.LedgerPeerApiServicesTopology;
 import com.jd.blockchain.gateway.service.topology.LedgerPeersTopologyStorage;
 import com.jd.blockchain.ledger.BlockchainKeypair;
+import com.jd.blockchain.sdk.service.ConsensusClientManager;
 import com.jd.blockchain.setting.GatewayAuthResponse;
 import com.jd.blockchain.setting.LedgerIncomingSettings;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import utils.codec.Base58Utils;
 import utils.io.FileSystemStorage;
 import utils.net.NetworkAddress;
@@ -25,7 +28,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
@@ -33,6 +35,8 @@ import static org.mockito.Mockito.spy;
  * 账本-节点拓扑存储测试
  */
 public class LedgerTopologyStorageTest {
+
+    static ConsensusClientManager clientManager = new GatewayConsensusClientManager();
 
     AsymmetricKeypair keyPair = new BlockchainKeypair(KeyGenUtils.decodePubKey("3snPdw7i7PhgdrXp9UxgTMr5PAYFxrEWdRdAdn9hsBA4pvp1iVYXM6"),
             KeyGenUtils.decodePrivKey("177gjvG9ZKkGwdzKfrK2YguhS2Wthu6EdbVSF9WqCxfmqdJuVz82BfFwt53XaGYEbp8RqRW",
@@ -56,7 +60,7 @@ public class LedgerTopologyStorageTest {
     LedgerPeersTopologyStorage topologyStorage;
 
     static LedgerPeerConnectionManager newMockLedgerPeerConnectionManager(HashDigest ledger, AsymmetricKeypair keyPair, NetworkAddress peerAddress, LedgersListener ledgersListener, HashDigest[] accessibleLedgers) {
-        LedgerPeerConnectionManager mConnectionManager = spy(new LedgerPeerConnectionManager(ledger, peerAddress, keyPair, null, null, ledgersListener));
+        LedgerPeerConnectionManager mConnectionManager = spy(new LedgerPeerConnectionManager(ledger, peerAddress, keyPair, null, clientManager, ledgersListener));
         doReturn(accessibleLedgers).when(mConnectionManager).connect();
         GatewayAuthResponse authResponse = new GatewayAuthResponse();
         LedgerIncomingSettings[] settings = new LedgerIncomingSettings[accessibleLedgers.length];
@@ -73,7 +77,7 @@ public class LedgerTopologyStorageTest {
     }
 
     static LedgerPeersManager newMockLedgerPeersManager(HashDigest ledger, AsymmetricKeypair keyPair, LedgerPeerConnectionManager[] connectionManagers, LedgersListener ledgersListener, LedgerPeersTopologyStorage storage) {
-        LedgerPeersManager ledgerPeersManager = new LedgerPeersManager(ledger, connectionManagers, keyPair, null, null, ledgersListener, storage);
+        LedgerPeersManager ledgerPeersManager = new LedgerPeersManager(ledger, connectionManagers, keyPair, null, clientManager, ledgersListener, storage);
         LedgerPeersManager mLedgerPeersManager = spy(ledgerPeersManager);
         for(LedgerPeerConnectionManager manager : connectionManagers) {
             manager.setConnectionListener(mLedgerPeersManager);
@@ -117,7 +121,7 @@ public class LedgerTopologyStorageTest {
         doReturn(topology1).when(peersManager1).updateTopology();
 
         // 先初始化L1
-        doReturn(peersManager1).doReturn(peersManager0).when(mLedgersManager).newLedgerPeersManager(any(), any(), any(NetworkAddress[].class));
+        doReturn(peersManager1).doReturn(peersManager0).when(mLedgersManager).newLedgerPeersManager(Mockito.any(), Mockito.any(), Mockito.any(NetworkAddress[].class));
 
         doReturn(topologyStorage).when(mLedgersManager).newLedgerPeersTopologyStorage();
         mLedgersManager.init(peerAddresses0[0], keyPair, true);

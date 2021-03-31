@@ -4,9 +4,11 @@ import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
+import com.jd.blockchain.gateway.service.GatewayConsensusClientManager;
 import com.jd.blockchain.gateway.service.LedgerPeerConnectionManager;
 import com.jd.blockchain.gateway.service.LedgerPeersManager;
 import com.jd.blockchain.ledger.BlockchainKeypair;
+import com.jd.blockchain.sdk.service.ConsensusClientManager;
 import com.jd.blockchain.setting.GatewayAuthResponse;
 import com.jd.blockchain.setting.LedgerIncomingSettings;
 import org.junit.Assert;
@@ -36,9 +38,10 @@ public class LedgerPeersManagerTest {
             new NetworkAddress("127.0.0.1", 7083),
     };
     static Set<NetworkAddress> topology = new HashSet<>(Arrays.asList(peerAddresses));
+    static ConsensusClientManager clientManager = new GatewayConsensusClientManager();
 
     static LedgerPeerConnectionManager newMockLedgerPeerConnectionManager(HashDigest ledger, NetworkAddress peerAddress) {
-        LedgerPeerConnectionManager mConnectionManager = spy(new LedgerPeerConnectionManager(ledger, peerAddress, keyPair, null, null, null));
+        LedgerPeerConnectionManager mConnectionManager = spy(new LedgerPeerConnectionManager(ledger, peerAddress, keyPair, null, clientManager, null));
         doReturn(new HashDigest[]{ledger}).when(mConnectionManager).connect();
         GatewayAuthResponse authResponse = new GatewayAuthResponse();
         LedgerIncomingSettings settings = new LedgerIncomingSettings();
@@ -67,7 +70,7 @@ public class LedgerPeersManagerTest {
     }
 
     static LedgerPeersManager newMockLedgerPeersManager(HashDigest ledger, LedgerPeerConnectionManager[] connectionManagers) {
-        LedgerPeersManager ledgerPeersManager = new LedgerPeersManager(ledger, connectionManagers, keyPair, null, null, null, null);
+        LedgerPeersManager ledgerPeersManager = new LedgerPeersManager(ledger, connectionManagers, keyPair, null, clientManager, null, null);
         LedgerPeersManager mLedgerPeersManager = spy(ledgerPeersManager);
 
         return mLedgerPeersManager;

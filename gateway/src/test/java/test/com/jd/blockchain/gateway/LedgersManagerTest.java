@@ -4,12 +4,14 @@ import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
+import com.jd.blockchain.gateway.service.GatewayConsensusClientManager;
 import com.jd.blockchain.gateway.service.LedgerPeerConnectionListener;
 import com.jd.blockchain.gateway.service.LedgerPeerConnectionManager;
 import com.jd.blockchain.gateway.service.LedgerPeersManager;
 import com.jd.blockchain.gateway.service.LedgersListener;
 import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.ledger.BlockchainKeypair;
+import com.jd.blockchain.sdk.service.ConsensusClientManager;
 import com.jd.blockchain.setting.GatewayAuthResponse;
 import com.jd.blockchain.setting.LedgerIncomingSettings;
 import org.junit.Assert;
@@ -25,12 +27,14 @@ import static org.mockito.Mockito.*;
 
 public class LedgersManagerTest {
 
+    static ConsensusClientManager clientManager = new GatewayConsensusClientManager();
+
     static LedgerPeerConnectionManager newMockLedgerPeerConnectionManager(HashDigest ledger, AsymmetricKeypair keyPair, NetworkAddress peerAddress, LedgersListener ledgersListener) {
         return newMockLedgerPeerConnectionManager(ledger, keyPair, peerAddress, ledgersListener, new HashDigest[]{ledger});
     }
 
     static LedgerPeerConnectionManager newMockLedgerPeerConnectionManager(HashDigest ledger, AsymmetricKeypair keyPair, NetworkAddress peerAddress, LedgersListener ledgersListener, HashDigest[] accessibleLedgers) {
-        LedgerPeerConnectionManager mConnectionManager = spy(new LedgerPeerConnectionManager(ledger, peerAddress, keyPair, null, null, ledgersListener));
+        LedgerPeerConnectionManager mConnectionManager = spy(new LedgerPeerConnectionManager(ledger, peerAddress, keyPair, null, clientManager, ledgersListener));
         doReturn(accessibleLedgers).when(mConnectionManager).connect();
         GatewayAuthResponse authResponse = new GatewayAuthResponse();
         LedgerIncomingSettings[] settings = new LedgerIncomingSettings[accessibleLedgers.length];
@@ -66,7 +70,7 @@ public class LedgersManagerTest {
     }
 
     static LedgerPeersManager newMockLedgerPeersManager(HashDigest ledger, AsymmetricKeypair keyPair, LedgerPeerConnectionManager[] connectionManagers, LedgersListener ledgersListener) {
-        LedgerPeersManager ledgerPeersManager = new LedgerPeersManager(ledger, connectionManagers, keyPair, null, null, ledgersListener, null);
+        LedgerPeersManager ledgerPeersManager = new LedgerPeersManager(ledger, connectionManagers, keyPair, null, clientManager, ledgersListener, null);
         LedgerPeersManager mLedgerPeersManager = spy(ledgerPeersManager);
         for(LedgerPeerConnectionManager manager : connectionManagers) {
             manager.setConnectionListener(mLedgerPeersManager);
@@ -771,7 +775,7 @@ public class LedgersManagerTest {
             doReturn(removeAuthResponse).when(peerConnectionManager).auth();
         }
 
-        Thread.sleep(LedgerPeersManager.UPDATE_TOPOLOGY_INTERVAL + LedgerPeerConnectionManager.AUTH_INTERVAL*2);
+        Thread.sleep(LedgerPeersManager.UPDATE_TOPOLOGY_INTERVAL + LedgerPeerConnectionManager.AUTH_INTERVAL*3);
         Assert.assertEquals(1, mLedgersManager.getLedgerHashs().length);
         Assert.assertEquals(4, peersManager0.getPeerAddresses().size());
         Assert.assertTrue(peersManager0.getPeerAddresses().containsAll(topology0));
