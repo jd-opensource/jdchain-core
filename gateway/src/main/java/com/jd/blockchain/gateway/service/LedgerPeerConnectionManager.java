@@ -4,6 +4,7 @@ import com.jd.blockchain.consensus.NodeNetworkAddresses;
 import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.sdk.service.ConsensusClientManager;
+import com.jd.blockchain.sdk.service.PeerAuthenticator;
 import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
 import com.jd.blockchain.sdk.service.SessionCredentialProvider;
 import com.jd.blockchain.setting.GatewayAuthResponse;
@@ -53,6 +54,8 @@ public class LedgerPeerConnectionManager {
     // 可访问的账本列表
     private Set<HashDigest> accessibleLedgers;
 
+    private PeerAuthenticator authenticator;
+
     public LedgerPeerConnectionManager(HashDigest ledger, NetworkAddress peerAddress, AsymmetricKeypair keyPair,
                                        SessionCredentialProvider credentialProvider, ConsensusClientManager clientManager,
                                        LedgersListener ledgersListener) {
@@ -68,6 +71,7 @@ public class LedgerPeerConnectionManager {
         this.credentialProvider = credentialProvider;
         this.clientManager = clientManager;
         this.ledgersListener = ledgersListener;
+        this.authenticator = new PeerAuthenticator(peerAddress, keyPair, credentialProvider);
     }
 
     public void setConnectionListener(LedgerPeerConnectionListener connectionListener) {
@@ -262,7 +266,7 @@ public class LedgerPeerConnectionManager {
     }
 
     public GatewayAuthResponse auth() {
-        return PeerBlockchainServiceFactory.auth(keyPair, peerAddress, credentialProvider);
+        return authenticator.request();
     }
 
     /**
