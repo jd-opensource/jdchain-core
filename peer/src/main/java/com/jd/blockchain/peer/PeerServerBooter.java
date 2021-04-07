@@ -2,6 +2,7 @@ package com.jd.blockchain.peer;
 
 import java.io.File;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,6 +11,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContextInitializer;
@@ -103,6 +105,7 @@ import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
 
 import utils.ArgumentSet;
 import utils.ConsoleUtils;
+import utils.StringUtils;
 
 /**
  * 节点服务实例的启动器；
@@ -145,8 +148,7 @@ public class PeerServerBooter {
 	 */
 	public static void main(String[] args) {
 		configLogger();
-		PeerServerBooter peerServerBooter = new PeerServerBooter();
-		peerServerBooter.handle(args);
+		handle(args);
 	}
 
 	private static void configLogger() {
@@ -159,7 +161,7 @@ public class PeerServerBooter {
 			}
 		}
 	}
-	public void handle(String[] args) {
+	public static void handle(String[] args) {
 		LedgerBindingConfig ledgerBindingConfig = null;
 		ArgumentSet arguments = ArgumentSet.resolve(args,
 				ArgumentSet.setting().prefix(LEDGERBIND_ARG, HOST_ARG, PORT_ARG).option(DEBUG_OPT));
@@ -221,9 +223,6 @@ public class PeerServerBooter {
 	private int port;
 	private Object[] externalBeans;
 	private volatile ConfigurableApplicationContext appContext;
-
-	public PeerServerBooter() {
-	}
 
 	public PeerServerBooter(LedgerBindingConfig ledgerBindingConfig, String hostAddress, int port,
 			Object... externalBeans) {

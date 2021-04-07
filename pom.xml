@@ -15,7 +15,7 @@
 	<packaging>pom</packaging>
 
 	<properties>
-		<utils.version>2.0.1.RELEASE</utils.version>
+		<utils.version>2.1.0-SNAPSHOT</utils.version>
 		<httpservice.version>2.0.1.RELEASE</httpservice.version>
 		<binaryproto.version>1.5.1.RELEASE</binaryproto.version>
 		<bftsmart.version>0.7.0-SNAPSHOT</bftsmart.version>
