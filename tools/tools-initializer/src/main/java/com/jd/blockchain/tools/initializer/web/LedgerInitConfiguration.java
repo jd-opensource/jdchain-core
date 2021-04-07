@@ -31,8 +31,8 @@ import utils.StringUtils;
 
 public class LedgerInitConfiguration {
 
-	private static final String[] SUPPORTED_PROVIDERS = { ClassicCryptoService.class.getName(),
-			SMCryptoService.class.getName() };
+//	private static final String[] supportedProviders = { ClassicCryptoService.class.getName(),
+//			SMCryptoService.class.getName() };
 
 	private static final String DEFAULT_HASH_ALGORITHM = "SHA256";
 
@@ -132,11 +132,7 @@ public class LedgerInitConfiguration {
 	}
 
 	private static CryptoConfig createCryptoConfig(CryptoProperties cryptoProperties) {
-		// 总是包含默认的提供者；
 		Set<String> cryptoProviderNames = new LinkedHashSet<String>();
-		for (String providerName : SUPPORTED_PROVIDERS) {
-			cryptoProviderNames.add(providerName);
-		}
 		if (cryptoProperties.getProviders() != null) {
 			for (String providerName : cryptoProperties.getProviders()) {
 				cryptoProviderNames.add(providerName);

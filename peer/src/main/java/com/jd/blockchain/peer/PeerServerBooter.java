@@ -135,9 +135,17 @@ public class PeerServerBooter {
 		registerDataContracts();
 	}
 
-	
+	/**
+	 * 主入口方法，由启动脚本进行调用；
+	 * 
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		PeerServerBooter peerServerBooter = new PeerServerBooter();
+		peerServerBooter.handle(args);
+	}
 
-	public void handle(String[] args){
+	public void handle(String[] args) {
 		LedgerBindingConfig ledgerBindingConfig = null;
 		ArgumentSet arguments = ArgumentSet.resolve(args,
 				ArgumentSet.setting().prefix(LEDGERBIND_ARG, HOST_ARG, PORT_ARG).option(DEBUG_OPT));
@@ -181,8 +189,9 @@ public class PeerServerBooter {
 
 			debug = arguments.hasOption(DEBUG_OPT);
 			PeerServerBooter booter = new PeerServerBooter(ledgerBindingConfig, host, port);
-			if(log.isDebugEnabled()){
-				log.debug("PeerServerBooter's urls="+ Arrays.toString(((URLClassLoader) booter.getClass().getClassLoader()).getURLs()));
+			if (log.isDebugEnabled()) {
+				log.debug("PeerServerBooter's urls="
+						+ Arrays.toString(((URLClassLoader) booter.getClass().getClassLoader()).getURLs()));
 			}
 			booter.start();
 		} catch (Exception e) {
@@ -199,10 +208,11 @@ public class PeerServerBooter {
 	private Object[] externalBeans;
 	private volatile ConfigurableApplicationContext appContext;
 
-	public PeerServerBooter(){}
+	public PeerServerBooter() {
+	}
 
 	public PeerServerBooter(LedgerBindingConfig ledgerBindingConfig, String hostAddress, int port,
-							Object... externalBeans) {
+			Object... externalBeans) {
 		this.ledgerBindingConfig = ledgerBindingConfig;
 		this.hostAddress = hostAddress;
 		this.port = port;
@@ -234,12 +244,9 @@ public class PeerServerBooter {
 	/**
 	 * 启动服务；
 	 *
-	 * @param ledgerBindingConfig
-	 *            账本绑定配置；
-	 * @param hostAddress
-	 *            服务地址；如果为空，则采用默认配置;
-	 * @param port
-	 *            端口地址；如果小于等于 0 ，则采用默认配置；
+	 * @param ledgerBindingConfig 账本绑定配置；
+	 * @param hostAddress         服务地址；如果为空，则采用默认配置;
+	 * @param port                端口地址；如果小于等于 0 ，则采用默认配置；
 	 * @return
 	 */
 	private static ConfigurableApplicationContext startServer(LedgerBindingConfig ledgerBindingConfig,
@@ -278,7 +285,8 @@ public class PeerServerBooter {
 		// 配置文件为空，则说明目前没有账本，不需要配置账本相关信息
 		if (ledgerBindingConfig != null) {
 			// 建立共识网络；
-			Map<String, LedgerBindingConfigAware> bindingConfigAwares = ctx.getBeansOfType(LedgerBindingConfigAware.class);
+			Map<String, LedgerBindingConfigAware> bindingConfigAwares = ctx
+					.getBeansOfType(LedgerBindingConfigAware.class);
 			for (LedgerBindingConfigAware aware : bindingConfigAwares.values()) {
 				aware.setConfig(ledgerBindingConfig);
 			}
