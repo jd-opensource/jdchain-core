@@ -221,10 +221,7 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
     }
 
     public HashDigest[] getLedgers(AsymmetricKeypair keyPair, NetworkAddress peerAddress) {
-        try {
-            PeerBlockchainServiceFactory factory = PeerBlockchainServiceFactory.connect(keyPair, peerAddress, credentialProvider, clientManager);
-            // 关闭初始连接
-            factory.close();
+        try(PeerBlockchainServiceFactory factory = PeerBlockchainServiceFactory.connect(keyPair, peerAddress, credentialProvider, clientManager);) {
             return factory.getLedgerHashs();
         } catch (Exception e) {
             logger.error("Get ledgers from {} error", peerAddress, e);
