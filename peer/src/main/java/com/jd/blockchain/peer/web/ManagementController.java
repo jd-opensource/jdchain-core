@@ -148,6 +148,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.annotation.PreDestroy;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -521,6 +522,12 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	@Override
 	public void runRealm(NodeServer nodeServer) {
 		nodeServer.start();
+	}
+
+	@PreDestroy
+	public void destroy() {
+		LOGGER.info("Destroy ManagementController Bean!");
+		closeAllRealms();
 	}
 
 	@Override
