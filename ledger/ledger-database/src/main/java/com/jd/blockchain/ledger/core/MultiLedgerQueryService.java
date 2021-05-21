@@ -520,7 +520,7 @@ public class MultiLedgerQueryService implements BlockchainQueryService {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventAccountSet eventAccountSet = ledger.getEventAccountSet(block);
-		return eventAccountSet.getAccount(address).getID();
+		return eventAccountSet.getAccount(address);
 	}
 
 	@Override
