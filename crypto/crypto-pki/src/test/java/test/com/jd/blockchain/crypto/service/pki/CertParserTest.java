@@ -6,12 +6,15 @@ import com.jd.blockchain.crypto.utils.CertParser;
 
 import static org.junit.Assert.assertEquals;
 
+import org.junit.Ignore;
+
 /**
  * @author zhanglin33
  * @title: CertParserTest
  * @description: TODO
  * @date 2019-05-13, 10:05
  */
+@Ignore
 public class CertParserTest {
 
     @Test

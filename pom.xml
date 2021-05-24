@@ -5,23 +5,23 @@
 	<parent>
 		<groupId>com.jd.blockchain</groupId>
 		<artifactId>jdchain-parent</artifactId>
-		<version>1.1.4.RELEASE</version>
+		<version>1.1.5.RELEASE</version>
 		<relativePath>../project/parent</relativePath>
 	</parent>
 
 	<groupId>com.jd.blockchain</groupId>
 	<artifactId>jdchain-core</artifactId>
-	<version>1.5.0-SNAPSHOT</version>
+	<version>1.5.0.RELEASE</version>
 	<packaging>pom</packaging>
 
 	<properties>
-		<utils.version>2.1.0-SNAPSHOT</utils.version>
-		<httpservice.version>2.0.1.RELEASE</httpservice.version>
-		<binaryproto.version>1.5.1.RELEASE</binaryproto.version>
-		<bftsmart.version>0.7.0-SNAPSHOT</bftsmart.version>
-		<kvdb.version>1.1.2.RELEASE</kvdb.version>
+		<utils.version>2.0.3.RELEASE</utils.version>
+		<httpservice.version>2.0.2.RELEASE</httpservice.version>
+		<binaryproto.version>1.6.1.RELEASE</binaryproto.version>
+		<bftsmart.version>0.7.0.RELEASE</bftsmart.version>
+		<kvdb.version>1.1.3.RELEASE</kvdb.version>
 
-		<framework.version>1.4.3-SNAPSHOT</framework.version>
+		<framework.version>1.5.0.RELEASE</framework.version>
 
 		<explorer.version>1.4.1.RELEASE</explorer.version>
 	</properties>
