@@ -202,11 +202,6 @@ public class LedgerPeerConnectionManager {
                 accessibleLedgers = ledgers;
             }
 
-            // 关闭处于UnAuthorized状态定时任务
-            if (!isAuthorized()) {
-                executorService.shutdownNow();
-            }
-
         } catch (Exception e) {
             state = State.UNAVAILABLE;
             logger.error("Connect {}-{} error", ledger, peerAddress, e);
@@ -252,11 +247,6 @@ public class LedgerPeerConnectionManager {
                 // 触发账本变化处理
                 notifyLedgersChange(ledgers);
                 accessibleLedgers = ledgers;
-            }
-
-            // 关闭处于UnAuthorized状态定时任务
-            if (!isAuthorized()) {
-                executorService.shutdownNow();
             }
 
         } catch (Exception e) {

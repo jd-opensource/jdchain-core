@@ -775,7 +775,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 				public void run() {
 					try {
 						LOGGER.info("Start replica...[ID=" + getId() + "]");
-						replica = new ServiceReplica(tomConfig, BftsmartNodeServer.this, BftsmartNodeServer.this,
+						replica = new ServiceReplica(null, null, tomConfig, BftsmartNodeServer.this, BftsmartNodeServer.this,
 								(int) latestStateId - 1, latestView, realmName);
 						topology = new BftsmartTopology(replica.getReplicaContext().getCurrentView());
 //                initOutTopology();
