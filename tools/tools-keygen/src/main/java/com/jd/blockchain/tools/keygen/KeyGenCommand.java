@@ -48,6 +48,11 @@ public class KeyGenCommand {
 	// 是否输出调试信息；
 	private static final String OPT_DEBUG = "-debug";
 
+	// 加密算法，大小写不敏感
+	private static final String CRYPTO_ALGORITHM = "-c";
+	// 默认加密算法
+	private static final String DEFAULT_CRYPTO_ALGORITHM = "ED25519";
+
 	/**
 	 * 入口；
 	 * 
@@ -56,7 +61,7 @@ public class KeyGenCommand {
 	public static void main(String[] args) {
 		Configurator.setRootLevel(Level.ERROR);
 		Setting setting = ArgumentSet.setting().prefix(READ_ARG, NAME_ARG, OUT_DIR_ARG, LOCAL_CONF_ARG)
-				.option(OPT_DECRYPTING, OPT_DEBUG);
+				.option(OPT_DECRYPTING, OPT_DEBUG, CRYPTO_ALGORITHM);
 		ArgumentSet argSet = ArgumentSet.resolve(args, setting);
 		try {
 			ArgEntry[] argEntries = argSet.getArgs();
@@ -94,10 +99,13 @@ public class KeyGenCommand {
 					FileUtils.makeDirectory(outputDir);
 //					return;
 				}
+				ArgEntry cryptoAlgorithm = argSet.getArg(CRYPTO_ALGORITHM);
+				String algorithm = null != cryptoAlgorithm ? cryptoAlgorithm.getValue() : DEFAULT_CRYPTO_ALGORITHM;
+
 				ArgEntry localConfArg = argSet.getArg(LOCAL_CONF_ARG);
 				String localConfPath = localConfArg == null ? null : localConfArg.getValue();
 
-				generateKeyPair(name.getValue(), outputDir, localConfPath);
+				generateKeyPair(algorithm, name.getValue(), outputDir, localConfPath);
 			}
 
 		} catch (Exception e) {
@@ -111,12 +119,14 @@ public class KeyGenCommand {
 
 	/**
 	 * 生成密钥，要求输入密码用于保护私钥文件；
-	 * 
+	 *
+	 * @param algorithm
 	 * @param name
 	 * @param outputDir
+	 * @param localConfPath
 	 */
-	private static void generateKeyPair(String name, String outputDir, String localConfPath) {
-		AsymmetricKeypair kp = Crypto.getSignatureFunction("ED25519").generateKeypair();
+	private static void generateKeyPair(String algorithm, String name, String outputDir, String localConfPath) {
+		AsymmetricKeypair kp = Crypto.getSignatureFunction(algorithm.toUpperCase()).generateKeypair();
 
 		String base58PubKey = encodePubKey(kp.getPubKey());
 
