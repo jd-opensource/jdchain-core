@@ -132,10 +132,10 @@ public class GatewayConfigProperties {
 
 		configProps.setStoreTopology(getBoolean(props, TOPOLOGY_STORE, false));
 
-		String dataRetrievalUrl = getProperty(props, DATA_RETRIEVAL_URL, true);
+		String dataRetrievalUrl = getProperty(props, DATA_RETRIEVAL_URL, false);
 		configProps.dataRetrievalUrl = dataRetrievalUrl;
 
-		String schemaRetrievalUrl = getProperty(props, SCHEMA_RETRIEVAL_URL, true);
+		String schemaRetrievalUrl = getProperty(props, SCHEMA_RETRIEVAL_URL, false);
 		configProps.schemaRetrievalUrl = schemaRetrievalUrl;
 
 		String providers = getProperty(props, PEER_PROVIDERS, true);
