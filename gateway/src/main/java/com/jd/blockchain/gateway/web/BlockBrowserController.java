@@ -394,13 +394,16 @@ public class BlockBrowserController implements BlockchainBrowserService {
 //    @RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/contracts/address/{address}")
 	@RequestMapping(method = RequestMethod.GET, path = GET_LATEST_COMPILED_CONTRACT)
 	@Override
-	public ContractInfo getContract(HashDigest ledgerHash, String address) {
+	public ContractInfo getContract(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+									@PathVariable(name = "address") String address) {
 		return peerService.getQueryService(ledgerHash).getContract(ledgerHash, address);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = GET_COMPILED_CONTRACT)
 	@Override
-	public ContractInfo getContract(HashDigest ledgerHash, String address, long version) {
+	public ContractInfo getContract(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+									@PathVariable(name = "address") String address,
+									@PathVariable(name = "version") long version) {
 		return peerService.getQueryService(ledgerHash).getContract(ledgerHash, address, version);
 	}
 
