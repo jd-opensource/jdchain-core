@@ -98,42 +98,40 @@ public class PullEventListener implements EventListener {
     private List<Event> getEvents(Map<HashDigest, EventCacheHandle> eventCaches, HashDigest ledgerHash, EventPoint eventPoint, long fromSequence, int maxCount) {
         List<Event> events = new ArrayList<>();
         String key = EventCacheHandle.eventKey(eventPoint);
-        // 首先判断已处理的最大高度
         EventCacheHandle eventCache = eventCaches.get(ledgerHash);
-        if (eventCache == null) {
+        if(null == eventCache) {
+            synchronized (eventCaches) {
+                if(null == eventCache) {
+                    eventCache = new EventCacheHandle(ledgerHash);
+                    eventCaches.put(ledgerHash, eventCache);
+                }
+            }
+        }
+        // 首先判断已处理的最大高度，有该缓存，则需要进行逻辑判断
+        long maxBlockHeight = eventCache.getMaxHeight(), currKeyBlockHeight = eventCache.getMaxHeight(key);
+        if (maxBlockHeight == -1L || currKeyBlockHeight == -1L) {
             Event[] eventsByQuery = getEventsByQuery(ledgerHash, eventPoint, fromSequence, maxCount);
             if (!empty(eventsByQuery)) {
                 eventCache.addEvents(key, eventsByQuery);
                 events.addAll(Arrays.asList(eventsByQuery));
             }
             return events;
-        } else {
-            // 有该缓存，则需要进行逻辑判断
-            long maxBlockHeight = eventCache.getMaxHeight(), currKeyBlockHeight = eventCache.getMaxHeight(key);
-            if (maxBlockHeight == -1L || currKeyBlockHeight == -1L) {
-                Event[] eventsByQuery = getEventsByQuery(ledgerHash, eventPoint, fromSequence, maxCount);
-                if (!empty(eventsByQuery)) {
-                    eventCache.addEvents(key, eventsByQuery);
-                    events.addAll(Arrays.asList(eventsByQuery));
-                }
+        } else if (maxBlockHeight <= currKeyBlockHeight) {
+            // 表示最近没有新区块生成，那么肯定没有新事件发生，事件仍停留在上次处理的最大sequence
+            long maxSequence = eventCache.getMaxSequence(key);
+            if (maxSequence < fromSequence) {
+                // 不处理，因为查询的范围不在处理范围之内
                 return events;
-            } else if (maxBlockHeight <= currKeyBlockHeight) {
-                // 表示最近没有新区块生成，那么肯定没有新事件发生，事件仍停留在上次处理的最大sequence
-                long maxSequence = eventCache.getMaxSequence(key);
-                if (maxSequence < fromSequence) {
-                    // 不处理，因为查询的范围不再处理范围之内
-                    return events;
-                } else {
-                    // 只需要查询截止到maxSequence即可
-                    long endSequence = maxSequence + 1;
-                    getAndUpdateByCacheAndQuery(ledgerHash, eventCache, eventPoint, events, key, fromSequence, endSequence);
-                }
             } else {
-                // 已有新区块生成，但不一定有新事件，可能需要更新
-                // 部分需要从缓存获取（也可能是全部需要）
-                long endSequence = fromSequence + maxCount;
+                // 只需要查询截止到maxSequence即可
+                long endSequence = Math.min(fromSequence + maxCount, maxSequence + 1);
                 getAndUpdateByCacheAndQuery(ledgerHash, eventCache, eventPoint, events, key, fromSequence, endSequence);
             }
+        } else {
+            // 已有新区块生成，但不一定有新事件，可能需要更新
+            // 部分需要从缓存获取（也可能是全部需要）
+            long endSequence = fromSequence + maxCount;
+            getAndUpdateByCacheAndQuery(ledgerHash, eventCache, eventPoint, events, key, fromSequence, endSequence);
         }
 
         return events;
