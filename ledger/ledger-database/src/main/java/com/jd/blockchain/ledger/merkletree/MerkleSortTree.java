@@ -2,6 +2,10 @@ package com.jd.blockchain.ledger.merkletree;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.RecursiveAction;
+import java.util.concurrent.RecursiveTask;
 
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.Crypto;
@@ -576,7 +580,12 @@ public class MerkleSortTree<T> implements Transactional {
 
 	@Override
 	public final void commit() {
-		root.commit();
+		if (root instanceof PathNode) {
+			((PathNode)root).concurrentCommit();
+		}else {
+			root.commit();
+		}
+//		root.commit();
 	}
 
 	@Override
@@ -1029,15 +1038,15 @@ public class MerkleSortTree<T> implements Transactional {
 
 		private final HashDigest[] ORIG_CHILD_HASHS;
 
-		private HashDigest nodeHash;
+		protected HashDigest nodeHash;
 
-		private long[] childCounts;
+		protected long[] childCounts;
 
-		private HashDigest[] childHashs;
+		protected HashDigest[] childHashs;
 
-		private boolean modified;
+		protected boolean modified;
 
-		private Object[] children;
+		protected Object[] children;
 
 		protected MerkleNode(HashDigest nodeHash, long offset, long step, long[] childCounts, HashDigest[] childHashs,
 				MerkleSortTree<?> tree) {
@@ -1175,6 +1184,15 @@ public class MerkleSortTree<T> implements Transactional {
 
 			commitChildren(childCounts, childHashs, children);
 
+			return saveAndFresh();
+		}
+
+		/**
+		 * 保存当前节点的状态，并刷新节点哈希和修改标志；
+		 * 
+		 * @return
+		 */
+		protected HashDigest saveAndFresh() {
 			// save;
 			HashDigest hash = TREE.saveIndex(this);
 
@@ -1366,6 +1384,56 @@ public class MerkleSortTree<T> implements Transactional {
 					childCounts[i] = count(child);
 				}
 			}
+		}
+
+		@Override
+		public HashDigest commit() {
+
+			return super.commit();
+		}
+
+		public HashDigest concurrentCommit() {
+			if (!modified) {
+				return nodeHash;
+			}
+
+			// save the modified childNodes;
+			CommittingTask[] tasks = new CommittingTask[children.length];
+			for (int i = 0; i < TREE.DEGREE; i++) {
+				if (children[i] != null) {
+					MerkleNode child = (MerkleNode) children[i];
+					tasks[i] = new CommittingTask(child);
+					tasks[i].fork();
+				}
+			}
+//			System.out.println("-- concurrent commit["+taskList.size()+"] --");
+			for (int i = 0; i < TREE.DEGREE; i++) {
+				if (children[i] != null) {
+					MerkleNode child = (MerkleNode) children[i];
+					childHashs[i] = tasks[i].join();
+					childCounts[i] = count(child);
+				}
+			}
+
+			return saveAndFresh();
+
+		}
+
+		private static class CommittingTask extends RecursiveTask<HashDigest> {
+			private static final long serialVersionUID = 685200619016875093L;
+			
+			private MerkleNode path;
+			
+			public CommittingTask(MerkleNode path) {
+				this.path = path;
+			}
+
+			@Override
+			protected HashDigest compute() {
+//				System.out.println("----["+Thread.currentThread().getId()+"]-commit task ...");
+				return path.commit();
+			}
+
 		}
 
 	}

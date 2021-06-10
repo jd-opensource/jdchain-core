@@ -2,6 +2,8 @@ package test.com.jd.blockchain.ledger.proof;
 
 import java.util.Random;
 
+import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.bouncycastle.util.Arrays;
 import org.junit.Test;
 
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
@@ -11,28 +13,32 @@ import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 
 import test.com.jd.blockchain.ledger.core.LedgerTestUtils;
 import utils.Bytes;
+import utils.crypto.classic.SHA256Utils;
+import utils.crypto.sm.SM3Utils;
 import utils.hash.MurmurHash3;
+import utils.io.BytesUtils;
+import utils.security.RandomUtils;
 
 public class MerkleSortTreePerformanceTest {
 
 	@Test
 	public void test() {
 
-		System.out.println("=====================[round=100]====================");
-		testPerformace1(100, 1);
-		testPerformace1(100, 10);
-		testPerformace1(100, 100);
-		testPerformace1(100, 1000);
+//		System.out.println("=====================[round=100]====================");
+//		testPerformace1(100, 1);
+//		testPerformace1(100, 10);
+//		testPerformace1(100, 100);
+//		testPerformace1(100, 1000);
 
 		System.out.println("=====================[round=1000]====================");
-		testPerformace1(1000, 1);
-		testPerformace1(1000, 10);
-		testPerformace1(1000, 100);
-		testPerformace1(1000, 1000);
+//		testPerformace1(1000, 1);
+//		testPerformace1(1000, 10);
+//		testPerformace1(1000, 100);
+		testPerformace1(1000, 10000);
 
-		System.out.println("=====================[round=10000]====================");
-		testPerformace1(10000, 5);
-		testPerformace1(10000, 10);
+//		System.out.println("=====================[round=10000]====================");
+//		testPerformace1(10000, 5);
+//		testPerformace1(10000, 10);
 
 //		//--------------------
 //		testPerformace1(100, 1);
