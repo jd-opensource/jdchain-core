@@ -2,9 +2,6 @@ package com.jd.blockchain.ledger.merkletree;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.ForkJoinTask;
-import java.util.concurrent.RecursiveAction;
 import java.util.concurrent.RecursiveTask;
 
 import com.jd.binaryproto.BinaryProtocol;
@@ -581,7 +578,7 @@ public class MerkleSortTree<T> implements Transactional {
 	@Override
 	public final void commit() {
 		if (root instanceof PathNode) {
-			((PathNode)root).concurrentCommit();
+			((PathNode) root).concurrentCommit();
 		}else {
 			root.commit();
 		}
@@ -1034,6 +1031,9 @@ public class MerkleSortTree<T> implements Transactional {
 
 		protected final long OFFSET;
 
+		/**
+		 * 当前节点下一个直接字节点可容纳的最大叶子节点数；
+		 */
 		protected final long STEP;
 
 		private final HashDigest[] ORIG_CHILD_HASHS;
@@ -1086,6 +1086,15 @@ public class MerkleSortTree<T> implements Transactional {
 		@Override
 		public long getStep() {
 			return STEP;
+		}
+
+		/**
+		 * 当前节点所属能够容纳的最大数据空间；
+		 * 
+		 * @return
+		 */
+		public long getMaxPositions() {
+			return NEXT_OFFSET - OFFSET;
 		}
 
 		@Override
@@ -1398,20 +1407,41 @@ public class MerkleSortTree<T> implements Transactional {
 			}
 
 			// save the modified childNodes;
-			CommittingTask[] tasks = new CommittingTask[children.length];
+			PathCommittingTask[] tasks = new PathCommittingTask[children.length];
+			LeafAggregatingCommittingTask leafTask = null;
 			for (int i = 0; i < TREE.DEGREE; i++) {
-				if (children[i] != null) {
+				// 注：children[i] 非空的情况下，如果不是 MerkleNode 实例，而是 MerkleIndex 代理对象，则表明该节点没有修改；
+				if (children[i] != null && children[i] instanceof MerkleNode) {
 					MerkleNode child = (MerkleNode) children[i];
-					tasks[i] = new CommittingTask(child);
-					tasks[i].fork();
+					if (children[i] instanceof PathNode) {
+						tasks[i] = new PathCommittingTask((PathNode) child);
+						tasks[i].fork();
+					} else {
+						if (leafTask == null) {
+							leafTask = new LeafAggregatingCommittingTask(children.length, i, (LeafNode<?>) child);
+						} else {
+							leafTask.set(i, (LeafNode<?>) child);
+						}
+					}
 				}
 			}
-//			System.out.println("-- concurrent commit["+taskList.size()+"] --");
+
+			HashDigest[] hashes = null;
+			if (leafTask != null) {
+				leafTask.fork();
+				hashes = leafTask.join();
+			}
+
 			for (int i = 0; i < TREE.DEGREE; i++) {
 				if (children[i] != null) {
-					MerkleNode child = (MerkleNode) children[i];
-					childHashs[i] = tasks[i].join();
-					childCounts[i] = count(child);
+					if (children[i] instanceof MerkleNode) {
+						if (tasks[i] != null) {
+							childHashs[i] = tasks[i].join();
+						} else {
+							childHashs[i] = hashes[i];
+						}
+					}
+					childCounts[i] = count((MerkleIndex)children[i]);
 				}
 			}
 
@@ -1419,19 +1449,54 @@ public class MerkleSortTree<T> implements Transactional {
 
 		}
 
-		private static class CommittingTask extends RecursiveTask<HashDigest> {
+		private static class PathCommittingTask extends RecursiveTask<HashDigest> {
 			private static final long serialVersionUID = 685200619016875093L;
-			
-			private MerkleNode path;
-			
-			public CommittingTask(MerkleNode path) {
+
+			// 并行计算的阈值；
+			// 子树的总空间于阈值的，则采用并行方式计算；否则直接计算；
+			// 以 Degree 为 16 举例，此阈值意味着对默克尔树的第 3 层（level=3）以下进行直接计算，之上的节点进行并行计算；
+			public static final long CONNCURRENT_THREHOLD = 16 * 16 * 16;
+
+			private PathNode path;
+
+			public PathCommittingTask(PathNode path) {
 				this.path = path;
 			}
 
 			@Override
 			protected HashDigest compute() {
-//				System.out.println("----["+Thread.currentThread().getId()+"]-commit task ...");
-				return path.commit();
+				if (path.getMaxPositions() > CONNCURRENT_THREHOLD) {
+					return path.concurrentCommit();
+				} else {
+					return path.commit();
+				}
+			}
+
+		}
+
+		private static class LeafAggregatingCommittingTask extends RecursiveTask<HashDigest[]> {
+			private static final long serialVersionUID = 685200619016875093L;
+
+			private LeafNode<?>[] nodes;
+
+			public LeafAggregatingCommittingTask(int degreee, int position, LeafNode<?> node) {
+				this.nodes = new LeafNode[degreee];
+				set(position, node);
+			}
+
+			public void set(int position, LeafNode<?> node) {
+				nodes[position] = node;
+			}
+
+			@Override
+			protected HashDigest[] compute() {
+				HashDigest[] hashDigests = new HashDigest[nodes.length];
+				for (int i = 0; i < nodes.length; i++) {
+					if (nodes[i] != null) {
+						hashDigests[i] = nodes[i].commit();
+					}
+				}
+				return hashDigests;
 			}
 
 		}
