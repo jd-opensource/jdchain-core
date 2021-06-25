@@ -27,7 +27,7 @@ public class EventCacheHandle implements EventCache {
 
     private final Lock mapLock = new ReentrantLock();
 
-    private volatile long maxHeight;
+    private volatile long maxHeight = -1;
 
     private final HashDigest ledgerHash;
 
@@ -61,7 +61,7 @@ public class EventCacheHandle implements EventCache {
     public long getMaxSequence(String key) {
         Events events = eventsLruMap.get(key);
         if (events != null) {
-            events.maxSequence();
+            return events.maxSequence();
         }
         return -1L;
     }
@@ -70,7 +70,7 @@ public class EventCacheHandle implements EventCache {
     public long getMaxHeight(String key) {
         Events events = eventsLruMap.get(key);
         if (events != null) {
-            events.maxBlockHeight();
+            return events.maxBlockHeight();
         }
         return -1L;
     }
