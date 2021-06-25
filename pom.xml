@@ -23,7 +23,7 @@
 
 		<framework.version>1.5.0.RELEASE</framework.version>
 
-		<explorer.version>1.4.1.RELEASE</explorer.version>
+		<explorer.version>1.5.0-SNAPSHOT</explorer.version>
 	</properties>
 
 	<modules>
