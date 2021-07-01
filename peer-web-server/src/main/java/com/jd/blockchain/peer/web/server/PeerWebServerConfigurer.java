@@ -2,13 +2,9 @@ package com.jd.blockchain.peer.web.server;
 
 import java.util.List;
 
-import com.jd.blockchain.ledger.CryptoSetting;
-import com.jd.blockchain.ledger.json.ExtendJsonSerializeUtil;
-import com.jd.blockchain.ledger.json.serialize.JsonSerializeFactory;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
 import com.jd.blockchain.web.converters.HashDigestInputConverter;
 
-import com.jd.blockchain.web.serializes.ByteArrayObjectUtil;
 import com.jd.httpservice.utils.web.JsonWebResponseMessageConverter;
 
 import utils.io.ByteArray;
@@ -40,20 +36,10 @@ public class PeerWebServerConfigurer implements WebMvcConfigurer {
 		converters.add(index, new JsonWebResponseMessageConverter());
 
 		converters.add(0, new BinaryMessageConverter());
-
-		initByteArrayJsonSerialize();
 	}
 	
 	@Override
 	public void addFormatters(FormatterRegistry registry) {
 		registry.addConverter(new HashDigestInputConverter());
-	}
-
-	private void initByteArrayJsonSerialize() {
-		ByteArrayObjectUtil.init();
-		// 附加CryptoSetting的序列化处理
-		ExtendJsonSerializeUtil.init(CryptoSetting.class,
-				JsonSerializeFactory.createSerializer(CryptoSetting.class),
-				JsonSerializeFactory.createDeserializer(CryptoSetting.class));
 	}
 }
