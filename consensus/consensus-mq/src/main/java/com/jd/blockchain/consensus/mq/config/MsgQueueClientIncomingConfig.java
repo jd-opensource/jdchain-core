@@ -29,6 +29,8 @@ public class MsgQueueClientIncomingConfig implements MsgQueueClientIncomingSetti
 
     private MsgQueueConsensusSettings consensusSettings;
 
+    private SessionCredential sessionCredential;
+
     public MsgQueueClientIncomingConfig setConsensusSettings(MsgQueueConsensusSettings consensusSettings) {
         this.consensusSettings = consensusSettings;
         return this;
@@ -41,6 +43,11 @@ public class MsgQueueClientIncomingConfig implements MsgQueueClientIncomingSetti
 
     public MsgQueueClientIncomingConfig setPubKey(PubKey pubKey) {
         this.pubKey = pubKey;
+        return this;
+    }
+
+    public MsgQueueClientIncomingConfig setSessionCredential(SessionCredential sessionCredential) {
+        this.sessionCredential = sessionCredential;
         return this;
     }
 
@@ -66,7 +73,6 @@ public class MsgQueueClientIncomingConfig implements MsgQueueClientIncomingSetti
     
     @Override
     public SessionCredential getCredential() {
-    	// TODO Auto-generated method stub
-    	throw new IllegalStateException("Not implemented!");
+    	return sessionCredential;
     }
 }

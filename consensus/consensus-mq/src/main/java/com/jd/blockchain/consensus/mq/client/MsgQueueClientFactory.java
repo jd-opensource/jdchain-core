@@ -36,8 +36,11 @@ public class MsgQueueClientFactory implements ClientFactory {
     @Override
     public MsgQueueClientIdentification buildCredential(SessionCredential credentialInfo, AsymmetricKeypair clientKeyPair) {
     	MQCredentialInfo mqCredentialInfo = (MQCredentialInfo) credentialInfo;
-    	byte[] credentialBytes = BinaryProtocol.encode(mqCredentialInfo, MQCredentialInfo.class);
-    	
+    	if(null == mqCredentialInfo) {
+            mqCredentialInfo = MQCredentialConfig.createEmptyCredential();
+        }
+        byte[] credentialBytes = BinaryProtocol.encode(mqCredentialInfo, MQCredentialInfo.class);
+
         PubKey pubKey = clientKeyPair.getPubKey();
 //        byte[] address = pubKey.toBytes(); // 使用公钥地址作为认证信息
 

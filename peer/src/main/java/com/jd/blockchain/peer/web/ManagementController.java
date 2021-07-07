@@ -369,7 +369,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			try {
 				clientIncomingSettings = peer.getClientAuthencationService().authencateIncoming(clientRedential);
-				logClientIncoming(clientIncomingSettings);
 			} catch (Exception e) {
 				// 个别账本的认证失败不应该影响其它账本的认证；
 				LOGGER.error(String.format("Load ledger[%s] error !", ledgerHash.toBase58()), e);
@@ -397,13 +396,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		gatewayAuthResponse
 				.setLedgers(ledgerIncomingList.toArray(new LedgerIncomingSettings[ledgerIncomingList.size()]));
 		return gatewayAuthResponse;
-	}
-
-	private void logClientIncoming(ClientIncomingSettings clientIncomingSettings) {
-		for (NodeSettings nodeSettings : clientIncomingSettings.getViewSettings().getNodes()) {
-			LOGGER.info("Manager controller, node settings proc id = {}",
-					((BftsmartNodeSettings) nodeSettings).getId());
-		}
 	}
 
 	@Override
