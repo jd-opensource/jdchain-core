@@ -60,8 +60,8 @@ public class KeyGenCommand {
 	 */
 	public static void main(String[] args) {
 		Configurator.setRootLevel(Level.ERROR);
-		Setting setting = ArgumentSet.setting().prefix(READ_ARG, NAME_ARG, OUT_DIR_ARG, LOCAL_CONF_ARG)
-				.option(OPT_DECRYPTING, OPT_DEBUG, CRYPTO_ALGORITHM);
+		Setting setting = ArgumentSet.setting().prefix(READ_ARG, NAME_ARG, OUT_DIR_ARG, LOCAL_CONF_ARG, CRYPTO_ALGORITHM)
+				.option(OPT_DECRYPTING, OPT_DEBUG);
 		ArgumentSet argSet = ArgumentSet.resolve(args, setting);
 		try {
 			ArgEntry[] argEntries = argSet.getArgs();
