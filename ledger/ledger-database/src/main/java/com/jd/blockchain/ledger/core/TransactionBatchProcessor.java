@@ -284,13 +284,20 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 
 			LOGGER.debug("after commit().  --[BlockHeight={}][TxHash={}]",
 					newBlockEditor.getBlockHeight(), request.getTransactionHash());
+		} catch (IllegalTransactionException e) {
+			result = e.getTxState();
+			txCtx.rollback();
+			LOGGER.error(String.format(
+					"Ignore transaction caused by IllegalTransactionException! --[BlockHeight=%s]TxHash=%s] --%s",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(),
+					e.getMessage()), e);
 		} catch (TransactionRollbackException e) {
 			//忽略交易；
 			result = TransactionState.IGNORED_BY_TX_FULL_ROLLBACK;
 			txCtx.rollback();
 			LOGGER.error(String.format(
 					"Transaction was full rolled back! --[BlockHeight=%s][TxHash=%s] --%s",
-					newBlockEditor.getBlockHeight(), request.getTransactionHash(), 
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(),
 					e.getMessage()), e);
 		} catch (BlockRollbackException e) {
 			// rollback all the block；
