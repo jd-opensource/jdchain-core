@@ -43,7 +43,7 @@ public class MerkleEventGroupPublisher implements EventGroup, EventPublisher, Tr
         long newSequence = events.setValue(key, BinaryProtocol.encode(event, Event.class), event.getSequence() - 1);
 
         if (newSequence < 0) {
-            throw new LedgerException("Transaction is persisted repeatly! --[" + key + "]");
+            throw new LedgerException("Event sequence conflict! --[" + key + "]");
         }
 
         return newSequence;
