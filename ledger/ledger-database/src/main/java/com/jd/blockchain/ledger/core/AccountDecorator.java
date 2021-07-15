@@ -11,7 +11,7 @@ import utils.Dataset;
 
 public class AccountDecorator implements Account, HashProvable, AccountSnapshot{
 	
-	private CompositeAccount mklAccount;
+	protected CompositeAccount mklAccount;
 	
 	public AccountDecorator(CompositeAccount mklAccount) {
 		this.mklAccount = mklAccount;

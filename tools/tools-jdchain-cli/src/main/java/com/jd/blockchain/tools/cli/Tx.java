@@ -757,7 +757,7 @@ class TxContractCall implements Runnable {
             tvs = new TypedValue[]{};
         }
 
-        txTemp.contract().send(Bytes.fromBase58(address), method, new BytesDataList(tvs));
+        txTemp.contract(Bytes.fromBase58(address)).invoke(method, new BytesDataList(tvs));
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);
         if (null != txFile) {

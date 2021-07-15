@@ -3,6 +3,7 @@ package com.jd.blockchain.ledger.core.handles;
 import com.jd.blockchain.ledger.DataAccountDoesNotExistException;
 import com.jd.blockchain.ledger.DataAccountKVSetOperation;
 import com.jd.blockchain.ledger.DataAccountKVSetOperation.KVWriteEntry;
+import com.jd.blockchain.ledger.DataPermissionType;
 import com.jd.blockchain.ledger.DataVersionConflictException;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.TypedValue;
@@ -35,6 +36,10 @@ public class DataAccountKVSetOperationHandle extends AbstractLedgerOperationHand
 		if (account == null) {
 			throw new DataAccountDoesNotExistException("DataAccount doesn't exist!");
 		}
+
+		// 写权限校验
+		securityPolicy.checkDataPermission(account.getPermission(), DataPermissionType.WRITE);
+
 		KVWriteEntry[] writeSet = kvWriteOp.getWriteSet();
 		long v = -1L;
 		for (KVWriteEntry kvw : writeSet) {

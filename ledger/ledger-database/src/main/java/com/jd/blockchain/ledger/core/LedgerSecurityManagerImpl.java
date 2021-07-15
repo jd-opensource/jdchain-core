@@ -11,6 +11,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUtils;
+import com.jd.blockchain.ledger.AccountModeBits;
+import com.jd.blockchain.ledger.DataPermission;
+import com.jd.blockchain.ledger.DataPermissionType;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerSecurityException;
 import com.jd.blockchain.ledger.ParticipantDoesNotExistException;
@@ -395,6 +398,66 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 				} catch (Exception e) {
 					throw new LedgerSecurityException("Invalid node signer!");
 				}
+			} else {
+				throw new IllegalArgumentException("Unsupported MultiIdsPolicy[" + midPolicy + "]!");
+			}
+		}
+
+		@Override
+		public void checkDataPermission(DataPermission permission, DataPermissionType permissionType) throws LedgerSecurityException {
+			AccountModeBits modeBits = permission.getModeBits();
+
+			// check all users permission
+			if(modeBits.get(AccountModeBits.BitGroup.ALL, permissionType.CODE)) {
+				return;
+			}
+
+			for(Bytes address : permission.getOwners()) {
+				if(endpointPrivilegeMap.containsKey(address)) {
+					// check owner permission
+					if(modeBits.get(AccountModeBits.BitGroup.OWNERS, permissionType.CODE)) {
+						return;
+					}
+				}
+
+				UserRoles userRoles = userRolesCache.get(address);
+				if (userRoles == null) {
+					userRoles = userRolesSettings.getUserRoles(address);
+					if (userRoles != null) {
+						userRolesCache.put(address, userRoles);
+					}
+				}
+				if(userRoles != null) {
+					if(Arrays.stream(userRoles.getRoles()).anyMatch(permission.getRole()::equals)) {
+						// check role permission
+						if(modeBits.get(AccountModeBits.BitGroup.ROLE, permissionType.CODE)) {
+							return;
+						}
+					}
+				}
+			}
+
+			throw new LedgerSecurityException("Data permission deny!");
+		}
+
+		@Override
+		public void checkDataOwners(DataPermission permission, MultiIDsPolicy midPolicy) throws LedgerSecurityException {
+			if (MultiIDsPolicy.AT_LEAST_ONE == midPolicy) {
+				// 至少一个；
+				for(Bytes address : permission.getOwners()) {
+					if(endpointPrivilegeMap.containsKey(address)) {
+						return;
+					}
+				}
+				throw new LedgerSecurityException("No endpoint signers in account permission owners!");
+			} else if (MultiIDsPolicy.ALL == midPolicy) {
+				// 全部；
+				for (Bytes address : permission.getOwners()) {
+					if (!endpointPrivilegeMap.containsKey(address)) {
+						throw new LedgerSecurityException("Endpoint signers do not contain all the account permission owners!");
+					}
+				}
+				return;
 			} else {
 				throw new IllegalArgumentException("Unsupported MultiIdsPolicy[" + midPolicy + "]!");
 			}

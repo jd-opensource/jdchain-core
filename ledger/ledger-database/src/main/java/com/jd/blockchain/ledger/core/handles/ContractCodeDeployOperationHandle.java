@@ -4,11 +4,14 @@ import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.ledger.AccountState;
+import com.jd.blockchain.ledger.AccountDataPermission;
+import com.jd.blockchain.ledger.AccountType;
 import com.jd.blockchain.ledger.ContractCodeDeployOperation;
 import com.jd.blockchain.ledger.ContractVersionConflictException;
 import com.jd.blockchain.ledger.IllegalTransactionException;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.core.*;
+import utils.Bytes;
 
 
 public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHandle<ContractCodeDeployOperation> {
@@ -70,8 +73,9 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 				throw new ContractVersionConflictException();
 			}
 		} else {
-			transactionContext.getDataset().getContractAccountSet().deploy(op.getContractID().getAddress(),
+			ContractAccount account = transactionContext.getDataset().getContractAccountSet().deploy(op.getContractID().getAddress(),
 					op.getContractID().getPubKey(), op.getAddressSignature(), op.getChainCode());
+			account.setPermission(new AccountDataPermission(AccountType.CONTRACT, requestContext.getEndpointAddresses().toArray(new Bytes[0])));
 		}
 	}
 

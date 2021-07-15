@@ -1,8 +1,12 @@
 package com.jd.blockchain.ledger.core.handles;
 
+import com.jd.blockchain.ledger.AccountDataPermission;
+import com.jd.blockchain.ledger.AccountType;
 import com.jd.blockchain.ledger.EventAccountRegisterOperation;
 import com.jd.blockchain.ledger.LedgerPermission;
+import com.jd.blockchain.ledger.PermissionAccount;
 import com.jd.blockchain.ledger.core.*;
+import utils.Bytes;
 
 public class EventAccountRegisterOperationHandle extends AbstractLedgerOperationHandle<EventAccountRegisterOperation> {
 
@@ -19,6 +23,7 @@ public class EventAccountRegisterOperationHandle extends AbstractLedgerOperation
         securityPolicy.checkEndpointPermission(LedgerPermission.REGISTER_EVENT_ACCOUNT, MultiIDsPolicy.AT_LEAST_ONE);
 
         // 操作事件账本；
-        manager.registerAccount(op.getEventAccountID());
+        PermissionAccount account = manager.registerAccount(op.getEventAccountID());
+        account.setPermission(new AccountDataPermission(AccountType.EVENT, requestContext.getEndpointAddresses().toArray(new Bytes[0])));
     }
 }

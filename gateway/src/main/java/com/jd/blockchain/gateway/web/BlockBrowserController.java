@@ -3,6 +3,7 @@ package com.jd.blockchain.gateway.web;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jd.blockchain.ledger.EventAccountInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -460,8 +461,8 @@ public class BlockBrowserController implements BlockchainBrowserService {
 //	@RequestMapping(method = RequestMethod.GET, path = "ledgers/{ledgerHash}/events/user/accounts/{address}")
 	@RequestMapping(method = RequestMethod.GET, path = GET_EVENT_ACCOUNT)
 	@Override
-	public BlockchainIdentity getUserEventAccount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
-			@PathVariable(name = "address") String address) {
+	public EventAccountInfo getUserEventAccount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+												@PathVariable(name = "address") String address) {
 		return peerService.getQueryService(ledgerHash).getUserEventAccount(ledgerHash, address);
 	}
 

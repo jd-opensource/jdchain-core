@@ -3,6 +3,7 @@ package com.jd.blockchain.ledger.core.handles;
 import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.ledger.ContractExecuteException;
 import com.jd.blockchain.ledger.IllegalTransactionException;
+import com.jd.blockchain.ledger.DataPermissionType;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.MultiLedgerQueryService;
 import org.springframework.stereotype.Service;
@@ -64,7 +65,7 @@ public abstract class AbtractContractEventSendOperationHandle implements Operati
 			if(contractEventStack.size() > MAX_CONTRACT_EVENT_STACK_SIZE) {
 				throw new ContractExecuteException(String.format("Size of contract event stack is greater than %d", MAX_CONTRACT_EVENT_STACK_SIZE));
 			}
-			return doProcess(requestContext, contractOP, transactionContext, ledger, opHandleContext, manager);
+			return doProcess(requestContext, contractOP, transactionContext, ledger, opHandleContext, manager, securityPolicy);
 		} finally {
 			// 合约调用出栈
 			contractEventStack.pop();
@@ -72,7 +73,8 @@ public abstract class AbtractContractEventSendOperationHandle implements Operati
 	}
 
 	private BytesValue doProcess(TransactionRequestExtension request, ContractEventSendOperation contractOP,
-								 LedgerTransactionContext transactionContext, LedgerQuery ledger, OperationHandleContext opHandleContext, EventManager manager) {
+								 LedgerTransactionContext transactionContext, LedgerQuery ledger, OperationHandleContext opHandleContext,
+								 EventManager manager, SecurityPolicy securityPolicy) {
 		// 先从账本校验合约的有效性；
 		// 注意：必须在前一个区块的数据集中进行校验，因为那是经过共识的数据；从当前新区块链数据集校验则会带来攻击风险：未经共识的合约得到执行；
 		ContractAccountSet contractSet = ledger.getContractAccountset();
@@ -96,6 +98,9 @@ public abstract class AbtractContractEventSendOperationHandle implements Operati
 			throw new LedgerException(String.format("Contract was not registered! --[ContractAddress=%s]",
 					contractOP.getContractAddress()));
 		}
+
+		// 执行权限校验
+		securityPolicy.checkDataPermission(contract.getPermission(), DataPermissionType.EXECUTE);
 
 		// 创建合约上下文;
 		LocalContractEventContext localContractEventContext = new LocalContractEventContext(

@@ -262,7 +262,7 @@ public class TransactionSetTest {
 		operations[3] = txBuilder.contracts().deploy(contractKey.getIdentity(), chainCode);
 
 		// invoke smart contract;
-		operations[4] = txBuilder.contractEvents().send(contractKey.getAddress(), "test",
+		operations[4] = txBuilder.contract(contractKey.getAddress()).invoke("test",
 				BytesDataList.singleText("TestContractArgs"));
 
 		// build transaction request;

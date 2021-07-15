@@ -2,6 +2,7 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.AccountState;
+import com.jd.blockchain.ledger.AccountType;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
 import com.jd.blockchain.ledger.TypedValue;
@@ -9,7 +10,7 @@ import com.jd.blockchain.ledger.TypedValue;
 import utils.Bytes;
 import utils.io.BytesUtils;
 
-public class ContractAccount extends AccountDecorator implements ContractInfo {
+public class ContractAccount extends PermissionAccountDecorator implements ContractInfo {
 
 	private static final String CONTRACT_INFO_PREFIX = "INFO" + LedgerConsts.KEY_SEPERATOR;
 
@@ -19,7 +20,7 @@ public class ContractAccount extends AccountDecorator implements ContractInfo {
 	private AccountState state;
 
 	public ContractAccount(CompositeAccount mklAccount) {
-		super(mklAccount);
+		super(AccountType.CONTRACT, mklAccount);
 	}
 
 	@Override

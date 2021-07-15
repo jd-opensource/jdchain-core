@@ -4,6 +4,8 @@ import java.security.cert.X509Certificate;
 import java.util.Map;
 import java.util.Set;
 
+import com.jd.blockchain.ledger.DataPermission;
+import com.jd.blockchain.ledger.DataPermissionType;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerSecurityException;
 import com.jd.blockchain.ledger.TransactionPermission;
@@ -103,7 +105,13 @@ class FullPermissionedSecurityManager implements LedgerSecurityManager {
 
 		@Override
 		public void checkNodeCA(MultiIDsPolicy midPolicy) throws LedgerSecurityException {
+		}
 
+		public void checkDataPermission(DataPermission permission, DataPermissionType permissionType) throws LedgerSecurityException {
+		}
+
+		@Override
+		public void checkDataOwners(DataPermission permission, MultiIDsPolicy midPolicy) throws LedgerSecurityException {
 		}
 
 		@Override

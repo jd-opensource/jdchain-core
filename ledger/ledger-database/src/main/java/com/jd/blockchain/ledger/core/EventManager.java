@@ -23,8 +23,13 @@ public class EventManager implements EventOperationHandle {
     }
 
     @Override
-    public void registerAccount(BlockchainIdentity identity) {
-        txCtx.getEventSet().getEventAccountSet().register(identity.getAddress(), identity.getPubKey(), null);
+    public EventAccount getAccount(Bytes address) {
+        return txCtx.getEventSet().getEventAccountSet().getAccount(address);
+    }
+
+    @Override
+    public DataAccount registerAccount(BlockchainIdentity identity) {
+        return txCtx.getEventSet().getEventAccountSet().register(identity.getAddress(), identity.getPubKey(), null);
     }
 
     @Override

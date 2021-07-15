@@ -49,6 +49,8 @@ public class OperationDecoratorFactory {
             return decorateRootCAUpdateOperation((RootCAUpdateOperation) op);
         } else if (op instanceof ContractStateUpdateOperation) {
             return decorateContractStateUpdateOperation((ContractStateUpdateOperation) op);
+        } else if (op instanceof AccountPermissionSetOperation) {
+            return decorateAccountPermissionSetOperation((AccountPermissionSetOperation) op);
         }
 
         return null;
@@ -317,4 +319,17 @@ public class OperationDecoratorFactory {
     public static Operation decorateContractStateUpdateOperation(ContractStateUpdateOperation op) {
         return new ContractStateUpdateOpTemplate(op.getContractAddress(), op.getState());
     }
+    /**
+     * decorate AccountPermissionSetOperation object
+     *
+     * @param op
+     * @return
+     */
+    public static Operation decorateAccountPermissionSetOperation(AccountPermissionSetOperation op) {
+        AccountPermissionSetOpTemplate opTemplate = new AccountPermissionSetOpTemplate(op.getAddress(), op.getAccountType());
+        opTemplate.setMode(op.getMode());
+        opTemplate.setRole(op.getRole());
+        return opTemplate;
+    }
+
 }
