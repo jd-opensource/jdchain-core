@@ -420,13 +420,19 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			}
 			HashDigest[] ledgerHashs = config.getLedgerHashs();
 			for (HashDigest ledgerHash : ledgerHashs) {
-				setConfig(config.getLedger(ledgerHash), ledgerHash);
+				// 不同的账本实现处理隔离
+				try {
+					setConfig(config.getLedger(ledgerHash), ledgerHash);
+				} catch (Exception e) {
+					LOGGER.error("Exception occurred on setConfig! Exception ledger = {}, Exception cause = {}", Base58Utils.encode(ledgerHash.toBytes()), e.getMessage());
+					continue;
+				}
 			}
 
 			this.config = config;
 
 		} catch (Exception e) {
-			LOGGER.error("Error occurred on configing LedgerBindingConfig! --" + e.getMessage(), e);
+			LOGGER.error("Peer start exception, Error occurred on configing LedgerBindingConfig! --" + e.getMessage(), e);
 			throw new IllegalStateException(e);
 		}
 	}
