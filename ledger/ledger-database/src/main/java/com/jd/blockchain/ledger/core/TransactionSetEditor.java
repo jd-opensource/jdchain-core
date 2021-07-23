@@ -5,6 +5,7 @@ import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.IllegalTransactionException;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.MerkleProof;
@@ -235,7 +236,7 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		// 交易只有唯一的版本；
 		long v = txStateSet.setValue(key, txResultBytes, -1);
 		if (v < 0) {
-			throw new LedgerException("Transaction Result is persisted repeatly! --[" + key + "]");
+			throw new IllegalTransactionException("Repeated transaction request! --[" + key + "]");
 		}
 	}
 	
@@ -257,7 +258,7 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		// 交易只有唯一的版本；
 		long v = txStateSet.setValue(key, txResultBytes, -1);
 		if (v < 0) {
-			throw new LedgerException("Transaction Request is persisted repeatly! --[" + key + "]");
+			throw new IllegalTransactionException("Repeated transaction request! --[" + key + "]");
 		}
 	}
 

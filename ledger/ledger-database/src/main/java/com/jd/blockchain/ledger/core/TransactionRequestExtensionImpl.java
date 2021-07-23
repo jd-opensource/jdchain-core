@@ -38,7 +38,7 @@ public class TransactionRequestExtensionImpl implements TransactionRequestExtens
 				endpointSignatures.put(cred.getIdentity().getAddress(), cred);
 			}
 		}
-		if (request.getEndpointSignatures() != null) {
+		if (request.getNodeSignatures() != null) {
 			for (DigitalSignature signature : request.getNodeSignatures()) {
 				Credential cred = new Credential(signature);
 				nodeSignatures.put(cred.getIdentity().getAddress(), cred);
