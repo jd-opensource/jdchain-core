@@ -185,17 +185,25 @@ public class LedgerLoadTimer implements ApplicationContextAware {
             Map<String, LedgerBindingConfigAware> bindingConfigAwares = applicationContext.getBeansOfType(LedgerBindingConfigAware.class);
             List<NodeServer> nodeServers = new ArrayList<>();
             Set<HashDigest> existedHashSet = existedHashSet();
+
+            // 注意：要实现不同账本逻辑处理的隔离
             for (HashDigest ledgerHash : newAddHashs) {
-                //recheck
-                if (existedHashSet.contains(ledgerHash)) {
-                    LOGGER.info("--- Ledger [{}] has been inited ---", ledgerHash.toBase58());
+                try {
+                    //recheck
+                    if (existedHashSet.contains(ledgerHash)) {
+                        LOGGER.info("--- Ledger [{}] has been inited ---", ledgerHash.toBase58());
+                        continue;
+                    }
+                    LOGGER.info("--- New ledger [{}] need to be init... ", ledgerHash.toBase58());
+                    for (LedgerBindingConfigAware aware : bindingConfigAwares.values()) {
+                        nodeServers.add(aware.setConfig(ledgerBindingConfig.getLedger(ledgerHash), ledgerHash));
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("--- New ledger [{}] setConfig exception!", ledgerHash.toBase58());
                     continue;
                 }
-                LOGGER.info("--- New ledger [{}] need to be init... ", ledgerHash.toBase58());
-                for (LedgerBindingConfigAware aware : bindingConfigAwares.values()) {
-                    nodeServers.add(aware.setConfig(ledgerBindingConfig.getLedger(ledgerHash), ledgerHash));
-                }
             }
+
             if (!nodeServers.isEmpty()) {
                 // 启动指定NodeServer节点
                 ConsensusManage consensusManage = applicationContext.getBean(ConsensusManage.class);
