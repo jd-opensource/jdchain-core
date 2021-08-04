@@ -10,6 +10,7 @@ package com.jd.blockchain.consensus.mq.server;
 
 import java.util.Arrays;
 
+import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.consensus.ClientCredential;
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.ClientAuthencationService;
@@ -44,7 +45,8 @@ public class MsgQueueConsensusManageService implements ClientAuthencationService
 		boolean isLegal = isLegal(authId);
 		if (isLegal) {
 			MsgQueueClientIncomingSettings mqcis = new MsgQueueClientIncomingConfig().setPubKey(authId.getPubKey())
-					.setClientId(clientId(null)).setConsensusSettings(this.consensusSettings);
+					.setClientId(clientId(null)).setConsensusSettings(this.consensusSettings)
+					.setSessionCredential(authId.getSessionCredential());
 			return mqcis;
 		}
 		return null;
@@ -57,17 +59,9 @@ public class MsgQueueConsensusManageService implements ClientAuthencationService
 	}
 
 	public boolean isLegal(ClientCredential authId) {
-		if (!(authId.getSessionCredential() instanceof MQCredentialInfo)) {
-			return false;
-		}
-		boolean isLegal = false;
 		PubKey pubKey = authId.getPubKey();
 		byte[] identityInfo = BinaryProtocol.encode(authId.getSessionCredential(), MQCredentialInfo.class);
-		byte[] address = pubKey.toBytes(); // 使用公钥地址作为认证信息
-		if (Arrays.equals(address, identityInfo)) {
-			SignatureFunction signatureFunction = Crypto.getSignatureFunction(pubKey.getAlgorithm());
-			isLegal = signatureFunction.verify(authId.getSignature(), pubKey, identityInfo);
-		}
-		return isLegal;
+		SignatureFunction signatureFunction = Crypto.getSignatureFunction(pubKey.getAlgorithm());
+		return signatureFunction.verify(authId.getSignature(), pubKey, identityInfo);
 	}
 }
