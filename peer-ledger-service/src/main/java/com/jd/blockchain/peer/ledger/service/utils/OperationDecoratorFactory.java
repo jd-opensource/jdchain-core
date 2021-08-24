@@ -112,6 +112,10 @@ public class OperationDecoratorFactory {
         ledgerInitData.setConsensusSettings(op.getInitSetting().getConsensusSettings());
         ledgerInitData.setCryptoSetting(new CryptoConfigInfo(op.getInitSetting().getCryptoSetting()));
         ledgerInitData.setLedgerSeed(op.getInitSetting().getLedgerSeed());
+        ledgerInitData.setCaMode(op.getInitSetting().isCaMode());
+        if(op.getInitSetting().isCaMode()) {
+            ledgerInitData.setRootCa(op.getInitSetting().getRootCa());
+        }
         ledgerInitData.setConsensusProvider(op.getInitSetting().getConsensusProvider());
         ledgerInitData.setCreatedTime(op.getInitSetting().getCreatedTime());
 

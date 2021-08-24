@@ -1,11 +1,13 @@
 package com.jd.blockchain.tools.cli;
 
+import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.PrivKey;
 import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.ledger.BlockchainKeypair;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 import utils.StringUtils;
@@ -14,6 +16,7 @@ import utils.crypto.classic.SHA256Utils;
 import utils.io.FileUtils;
 
 import java.io.File;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Scanner;
 
@@ -32,6 +35,7 @@ import java.util.Scanner;
                 KeysAdd.class,
                 KeysUpdate.class,
                 KeysDelete.class,
+                KeysImport.class,
                 CommandLine.HelpCommand.class
         }
 )
@@ -260,6 +264,59 @@ class KeysDelete implements Runnable {
                 System.out.println("[" + name + "] deleted");
             } else {
                 System.err.print("password wrong");
+            }
+        }
+    }
+}
+
+@CommandLine.Command(name = "import", mixinStandardHelpOptions = true, header = "Import keypair from key and cert files.")
+class KeysImport implements Runnable {
+
+    @CommandLine.Option(required = true, names = {"-n", "--name"}, description = "Name of the key")
+    String name;
+
+    @CommandLine.Option(required = true, names = {"--crt"}, description = "File of the X509 certificate")
+    String caPath;
+
+    @CommandLine.Option(required = true, names = {"--key"}, description = "File of the PEM private key")
+    String keyPath;
+
+    @CommandLine.ParentCommand
+    private Keys keys;
+
+    @Override
+    public void run() {
+        File keysHome = new File(keys.jdChainCli.path.getAbsolutePath() + File.separator + Keys.KEYS_HOME);
+        if (!keysHome.exists()) {
+            keysHome.mkdirs();
+        }
+        String[] names = keysHome.list((dir, fileName) -> {
+            if (FilenameUtils.removeExtension(fileName).contains(name)) {
+                return true;
+            }
+            return false;
+        });
+        if (names.length != 0) {
+            System.err.println("[" + name + "] already exists");
+        } else {
+            X509Certificate certificate = X509Utils.resolveCertificate(new File(caPath));
+            PrivKey privKey = X509Utils.resolvePrivKey(new File(keyPath));
+            AsymmetricKeypair keypair = new BlockchainKeypair(X509Utils.resolvePubKey(certificate), privKey);
+            System.out.println("please input password: ");
+            System.out.print("> ");
+            Scanner scanner = new Scanner(System.in).useDelimiter("\n");
+            String password = scanner.next();
+            if (!StringUtils.isEmpty(password)) {
+                String pubkey = KeyGenUtils.encodePubKey(keypair.getPubKey());
+                String base58pwd = KeyGenUtils.encodePasswordAsBase58(password);
+                String privkey = KeyGenUtils.encodePrivKey(keypair.getPrivKey(), base58pwd);
+                FileUtils.writeText(pubkey, new File(keysHome + File.separator + name + ".pub"));
+                FileUtils.writeText(privkey, new File(keysHome + File.separator + name + ".priv"));
+                FileUtils.writeText(base58pwd, new File(keysHome + File.separator + name + ".pwd"));
+                System.out.printf(Keys.KEYS_PRINT_FORMAT, "NAME", "ALGORITHM", "ADDRESS", "PUBKEY");
+                System.out.printf(Keys.KEYS_PRINT_FORMAT, name, Crypto.getAlgorithm(privKey.getAlgorithm()).name(), AddressEncoding.generateAddress(keypair.getPubKey()), keypair.getPubKey());
+            } else {
+                System.err.println("invalid password");
             }
         }
     }

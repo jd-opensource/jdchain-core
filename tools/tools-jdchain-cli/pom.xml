@@ -37,6 +37,11 @@
         </dependency>
         <dependency>
             <groupId>com.jd.blockchain</groupId>
+            <artifactId>crypto-ca</artifactId>
+            <version>${framework.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.jd.blockchain</groupId>
             <artifactId>ledger-model</artifactId>
             <version>${framework.version}</version>
         </dependency>

@@ -139,6 +139,8 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 		// 初始化元数据；
 		this.metadata = new LedgerMetadataInfo();
 		this.metadata.setSeed(initSetting.getLedgerSeed());
+		this.metadata.setCaMode(initSetting.isCaMode());
+		this.metadata.setRootCa(initSetting.getRootCa());
 		this.metadata.setLedgerStructureVersion(initSetting.getLedgerStructureVersion());
 		// 新配置；
 		this.settings = new LedgerConfiguration(initSetting.getConsensusProvider(), initSetting.getConsensusSettings(),
@@ -410,7 +412,9 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 
 		private byte[] seed;
 
-//		private LedgerSetting setting;
+		private boolean isCaMode;
+
+		private String rootCa;
 
 		private HashDigest participantsHash;
 
@@ -432,11 +436,31 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 			this.rolePrivilegesHash = metadata.getRolePrivilegesHash();
 			this.userRolesHash = metadata.getUserRolesHash();
 			this.ledgerStructureVersion = metadata.getLedgerStructureVersion();
+			this.isCaMode = metadata.isCaMode();
+			this.rootCa = metadata.getRootCa();
 		}
 
 		@Override
 		public byte[] getSeed() {
 			return seed;
+		}
+
+		@Override
+		public boolean isCaMode() {
+			return isCaMode;
+		}
+
+		public void setCaMode(boolean caMode) {
+			isCaMode = caMode;
+		}
+
+		@Override
+		public String getRootCa() {
+			return rootCa;
+		}
+
+		public void setRootCa(String rootCa) {
+			this.rootCa = rootCa;
 		}
 
 		@Override

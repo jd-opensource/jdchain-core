@@ -13,6 +13,9 @@ public class LocalConfig {
 	// 当前参与方的 id；
 	public static final String LOCAL_PARTI_PUBKEY = "local.parti.pubkey";
 
+	// 当前参与方的 证书路径；
+	public static final String LOCAL_PARTI_CA_PATH = "local.parti.ca-path";
+
 	// 当前参与方的私钥（密文编码）；
 	public static final String LOCAL_PARTI_PRIVKEY = "local.parti.privkey";
 
@@ -85,6 +88,8 @@ public class LocalConfig {
 		String pubKeyString = PropertiesUtils.getRequiredProperty(props, LOCAL_PARTI_PUBKEY);
 		conf.local.pubKeyString = pubKeyString;
 
+		conf.local.caPath = PropertiesUtils.getOptionalProperty(props, LOCAL_PARTI_CA_PATH);
+
 		conf.local.privKeyString = PropertiesUtils.getRequiredProperty(props, LOCAL_PARTI_PRIVKEY);
 		conf.local.password = PropertiesUtils.getProperty(props, LOCAL_PARTI_PWD, false);
 
@@ -124,6 +129,8 @@ public class LocalConfig {
 
 		private String password;
 
+		private String caPath;
+
 		public String getPubKeyString() {
 			return pubKeyString;
 		}
@@ -148,6 +155,13 @@ public class LocalConfig {
 			this.password = password;
 		}
 
+		public String getCaPath() {
+			return caPath;
+		}
+
+		public void setCaPath(String caPath) {
+			this.caPath = caPath;
+		}
 	}
 
 }

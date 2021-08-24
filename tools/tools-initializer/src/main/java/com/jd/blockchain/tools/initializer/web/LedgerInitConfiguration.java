@@ -1,5 +1,6 @@
 package com.jd.blockchain.tools.initializer.web;
 
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -7,14 +8,14 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
+import com.jd.blockchain.ca.CaType;
+import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.consensus.ConsensusProvider;
 import com.jd.blockchain.consensus.ConsensusProviders;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.CryptoProvider;
-import com.jd.blockchain.crypto.service.classic.ClassicCryptoService;
-import com.jd.blockchain.crypto.service.sm.SMCryptoService;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerInitException;
 import com.jd.blockchain.ledger.LedgerInitProperties;
@@ -28,6 +29,7 @@ import com.jd.blockchain.ledger.core.LedgerSecurityManager;
 import com.jd.blockchain.transaction.LedgerInitData;
 
 import utils.StringUtils;
+import utils.io.FileUtils;
 
 public class LedgerInitConfiguration {
 
@@ -194,10 +196,17 @@ public class LedgerInitConfiguration {
 		// 创建初始化配置；
 		LedgerInitData initSetting = new LedgerInitData();
 		initSetting.setLedgerSeed(ledgerProps.getLedgerSeed());
+		initSetting.setCaMode(ledgerProps.isCaMode());
+		if(ledgerProps.isCaMode()) {
+			String rootCa = FileUtils.readText(ledgerProps.getCaPath());
+			X509Certificate cert = X509Utils.resolveCertificate(rootCa);
+			// 时间有效性校验
+			X509Utils.checkValidity(cert);
+			X509Utils.checkCaType(cert, CaType.ROOT);
+			initSetting.setRootCa(rootCa);
+		}
 		initSetting.setCryptoSetting(cryptoSetting);
-
 		initSetting.setConsensusParticipants(participants);
-
 		initSetting.setCreatedTime(ledgerProps.getCreatedTime());
 
 		// 创建共识配置；
@@ -220,7 +229,7 @@ public class LedgerInitConfiguration {
 
 	/**
 	 * 解析参与方列表；
-	 * 
+	 *
 	 * @param ledgerInitProps
 	 * @return
 	 */
@@ -235,7 +244,7 @@ public class LedgerInitConfiguration {
 
 	/**
 	 * 对参与者列表按照 id 进行升序排列，并校验id是否从 1 开始且没有跳跃；
-	 * 
+	 *
 	 * @param parties
 	 * @return
 	 */

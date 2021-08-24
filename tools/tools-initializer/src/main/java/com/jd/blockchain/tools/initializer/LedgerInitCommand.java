@@ -1,7 +1,10 @@
 package com.jd.blockchain.tools.initializer;
 
 import java.io.File;
+import java.security.cert.X509Certificate;
 
+import com.jd.blockchain.ca.CaType;
+import com.jd.blockchain.ca.X509Utils;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -100,21 +103,12 @@ public class LedgerInitCommand {
 			int currId = -1;
 			for (int i = 0; i < ledgerInitProperties.getConsensusParticipantCount(); i++) {
 				ParticipantProperties partiConf = ledgerInitProperties.getConsensusParticipant(i);
-//				String partiAddress = partiConf.getAddress();
-//				if (partiAddress == null) {
-//					if (partiConf.getPubKeyPath() != null) {
-//						PubKey pubKey = KeyGenUtils.readPubKey(partiConf.getPubKeyPath());
-//						partiConf.setPubKey(pubKey);
-//						partiAddress = partiConf.getAddress();
-//					}
-//				}
 				if (localNodeAddress.equals(partiConf.getAddress().toBase58())) {
 					currId = i;
 				}
 			}
 			if (currId == -1) {
-				throw new IllegalStateException(
-						"The current node specified in local.conf is not found in ledger.init!");
+				throw new IllegalStateException("The current node specified in local.conf is not found in ledger.init!");
 			}
 
 			// 加载当前节点的私钥；
@@ -123,6 +117,15 @@ public class LedgerInitCommand {
 				base58Pwd = KeyGenUtils.readPasswordString();
 			}
 			PrivKey privKey = KeyGenUtils.decodePrivKey(localConf.getLocal().getPrivKeyString(), base58Pwd);
+
+			// 验证节点证书
+			if(ledgerInitProperties.isCaMode()) {
+				String cert = FileUtils.readText(localConf.getLocal().getCaPath());
+				X509Certificate certificate = X509Utils.resolveCertificate(cert);
+				X509Utils.checkValidity(certificate);
+				X509Utils.checkCaType(certificate, CaType.PEER);
+				X509Utils.verify(certificate, X509Utils.resolveCertificate(new File(ledgerInitProperties.getCaPath())).getPublicKey());
+			}
 
 			// Output ledger binding config of peer;
 			if (!FileUtils.existDirectory(localConf.getBindingOutDir())) {
@@ -138,7 +141,7 @@ public class LedgerInitCommand {
 
 			// 启动初始化；
 			LedgerInitCommand initCommand = new LedgerInitCommand();
-			HashDigest newLedgerHash = initCommand.startInit(currId, privKey, base58Pwd, ledgerInitProperties,
+			HashDigest newLedgerHash = initCommand.startInit(currId, privKey, localConf.getLocal().getCaPath(), base58Pwd, ledgerInitProperties,
 					localConf.getStoragedDb(), prompter, conf);
 
 			if (newLedgerHash != null) {
@@ -174,7 +177,7 @@ public class LedgerInitCommand {
 	public LedgerInitCommand() {
 	}
 
-	public HashDigest startInit(int currId, PrivKey privKey, String base58Pwd,
+	public HashDigest startInit(int currId, PrivKey privKey, String caPath, String base58Pwd,
 			LedgerInitProperties ledgerInitProperties, DBConnectionConfig dbConnConfig, Prompter prompter,
 			LedgerBindingConfig conf, Object... extBeans) {
 		if (currId < 0 || currId >= ledgerInitProperties.getConsensusParticipantCount()) {
@@ -198,7 +201,7 @@ public class LedgerInitCommand {
 		String encodedPrivKey = KeyGenUtils.encodePrivKey(privKey, base58Pwd);
 		bindingConf.getParticipant().setPk(encodedPrivKey);
 		bindingConf.getParticipant().setPassword(base58Pwd);
-
+		bindingConf.getParticipant().setCaPath(caPath);
 		bindingConf.getDbConnection().setConnectionUri(dbConnConfig.getUri());
 		bindingConf.getDbConnection().setPassword(dbConnConfig.getPassword());
 
