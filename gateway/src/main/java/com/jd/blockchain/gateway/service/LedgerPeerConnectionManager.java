@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.net.NetworkAddress;
 
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Random;
@@ -40,6 +41,7 @@ public class LedgerPeerConnectionManager {
     // 所连接节点地址等信息
     private NetworkAddress peerAddress;
     private AsymmetricKeypair keyPair;
+    private X509Certificate certificate;
     private SessionCredentialProvider credentialProvider;
     private ConsensusClientManager clientManager;
     private LedgerPeerConnectionListener connectionListener;
@@ -59,19 +61,25 @@ public class LedgerPeerConnectionManager {
     public LedgerPeerConnectionManager(HashDigest ledger, NetworkAddress peerAddress, AsymmetricKeypair keyPair,
                                        SessionCredentialProvider credentialProvider, ConsensusClientManager clientManager,
                                        LedgersListener ledgersListener) {
+        this(ledger, peerAddress, keyPair, null, credentialProvider, clientManager, ledgersListener);
+    }
+
+    public LedgerPeerConnectionManager(HashDigest ledger, NetworkAddress peerAddress, AsymmetricKeypair keyPair, X509Certificate certificate,
+                                       SessionCredentialProvider credentialProvider, ConsensusClientManager clientManager,
+                                       LedgersListener ledgersListener) {
         this.executorService = Executors.newScheduledThreadPool(2);
         this.latestHeight = -1;
         this.state = State.UNAVAILABLE;
-
         this.ledger = ledger;
         this.accessibleLedgers = new HashSet<>();
         accessibleLedgers.add(ledger);
         this.peerAddress = peerAddress;
         this.keyPair = keyPair;
+        this.certificate = certificate;
         this.credentialProvider = credentialProvider;
         this.clientManager = clientManager;
         this.ledgersListener = ledgersListener;
-        this.authenticator = new PeerAuthenticator(peerAddress, keyPair, credentialProvider);
+        this.authenticator = new PeerAuthenticator(peerAddress, keyPair, certificate, credentialProvider);
     }
 
     public void setConnectionListener(LedgerPeerConnectionListener connectionListener) {
@@ -209,7 +217,7 @@ public class LedgerPeerConnectionManager {
     }
 
     public synchronized HashDigest[] connect() {
-        PeerBlockchainServiceFactory factory = PeerBlockchainServiceFactory.connect(keyPair, peerAddress, credentialProvider, clientManager);
+        PeerBlockchainServiceFactory factory = PeerBlockchainServiceFactory.connect(keyPair, certificate, peerAddress, credentialProvider, clientManager);
         if (null != blockchainServiceFactory) {
             blockchainServiceFactory.close();
         }
@@ -238,7 +246,7 @@ public class LedgerPeerConnectionManager {
                     try {
                         logger.info("Auth {}-{} recreate connection", ledger, peerAddress);
                         blockchainServiceFactory.close();
-                        blockchainServiceFactory = PeerBlockchainServiceFactory.create(keyPair, peerAddress, authResponse.getLedgers(), credentialProvider, clientManager);
+                        blockchainServiceFactory = PeerBlockchainServiceFactory.create(keyPair, certificate, peerAddress, authResponse.getLedgers(), credentialProvider, clientManager);
                     } catch (Exception e) {
                         logger.warn("Auth {}-{} recreate connection", ledger, peerAddress, e);
                     }
@@ -271,7 +279,7 @@ public class LedgerPeerConnectionManager {
         if (null != ledgersListener && ledgersToAdd.size() > 0) {
             logger.info("Ledgers update {}->{}, only for adding", accessibleLedgers, ledgers);
             executorService.execute(() -> {
-                ledgersListener.LedgersUpdated(ledgersToAdd, keyPair, peerAddress);
+                ledgersListener.LedgersUpdated(ledgersToAdd, keyPair, certificate, peerAddress);
             });
         }
     }

@@ -1,5 +1,9 @@
 package com.jd.blockchain.consensus.bftsmart.service;
 
+import com.jd.blockchain.ca.CaType;
+import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.consensus.ConsensusSecurityException;
+import org.bouncycastle.jcajce.provider.asymmetric.X509;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,8 +18,11 @@ import com.jd.blockchain.consensus.bftsmart.client.BftsmartSessionCredentialConf
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.SignatureFunction;
 
+import utils.StringUtils;
 import utils.io.Storage;
 import utils.serialize.binary.BinarySerializeUtils;
+
+import java.security.cert.X509Certificate;
 
 public class BftsmartClientAuthencationService implements ClientAuthencationService {
 
@@ -61,10 +68,26 @@ public class BftsmartClientAuthencationService implements ClientAuthencationServ
 	}
 
 	@Override
-	public BftsmartClientIncomingSettings authencateIncoming(ClientCredential clientCredential) {
+	public BftsmartClientIncomingSettings authencateIncoming(ClientCredential clientCredential) throws ConsensusSecurityException{
+		return authencateIncoming(clientCredential, null);
+	}
+
+	@Override
+	public BftsmartClientIncomingSettings authencateIncoming(ClientCredential clientCredential, X509Certificate rootCa) throws ConsensusSecurityException {
 		if (!verify(clientCredential)) {
 			return null;
 		}
+		if(null != rootCa) {
+			// 证书模式下校验接入客户端证书
+			if(StringUtils.isEmpty(clientCredential.getCertificate())) {
+				throw new ConsensusSecurityException("Client certificate is empty!");
+			}
+			X509Certificate clientCa = X509Utils.resolveCertificate(clientCredential.getCertificate());
+			X509Utils.checkValidity(clientCa);
+			X509Utils.checkCaTypesAny(clientCa, CaType.PEER, CaType.GW);
+			X509Utils.verify(clientCa, rootCa.getPublicKey());
+		}
+
 		BftsmartTopology topology = nodeServer.getTopology();
 		if (topology == null) {
 			throw new IllegalStateException("Topology of node[" + nodeServer.getId() + "] still not created !!!");

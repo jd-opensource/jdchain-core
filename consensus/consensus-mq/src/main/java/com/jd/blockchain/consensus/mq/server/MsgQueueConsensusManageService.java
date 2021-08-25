@@ -8,9 +8,12 @@
  */
 package com.jd.blockchain.consensus.mq.server;
 
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 
 import com.jd.binaryproto.DataContractRegistry;
+import com.jd.blockchain.ca.CaType;
+import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.consensus.ClientCredential;
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.ClientAuthencationService;
@@ -22,6 +25,7 @@ import com.jd.blockchain.consensus.mq.settings.MsgQueueConsensusSettings;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.crypto.SignatureFunction;
+import utils.StringUtils;
 
 /**
  *
@@ -42,7 +46,22 @@ public class MsgQueueConsensusManageService implements ClientAuthencationService
 	@Override
 	public MsgQueueClientIncomingSettings authencateIncoming(ClientCredential authId)
 			throws ConsensusSecurityException {
+		return authencateIncoming(authId, null);
+	}
+
+	@Override
+	public MsgQueueClientIncomingSettings authencateIncoming(ClientCredential authId, X509Certificate rootCa)
+			throws ConsensusSecurityException {
 		boolean isLegal = isLegal(authId);
+		if(null != rootCa) {
+			if(StringUtils.isEmpty(authId.getCertificate())) {
+				throw new ConsensusSecurityException("Client certificate is empty!");
+			}
+			X509Certificate clientCa = X509Utils.resolveCertificate(authId.getCertificate());
+			X509Utils.checkValidity(clientCa);
+			X509Utils.checkCaTypesAny(clientCa, CaType.PEER, CaType.GW);
+			X509Utils.verify(clientCa, rootCa.getPublicKey());
+		}
 		if (isLegal) {
 			MsgQueueClientIncomingSettings mqcis = new MsgQueueClientIncomingConfig().setPubKey(authId.getPubKey())
 					.setClientId(clientId(null)).setConsensusSettings(this.consensusSettings)

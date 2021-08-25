@@ -4,6 +4,7 @@ import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.HashDigest;
 import utils.net.NetworkAddress;
 
+import java.security.cert.X509Certificate;
 import java.util.Set;
 
 /**
@@ -16,9 +17,10 @@ public interface LedgersListener {
      *
      * @param ledgers 账本列表
      * @param keyPair 准入身份
+     * @param certificate 准入身份证书
      * @param peer    账本检测节点地址
      */
-    void LedgersUpdated(Set<HashDigest> ledgers, AsymmetricKeypair keyPair, NetworkAddress peer);
+    void LedgersUpdated(Set<HashDigest> ledgers, AsymmetricKeypair keyPair, X509Certificate certificate, NetworkAddress peer);
 
     /**
      * 移除账本

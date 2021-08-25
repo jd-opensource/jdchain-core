@@ -8,10 +8,10 @@
  */
 package com.jd.blockchain.consensus.mq.client;
 
+import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.consensus.ClientIncomingSettings;
 import com.jd.blockchain.consensus.SessionCredential;
 import com.jd.binaryproto.BinaryProtocol;
-import com.jd.blockchain.consensus.ClientAuthencationService;
 import com.jd.blockchain.consensus.client.ClientFactory;
 import com.jd.blockchain.consensus.client.ClientSettings;
 import com.jd.blockchain.consensus.mq.config.MsgQueueClientConfig;
@@ -24,6 +24,8 @@ import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.crypto.SignatureDigest;
 import com.jd.blockchain.crypto.SignatureFunction;
 
+import java.security.cert.X509Certificate;
+
 /**
  *
  * @author shaozhuguang
@@ -34,7 +36,12 @@ import com.jd.blockchain.crypto.SignatureFunction;
 public class MsgQueueClientFactory implements ClientFactory {
 
     @Override
-    public MsgQueueClientIdentification buildCredential(SessionCredential credentialInfo, AsymmetricKeypair clientKeyPair) {
+    public MsgQueueClientIdentification buildCredential(SessionCredential sessionCredential, AsymmetricKeypair clientKeyPair) {
+        return buildCredential(sessionCredential, clientKeyPair, null);
+    }
+
+    @Override
+    public MsgQueueClientIdentification buildCredential(SessionCredential credentialInfo, AsymmetricKeypair clientKeyPair, X509Certificate gatewayCertificate) {
     	MQCredentialInfo mqCredentialInfo = (MQCredentialInfo) credentialInfo;
     	if(null == mqCredentialInfo) {
             mqCredentialInfo = MQCredentialConfig.createEmptyCredential();
@@ -51,6 +58,7 @@ public class MsgQueueClientFactory implements ClientFactory {
                 .setPubKey(clientKeyPair.getPubKey())
                 .setIdentityInfo(mqCredentialInfo)
                 .setSignature(signatureDigest)
+                .setCertificate(gatewayCertificate != null ? X509Utils.toPEMString(gatewayCertificate) : null);
                 ;
         return mqci;
     }

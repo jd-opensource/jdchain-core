@@ -8,6 +8,7 @@ import bftsmart.reconfiguration.views.MemoryBasedViewStorage;
 import bftsmart.reconfiguration.views.NodeNetwork;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.ServiceProxy;
+import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.consensus.NodeNetworkAddress;
 import com.jd.blockchain.consensus.bftsmart.service.BftsmartNodeState;
 import com.jd.blockchain.ledger.BlockRollbackException;
@@ -36,14 +37,9 @@ import com.jd.blockchain.consensus.ConsensusProvider;
 import com.jd.blockchain.consensus.ConsensusProviders;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
-import com.jd.blockchain.consensus.SessionCredential;
 import com.jd.blockchain.consensus.action.ActionResponse;
-import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
-import com.jd.blockchain.consensus.bftsmart.client.BftsmartSessionCredentialConfig;
-import com.jd.blockchain.consensus.bftsmart.service.BftsmartClientAuthencationService;
-import com.jd.blockchain.consensus.bftsmart.service.BftsmartNodeServer;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.NodeState;
@@ -117,7 +113,6 @@ import com.jd.blockchain.peer.consensus.LedgerStateManager;
 import com.jd.blockchain.sdk.AccessSpecification;
 import com.jd.blockchain.sdk.GatewayAuthRequest;
 import com.jd.blockchain.sdk.ManagementHttpService;
-import com.jd.blockchain.sdk.service.SessionCredentialProvider;
 import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.setting.GatewayAuthResponse;
 import com.jd.blockchain.setting.LedgerIncomingSettings;
@@ -154,6 +149,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.net.URL;
+import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -191,21 +187,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	public static final String BFTSMART_PROVIDER = "com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider";
 
-	public static final String GATEWAY_PUB_EXT_NAME = ".gw.pub";
-
-	private static final String DEFAULT_HASH_ALGORITHM = "SHA256";
-
-	public static final int MIN_GATEWAY_ID = 10000;
-
 	public String DEFAULT_DIR = "";
 
 	public String logDefaultFile;
-
-//	private static Properties systemConfig;
-
-//	private int viewId;
-
-//	private static List<NodeSettings> origConsensusNodes;
 
 	@Autowired
 	private Storage storage;
@@ -226,7 +210,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	private Map<HashDigest, LedgerQuery> ledgerQuerys = new ConcurrentHashMap<>();
 
-	private LedgerBindingConfig config;
+	private Map<HashDigest, X509Certificate> ledgerCerts = new ConcurrentHashMap<>();
 
 	@Autowired
 	private MessageHandle consensusMessageHandler;
@@ -313,10 +297,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	@RequestMapping(path = URL_AUTH_GATEWAY, method = RequestMethod.POST, consumes = BinaryMessageConverter.CONTENT_TYPE_VALUE)
 	@Override
 	public GatewayAuthResponse authenticateGateway(@RequestBody GatewayAuthRequest authRequest) {
-		// 去掉不严谨的网关注册和认证逻辑；暂时先放开，不做认证，后续应该在链上注册网关信息，并基于链上的网关信息进行认证；
-		// by: huanghaiquan; at 2018-09-11 18:34;
-		// TODO: 实现网关的链上注册与认证机制；
-		// TODO: 暂时先返回全部账本对应的共识网络配置信息；以账本哈希为 key 标识每一个账本对应的共识域、以及共识配置参数；
 		if (ledgerPeers.size() == 0 || authRequest == null) {
 			return null;
 		}
@@ -368,10 +348,15 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			}
 
 			try {
-				clientIncomingSettings = peer.getClientAuthencationService().authencateIncoming(clientRedential);
+				X509Certificate rootCa = ledgerCerts.get(ledgerHash);
+				if(null != rootCa) {
+					// 证书模式下校验根证书，根证书校验不通过的账本不对外提供服务
+					X509Utils.checkValidity(rootCa);
+				}
+				clientIncomingSettings = peer.getClientAuthencationService().authencateIncoming(clientRedential, rootCa);
 			} catch (Exception e) {
 				// 个别账本的认证失败不应该影响其它账本的认证；
-				LOGGER.error(String.format("Load ledger[%s] error !", ledgerHash.toBase58()), e);
+				LOGGER.error(String.format("Authenticate ledger[%s] error !", ledgerHash.toBase58()), e);
 				continue;
 			}
 			if (clientIncomingSettings == null) {
@@ -420,8 +405,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					continue;
 				}
 			}
-
-			this.config = config;
 
 		} catch (Exception e) {
 			LOGGER.error("Peer start exception, Error occurred on configing LedgerBindingConfig! --" + e.getMessage(), e);
@@ -482,6 +465,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		}
 
 		ledgerQuerys.put(ledgerHash, ledgerRepository);
+		LedgerMetadata_V2 metadata = ledgerRepository.getAdminInfo().getMetadata();
+		ledgerCerts.put(ledgerHash, metadata.isCaMode() ? X509Utils.resolveCertificate(metadata.getRootCa()) : null);
 		ledgerCurrNodes.put(ledgerHash, currentNode);
 		ledgerCryptoSettings.put(ledgerHash, ledgerAdminAccount.getSettings().getCryptoSetting());
 		ledgerKeypairs.put(ledgerHash, loadIdentity(currentNode, bindingConfig));

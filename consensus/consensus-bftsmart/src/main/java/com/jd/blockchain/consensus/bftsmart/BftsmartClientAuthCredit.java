@@ -9,6 +9,7 @@ public class BftsmartClientAuthCredit implements ClientCredential {
 	private BftsmartSessionCredential sessionCredential;
 	private PubKey pubKey;
 	private SignatureDigest signatureDigest;
+	private String certificate;
 
 	public BftsmartClientAuthCredit() {
 	}
@@ -54,6 +55,15 @@ public class BftsmartClientAuthCredit implements ClientCredential {
 	@Override
 	public String getProviderName() {
 		return BftsmartConsensusProvider.NAME;
+	}
+
+	@Override
+	public String getCertificate() {
+		return certificate;
+	}
+
+	public void setCertificate(String certificate) {
+		this.certificate = certificate;
 	}
 
 	public void setSignatureDigest(SignatureDigest signatureDigest) {
