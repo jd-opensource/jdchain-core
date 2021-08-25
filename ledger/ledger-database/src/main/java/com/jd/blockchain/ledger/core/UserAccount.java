@@ -8,6 +8,7 @@ import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
 
 import utils.Bytes;
+import utils.io.BytesUtils;
 
 /**
  * 用户账户；
@@ -20,13 +21,14 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 	private static final String USER_INFO_PREFIX = "PROP" + LedgerConsts.KEY_SEPERATOR;
 
 	private static final String DATA_PUB_KEY = "DATA-PUBKEY";
+	private static final String DATA_REVOKED = "DATA-REVOKE";
 
 	public UserAccount(CompositeAccount baseAccount) {
 		super(baseAccount);
 	}
 
 	private PubKey dataPubKey;
-	
+	private Boolean revoked;
 
 	@Override
 	public Bytes getAddress() {
@@ -63,6 +65,25 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 		} else {
 			throw new LedgerException("Data public key was updated failed!");
 		}
+	}
+
+	@Override
+	public boolean revoked() {
+		if(revoked == null) {
+			BytesValue rbs = getHeaders().getValue(DATA_REVOKED);
+			if (rbs == null) {
+				revoked = false;
+			} else {
+				revoked = BytesUtils.toBoolean(rbs.getBytes().byteAt(0));
+			}
+		}
+		return revoked;
+	}
+
+	public void revoke() {
+		long version = getHeaders().getVersion(DATA_REVOKED);
+		getHeaders().setValue(DATA_REVOKED, TypedValue.fromBoolean(false), version);
+		revoked = true;
 	}
 
 	public long setProperty(String key, String value, long version) {

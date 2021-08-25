@@ -1,5 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -7,6 +8,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.jd.blockchain.ca.CaType;
+import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerSecurityException;
 import com.jd.blockchain.ledger.ParticipantDoesNotExistException;
@@ -52,6 +55,11 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 
 	@Override
 	public SecurityPolicy getSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes) {
+		return getSecurityPolicy(endpoints, nodes, null, null);
+	}
+
+	@Override
+	public SecurityPolicy getSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes, X509Certificate rootCa, Map<Bytes, X509Certificate> certs) {
 		Map<Bytes, UserRolesPrivileges> endpointPrivilegeMap = new HashMap<>();
 		Map<Bytes, UserRolesPrivileges> nodePrivilegeMap = new HashMap<>();
 
@@ -65,7 +73,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 			nodePrivilegeMap.put(userAddress, userPrivileges);
 		}
 
-		return new UserRolesSecurityPolicy(endpointPrivilegeMap, nodePrivilegeMap, participantsQuery, userAccountsQuery);
+		return new UserRolesSecurityPolicy(endpointPrivilegeMap, nodePrivilegeMap, rootCa, certs, participantsQuery, userAccountsQuery);
 	}
 
 	@Override
@@ -150,6 +158,10 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 
 		private UserAccountSet userAccountsQuery;
 
+		private X509Certificate rootCa;
+
+		private Map<Bytes, X509Certificate> certs;
+
 		public UserRolesSecurityPolicy(Map<Bytes, UserRolesPrivileges> endpointPrivilegeMap,
 				Map<Bytes, UserRolesPrivileges> nodePrivilegeMap, ParticipantCollection participantsQuery,
 				UserAccountSet userAccountsQuery) {
@@ -157,6 +169,17 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 			this.nodePrivilegeMap = nodePrivilegeMap;
 			this.participantsQuery = participantsQuery;
 			this.userAccountsQuery = userAccountsQuery;
+		}
+
+		public UserRolesSecurityPolicy(Map<Bytes, UserRolesPrivileges> endpointPrivilegeMap, Map<Bytes, UserRolesPrivileges> nodePrivilegeMap,
+									   X509Certificate rootCa, Map<Bytes, X509Certificate> certs,
+									   ParticipantCollection participantsQuery, UserAccountSet userAccountsQuery) {
+			this.endpointPrivilegeMap = endpointPrivilegeMap;
+			this.nodePrivilegeMap = nodePrivilegeMap;
+			this.participantsQuery = participantsQuery;
+			this.userAccountsQuery = userAccountsQuery;
+			this.rootCa = rootCa;
+			this.certs = certs;
 		}
 
 		@Override
@@ -288,6 +311,75 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 				throw new LedgerSecurityException(String.format(
 						"The security policy [Permission=%s, Policy=%s] for nodes rejected the current operation!",
 						permission, midPolicy));
+			}
+		}
+
+		@Override
+		public void checkRootCa() throws LedgerSecurityException {
+			try {
+				X509Utils.checkValidity(rootCa);
+			} catch (Exception e) {
+				throw new LedgerSecurityException("Root ca invalid", e);
+			}
+		}
+
+		@Override
+		public void checkEndpointCa(MultiIDsPolicy midPolicy) throws LedgerSecurityException {
+			if (MultiIDsPolicy.AT_LEAST_ONE == midPolicy) {
+				// 至少一个；
+				for (Bytes address : getEndpoints()) {
+					X509Certificate cert = certs.get(address);
+					try {
+						X509Utils.checkValidity(cert);
+						X509Utils.verify(cert, rootCa.getPublicKey());
+						return;
+					} catch (Exception e) {}
+				}
+				throw new LedgerSecurityException("Invalid endpoint ca!");
+			} else if (MultiIDsPolicy.ALL == midPolicy) {
+				// 全部；
+				try {
+					for (Bytes address : getEndpoints()) {
+						X509Certificate cert = certs.get(address);
+						X509Utils.checkValidity(cert);
+						X509Utils.verify(cert, rootCa.getPublicKey());
+					}
+				} catch (Exception e) {
+					throw new LedgerSecurityException("Invalid endpoint ca!");
+				}
+			} else {
+				throw new IllegalArgumentException("Unsupported MultiIdsPolicy[" + midPolicy + "]!");
+			}
+		}
+
+		@Override
+		public void checkNodeCa(MultiIDsPolicy midPolicy) throws LedgerSecurityException {
+			if (MultiIDsPolicy.AT_LEAST_ONE == midPolicy) {
+				// 至少一个；
+				for (Bytes address : getNodes()) {
+					X509Certificate cert = certs.get(address);
+					try {
+						X509Utils.checkValidity(cert);
+						X509Utils.checkCaType(cert, CaType.PEER);
+						X509Utils.verify(cert, rootCa.getPublicKey());
+						return;
+					} catch (Exception e) {}
+				}
+				throw new LedgerSecurityException("Invalid node ca!");
+			} else if (MultiIDsPolicy.ALL == midPolicy) {
+				// 全部；
+				try {
+					for (Bytes address : getNodes()) {
+						X509Certificate cert = certs.get(address);
+						X509Utils.checkValidity(cert);
+						X509Utils.checkCaType(cert, CaType.PEER);
+						X509Utils.verify(cert, rootCa.getPublicKey());
+					}
+				} catch (Exception e) {
+					throw new LedgerSecurityException("Invalid node ca!");
+				}
+			} else {
+				throw new IllegalArgumentException("Unsupported MultiIdsPolicy[" + midPolicy + "]!");
 			}
 		}
 

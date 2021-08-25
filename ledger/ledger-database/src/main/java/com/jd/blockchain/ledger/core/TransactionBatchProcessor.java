@@ -1,10 +1,15 @@
 package com.jd.blockchain.ledger.core;
 
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
+import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.ledger.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +22,7 @@ import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.transaction.SignatureUtils;
 import com.jd.blockchain.transaction.TxBuilder;
 import com.jd.blockchain.transaction.TxResponseMessage;
+import utils.Bytes;
 
 public class TransactionBatchProcessor implements TransactionBatchProcess, BlockQuery {
 
@@ -110,8 +116,22 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 			TransactionRequestExtension reqExt = new TransactionRequestExtensionImpl(request);
 
 			// 初始化交易的用户安全策略；
-			SecurityPolicy securityPolicy = securityManager.getSecurityPolicy(reqExt.getEndpointAddresses(),
+			SecurityPolicy securityPolicy;
+			LedgerMetadata_V2 metadata = ledger.getAdminInfo().getMetadata();
+			if(!metadata.isCaMode()) {
+				securityPolicy = securityManager.getSecurityPolicy(reqExt.getEndpointAddresses(),
 					reqExt.getNodeAddresses());
+			} else {
+				Map<Bytes, X509Certificate> certs = new HashMap<>();
+				for(DigitalSignature signature : reqExt.getEndpointSignatures()) {
+					certs.put(AddressEncoding.generateAddress(signature.getPubKey()), X509Utils.resolveCertificate(signature.getCertificate()));
+				}
+				for(DigitalSignature signature : reqExt.getNodeSignatures()) {
+					certs.put(AddressEncoding.generateAddress(signature.getPubKey()), X509Utils.resolveCertificate(signature.getCertificate()));
+				}
+				securityPolicy = securityManager.getSecurityPolicy(reqExt.getEndpointAddresses(),
+						reqExt.getNodeAddresses(), X509Utils.resolveCertificate(metadata.getRootCa()), certs);
+			}
 			SecurityContext.setContextUsersPolicy(securityPolicy);
 
 			// 安全校验；
@@ -179,6 +199,13 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 	 * 执行安全验证；
 	 */
 	private void checkSecurity(SecurityPolicy securityPolicy) {
+		// 验证根证书
+		securityPolicy.checkRootCa();
+		// 验证节点证书
+		securityPolicy.checkNodeCa(MultiIDsPolicy.AT_LEAST_ONE);
+		// 验证终端用户证书
+		securityPolicy.checkEndpointCa(MultiIDsPolicy.AT_LEAST_ONE);
+
 		// 验证节点和终端身份的合法性；
 		// 多重身份签署的必须全部身份都合法；
 		securityPolicy.checkEndpointValidity(MultiIDsPolicy.ALL);

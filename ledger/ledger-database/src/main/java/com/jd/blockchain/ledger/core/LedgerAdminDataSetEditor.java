@@ -253,18 +253,6 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 		return metadata;
 	}
 
-//	/**
-//	 * 返回原来的账本配置；
-//	 * 
-//	 * <br>
-//	 * 此方法总是返回从上一个区块加载的账本配置，即时调用 {@link #setLedgerSetting(LedgerSettings)} 做出了新的更改；
-//	 * 
-//	 * @return
-//	 */
-//	public LedgerSettings getPreviousSetting() {
-//		return previousSettings;
-//	}
-
 	/**
 	 * 返回当前设置的账本配置；
 	 * 
@@ -406,6 +394,11 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 		}
 		participants.cancel();
 		metadata =origMetadata == null ? new LedgerMetadataInfo() :  new LedgerMetadataInfo(origMetadata);
+	}
+
+	public void updateCa(String cert) {
+		metadata.setRootCa(cert);
+		updated = true;
 	}
 
 	public static class LedgerMetadataInfo implements LedgerMetadata_V2 {

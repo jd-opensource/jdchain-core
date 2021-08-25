@@ -1,11 +1,14 @@
 package com.jd.blockchain.ledger.core.handles;
 
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.contract.LedgerContext;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
+import com.jd.blockchain.ledger.BlockchainIdentityData;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
 import com.jd.blockchain.ledger.DataAccountInfo;
@@ -23,12 +26,14 @@ import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.PrivilegeSet;
+import com.jd.blockchain.ledger.RootCaUpdateOperation;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
 import com.jd.blockchain.ledger.UserPrivilegeSet;
 import com.jd.blockchain.ledger.UserRegisterOperation;
+import com.jd.blockchain.ledger.UserRevokeOperation;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.transaction.DataAccountKVSetOperationBuilder;
@@ -40,10 +45,15 @@ import com.jd.blockchain.transaction.EventData;
 import com.jd.blockchain.transaction.EventPublishOperationBuilder;
 import com.jd.blockchain.transaction.KVData;
 import com.jd.blockchain.ledger.LedgerQueryService;
+import com.jd.blockchain.transaction.MetaInfoUpdateOperationBuilder;
+import com.jd.blockchain.transaction.RootCaUpdateOpTemplate;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilder;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilderImpl;
 
+import com.jd.blockchain.transaction.UserRevokeOpTemplate;
+import com.jd.blockchain.transaction.UserUpdateOperationBuilder;
 import utils.Bytes;
+import utils.codec.Base58Utils;
 
 /**
  * 合约内账本上下文
@@ -245,6 +255,16 @@ public class ContractLedgerContext implements LedgerContext {
 	}
 
 	@Override
+	public UserUpdateOperationBuilder user(String address) {
+		return user(Bytes.fromBase58(address));
+	}
+
+	@Override
+	public UserUpdateOperationBuilder user(Bytes address) {
+		return new UserUpdateOperationBuilder1(address);
+	}
+
+	@Override
 	public DataAccountRegisterOperationBuilder dataAccounts() {
 		return new DataAccountRegisterOperationBuilder1();
 	}
@@ -274,6 +294,22 @@ public class ContractLedgerContext implements LedgerContext {
 		return new EventPublishOperationExecBuilder(accountAddress);
 	}
 
+	@Override
+	public MetaInfoUpdateOperationBuilder metaInfo() {
+		return new MetaInfoUpdateOperationBuilder1();
+	}
+
+	private class MetaInfoUpdateOperationBuilder1 implements MetaInfoUpdateOperationBuilder {
+
+		@Override
+		public RootCaUpdateOperation ca(String cert) {
+			RootCaUpdateOperation op = new RootCaUpdateOpTemplate(cert);
+			generatedOpList.add(op);
+			opHandleContext.handle(op);
+			return op;
+		}
+	}
+
 	private class DataAccountRegisterOperationBuilder1 implements DataAccountRegisterOperationBuilder {
 		@Override
 		public DataAccountRegisterOperation register(BlockchainIdentity accountID) {
@@ -291,6 +327,28 @@ public class ContractLedgerContext implements LedgerContext {
 		@Override
 		public UserRegisterOperation register(BlockchainIdentity userID) {
 			UserRegisterOperation op = USER_REG_OP_BUILDER.register(userID);
+			generatedOpList.add(op);
+			opHandleContext.handle(op);
+			return op;
+		}
+
+		@Override
+		public UserRegisterOperation register(X509Certificate certificate) {
+			return register(new BlockchainIdentityData(X509Utils.resolvePubKey(certificate)));
+		}
+	}
+
+	private class UserUpdateOperationBuilder1 implements UserUpdateOperationBuilder {
+
+		private Bytes address;
+
+		public UserUpdateOperationBuilder1(Bytes address) {
+			this.address = address;
+		}
+
+		@Override
+		public UserRevokeOperation revoke() {
+			UserRevokeOperation op = new UserRevokeOpTemplate(address);
 			generatedOpList.add(op);
 			opHandleContext.handle(op);
 			return op;

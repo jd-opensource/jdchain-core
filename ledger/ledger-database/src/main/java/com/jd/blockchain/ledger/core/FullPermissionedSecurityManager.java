@@ -1,5 +1,7 @@
 package com.jd.blockchain.ledger.core;
 
+import java.security.cert.X509Certificate;
+import java.util.Map;
 import java.util.Set;
 
 import com.jd.blockchain.ledger.LedgerPermission;
@@ -18,6 +20,11 @@ class FullPermissionedSecurityManager implements LedgerSecurityManager {
 	}
 
 	@Override
+	public SecurityPolicy getSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes, X509Certificate rootCa, Map<Bytes, X509Certificate> certs) {
+		return new FullPermissionedPolicy(endpoints, nodes, rootCa, certs);
+	}
+
+	@Override
 	public UserRolesPrivileges getUserRolesPrivilegs(Bytes userAddress) {
 		// TODO Auto-generated method stub
 		return null;
@@ -27,10 +34,19 @@ class FullPermissionedSecurityManager implements LedgerSecurityManager {
 
 		private Set<Bytes> endpoints;
 		private Set<Bytes> nodes;
+		private X509Certificate rootCa;
+		private Map<Bytes, X509Certificate> certs;
 
 		public FullPermissionedPolicy(Set<Bytes> endpoints, Set<Bytes> nodes) {
 			this.endpoints = endpoints;
 			this.nodes = nodes;
+		}
+
+		public FullPermissionedPolicy(Set<Bytes> endpoints, Set<Bytes> nodes, X509Certificate rootCa, Map<Bytes, X509Certificate> certs) {
+			this.endpoints = endpoints;
+			this.nodes = nodes;
+			this.rootCa = rootCa;
+			this.certs = certs;
 		}
 
 		@Override
@@ -80,6 +96,21 @@ class FullPermissionedSecurityManager implements LedgerSecurityManager {
 		@Override
 		public void checkNodePermission(TransactionPermission permission, MultiIDsPolicy midPolicy)
 				throws LedgerSecurityException {
+		}
+
+		@Override
+		public void checkRootCa() throws LedgerSecurityException {
+
+		}
+
+		@Override
+		public void checkEndpointCa(MultiIDsPolicy midPolicy) throws LedgerSecurityException {
+
+		}
+
+		@Override
+		public void checkNodeCa(MultiIDsPolicy midPolicy) throws LedgerSecurityException {
+
 		}
 
 		@Override

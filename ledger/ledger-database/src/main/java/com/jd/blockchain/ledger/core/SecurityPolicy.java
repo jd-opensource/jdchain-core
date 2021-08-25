@@ -140,4 +140,25 @@ public interface SecurityPolicy {
 	 */
 	void checkNodePermission(TransactionPermission permission, MultiIDsPolicy midPolicy) throws LedgerSecurityException;
 
+	/**
+	 * 账本根证书检查；
+	 *
+	 * @throws LedgerSecurityException
+	 */
+	void checkRootCa() throws LedgerSecurityException;
+
+	/**
+	 * 终端用户根证书检查；
+	 * @param midPolicy
+	 * @throws LedgerSecurityException
+	 */
+	void checkEndpointCa(MultiIDsPolicy midPolicy) throws LedgerSecurityException;
+
+	/**
+	 * 节点根证书检查；
+	 * @param midPolicy
+	 * @throws LedgerSecurityException
+	 */
+	void checkNodeCa(MultiIDsPolicy midPolicy) throws LedgerSecurityException;
+
 }
