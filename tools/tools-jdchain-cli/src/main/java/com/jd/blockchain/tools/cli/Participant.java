@@ -18,6 +18,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import picocli.CommandLine;
+import utils.StringUtils;
 import utils.io.FileUtils;
 
 import java.io.File;
@@ -203,6 +204,9 @@ class ParticipantActive implements Runnable {
     @CommandLine.Option(names = "--port", required = true, description = "Set the participant service port.", scope = CommandLine.ScopeType.INHERIT)
     int port;
 
+    @CommandLine.Option(names = "--crt", description = "Certificate file of the participant.", scope = CommandLine.ScopeType.INHERIT)
+    String caPath;
+
     @CommandLine.Option(names = "--consensus-port", required = true, description = "Set the participant consensus port.", scope = CommandLine.ScopeType.INHERIT)
     int consensusPort;
 
@@ -237,6 +241,7 @@ class ParticipantActive implements Runnable {
         params.add(new BasicNameValuePair("ledgerHash", ledger));
         params.add(new BasicNameValuePair("consensusHost", host));
         params.add(new BasicNameValuePair("consensusPort", consensusPort + ""));
+        params.add(new BasicNameValuePair("participantCert", StringUtils.isEmpty(caPath) ? "" : FileUtils.readText(caPath)));
         params.add(new BasicNameValuePair("remoteManageHost", synHost));
         params.add(new BasicNameValuePair("remoteManagePort", synPort + ""));
         params.add(new BasicNameValuePair("shutdown", shutdown + ""));
@@ -275,6 +280,9 @@ class ParticipantInactive implements Runnable {
     @CommandLine.Option(names = "--address", required = true, description = "Set the participant address.", scope = CommandLine.ScopeType.INHERIT)
     String address;
 
+    @CommandLine.Option(names = "--crt", description = "Certificate file of the participant.", scope = CommandLine.ScopeType.INHERIT)
+    String caPath;
+
     @CommandLine.Option(names = "--host", required = true, description = "Set the participant host.", scope = CommandLine.ScopeType.INHERIT)
     String host;
 
@@ -296,6 +304,7 @@ class ParticipantInactive implements Runnable {
             List<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
             params.add(new BasicNameValuePair("ledgerHash", ledger));
             params.add(new BasicNameValuePair("participantAddress", address));
+            params.add(new BasicNameValuePair("participantCert", StringUtils.isEmpty(caPath) ? "" : FileUtils.readText(caPath)));
             params.add(new BasicNameValuePair("remoteManageHost", synHost));
             params.add(new BasicNameValuePair("remoteManagePort", synPort + ""));
             httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));

@@ -313,6 +313,7 @@ class KeysImport implements Runnable {
                 FileUtils.writeText(pubkey, new File(keysHome + File.separator + name + ".pub"));
                 FileUtils.writeText(privkey, new File(keysHome + File.separator + name + ".priv"));
                 FileUtils.writeText(base58pwd, new File(keysHome + File.separator + name + ".pwd"));
+                FileUtils.writeText(X509Utils.toPEMString(certificate), new File(keysHome + File.separator + name + ".crt"));
                 System.out.printf(Keys.KEYS_PRINT_FORMAT, "NAME", "ALGORITHM", "ADDRESS", "PUBKEY");
                 System.out.printf(Keys.KEYS_PRINT_FORMAT, name, Crypto.getAlgorithm(privKey.getAlgorithm()).name(), AddressEncoding.generateAddress(keypair.getPubKey()), keypair.getPubKey());
             } else {

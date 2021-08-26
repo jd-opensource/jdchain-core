@@ -330,22 +330,28 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 				for (Bytes address : getEndpoints()) {
 					X509Certificate cert = certs.get(address);
 					try {
+						if(userAccountsQuery.getAccount(address).revoked()) {
+							continue;
+						}
 						X509Utils.checkValidity(cert);
 						X509Utils.verify(cert, rootCa.getPublicKey());
 						return;
 					} catch (Exception e) {}
 				}
-				throw new LedgerSecurityException("Invalid endpoint ca!");
+				throw new LedgerSecurityException("Invalid endpoint user!");
 			} else if (MultiIDsPolicy.ALL == midPolicy) {
 				// 全部；
 				try {
 					for (Bytes address : getEndpoints()) {
+						if(userAccountsQuery.getAccount(address).revoked()) {
+							throw new LedgerSecurityException("Invalid endpoint user!");
+						}
 						X509Certificate cert = certs.get(address);
 						X509Utils.checkValidity(cert);
 						X509Utils.verify(cert, rootCa.getPublicKey());
 					}
 				} catch (Exception e) {
-					throw new LedgerSecurityException("Invalid endpoint ca!");
+					throw new LedgerSecurityException("Invalid endpoint user!");
 				}
 			} else {
 				throw new IllegalArgumentException("Unsupported MultiIdsPolicy[" + midPolicy + "]!");
@@ -359,24 +365,30 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 				for (Bytes address : getNodes()) {
 					X509Certificate cert = certs.get(address);
 					try {
+						if(userAccountsQuery.getAccount(address).revoked()) {
+							continue;
+						}
 						X509Utils.checkValidity(cert);
 						X509Utils.checkCaType(cert, CaType.PEER);
 						X509Utils.verify(cert, rootCa.getPublicKey());
 						return;
 					} catch (Exception e) {}
 				}
-				throw new LedgerSecurityException("Invalid node ca!");
+				throw new LedgerSecurityException("Invalid node user!");
 			} else if (MultiIDsPolicy.ALL == midPolicy) {
 				// 全部；
 				try {
 					for (Bytes address : getNodes()) {
+						if(userAccountsQuery.getAccount(address).revoked()) {
+							throw new LedgerSecurityException("Invalid node user!");
+						}
 						X509Certificate cert = certs.get(address);
 						X509Utils.checkValidity(cert);
 						X509Utils.checkCaType(cert, CaType.PEER);
 						X509Utils.verify(cert, rootCa.getPublicKey());
 					}
 				} catch (Exception e) {
-					throw new LedgerSecurityException("Invalid node ca!");
+					throw new LedgerSecurityException("Invalid node user!");
 				}
 			} else {
 				throw new IllegalArgumentException("Unsupported MultiIdsPolicy[" + midPolicy + "]!");
