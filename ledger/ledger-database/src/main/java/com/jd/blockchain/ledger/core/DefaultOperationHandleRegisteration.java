@@ -48,7 +48,9 @@ public class DefaultOperationHandleRegisteration implements OperationHandleRegis
 
 		registerDefaultHandle(new UserRevokeOperationHandle());
 
-		registerDefaultHandle(new RootCaUpdateOperationHandle());
+		registerDefaultHandle(new RootCAUpdateOperationHandle());
+
+		registerDefaultHandle(new UserCAUpdateOperationHandle());
 	}
 
 	private static void registerDefaultHandle(OperationHandle handle) {

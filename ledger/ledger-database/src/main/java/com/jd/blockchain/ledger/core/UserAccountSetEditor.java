@@ -11,6 +11,7 @@ import com.jd.blockchain.storage.service.VersioningKVStorage;
 
 import utils.Bytes;
 import utils.SkippingIterator;
+import utils.StringUtils;
 import utils.Transactional;
 
 /**
@@ -101,11 +102,20 @@ public class UserAccountSetEditor implements Transactional, UserAccountSet {
 	 * 
 	 * @param address 区块链地址；
 	 * @param pubKey  公钥；
+	 * @param ca  证书；
 	 * @return 注册成功的用户对象；
 	 */
-	public UserAccount register(Bytes address, PubKey pubKey) {
+	public UserAccount register(Bytes address, PubKey pubKey, String ca) {
 		CompositeAccount baseAccount = accountSet.register(address, pubKey);
-		return new UserAccount(baseAccount);
+		UserAccount userAccount = new UserAccount(baseAccount);
+		if(!StringUtils.isEmpty(ca)) {
+			userAccount.setCertificate(ca);
+		}
+		return userAccount;
+	}
+
+	public UserAccount register(Bytes address, PubKey pubKey) {
+		return register(address, pubKey, null);
 	}
 
 	@Override
@@ -123,4 +133,11 @@ public class UserAccountSetEditor implements Transactional, UserAccountSet {
 		accountSet.cancel();
 	}
 
+	public void revoke(Bytes address) {
+		getAccount(address).revoke();
+	}
+
+	public void setCertificate(Bytes address, String certificate) {
+		getAccount(address).setCertificate(certificate);
+	}
 }

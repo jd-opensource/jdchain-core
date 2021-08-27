@@ -25,7 +25,7 @@ public class UserRevokeOperationHandle extends AbstractLedgerOperationHandle<Use
         securityPolicy.checkEndpointPermission(LedgerPermission.REVOKE_USER, MultiIDsPolicy.AT_LEAST_ONE);
 
         // 操作账本；
-        transactionContext.getDataset().getUserAccountSet().getAccount(op.getUserAddress()).revoke();
+        transactionContext.getDataset().getUserAccountSet().revoke(op.getUserAddress());
     }
 
 }

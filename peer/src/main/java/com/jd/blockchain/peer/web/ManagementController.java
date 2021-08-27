@@ -12,7 +12,9 @@ import com.jd.blockchain.ca.CaType;
 import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.consensus.NodeNetworkAddress;
 import com.jd.blockchain.consensus.bftsmart.service.BftsmartNodeState;
+import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.ledger.BlockRollbackException;
+import com.jd.blockchain.ledger.IdentityMode;
 import com.jd.blockchain.sdk.proxy.HttpBlockchainBrowserService;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.httpservice.agent.HttpServiceAgent;
@@ -23,7 +25,6 @@ import utils.BusinessException;
 import utils.Bytes;
 import utils.PropertiesUtils;
 import utils.Property;
-import utils.StringUtils;
 import utils.codec.Base58Utils;
 import utils.io.ByteArray;
 import utils.io.BytesUtils;
@@ -154,7 +155,6 @@ import java.net.URL;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
@@ -212,7 +212,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	private Map<HashDigest, LedgerQuery> ledgerQuerys = new ConcurrentHashMap<>();
 
-	private Map<HashDigest, X509Certificate> ledgerCerts = new ConcurrentHashMap<>();
+	private Map<HashDigest, IdentityMode> ledgerIdMode = new ConcurrentHashMap<>();
 
 	@Autowired
 	private MessageHandle consensusMessageHandler;
@@ -338,8 +338,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				continue;
 			}
 			boolean isParticipantNode = false;
+			PubKey clientPubKey = clientRedential.getPubKey();
 			for(ParticipantNode participantNode : ledgerRepo.getAdminInfo().getParticipants()) {
-				if(Arrays.equals(participantNode.getPubKey().toBytes(), clientRedential.getPubKey().toBytes()) &&
+				if(participantNode.getPubKey().equals(clientPubKey) &&
 						participantNode.getParticipantNodeState() != ParticipantNodeState.DEACTIVATED) {
 					isParticipantNode = true;
 					break;
@@ -350,18 +351,31 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			}
 
 			try {
-				X509Certificate rootCa = ledgerCerts.get(ledgerHash);
-				if(null != rootCa) {
-					// 证书模式下校验根证书，根证书校验不通过的账本不对外提供服务
-					X509Utils.checkValidity(rootCa);
+				// 证书模式下认证校验
+				if(ledgerIdMode.get(ledgerHash) == IdentityMode.CA) {
+					// 当前Peer证书
+					X509Certificate peerCA = X509Utils.resolveCertificate(ledgerRepo.getUserAccountSet().getAccount(ledgerCurrNodes.get(ledgerHash).getAddress()).getCertificate());
+					X509Utils.checkCaType(peerCA, CaType.PEER);
+					X509Utils.checkValidity(peerCA);
+
+					X509Certificate[] ledgerCAs = X509Utils.resolveCertificates(ledgerRepo.getAdminInfo().getMetadata().getLedgerCAs());
+					X509Utils.checkCaType(ledgerCAs, CaType.LEDGER);
+
+					// 当前账本证书中当前节点证书发布者
+					X509Certificate[] peerIssuers = X509Utils.findIssuers(peerCA, ledgerCAs);
+					X509Utils.checkValidityAny(peerIssuers);
+
+					// 接入网关CA
+					X509Certificate gwCA = X509Utils.resolveCertificate(ledgerRepo.getUserAccountSet().getAccount(AddressEncoding.generateAddress(clientPubKey)).getCertificate());
+					X509Utils.checkCaType(gwCA, CaType.GW);
+					X509Utils.checkValidity(gwCA);
+					X509Certificate[] gwIssuers = X509Utils.findIssuers(gwCA, ledgerCAs);
+					X509Utils.checkValidityAny(gwIssuers);
 				}
-				clientIncomingSettings = peer.getClientAuthencationService().authencateIncoming(clientRedential, rootCa);
+				clientIncomingSettings = peer.getClientAuthencationService().authencateIncoming(clientRedential);
 			} catch (Exception e) {
 				// 个别账本的认证失败不应该影响其它账本的认证；
 				LOGGER.error(String.format("Authenticate ledger[%s] error !", ledgerHash.toBase58()), e);
-				continue;
-			}
-			if (clientIncomingSettings == null) {
 				continue;
 			}
 
@@ -448,30 +462,33 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			// 处于ACTIVED状态的参与方才会创建共识节点
 			if (currentNode.getParticipantNodeState() == ParticipantNodeState.CONSENSUS) {
-
-				ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(ledgerHash.toBase58(),
-						csSettings, currentNode.getAddress().toBase58());
-
-				((LedgerStateManager) consensusStateManager)
-						.setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
-
+				LedgerMetadata_V2 metadata = ledgerRepository.getAdminInfo().getMetadata();
+				ledgerIdMode.put(ledgerHash, null != metadata.getIdentityMode() ? metadata.getIdentityMode() : IdentityMode.KEYPAIR);
+				if(metadata.getIdentityMode() == IdentityMode.CA) {
+					X509Certificate peerCA = X509Utils.resolveCertificate(ledgerRepository.getUserAccountSet().getAccount(currentNode.getAddress()).getCertificate());
+					X509Certificate[] issuers = X509Utils.findIssuers(peerCA, X509Utils.resolveCertificates(metadata.getLedgerCAs()));
+					// 校验根证书
+					X509Utils.checkCaType(issuers, CaType.LEDGER);
+					X509Utils.checkValidityAny(issuers);
+					// 校验节点证书
+					X509Utils.checkCaType(peerCA, CaType.PEER);
+					X509Utils.checkValidity(peerCA);
+				}
+				ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(ledgerHash.toBase58(), csSettings, currentNode.getAddress().toBase58());
+				((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
 				Storage consensusRuntimeStorage = getConsensusRuntimeStorage(ledgerHash);
 				server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
 						consensusStateManager, consensusRuntimeStorage);
 				ledgerPeers.put(ledgerHash, server);
+				ledgerQuerys.put(ledgerHash, ledgerRepository);
+				ledgerCurrNodes.put(ledgerHash, currentNode);
+				ledgerCryptoSettings.put(ledgerHash, ledgerAdminAccount.getSettings().getCryptoSetting());
+				ledgerKeypairs.put(ledgerHash, loadIdentity(currentNode, bindingConfig));
 			}
-
 		} catch (Exception e) {
 			ledgerManager.unregister(ledgerHash);
 			throw e;
 		}
-
-		ledgerQuerys.put(ledgerHash, ledgerRepository);
-		LedgerMetadata_V2 metadata = ledgerRepository.getAdminInfo().getMetadata();
-		ledgerCerts.put(ledgerHash, metadata.isCaMode() ? X509Utils.resolveCertificate(metadata.getRootCa()) : null);
-		ledgerCurrNodes.put(ledgerHash, currentNode);
-		ledgerCryptoSettings.put(ledgerHash, ledgerAdminAccount.getSettings().getCryptoSetting());
-		ledgerKeypairs.put(ledgerHash, loadIdentity(currentNode, bindingConfig));
 
 		return server;
 	}
@@ -733,16 +750,13 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	 * @param base58LedgerHash base58格式的账本哈希；
 	 * @param consensusHost    激活参与方的共识Ip
 	 * @param consensusPort    激活参与方的共识Port
-	 * @param participantCert  参与方证书
 	 * @param remoteManageHost 提供完备数据库的共识节点管理IP
 	 * @param remoteManagePort 提供完备数据库的共识节点管理Port
 	 * @return
 	 */
 	@RequestMapping(path = "/delegate/activeparticipant", method = RequestMethod.POST)
 	public WebResponse activateParticipant(@RequestParam("ledgerHash") String base58LedgerHash,
-										   @RequestParam("consensusHost") String consensusHost,
-										   @RequestParam("consensusPort") int consensusPort,
-										   @RequestParam("participantCert") String participantCert,
+										   @RequestParam("consensusHost") String consensusHost, @RequestParam("consensusPort") int consensusPort,
 										   @RequestParam("remoteManageHost") String remoteManageHost,
 										   @RequestParam("remoteManagePort") int remoteManagePort,
 										   @RequestParam("shutdown") boolean shutdown) {
@@ -760,19 +774,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 			if (ledgerAdminInfo.getSettings().getConsensusProvider().equals(BFTSMART_PROVIDER)) {
 
-				// 证书模式校验证书
-				X509Certificate cert = null;
-				if(ledgerAdminInfo.getMetadata().isCaMode()) {
-					X509Certificate rootCa = ledgerCerts.get(ledgerHash);
-					if(StringUtils.isEmpty(participantCert)) {
-						return WebResponse.createFailureResult(-1, "Participant certificate is empty!");
-					}
-					cert = X509Utils.resolveCertificate(participantCert);
-					X509Utils.checkCaTypesAny(cert, CaType.PEER, CaType.GW);
-					X509Utils.checkValidity(cert);
-					X509Utils.verify(cert, rootCa.getPublicKey());
-				}
-
 				// 检查本地节点与远端节点在库上是否存在差异,有差异的话需要进行差异交易重放
 				WebResponse webResponse = checkLedgerDiff(ledgerRepo, ledgerLatestBlock, ledgerKeypairs.get(ledgerHash), remoteManageHost, remoteManagePort);
 				if (!webResponse.isSuccess()) {
@@ -783,10 +784,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 				// 检查节点信息
 				ParticipantNode node = getCurrentNode(ledgerAdminInfo, ledgerCurrNodes.get(ledgerHash).getAddress().toString());
-				// 证书与节点身份需要一致
-				if(null != cert && !cert.getPublicKey().equals(node.getPubKey())) {
-					return WebResponse.createFailureResult(-1, "The certificate is inconsistent with the public key on the chain!");
-				}
 				NodeSettings nodeSettings = getConsensusNodeSettings(ledgerQuerys.values(), consensusHost, consensusPort);
 				if (nodeSettings != null) {
 					if (!BytesUtils.equals(node.getPubKey().toBytes(), nodeSettings.getPubKey().toBytes())) {
@@ -973,7 +970,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	 *
 	 * @param base58LedgerHash   base58格式的账本哈希；
 	 * @param participantAddress 待移除参与方的地址
-	 * @param participantCert    待移除参与方证书
 	 * @param remoteManageHost   提供完备数据库的共识节点管理IP
 	 * @param remoteManagePort   提供完备数据库的共识节点管理Port
 	 * @return
@@ -981,7 +977,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	@RequestMapping(path = "/delegate/deactiveparticipant", method = RequestMethod.POST)
 	public WebResponse deActivateParticipant(@RequestParam("ledgerHash") String base58LedgerHash,
 											 @RequestParam("participantAddress") String participantAddress,
-											 @RequestParam("participantCert") String participantCert,
 											 @RequestParam("remoteManageHost") String remoteManageHost,
 											 @RequestParam("remoteManagePort") int remoteManagePort) {
 		TransactionResponse txResponse;
@@ -989,48 +984,44 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		try {
 			HashDigest ledgerHash = Crypto.resolveAsHashDigest(Base58Utils.decode(base58LedgerHash));
+
 			// 进行一系列安全检查
 			if (ledgerQuerys.get(ledgerHash) == null) {
 				return WebResponse.createFailureResult(-1, "[ManagementController] input ledgerhash not exist!");
 			}
+
 			if (!ledgerCurrNodes.get(ledgerHash).getAddress().toBase58().equals(participantAddress)) {
 				return WebResponse.createFailureResult(-1, "[ManagementController] deactive participant not me!");
 			}
+
 			LedgerRepository ledgerRepo = (LedgerRepository) ledgerQuerys.get(ledgerHash);
+
 			LedgerBlock ledgerLatestBlock = ledgerRepo.retrieveLatestBlock();
+
 			LedgerAdminInfo ledgerAdminInfo = ledgerRepo.getAdminInfo(ledgerLatestBlock);
-			// 证书模式校验证书
-			X509Certificate cert = null;
-			if(ledgerAdminInfo.getMetadata().isCaMode()) {
-				X509Certificate rootCa = ledgerCerts.get(ledgerHash);
-				if(StringUtils.isEmpty(participantCert)) {
-					return WebResponse.createFailureResult(-1, "Participant certificate is empty!");
-				}
-				cert = X509Utils.resolveCertificate(participantCert);
-				X509Utils.checkCaType(cert, CaType.PEER);
-				X509Utils.checkValidity(cert);
-				X509Utils.verify(cert, rootCa.getPublicKey());
-			}
+
 
 			if (ledgerAdminInfo.getSettings().getConsensusProvider().equals(BFTSMART_PROVIDER)) {
+
 				// 检查本地节点与远端节点在库上是否存在差异,有差异的话需要进行差异交易重放
 				webResponse = checkLedgerDiff(ledgerRepo, ledgerLatestBlock, ledgerKeypairs.get(ledgerHash), remoteManageHost,
 						remoteManagePort);
+
 				if (!webResponse.isSuccess()) {
 					return webResponse;
 				}
+
 				ledgerAdminInfo = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock());
+
 				// 已经是DEACTIVATED状态
 				ParticipantNode node = getCurrentNode(ledgerAdminInfo, participantAddress);
 				if (node.getParticipantNodeState() == ParticipantNodeState.DEACTIVATED) {
 					return WebResponse.createSuccessResult(null);
 				}
-				// 证书与节点身份需要一致
-				if(null != cert && !cert.getPublicKey().equals(node.getPubKey())) {
-					return WebResponse.createFailureResult(-1, "The certificate is inconsistent with the public key on the chain!");
-				}
+
 				// 已经处于最小节点数环境的共识网络，不能再执行去激活操作
 				List<NodeSettings> origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
+
 				if (origConsensusNodes.size() <= 4) {
 					return WebResponse.createFailureResult(-1,
 							"[ManagementController] in minimum number of nodes scenario, deactive op is not allowed!");

@@ -291,7 +291,7 @@ class KeysImport implements Runnable {
             keysHome.mkdirs();
         }
         String[] names = keysHome.list((dir, fileName) -> {
-            if (FilenameUtils.removeExtension(fileName).contains(name)) {
+            if (FilenameUtils.removeExtension(fileName).contains(name + ".priv")) {
                 return true;
             }
             return false;

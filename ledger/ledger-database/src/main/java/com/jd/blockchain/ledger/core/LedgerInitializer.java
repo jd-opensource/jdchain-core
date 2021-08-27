@@ -1,5 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
+import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PrivKey;
 import com.jd.blockchain.crypto.SignatureDigest;
@@ -8,6 +9,7 @@ import com.jd.blockchain.ledger.BlockchainIdentityData;
 import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.DigitalSignature;
+import com.jd.blockchain.ledger.IdentityMode;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerInitException;
 import com.jd.blockchain.ledger.LedgerInitOperation;
@@ -19,6 +21,7 @@ import com.jd.blockchain.ledger.SecurityInitSettings;
 import com.jd.blockchain.ledger.TransactionBuilder;
 import com.jd.blockchain.ledger.TransactionContent;
 import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.ledger.UserAuthInitSettings;
 import com.jd.blockchain.ledger.UserAuthorizeOperation;
 import com.jd.blockchain.ledger.UserRegisterOperation;
@@ -121,11 +124,14 @@ public class LedgerInitializer {
 
 		// TODO: 注册参与方; 目前由 LedgerInitSetting 定义，在 LedgerAdminDataset 中解释执行；
 
-		//  注册用户；
+		// 注册用户；
 		for (ParticipantNode p : initSetting.getConsensusParticipants()) {
-			// TODO：暂时只支持注册用户的初始化操作；
-			BlockchainIdentity superUserId = new BlockchainIdentityData(p.getPubKey());
-			initTxBuilder.users().register(superUserId);
+			if(initSetting.getIdentityMode() == IdentityMode.CA) {
+				initTxBuilder.users().register(X509Utils.resolveCertificate(p.getCertificate()));
+			} else {
+				BlockchainIdentity superUserId = new BlockchainIdentityData(p.getPubKey());
+				initTxBuilder.users().register(superUserId);
+			}
 		}
 
 		// 配置角色；
@@ -215,7 +221,10 @@ public class LedgerInitializer {
 		TransactionBatchProcessor txProcessor = new TransactionBatchProcessor(FULL_PERMISSION_SECURITY_MANAGER,
 				ledgerEditor, EMPTY_LEDGER, DEFAULT_OP_HANDLE_REG);
 		LedgerEditor.TIMESTAMP_HOLDER.set(initSetting.getCreatedTime());
-		txProcessor.schedule(txRequest);
+		TransactionResponse response = txProcessor.schedule(txRequest);
+		if(!response.isSuccess()) {
+			throw new LedgerInitException("Transaction execution failed in genesis block!");
+		}
 		txResultsHandle = txProcessor.prepare();
 		LedgerEditor.TIMESTAMP_HOLDER.remove();
 		return txResultsHandle.getBlock();

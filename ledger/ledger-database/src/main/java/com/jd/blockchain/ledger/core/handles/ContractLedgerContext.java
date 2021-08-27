@@ -26,10 +26,11 @@ import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.PrivilegeSet;
-import com.jd.blockchain.ledger.RootCaUpdateOperation;
+import com.jd.blockchain.ledger.RootCAUpdateOperation;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
+import com.jd.blockchain.ledger.UserCAUpdateOperation;
 import com.jd.blockchain.ledger.UserInfo;
 import com.jd.blockchain.ledger.UserPrivilegeSet;
 import com.jd.blockchain.ledger.UserRegisterOperation;
@@ -46,14 +47,14 @@ import com.jd.blockchain.transaction.EventPublishOperationBuilder;
 import com.jd.blockchain.transaction.KVData;
 import com.jd.blockchain.ledger.LedgerQueryService;
 import com.jd.blockchain.transaction.MetaInfoUpdateOperationBuilder;
-import com.jd.blockchain.transaction.RootCaUpdateOpTemplate;
+import com.jd.blockchain.transaction.RootCAUpdateOpTemplate;
+import com.jd.blockchain.transaction.UserCAUpdateOpTemplate;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilder;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilderImpl;
 
 import com.jd.blockchain.transaction.UserRevokeOpTemplate;
 import com.jd.blockchain.transaction.UserUpdateOperationBuilder;
 import utils.Bytes;
-import utils.codec.Base58Utils;
 
 /**
  * 合约内账本上下文
@@ -302,11 +303,16 @@ public class ContractLedgerContext implements LedgerContext {
 	private class MetaInfoUpdateOperationBuilder1 implements MetaInfoUpdateOperationBuilder {
 
 		@Override
-		public RootCaUpdateOperation ca(String cert) {
-			RootCaUpdateOperation op = new RootCaUpdateOpTemplate(cert);
+		public RootCAUpdateOperation ca(String cert) {
+			RootCAUpdateOperation op = new RootCAUpdateOpTemplate(cert);
 			generatedOpList.add(op);
 			opHandleContext.handle(op);
 			return op;
+		}
+
+		@Override
+		public RootCAUpdateOperation ca(X509Certificate cert) {
+			return ca(X509Utils.toPEMString(cert));
 		}
 	}
 
@@ -349,6 +355,14 @@ public class ContractLedgerContext implements LedgerContext {
 		@Override
 		public UserRevokeOperation revoke() {
 			UserRevokeOperation op = new UserRevokeOpTemplate(address);
+			generatedOpList.add(op);
+			opHandleContext.handle(op);
+			return op;
+		}
+
+		@Override
+		public UserCAUpdateOperation ca(X509Certificate cert) {
+			UserCAUpdateOperation op = new UserCAUpdateOpTemplate(address, cert);
 			generatedOpList.add(op);
 			opHandleContext.handle(op);
 			return op;

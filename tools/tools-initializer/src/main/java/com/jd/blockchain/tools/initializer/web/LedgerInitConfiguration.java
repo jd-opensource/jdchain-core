@@ -1,6 +1,5 @@
 package com.jd.blockchain.tools.initializer.web;
 
-import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -8,8 +7,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
-import com.jd.blockchain.ca.CaType;
-import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.consensus.ConsensusProvider;
 import com.jd.blockchain.consensus.ConsensusProviders;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
@@ -29,7 +26,6 @@ import com.jd.blockchain.ledger.core.LedgerSecurityManager;
 import com.jd.blockchain.transaction.LedgerInitData;
 
 import utils.StringUtils;
-import utils.io.FileUtils;
 
 public class LedgerInitConfiguration {
 
@@ -196,15 +192,8 @@ public class LedgerInitConfiguration {
 		// 创建初始化配置；
 		LedgerInitData initSetting = new LedgerInitData();
 		initSetting.setLedgerSeed(ledgerProps.getLedgerSeed());
-		initSetting.setCaMode(ledgerProps.isCaMode());
-		if(ledgerProps.isCaMode()) {
-			String rootCa = FileUtils.readText(ledgerProps.getCaPath());
-			X509Certificate cert = X509Utils.resolveCertificate(rootCa);
-			// 时间有效性校验
-			X509Utils.checkValidity(cert);
-			X509Utils.checkCaType(cert, CaType.ROOT);
-			initSetting.setRootCa(rootCa);
-		}
+		initSetting.setIdentityMode(ledgerProps.getIdentityMode());
+		initSetting.setLedgerCAs(ledgerProps.getLedgerCAs());
 		initSetting.setCryptoSetting(cryptoSetting);
 		initSetting.setConsensusParticipants(participants);
 		initSetting.setCreatedTime(ledgerProps.getCreatedTime());

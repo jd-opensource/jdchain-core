@@ -1,5 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
+import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BytesValue;
@@ -9,6 +10,9 @@ import com.jd.blockchain.ledger.UserInfo;
 
 import utils.Bytes;
 import utils.io.BytesUtils;
+
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 
 /**
  * 用户账户；
@@ -21,6 +25,7 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 	private static final String USER_INFO_PREFIX = "PROP" + LedgerConsts.KEY_SEPERATOR;
 
 	private static final String DATA_PUB_KEY = "DATA-PUBKEY";
+	private static final String DATA_CA = "DATA-CA";
 	private static final String DATA_REVOKED = "DATA-REVOKE";
 
 	public UserAccount(CompositeAccount baseAccount) {
@@ -28,6 +33,7 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 	}
 
 	private PubKey dataPubKey;
+	private String certificate;
 	private Boolean revoked;
 
 	@Override
@@ -68,7 +74,7 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 	}
 
 	@Override
-	public boolean revoked() {
+	public boolean isRevoked() {
 		if(revoked == null) {
 			BytesValue rbs = getHeaders().getValue(DATA_REVOKED);
 			if (rbs == null) {
@@ -84,6 +90,22 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 		long version = getHeaders().getVersion(DATA_REVOKED);
 		getHeaders().setValue(DATA_REVOKED, TypedValue.fromBoolean(false), version);
 		revoked = true;
+	}
+
+	@Override
+	public String getCertificate() {
+		if(certificate == null) {
+			BytesValue crt = getHeaders().getValue(DATA_CA);
+			if (crt != null) {
+				certificate = BytesUtils.toString(crt.getBytes().toBytes());
+			}
+		}
+		return certificate;
+	}
+
+	public void setCertificate(String certificate) {
+		long version = getHeaders().getVersion(DATA_CA);
+		getHeaders().setValue(DATA_CA, TypedValue.fromText(certificate), version);
 	}
 
 	public long setProperty(String key, String value, long version) {

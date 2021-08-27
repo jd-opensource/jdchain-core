@@ -1,10 +1,7 @@
 package com.jd.blockchain.tools.initializer;
 
 import java.io.File;
-import java.security.cert.X509Certificate;
 
-import com.jd.blockchain.ca.CaType;
-import com.jd.blockchain.ca.X509Utils;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -52,9 +49,6 @@ public class LedgerInitCommand {
 	// 账本的初始化配置文件的路径(ledger.init)；
 	private static final String INI_ARG = "-i";
 
-	// 是否输出调试信息；
-	private static final String DEBUG_OPT = "-debug";
-
 	private static final String MONITOR_OPT = "-monitor";
 
 	private static final Prompter DEFAULT_PROMPTER = new ConsolePrompter();
@@ -71,7 +65,7 @@ public class LedgerInitCommand {
 	public static void main(String[] args) {
 		Prompter prompter = DEFAULT_PROMPTER;
 
-		Setting argSetting = ArgumentSet.setting().prefix(LOCAL_ARG, INI_ARG).option(DEBUG_OPT).option(MONITOR_OPT);
+		Setting argSetting = ArgumentSet.setting().prefix(LOCAL_ARG, INI_ARG).option(MONITOR_OPT);
 		ArgumentSet argSet = ArgumentSet.resolve(args, argSetting);
 
 		try {
@@ -118,15 +112,6 @@ public class LedgerInitCommand {
 			}
 			PrivKey privKey = KeyGenUtils.decodePrivKey(localConf.getLocal().getPrivKeyString(), base58Pwd);
 
-			// 验证节点证书
-			if(ledgerInitProperties.isCaMode()) {
-				String cert = FileUtils.readText(localConf.getLocal().getCaPath());
-				X509Certificate certificate = X509Utils.resolveCertificate(cert);
-				X509Utils.checkValidity(certificate);
-				X509Utils.checkCaType(certificate, CaType.PEER);
-				X509Utils.verify(certificate, X509Utils.resolveCertificate(new File(ledgerInitProperties.getCaPath())).getPublicKey());
-			}
-
 			// Output ledger binding config of peer;
 			if (!FileUtils.existDirectory(localConf.getBindingOutDir())) {
 				FileUtils.makeDirectory(localConf.getBindingOutDir());
@@ -141,7 +126,7 @@ public class LedgerInitCommand {
 
 			// 启动初始化；
 			LedgerInitCommand initCommand = new LedgerInitCommand();
-			HashDigest newLedgerHash = initCommand.startInit(currId, privKey, localConf.getLocal().getCaPath(), base58Pwd, ledgerInitProperties,
+			HashDigest newLedgerHash = initCommand.startInit(currId, privKey, base58Pwd, ledgerInitProperties,
 					localConf.getStoragedDb(), prompter, conf);
 
 			if (newLedgerHash != null) {
@@ -153,10 +138,7 @@ public class LedgerInitCommand {
 			}
 
 		} catch (Exception e) {
-			prompter.error("\r\nError!! -- %s\r\n", e.getMessage());
-			if (argSet.hasOption(DEBUG_OPT)) {
-				e.printStackTrace();
-			}
+			e.printStackTrace();
 
 			prompter.error("\r\n Ledger init process has been broken by error!");
 		}
@@ -177,7 +159,7 @@ public class LedgerInitCommand {
 	public LedgerInitCommand() {
 	}
 
-	public HashDigest startInit(int currId, PrivKey privKey, String caPath, String base58Pwd,
+	public HashDigest startInit(int currId, PrivKey privKey, String base58Pwd,
 			LedgerInitProperties ledgerInitProperties, DBConnectionConfig dbConnConfig, Prompter prompter,
 			LedgerBindingConfig conf, Object... extBeans) {
 		if (currId < 0 || currId >= ledgerInitProperties.getConsensusParticipantCount()) {
@@ -201,7 +183,7 @@ public class LedgerInitCommand {
 		String encodedPrivKey = KeyGenUtils.encodePrivKey(privKey, base58Pwd);
 		bindingConf.getParticipant().setPk(encodedPrivKey);
 		bindingConf.getParticipant().setPassword(base58Pwd);
-		bindingConf.getParticipant().setCaPath(caPath);
+
 		bindingConf.getDbConnection().setConnectionUri(dbConnConfig.getUri());
 		bindingConf.getDbConnection().setPassword(dbConnConfig.getPassword());
 

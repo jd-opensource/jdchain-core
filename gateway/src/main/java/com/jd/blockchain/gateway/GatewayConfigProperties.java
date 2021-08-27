@@ -48,8 +48,6 @@ public class GatewayConfigProperties {
 	public static final String DEFAULT_PRIVKEY = DEFAULT_KEYS_PREFIX + "privkey";
 	// 默认私钥的密码；
 	public static final String DEFAULT_PK_PWD = DEFAULT_KEYS_PREFIX + "privkey-password";
-	// 默认网关证书路径；
-	public static final String DEFAULT_CA_PATH = DEFAULT_KEYS_PREFIX + "ca-path";
 
 
 	private HttpConfig http = new HttpConfig();
@@ -149,13 +147,9 @@ public class GatewayConfigProperties {
 			configProps.providerConfig.add(provider);
 		}
 
-		configProps.keys.defaultPK.pubKeyValue = getProperty(props, DEFAULT_PUBKEY, false);
+		configProps.keys.defaultPK.pubKeyValue = getProperty(props, DEFAULT_PUBKEY, true);
 		configProps.keys.defaultPK.privKeyPath = getProperty(props, DEFAULT_PRIVKEY_PATH, false);
 		configProps.keys.defaultPK.privKeyValue = getProperty(props, DEFAULT_PRIVKEY, false);
-		configProps.keys.defaultPK.caPath = getProperty(props, DEFAULT_CA_PATH, false);
-		if (configProps.keys.defaultPK.pubKeyValue == null && configProps.keys.defaultPK.caPath == null) {
-			throw new IllegalArgumentException("Miss both of pubkey and ca-pub content!");
-		}
 		if (configProps.keys.defaultPK.privKeyPath == null && configProps.keys.defaultPK.privKeyValue == null) {
 			throw new IllegalArgumentException("Miss both of pk-path and pk content!");
 		}
@@ -281,8 +275,6 @@ public class GatewayConfigProperties {
 
 		private String privKeyPassword;
 
-		private String caPath;
-
 		public String getPrivKeyPath() {
 			return privKeyPath;
 		}
@@ -315,13 +307,6 @@ public class GatewayConfigProperties {
 			this.privKeyPassword = privKeyPassword;
 		}
 
-		public String getCaPath() {
-			return caPath;
-		}
-
-		public void setCaPath(String caPath) {
-			this.caPath = caPath;
-		}
 	}
 
 }

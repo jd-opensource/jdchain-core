@@ -55,11 +55,11 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 
 	@Override
 	public SecurityPolicy getSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes) {
-		return getSecurityPolicy(endpoints, nodes, null, null);
+		return getSecurityPolicy(endpoints, nodes, null);
 	}
 
 	@Override
-	public SecurityPolicy getSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes, X509Certificate rootCa, Map<Bytes, X509Certificate> certs) {
+	public SecurityPolicy getSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes, X509Certificate[] ledgerCAs) {
 		Map<Bytes, UserRolesPrivileges> endpointPrivilegeMap = new HashMap<>();
 		Map<Bytes, UserRolesPrivileges> nodePrivilegeMap = new HashMap<>();
 
@@ -73,7 +73,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 			nodePrivilegeMap.put(userAddress, userPrivileges);
 		}
 
-		return new UserRolesSecurityPolicy(endpointPrivilegeMap, nodePrivilegeMap, rootCa, certs, participantsQuery, userAccountsQuery);
+		return new UserRolesSecurityPolicy(endpointPrivilegeMap, nodePrivilegeMap, ledgerCAs, participantsQuery, userAccountsQuery);
 	}
 
 	@Override
@@ -158,9 +158,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 
 		private UserAccountSet userAccountsQuery;
 
-		private X509Certificate rootCa;
-
-		private Map<Bytes, X509Certificate> certs;
+		private X509Certificate[] ledgerCAs;
 
 		public UserRolesSecurityPolicy(Map<Bytes, UserRolesPrivileges> endpointPrivilegeMap,
 				Map<Bytes, UserRolesPrivileges> nodePrivilegeMap, ParticipantCollection participantsQuery,
@@ -172,14 +170,12 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 		}
 
 		public UserRolesSecurityPolicy(Map<Bytes, UserRolesPrivileges> endpointPrivilegeMap, Map<Bytes, UserRolesPrivileges> nodePrivilegeMap,
-									   X509Certificate rootCa, Map<Bytes, X509Certificate> certs,
-									   ParticipantCollection participantsQuery, UserAccountSet userAccountsQuery) {
+									   X509Certificate[] ledgerCAs, ParticipantCollection participantsQuery, UserAccountSet userAccountsQuery) {
 			this.endpointPrivilegeMap = endpointPrivilegeMap;
 			this.nodePrivilegeMap = nodePrivilegeMap;
 			this.participantsQuery = participantsQuery;
 			this.userAccountsQuery = userAccountsQuery;
-			this.rootCa = rootCa;
-			this.certs = certs;
+			this.ledgerCAs = ledgerCAs;
 		}
 
 		@Override
@@ -315,26 +311,22 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 		}
 
 		@Override
-		public void checkRootCa() throws LedgerSecurityException {
-			try {
-				X509Utils.checkValidity(rootCa);
-			} catch (Exception e) {
-				throw new LedgerSecurityException("Root ca invalid", e);
-			}
-		}
-
-		@Override
-		public void checkEndpointCa(MultiIDsPolicy midPolicy) throws LedgerSecurityException {
+		public void checkEndpointCA(MultiIDsPolicy midPolicy) throws LedgerSecurityException {
 			if (MultiIDsPolicy.AT_LEAST_ONE == midPolicy) {
 				// 至少一个；
 				for (Bytes address : getEndpoints()) {
-					X509Certificate cert = certs.get(address);
+					UserAccount account = userAccountsQuery.getAccount(address);
 					try {
-						if(userAccountsQuery.getAccount(address).revoked()) {
+						if(account.isRevoked()) {
 							continue;
 						}
+						X509Certificate cert = X509Utils.resolveCertificate(account.getCertificate());
+						X509Utils.checkCaTypesAny(cert, CaType.PEER, CaType.GW, CaType.USER);
 						X509Utils.checkValidity(cert);
-						X509Utils.verify(cert, rootCa.getPublicKey());
+						X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
+						X509Utils.checkCaType(issuers, CaType.LEDGER);
+						X509Utils.checkValidityAny(issuers);
+
 						return;
 					} catch (Exception e) {}
 				}
@@ -343,12 +335,16 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 				// 全部；
 				try {
 					for (Bytes address : getEndpoints()) {
-						if(userAccountsQuery.getAccount(address).revoked()) {
+						UserAccount account = userAccountsQuery.getAccount(address);
+						if(account.isRevoked()) {
 							throw new LedgerSecurityException("Invalid endpoint user!");
 						}
-						X509Certificate cert = certs.get(address);
+						X509Certificate cert = X509Utils.resolveCertificate(account.getCertificate());
+						X509Utils.checkCaTypesAny(cert, CaType.PEER, CaType.GW, CaType.USER);
 						X509Utils.checkValidity(cert);
-						X509Utils.verify(cert, rootCa.getPublicKey());
+						X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
+						X509Utils.checkCaType(issuers, CaType.LEDGER);
+						X509Utils.checkValidityAny(issuers);
 					}
 				} catch (Exception e) {
 					throw new LedgerSecurityException("Invalid endpoint user!");
@@ -359,36 +355,43 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 		}
 
 		@Override
-		public void checkNodeCa(MultiIDsPolicy midPolicy) throws LedgerSecurityException {
+		public void checkNodeCA(MultiIDsPolicy midPolicy) throws LedgerSecurityException {
 			if (MultiIDsPolicy.AT_LEAST_ONE == midPolicy) {
 				// 至少一个；
 				for (Bytes address : getNodes()) {
-					X509Certificate cert = certs.get(address);
 					try {
-						if(userAccountsQuery.getAccount(address).revoked()) {
+						UserAccount account = userAccountsQuery.getAccount(address);
+						if(account.isRevoked()) {
 							continue;
 						}
+						X509Certificate cert = X509Utils.resolveCertificate(account.getCertificate());
+						X509Utils.checkCaTypesAny(cert, CaType.PEER, CaType.GW);
 						X509Utils.checkValidity(cert);
-						X509Utils.checkCaType(cert, CaType.PEER);
-						X509Utils.verify(cert, rootCa.getPublicKey());
+						X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
+						X509Utils.checkCaType(issuers, CaType.LEDGER);
+						X509Utils.checkValidityAny(issuers);
+
 						return;
 					} catch (Exception e) {}
 				}
-				throw new LedgerSecurityException("Invalid node user!");
+				throw new LedgerSecurityException("Invalid node signer!");
 			} else if (MultiIDsPolicy.ALL == midPolicy) {
 				// 全部；
 				try {
 					for (Bytes address : getNodes()) {
-						if(userAccountsQuery.getAccount(address).revoked()) {
-							throw new LedgerSecurityException("Invalid node user!");
+						UserAccount account = userAccountsQuery.getAccount(address);
+						if(account.isRevoked()) {
+							throw new LedgerSecurityException("Invalid node signer!");
 						}
-						X509Certificate cert = certs.get(address);
+						X509Certificate cert = X509Utils.resolveCertificate(account.getCertificate());
 						X509Utils.checkValidity(cert);
-						X509Utils.checkCaType(cert, CaType.PEER);
-						X509Utils.verify(cert, rootCa.getPublicKey());
+						X509Utils.checkCaTypesAny(cert, CaType.PEER, CaType.GW);
+						X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
+						X509Utils.checkCaType(issuers, CaType.LEDGER);
+						X509Utils.checkValidityAny(issuers);
 					}
 				} catch (Exception e) {
-					throw new LedgerSecurityException("Invalid node user!");
+					throw new LedgerSecurityException("Invalid node signer!");
 				}
 			} else {
 				throw new IllegalArgumentException("Unsupported MultiIdsPolicy[" + midPolicy + "]!");

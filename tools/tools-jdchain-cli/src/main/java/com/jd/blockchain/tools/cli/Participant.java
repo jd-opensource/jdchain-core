@@ -1,5 +1,6 @@
 package com.jd.blockchain.tools.cli;
 
+import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.ledger.BlockchainKeypair;
@@ -18,10 +19,10 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import picocli.CommandLine;
-import utils.StringUtils;
 import utils.io.FileUtils;
 
 import java.io.File;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -65,6 +66,9 @@ class ParticipantRegister implements Runnable {
 
     @CommandLine.Option(names = "--gw-port", defaultValue = "8080", description = "Set the gateway port. Default: 8080", scope = CommandLine.ScopeType.INHERIT)
     int gwPort;
+
+    @CommandLine.Option(names = "--ca-mode", description = "Register with CA", scope = CommandLine.ScopeType.INHERIT)
+    boolean caMode;
 
     @CommandLine.Option(required = true, names = "--name", description = "Name of the participant")
     String name;
@@ -154,6 +158,7 @@ class ParticipantRegister implements Runnable {
         } else {
             System.out.println("select keypair to register, input the index: ");
             BlockchainKeypair[] keypairs = new BlockchainKeypair[pubs.length];
+            String[] certs = new String[pubs.length];
             String[] passwords = new String[pubs.length];
             for (int i = 0; i < pubs.length; i++) {
                 String key = FilenameUtils.removeExtension(pubs[i].getName());
@@ -161,6 +166,7 @@ class ParticipantRegister implements Runnable {
                 String privkey = FileUtils.readText(new File(keyPath + ".priv"));
                 String pwd = FileUtils.readText(new File(keyPath + ".pwd"));
                 String pubkey = FileUtils.readText(new File(keyPath + ".pub"));
+                certs[i] = keyPath + ".crt";
                 keypairs[i] = new BlockchainKeypair(KeyGenUtils.decodePubKey(pubkey), KeyGenUtils.decodePrivKey(privkey, pwd));
                 passwords[i] = pwd;
                 System.out.printf("%-3s\t%s\t%s%n", i, key, keypairs[i].getAddress());
@@ -173,8 +179,12 @@ class ParticipantRegister implements Runnable {
             if (KeyGenUtils.encodePasswordAsBase58(pwd).equals(passwords[keyIndex])) {
                 // new participant keypair
                 keypair = keypairs[keyIndex];
-
-                txTemp.participants().register(name, keypair.getIdentity());
+                if (caMode) {
+                    X509Certificate cert = X509Utils.resolveCertificate(FileUtils.readText(new File(certs[keyIndex])));
+                    txTemp.participants().register(name, cert);
+                } else {
+                    txTemp.participants().register(name, keypair.getIdentity());
+                }
                 PreparedTransaction ptx = txTemp.prepare();
                 if (sign(ptx)) {
                     TransactionResponse response = ptx.commit();
@@ -203,9 +213,6 @@ class ParticipantActive implements Runnable {
 
     @CommandLine.Option(names = "--port", required = true, description = "Set the participant service port.", scope = CommandLine.ScopeType.INHERIT)
     int port;
-
-    @CommandLine.Option(names = "--crt", description = "Certificate file of the participant.", scope = CommandLine.ScopeType.INHERIT)
-    String caPath;
 
     @CommandLine.Option(names = "--consensus-port", required = true, description = "Set the participant consensus port.", scope = CommandLine.ScopeType.INHERIT)
     int consensusPort;
@@ -241,7 +248,6 @@ class ParticipantActive implements Runnable {
         params.add(new BasicNameValuePair("ledgerHash", ledger));
         params.add(new BasicNameValuePair("consensusHost", host));
         params.add(new BasicNameValuePair("consensusPort", consensusPort + ""));
-        params.add(new BasicNameValuePair("participantCert", StringUtils.isEmpty(caPath) ? "" : FileUtils.readText(caPath)));
         params.add(new BasicNameValuePair("remoteManageHost", synHost));
         params.add(new BasicNameValuePair("remoteManagePort", synPort + ""));
         params.add(new BasicNameValuePair("shutdown", shutdown + ""));
@@ -280,9 +286,6 @@ class ParticipantInactive implements Runnable {
     @CommandLine.Option(names = "--address", required = true, description = "Set the participant address.", scope = CommandLine.ScopeType.INHERIT)
     String address;
 
-    @CommandLine.Option(names = "--crt", description = "Certificate file of the participant.", scope = CommandLine.ScopeType.INHERIT)
-    String caPath;
-
     @CommandLine.Option(names = "--host", required = true, description = "Set the participant host.", scope = CommandLine.ScopeType.INHERIT)
     String host;
 
@@ -304,7 +307,6 @@ class ParticipantInactive implements Runnable {
             List<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
             params.add(new BasicNameValuePair("ledgerHash", ledger));
             params.add(new BasicNameValuePair("participantAddress", address));
-            params.add(new BasicNameValuePair("participantCert", StringUtils.isEmpty(caPath) ? "" : FileUtils.readText(caPath)));
             params.add(new BasicNameValuePair("remoteManageHost", synHost));
             params.add(new BasicNameValuePair("remoteManagePort", synPort + ""));
             httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));

@@ -112,9 +112,9 @@ public class OperationDecoratorFactory {
         ledgerInitData.setConsensusSettings(op.getInitSetting().getConsensusSettings());
         ledgerInitData.setCryptoSetting(new CryptoConfigInfo(op.getInitSetting().getCryptoSetting()));
         ledgerInitData.setLedgerSeed(op.getInitSetting().getLedgerSeed());
-        ledgerInitData.setCaMode(op.getInitSetting().isCaMode());
-        if(op.getInitSetting().isCaMode()) {
-            ledgerInitData.setRootCa(op.getInitSetting().getRootCa());
+        ledgerInitData.setIdentityMode(op.getInitSetting().getIdentityMode());
+        if(op.getInitSetting().getIdentityMode() == IdentityMode.CA) {
+            ledgerInitData.setLedgerCAs(op.getInitSetting().getLedgerCAs());
         }
         ledgerInitData.setConsensusProvider(op.getInitSetting().getConsensusProvider());
         ledgerInitData.setCreatedTime(op.getInitSetting().getCreatedTime());
@@ -147,7 +147,7 @@ public class OperationDecoratorFactory {
      */
     public static Operation decorateParticipantRegisterOperation(ParticipantRegisterOperation op) {
         BlockchainIdentity partId = decorateBlockchainIdentity(op.getParticipantID());
-        return new ParticipantRegisterOpTemplate(op.getParticipantName(), partId);
+        return new ParticipantRegisterOpTemplate(op.getParticipantName(), partId, op.getCertificate());
     }
 
     /**
@@ -213,7 +213,7 @@ public class OperationDecoratorFactory {
      */
     public static Operation decorateUserRegisterOperation(UserRegisterOperation op) {
         BlockchainIdentity identity = decorateBlockchainIdentity(op.getUserID());
-        return new UserRegisterOpTemplate(identity);
+        return new UserRegisterOpTemplate(identity, op.getCertificate());
     }
 
     /**

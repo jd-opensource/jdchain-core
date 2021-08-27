@@ -2,11 +2,9 @@ package com.jd.blockchain.gateway;
 
 import java.io.File;
 import java.io.InputStream;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.gateway.service.topology.LedgerPeersTopology;
 import org.apache.commons.io.FileUtils;
@@ -59,7 +57,6 @@ import utils.ArgumentSet;
 import utils.ArgumentSet.ArgEntry;
 import utils.BaseConstant;
 import utils.ConsoleUtils;
-import utils.StringUtils;
 import utils.net.NetworkAddress;
 import utils.reflection.TypeUtils;
 
@@ -142,7 +139,6 @@ public class GatewayServerBooter {
 	private volatile ConfigurableApplicationContext appCtx;
 	private GatewayConfigProperties config;
 	private AsymmetricKeypair defaultKeyPair;
-	private X509Certificate defaultCertificate;
 	private String springConfigLocation;
 
 	public GatewayServerBooter(GatewayConfigProperties config, String springConfigLocation) {
@@ -155,13 +151,7 @@ public class GatewayServerBooter {
 		}
 
 		// 加载密钥；
-		PubKey pubKey;
-		if(StringUtils.isEmpty(config.keys().getDefault().getCaPath())) {
-			pubKey = KeyGenUtils.decodePubKey(config.keys().getDefault().getPubKeyValue());
-		} else {
-			defaultCertificate = X509Utils.resolveCertificate(new File(config.keys().getDefault().getCaPath()));
-			pubKey = X509Utils.resolvePubKey(defaultCertificate);
-		}
+		PubKey pubKey = KeyGenUtils.decodePubKey(config.keys().getDefault().getPubKeyValue());
 
 		PrivKey privKey = null;
 		String base58PrivKey = config.keys().getDefault().getPrivKeyValue();
@@ -188,7 +178,7 @@ public class GatewayServerBooter {
 		LedgersManager peerConnector = appCtx.getBean(LedgersManager.class);
 
 		NetworkAddress peerAddress = config.masterPeerAddress();
-		peerConnector.init(peerAddress, defaultKeyPair, defaultCertificate, config.isStoreTopology());
+		peerConnector.init(peerAddress, defaultKeyPair, config.isStoreTopology());
 
 		ConsoleUtils.info("Peer[%s] is connected success!", peerAddress.toString());
 	}

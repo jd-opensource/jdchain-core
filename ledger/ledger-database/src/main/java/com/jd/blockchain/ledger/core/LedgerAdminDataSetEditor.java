@@ -1,5 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
+import com.jd.blockchain.ledger.IdentityMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,8 +140,8 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 		// 初始化元数据；
 		this.metadata = new LedgerMetadataInfo();
 		this.metadata.setSeed(initSetting.getLedgerSeed());
-		this.metadata.setCaMode(initSetting.isCaMode());
-		this.metadata.setRootCa(initSetting.getRootCa());
+		this.metadata.setIdentityMode(initSetting.getIdentityMode());
+		this.metadata.setLedgerCAs(initSetting.getLedgerCAs());
 		this.metadata.setLedgerStructureVersion(initSetting.getLedgerStructureVersion());
 		// 新配置；
 		this.settings = new LedgerConfiguration(initSetting.getConsensusProvider(), initSetting.getConsensusSettings(),
@@ -396,8 +397,8 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 		metadata =origMetadata == null ? new LedgerMetadataInfo() :  new LedgerMetadataInfo(origMetadata);
 	}
 
-	public void updateCa(String cert) {
-		metadata.setRootCa(cert);
+	public void updateLedgerCA(String[] certs) {
+		metadata.setLedgerCAs(certs);
 		updated = true;
 	}
 
@@ -405,9 +406,9 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 
 		private byte[] seed;
 
-		private boolean isCaMode;
+		private IdentityMode identityMode;
 
-		private String rootCa;
+		private String[] ledgerCAs;
 
 		private HashDigest participantsHash;
 
@@ -429,8 +430,8 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 			this.rolePrivilegesHash = metadata.getRolePrivilegesHash();
 			this.userRolesHash = metadata.getUserRolesHash();
 			this.ledgerStructureVersion = metadata.getLedgerStructureVersion();
-			this.isCaMode = metadata.isCaMode();
-			this.rootCa = metadata.getRootCa();
+			this.identityMode = metadata.getIdentityMode();
+			this.ledgerCAs = metadata.getLedgerCAs();
 		}
 
 		@Override
@@ -439,21 +440,21 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 		}
 
 		@Override
-		public boolean isCaMode() {
-			return isCaMode;
+		public IdentityMode getIdentityMode() {
+			return identityMode;
 		}
 
-		public void setCaMode(boolean caMode) {
-			isCaMode = caMode;
+		public void setIdentityMode(IdentityMode identityMode) {
+			this.identityMode = identityMode;
 		}
 
 		@Override
-		public String getRootCa() {
-			return rootCa;
+		public String[] getLedgerCAs() {
+			return ledgerCAs;
 		}
 
-		public void setRootCa(String rootCa) {
-			this.rootCa = rootCa;
+		public void setLedgerCAs(String[] ledgerCAs) {
+			this.ledgerCAs = ledgerCAs;
 		}
 
 		@Override

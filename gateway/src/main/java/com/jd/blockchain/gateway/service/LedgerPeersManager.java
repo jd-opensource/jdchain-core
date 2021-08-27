@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.net.NetworkAddress;
 
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,7 +42,6 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
     private HashDigest ledger;
     // 所连接节点地址等信息
     private AsymmetricKeypair keyPair;
-    private X509Certificate certificate;
     private SessionCredentialProvider credentialProvider;
     private ConsensusClientManager clientManager;
     private LedgersListener ledgersListener;
@@ -59,15 +57,8 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
     public LedgerPeersManager(HashDigest ledger, LedgerPeerConnectionManager[] peerConnectionServices, AsymmetricKeypair keyPair,
                               SessionCredentialProvider credentialProvider, ConsensusClientManager clientManager,
                               LedgersListener ledgersListener, LedgerPeersTopologyStorage topologyStorage) {
-        this(ledger, peerConnectionServices, keyPair, null, credentialProvider, clientManager, ledgersListener, topologyStorage);
-    }
-
-    public LedgerPeersManager(HashDigest ledger, LedgerPeerConnectionManager[] peerConnectionServices, AsymmetricKeypair keyPair,
-                              X509Certificate certificate, SessionCredentialProvider credentialProvider, ConsensusClientManager clientManager,
-                              LedgersListener ledgersListener, LedgerPeersTopologyStorage topologyStorage) {
         this.ledger = ledger;
         this.keyPair = keyPair;
-        this.certificate = certificate;
         this.credentialProvider = credentialProvider;
         this.clientManager = clientManager;
         this.ledgersListener = ledgersListener;
@@ -81,7 +72,7 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
     }
 
     public LedgerPeerConnectionManager newPeerConnectionManager(NetworkAddress peerAddress) {
-        return new LedgerPeerConnectionManager(ledger, peerAddress, keyPair, certificate, credentialProvider, clientManager, ledgersListener);
+        return new LedgerPeerConnectionManager(ledger, peerAddress, keyPair, credentialProvider, clientManager, ledgersListener);
     }
 
     public HashDigest getLedger() {

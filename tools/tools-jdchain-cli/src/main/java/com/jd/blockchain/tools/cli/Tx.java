@@ -1,6 +1,9 @@
 package com.jd.blockchain.tools.cli;
 
 import com.jd.binaryproto.BinaryProtocol;
+import com.jd.blockchain.ca.CaType;
+import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.ledger.BlockchainIdentity;
@@ -28,11 +31,13 @@ import com.jd.blockchain.transaction.UserRolesAuthorizer;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 import utils.Bytes;
+import utils.StringUtils;
 import utils.io.BytesUtils;
 import utils.io.FileUtils;
 
 import java.io.File;
 import java.lang.reflect.Method;
+import java.security.cert.X509Certificate;
 import java.util.Scanner;
 
 /**
@@ -45,7 +50,9 @@ import java.util.Scanner;
         showDefaultValues = true,
         description = "Build, sign or send transaction.",
         subcommands = {
+                TxLedgerCAUpdate.class,
                 TxUserRegister.class,
+                TxUserCAUpdate.class,
                 TxRoleConfig.class,
                 TxAuthorziationConfig.class,
                 TxDataAccountRegister.class,
@@ -179,8 +186,47 @@ public class Tx implements Runnable {
     }
 }
 
+@CommandLine.Command(name = "ledger-ca-update", mixinStandardHelpOptions = true, header = "Update ledger certificate.")
+class TxLedgerCAUpdate implements Runnable {
+
+    @CommandLine.Option(names = "--crt", required = true, description = "File of the X509 certificate", scope = CommandLine.ScopeType.INHERIT)
+    String caPath;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        TransactionTemplate txTemp = txCommand.newTransaction();
+        X509Certificate certificate = X509Utils.resolveCertificate(new File(caPath));
+        X509Utils.checkCaTypesAny(certificate, CaType.LEDGER);
+        X509Utils.checkValidity(certificate);
+        PreparedTransaction ptx = txTemp.prepare();
+        String txFile = txCommand.export(ptx);
+        if (null != txFile) {
+            System.out.println("export transaction success: " + txFile);
+        } else {
+            if (txCommand.sign(ptx)) {
+                TransactionResponse response = ptx.commit();
+                String pubkey = KeyGenUtils.encodePubKey(X509Utils.resolvePubKey(certificate));
+                if (response.isSuccess()) {
+                    System.out.printf("ledger ca: [%s](pubkey) updated%n", pubkey);
+                } else {
+                    System.err.printf("update ledger ca: [%s](pubkey) failed!%n", pubkey);
+                }
+            }
+        }
+    }
+}
+
 @CommandLine.Command(name = "user-register", mixinStandardHelpOptions = true, header = "Register new user.")
 class TxUserRegister implements Runnable {
+
+    @CommandLine.Option(names = "--ca-mode", description = "Register with CA", scope = CommandLine.ScopeType.INHERIT)
+    boolean caMode;
+
+    @CommandLine.Option(names = "--crt", description = "File of the X509 certificate", scope = CommandLine.ScopeType.INHERIT)
+    String caPath;
 
     @CommandLine.ParentCommand
     private Tx txCommand;
@@ -202,6 +248,7 @@ class TxUserRegister implements Runnable {
         } else {
             System.out.printf("select keypair to register: %n%-7s\t%s\t%s%n", "INDEX", "KEY", "ADDRESS");
             BlockchainKeypair[] keypairs = new BlockchainKeypair[pubs.length];
+            String[] certs = new String[pubs.length];
             String[] passwords = new String[pubs.length];
             for (int i = 0; i < pubs.length; i++) {
                 String key = FilenameUtils.removeExtension(pubs[i].getName());
@@ -209,6 +256,7 @@ class TxUserRegister implements Runnable {
                 String privkey = FileUtils.readText(new File(keyPath + ".priv"));
                 String pwd = FileUtils.readText(new File(keyPath + ".pwd"));
                 String pubkey = FileUtils.readText(new File(keyPath + ".pub"));
+                certs[i] = keyPath + ".crt";
                 keypairs[i] = new BlockchainKeypair(KeyGenUtils.decodePubKey(pubkey), KeyGenUtils.decodePrivKey(privkey, pwd));
                 passwords[i] = pwd;
                 System.out.printf("%-7s\t%s\t%s%n", i, key, keypairs[i].getAddress());
@@ -221,13 +269,30 @@ class TxUserRegister implements Runnable {
             String pwd = scanner.next();
             if (KeyGenUtils.encodePasswordAsBase58(pwd).equals(passwords[keyIndex])) {
                 keypair = keypairs[keyIndex];
+                if (caMode) {
+                    X509Certificate certificate;
+                    if (StringUtils.isEmpty(caPath)) {
+                        certificate = X509Utils.resolveCertificate(FileUtils.readText(new File(certs[keyIndex])));
+                    } else {
+                        certificate = X509Utils.resolveCertificate(new File(caPath));
+                    }
+                    Bytes address = AddressEncoding.generateAddress(X509Utils.resolvePubKey(certificate));
+                    if (!address.equals(keypair.getAddress())) {
+                        System.err.println("the key pair does not match the certificate");
+                        return;
+                    }
+                    X509Utils.checkCaTypesAny(certificate, CaType.PEER, CaType.GW, CaType.USER);
+                    X509Utils.checkValidity(certificate);
+                    txTemp.users().register(certificate);
+                } else {
+                    txTemp.users().register(keypair.getIdentity());
+                }
             } else {
                 System.err.println("password wrong");
                 return;
             }
         }
 
-        txTemp.users().register(keypair.getIdentity());
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);
         if (null != txFile) {
@@ -239,6 +304,77 @@ class TxUserRegister implements Runnable {
                     System.out.printf("register user: [%s]%n", keypair.getAddress());
                 } else {
                     System.err.println("register user failed!");
+                }
+            }
+        }
+    }
+}
+
+@CommandLine.Command(name = "user-ca-update", mixinStandardHelpOptions = true, header = "Update user certificate.")
+class TxUserCAUpdate implements Runnable {
+
+    @CommandLine.Option(names = "--crt", description = "File of the X509 certificate", scope = CommandLine.ScopeType.INHERIT)
+    String caPath;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        TransactionTemplate txTemp = txCommand.newTransaction();
+        X509Certificate certificate;
+        Bytes address;
+        if (StringUtils.isEmpty(caPath)) {
+            File keysHome = new File(txCommand.jdChainCli.getHomePath() + File.separator + Keys.KEYS_HOME);
+            File[] pubs = keysHome.listFiles((dir, name) -> {
+                if (name.endsWith(".crt")) {
+                    return true;
+                }
+                return false;
+            });
+            if (pubs.length == 0) {
+                System.err.printf("no certificate in path [%s]%n", keysHome.getAbsolutePath());
+                return;
+            } else {
+                System.out.printf("select user to update: %n%-7s\t%s\t%s%n", "INDEX", "KEY", "ADDRESS");
+                Bytes[] addresses = new Bytes[pubs.length];
+                String[] certs = new String[pubs.length];
+                for (int i = 0; i < pubs.length; i++) {
+                    String key = FilenameUtils.removeExtension(pubs[i].getName());
+                    String keyPath = FilenameUtils.removeExtension(pubs[i].getAbsolutePath());
+                    String pubkey = FileUtils.readText(new File(keyPath + ".pub"));
+                    certs[i] = keyPath + ".crt";
+                    addresses[i] = AddressEncoding.generateAddress(KeyGenUtils.decodePubKey(pubkey));
+                    System.out.printf("%-7s\t%s\t%s%n", i, key, addresses[i]);
+                }
+                System.out.print("> ");
+                Scanner scanner = new Scanner(System.in).useDelimiter("\n");
+                int keyIndex = Integer.parseInt(scanner.next().trim());
+                address = addresses[keyIndex];
+                certificate = X509Utils.resolveCertificate(FileUtils.readText(new File(certs[keyIndex])));
+                if (!address.equals(address)) {
+                    System.err.println("the key pair does not match the certificate");
+                    return;
+                }
+            }
+        } else {
+            certificate = X509Utils.resolveCertificate(new File(caPath));
+            address = AddressEncoding.generateAddress(X509Utils.resolvePubKey(certificate));
+        }
+        X509Utils.checkCaTypesAny(certificate, CaType.PEER, CaType.GW, CaType.USER);
+        X509Utils.checkValidity(certificate);
+        txTemp.user(address).ca(certificate);
+        PreparedTransaction ptx = txTemp.prepare();
+        String txFile = txCommand.export(ptx);
+        if (null != txFile) {
+            System.out.println("export transaction success: " + txFile);
+        } else {
+            if (txCommand.sign(ptx)) {
+                TransactionResponse response = ptx.commit();
+                if (response.isSuccess()) {
+                    System.out.printf("user: [%s] ca updated%n", address);
+                } else {
+                    System.err.println("update user ca failed!");
                 }
             }
         }

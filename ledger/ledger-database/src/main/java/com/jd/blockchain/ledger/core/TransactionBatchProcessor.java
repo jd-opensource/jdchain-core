@@ -3,13 +3,10 @@ package com.jd.blockchain.ledger.core;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import com.jd.blockchain.ca.X509Utils;
-import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.ledger.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +19,6 @@ import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.transaction.SignatureUtils;
 import com.jd.blockchain.transaction.TxBuilder;
 import com.jd.blockchain.transaction.TxResponseMessage;
-import utils.Bytes;
 
 public class TransactionBatchProcessor implements TransactionBatchProcess, BlockQuery {
 
@@ -45,6 +41,9 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 
 	private TransactionBatchResult batchResult;
 
+	private IdentityMode identityMode;
+	private X509Certificate[] ledgerCAs;
+
 	/**
 	 * @param newBlockEditor 新区块的数据编辑器；
 	 * @param newBlockEditor  账本查询器，只包含新区块的前一个区块的数据集；即未提交新区块之前的经过共识的账本最新数据集；
@@ -56,33 +55,24 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 		this.newBlockEditor = newBlockEditor;
 		this.ledger = ledger;
 		this.handlesRegisteration = opHandles;
+		if(null != ledger && null != ledger.getAdminInfo()) {
+			this.identityMode = ledger.getAdminInfo().getMetadata().getIdentityMode();
+			if (identityMode == IdentityMode.CA) {
+				this.ledgerCAs = X509Utils.resolveCertificates(ledger.getAdminInfo().getMetadata().getLedgerCAs());
+			}
+		}
 	}
 
 	public TransactionBatchProcessor(LedgerRepository ledgerRepo, OperationHandleRegisteration handlesRegisteration) {
 		this.ledger = ledgerRepo;
 		this.handlesRegisteration = handlesRegisteration;
-		
 		this.securityManager = ledgerRepo.getSecurityManager();
-		
 		this.newBlockEditor = ledgerRepo.createNextBlock();
+		this.identityMode = ledger.getAdminInfo().getMetadata().getIdentityMode();
+		if(identityMode == IdentityMode.CA) {
+			this.ledgerCAs = X509Utils.resolveCertificates(ledger.getAdminInfo().getMetadata().getLedgerCAs());
+		}
 	}
-
-//	public static TransactionBatchProcess create(LedgerRepository ledgerRepo,
-//			OperationHandleRegisteration handlesRegisteration) {
-//		LedgerBlock ledgerBlock = ledgerRepo.getLatestBlock();
-//		LedgerEditor newBlockEditor = ledgerRepo.createNextBlock();
-//		LedgerDataQuery previousBlockDataset = ledgerRepo.getLedgerData(ledgerBlock);
-//
-//		LedgerAdminDataQuery previousAdminDataset = previousBlockDataset.getAdminDataset();
-//		LedgerSecurityManager securityManager = new LedgerSecurityManagerImpl(
-//				previousAdminDataset.getAdminInfo().getRolePrivileges(),
-//				previousAdminDataset.getAdminInfo().getAuthorizations(), previousAdminDataset.getParticipantDataset(),
-//				previousBlockDataset.getUserAccountSet());
-//
-//		TransactionBatchProcessor processor = new TransactionBatchProcessor(securityManager, newBlockEditor, ledgerRepo,
-//				handlesRegisteration);
-//		return processor;
-//	}
 
 	@Override
 	public HashDigest getLedgerHash() {
@@ -117,20 +107,10 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 
 			// 初始化交易的用户安全策略；
 			SecurityPolicy securityPolicy;
-			LedgerMetadata_V2 metadata = ledger.getAdminInfo().getMetadata();
-			if(!metadata.isCaMode()) {
-				securityPolicy = securityManager.getSecurityPolicy(reqExt.getEndpointAddresses(),
-					reqExt.getNodeAddresses());
+			if(identityMode != IdentityMode.CA) {
+				securityPolicy = securityManager.getSecurityPolicy(reqExt.getEndpointAddresses(), reqExt.getNodeAddresses());
 			} else {
-				Map<Bytes, X509Certificate> certs = new HashMap<>();
-				for(DigitalSignature signature : reqExt.getEndpointSignatures()) {
-					certs.put(AddressEncoding.generateAddress(signature.getPubKey()), X509Utils.resolveCertificate(signature.getCertificate()));
-				}
-				for(DigitalSignature signature : reqExt.getNodeSignatures()) {
-					certs.put(AddressEncoding.generateAddress(signature.getPubKey()), X509Utils.resolveCertificate(signature.getCertificate()));
-				}
-				securityPolicy = securityManager.getSecurityPolicy(reqExt.getEndpointAddresses(),
-						reqExt.getNodeAddresses(), X509Utils.resolveCertificate(metadata.getRootCa()), certs);
+				securityPolicy = securityManager.getSecurityPolicy(reqExt.getEndpointAddresses(), reqExt.getNodeAddresses(), ledgerCAs);
 			}
 			SecurityContext.setContextUsersPolicy(securityPolicy);
 
@@ -199,13 +179,6 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 	 * 执行安全验证；
 	 */
 	private void checkSecurity(SecurityPolicy securityPolicy) {
-		// 验证根证书
-		securityPolicy.checkRootCa();
-		// 验证节点证书
-		securityPolicy.checkNodeCa(MultiIDsPolicy.AT_LEAST_ONE);
-		// 验证终端用户证书
-		securityPolicy.checkEndpointCa(MultiIDsPolicy.AT_LEAST_ONE);
-
 		// 验证节点和终端身份的合法性；
 		// 多重身份签署的必须全部身份都合法；
 		securityPolicy.checkEndpointValidity(MultiIDsPolicy.ALL);
@@ -213,6 +186,13 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 
 		// 验证参与方节点是否具有核准交易的权限；
 		securityPolicy.checkNodePermission(LedgerPermission.APPROVE_TX, MultiIDsPolicy.AT_LEAST_ONE);
+
+		if(identityMode == IdentityMode.CA) {
+			// 验证节点证书
+			securityPolicy.checkNodeCA(MultiIDsPolicy.AT_LEAST_ONE);
+			// 验证终端用户证书
+			securityPolicy.checkEndpointCA(MultiIDsPolicy.AT_LEAST_ONE);
+		}
 	}
 
 	private void checkRequest(TransactionRequestExtension reqExt) {

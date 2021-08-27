@@ -43,7 +43,6 @@ public class LedgerBindingConfig {
 	public static final String PARTI_PK_PATH = PARTI_PREFIX + "pk-path";
 	public static final String PARTI_PK = PARTI_PREFIX + "pk";
 	public static final String PARTI_PASSWORD = PARTI_PREFIX + "pwd";
-	public static final String CA_PATH = PARTI_PREFIX + "ca-path";
 
 
 	// DB Connection Config Key Prefix;
@@ -126,7 +125,6 @@ public class LedgerBindingConfig {
 		String partiNameKey = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_NAME);
 		String partiPKKey = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_PK);
 		String partiPwdKey = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_PASSWORD);
-		String caPathKey = String.join(ATTR_SEPERATOR, ledgerPrefix, CA_PATH);
 
 		writeLine(builder, "#账本的当前共识参与方的节点地址 Address；");
 		writeLine(builder, "%s=%s", partiAddressKey, stringOf(binding.getParticipant().getAddress()));
@@ -138,8 +136,6 @@ public class LedgerBindingConfig {
 		writeLine(builder, "%s=%s", partiPKKey, stringOf(binding.getParticipant().getPk()));
 		writeLine(builder, "#账本的当前共识参与方的私钥文件的读取口令；可为空；如果为空时，节点的启动过程中需要手动从控制台输入；");
 		writeLine(builder, "%s=%s", partiPwdKey, stringOf(binding.getParticipant().getPassword()));
-		writeLine(builder, "#账本的当前共识参与方的证书路径，如果账本配置ca-mode为true,此选项不能为空；");
-		writeLine(builder, "%s=%s", caPathKey, stringOf(binding.getParticipant().getCaPath()));
 		writeLine(builder);
 	}
 
@@ -365,8 +361,6 @@ public class LedgerBindingConfig {
 
 		private String pkPath;
 
-		private String caPath;
-
 		private String pk;
 
 		private String password;
@@ -401,14 +395,6 @@ public class LedgerBindingConfig {
 
 		public void setPk(String pk) {
 			this.pk = pk;
-		}
-
-		public String getCaPath() {
-			return caPath;
-		}
-
-		public void setCaPath(String caPath) {
-			this.caPath = caPath;
 		}
 
 		public String getPassword() {
