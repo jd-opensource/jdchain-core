@@ -440,7 +440,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 		try {
 			DbConnection dbConnNew = connFactory.connect(bindingConfig.getDbConnection().getUri(),
 					bindingConfig.getDbConnection().getPassword());
-			ledgerRepository = ledgerManager.register(ledgerHash, dbConnNew.getStorageService());
+			ledgerRepository = ledgerManager.register(ledgerHash, dbConnNew.getStorageService(), "default");
 
 			ledgerAdminAccount = ledgerRepository.getAdminInfo();
 

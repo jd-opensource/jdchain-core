@@ -43,20 +43,27 @@ public interface LedgerEditor {
 	 * 
 	 * @return
 	 */
-	LedgerDataSetEditor getLedgerDataset();
+	LedgerDataSet getLedgerDataset();
 	
 	/**
 	 * 最新的事件集合；
 	 * @return
 	 */
-	LedgerEventSetEditor getLedgerEventSet();
+	LedgerEventSet getLedgerEventSet();
 
 	/**
 	 * 最新的交易集合；
 	 * 
 	 * @return
 	 */
-	TransactionSetEditor getTransactionSet();
+	TransactionSet getTransactionSet();
+
+	/**
+	 * 最新的区块；
+	 *
+	 * @return
+	 */
+	LedgerBlock getCurrentBlock();
 
 	/**
 	 * 开始新事务；<br>

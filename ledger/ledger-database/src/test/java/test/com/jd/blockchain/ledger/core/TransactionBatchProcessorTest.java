@@ -93,7 +93,7 @@ public class TransactionBatchProcessorTest {
 
 		// 加载账本；
 		LedgerManager ledgerManager = new LedgerManager();
-		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE);
+		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, "default");
 
 		//验证交易总数；创始区块的交易数预期为 1 ——只有一笔账本初始化的交易；
 		long totalCount = ledgerRepo.getTransactionSet().getTotalCount();
@@ -125,7 +125,7 @@ public class TransactionBatchProcessorTest {
 
 		// 验证正确性；
 		ledgerManager = new LedgerManager();
-		ledgerRepo = ledgerManager.register(ledgerHash, STORAGE);
+		ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, "default");
 
 		LedgerBlock latestBlock = ledgerRepo.getLatestBlock();
 		assertEquals(newBlock.getHash(), latestBlock.getHash());
@@ -161,7 +161,7 @@ public class TransactionBatchProcessorTest {
 
 		// 加载账本；
 		LedgerManager ledgerManager = new LedgerManager();
-		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE);
+		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, "default");
 
 		// 验证参与方账户的存在；
 		LedgerDataSet previousBlockDataset = ledgerRepo.getLedgerDataSet(ledgerRepo.getLatestBlock());
@@ -197,7 +197,7 @@ public class TransactionBatchProcessorTest {
 
 		// 验证正确性；
 		ledgerManager = new LedgerManager();
-		ledgerRepo = ledgerManager.register(ledgerHash, STORAGE);
+		ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, "default");
 
 		LedgerBlock latestBlock = ledgerRepo.getLatestBlock();
 		assertEquals(newBlock.getHash(), latestBlock.getHash());
@@ -232,7 +232,7 @@ public class TransactionBatchProcessorTest {
 
 		// 加载账本；
 		LedgerManager ledgerManager = new LedgerManager();
-		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE);
+		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, "default");
 		CryptoSetting cryptoSetting = ledgerRepo.getAdminSettings().getSettings().getCryptoSetting();
 
 		// 验证参与方账户的存在；
@@ -320,7 +320,7 @@ public class TransactionBatchProcessorTest {
 
 		// 重新加载之后验证正确性；
 		ledgerManager = new LedgerManager();
-		ledgerRepo = ledgerManager.register(ledgerHash, STORAGE);
+		ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, "default");
 
 		LedgerBlock latestBlock = ledgerRepo.getLatestBlock();
 		assertEquals(blockHash, latestBlock.getHash());
@@ -357,7 +357,7 @@ public class TransactionBatchProcessorTest {
 
 		// 加载账本；
 		LedgerManager ledgerManager = new LedgerManager();
-		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE);
+		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, "default");
 
 		// 验证参与方账户的存在；
 		LedgerDataSet previousBlockDataset = ledgerRepo.getLedgerDataSet(ledgerRepo.getLatestBlock());

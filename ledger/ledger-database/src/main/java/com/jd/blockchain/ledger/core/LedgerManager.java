@@ -47,7 +47,7 @@ public class LedgerManager implements LedgerManage {
 	}
 
 	@Override
-	public LedgerRepository register(HashDigest ledgerHash, KVStorageService storageService) {
+	public LedgerRepository register(HashDigest ledgerHash, KVStorageService storageService, String anchorType) {
 		if (ledgers.containsKey(ledgerHash)) {
 			LedgerRepositoryContext ledgerCtx = ledgers.get(ledgerHash);
 			return ledgerCtx.ledgerRepo;
@@ -55,8 +55,9 @@ public class LedgerManager implements LedgerManage {
 		// 加载账本数据库；
 		VersioningKVStorage ledgerVersioningStorage = storageService.getVersioningKVStorage();
 		ExPolicyKVStorage ledgerExPolicyStorage = storageService.getExPolicyKVStorage();
-		LedgerRepositoryImpl ledgerRepo = new LedgerRepositoryImpl(ledgerHash, LEDGER_PREFIX, ledgerExPolicyStorage,
-				ledgerVersioningStorage);
+
+		// 数据锚定merkle tree的方式
+		LedgerRepository ledgerRepo = new LedgerRepositoryImpl(ledgerHash, LEDGER_PREFIX, ledgerExPolicyStorage, ledgerVersioningStorage, anchorType);
 
 		// 校验 crypto service provider ；
 		CryptoSetting cryptoSetting = ledgerRepo.getAdminInfo().getSettings().getCryptoSetting();
@@ -133,7 +134,7 @@ public class LedgerManager implements LedgerManage {
 	}
 
 	@SuppressWarnings("unused")
-	private LedgerRepositoryImpl innerGetLedger(HashDigest ledgerHash) {
+	private LedgerRepository innerGetLedger(HashDigest ledgerHash) {
 		// TODO Auto-generated method stub
 		LedgerRepositoryContext ledgerCtx = ledgers.get(ledgerHash);
 		if (ledgerCtx == null) {
@@ -163,12 +164,12 @@ public class LedgerManager implements LedgerManage {
 
 	private static class LedgerRepositoryContext {
 
-		public final LedgerRepositoryImpl ledgerRepo;
+		public final LedgerRepository ledgerRepo;
 
 		@SuppressWarnings("unused")
 		public final KVStorageService storageService;
 
-		public LedgerRepositoryContext(LedgerRepositoryImpl ledgerRepo, KVStorageService storageService) {
+		public LedgerRepositoryContext(LedgerRepository ledgerRepo, KVStorageService storageService) {
 			this.ledgerRepo = ledgerRepo;
 			this.storageService = storageService;
 		}

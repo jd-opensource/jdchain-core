@@ -13,7 +13,7 @@ public interface LedgerManage extends LedgerService {
 	
 	static final String LEDGER_PREFIX = "LDG://";
 	
-	LedgerQuery register(HashDigest ledgerHash, KVStorageService storageService);
+	LedgerQuery register(HashDigest ledgerHash, KVStorageService storageService, String anchorType);
 	
 	void unregister(HashDigest ledgerHash);
 

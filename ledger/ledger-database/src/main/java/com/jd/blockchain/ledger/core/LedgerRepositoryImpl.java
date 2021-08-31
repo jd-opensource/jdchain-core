@@ -66,6 +66,8 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 	private volatile LedgerEditor nextBlockEditor;
 
+	private String anchorType;
+
 	/**
 	 * 账本结构版本号
 	 *         默认为-1，需通过MetaData获取
@@ -75,13 +77,14 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	private volatile boolean closed = false;
 
 	public LedgerRepositoryImpl(HashDigest ledgerHash, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
-			VersioningKVStorage versioningStorage) {
+			VersioningKVStorage versioningStorage, String anchorType) {
 		this.keyPrefix = keyPrefix;
 
 		this.ledgerHash = ledgerHash;
 		this.versioningStorage = versioningStorage;
 		this.exPolicyStorage = exPolicyStorage;
 		this.ledgerIndexKey = encodeLedgerIndexKey(ledgerHash);
+		this.anchorType = anchorType;
 
 		if (getLatestBlockHeight() < 0) {
 			throw new RuntimeException("Ledger doesn't exist!");
@@ -134,9 +137,16 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	private LedgerState retrieveLatestState() {
 		LedgerBlock latestBlock = innerGetBlock(innerGetLatestBlockHeight());
 		LedgerDataSetEditor ledgerDataset = innerGetLedgerDataset(latestBlock);
-		TransactionSet txSet = loadTransactionSet(latestBlock.getTransactionSetHash(),
-				ledgerDataset.getAdminDataset().getSettings().getCryptoSetting(), keyPrefix, exPolicyStorage,
-				versioningStorage, true);
+		TransactionSet txSet;
+		if (anchorType.equals("default")) {
+			txSet = loadTransactionSet(latestBlock.getTransactionSetHash(),
+					ledgerDataset.getAdminDataset().getSettings().getCryptoSetting(), keyPrefix, exPolicyStorage,
+					versioningStorage, true);
+		} else {
+			txSet = loadTransactionSetSimple(latestBlock.getTransactionSetHash(),
+					ledgerDataset.getAdminDataset().getSettings().getCryptoSetting(), keyPrefix, exPolicyStorage,
+					versioningStorage, true);
+		}
 		LedgerEventSetEditor ledgerEventset = innerGetLedgerEventSet(latestBlock);
 		this.latestState = new LedgerState(latestBlock, ledgerDataset, txSet, ledgerEventset);
 		this.ledgerStructureVersion = ledgerDataset.getAdminDataset().getMetadata().getLedgerStructureVersion();
@@ -285,7 +295,8 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 		LedgerAdminInfo adminAccount = getAdminInfo(block);
 		// All of existing block is readonly;
-		return loadTransactionSet(block.getTransactionSetHash(), adminAccount.getSettings().getCryptoSetting(),
+		return anchorType.equals("default")? loadTransactionSet(block.getTransactionSetHash(), adminAccount.getSettings().getCryptoSetting(),
+				keyPrefix, exPolicyStorage, versioningStorage, true) : loadTransactionSetSimple(block.getTransactionSetHash(), adminAccount.getSettings().getCryptoSetting(),
 				keyPrefix, exPolicyStorage, versioningStorage, true);
 	}
 
@@ -303,10 +314,10 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	public LedgerAdminSettings getAdminSettings(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
-			return latestState.getAdminDataset();
+			return (LedgerAdminSettings) latestState.getAdminDataset();
 		}
 
-		return createAdminDataset(block);
+		return anchorType.equals("default") ? createAdminDataset(block) : createAdminDatasetSimple(block);
 	}
 	
 	@Override
@@ -323,7 +334,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	 * @return
 	 */
 	private LedgerAdminInfoData createAdminData(LedgerBlock block) {
-		return new LedgerAdminInfoData(createAdminDataset(block));
+		return new LedgerAdminInfoData(anchorType.equals("default") ? createAdminDataset(block) : createAdminDatasetSimple(block));
 	}
 
 	/**
@@ -336,6 +347,10 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return new LedgerAdminDataSetEditor(block.getAdminAccountHash(), keyPrefix, exPolicyStorage, versioningStorage, true);
 	}
 
+	private LedgerAdminDataSetEditorSimple createAdminDatasetSimple(LedgerBlock block) {
+		return new LedgerAdminDataSetEditorSimple(block.getAdminAccountHash(), keyPrefix, exPolicyStorage, versioningStorage, true);
+	}
+
 	@Override
 	public UserAccountSet getUserAccountSet(LedgerBlock block) {
 		long height = getLatestBlockHeight();
@@ -343,11 +358,16 @@ class LedgerRepositoryImpl implements LedgerRepository {
 			return latestState.getUserAccountSet();
 		}
 		LedgerAdminSettings adminAccount = getAdminSettings(block);
-		return createUserAccountSet(block, adminAccount.getSettings().getCryptoSetting());
+		return anchorType.equals("default") ? createUserAccountSet(block, adminAccount.getSettings().getCryptoSetting()) : createUserAccountSetSimple(block, adminAccount.getSettings().getCryptoSetting());
 	}
 
 	private UserAccountSetEditor createUserAccountSet(LedgerBlock block, CryptoSetting cryptoSetting) {
 		return loadUserAccountSet(block.getUserAccountSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
+				versioningStorage, true);
+	}
+
+	private UserAccountSetEditorSimple createUserAccountSetSimple(LedgerBlock block, CryptoSetting cryptoSetting) {
+		return loadUserAccountSetSimple(block.getUserAccountSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
 				versioningStorage, true);
 	}
 
@@ -359,11 +379,16 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 
 		LedgerAdminSettings adminAccount = getAdminSettings(block);
-		return createDataAccountSet(block, adminAccount.getSettings().getCryptoSetting());
+		return anchorType.equals("default") ? createDataAccountSet(block, adminAccount.getSettings().getCryptoSetting()) : createDataAccountSetSimple(block, adminAccount.getSettings().getCryptoSetting());
 	}
 
 	private DataAccountSetEditor createDataAccountSet(LedgerBlock block, CryptoSetting setting) {
 		return loadDataAccountSet(block.getDataAccountSetHash(), setting, keyPrefix, exPolicyStorage, versioningStorage,
+				true);
+	}
+
+	private DataAccountSetEditorSimple createDataAccountSetSimple(LedgerBlock block, CryptoSetting setting) {
+		return loadDataAccountSetSimple(block.getDataAccountSetHash(), setting, keyPrefix, exPolicyStorage, versioningStorage,
 				true);
 	}
 
@@ -375,7 +400,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 
 		LedgerAdminSettings adminAccount = getAdminSettings(block);
-		return createContractAccountSet(block, adminAccount.getSettings().getCryptoSetting());
+		return anchorType.equals("default") ? createContractAccountSet(block, adminAccount.getSettings().getCryptoSetting()) : createContractAccountSetSimple(block, adminAccount.getSettings().getCryptoSetting());
 	}
 
 	@Override
@@ -391,6 +416,11 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 	private MerkleEventGroupPublisher createSystemEventSet(LedgerBlock block, CryptoSetting cryptoSetting) {
 		return loadSystemEventSet(block.getSystemEventSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
+				versioningStorage, true);
+	}
+
+	private MerkleEventGroupPublisherSimple createSystemEventSetSimple(LedgerBlock block, CryptoSetting cryptoSetting) {
+		return loadSystemEventSetSimple(block.getSystemEventSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
 				versioningStorage, true);
 	}
 
@@ -410,20 +440,30 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				versioningStorage, true);
 	}
 
+	private EventAccountSetEditorSimple createUserEventSetSimple(LedgerBlock block, CryptoSetting cryptoSetting) {
+		return loadUserEventSetSimple(block.getUserEventSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
+				versioningStorage, true);
+	}
+
 	private ContractAccountSetEditor createContractAccountSet(LedgerBlock block, CryptoSetting cryptoSetting) {
 		return loadContractAccountSet(block.getContractAccountSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
 				versioningStorage, true);
 	}
 
+	private ContractAccountSetEditorSimple createContractAccountSetSimple(LedgerBlock block, CryptoSetting cryptoSetting) {
+		return loadContractAccountSetSimple(block.getContractAccountSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
+				versioningStorage, true);
+	}
+
 	@Override
-	public LedgerDataSetEditor getLedgerDataSet(LedgerBlock block) {
+	public LedgerDataSet getLedgerDataSet(LedgerBlock block) {
 		long height = getLatestBlockHeight();
 		if (height == block.getHeight()) {
 			return latestState.getLedgerDataset();
 		}
 
 		// All of existing block is readonly;
-		return innerGetLedgerDataset(block);
+		return anchorType.equals("default") ? innerGetLedgerDataset(block) : innerGetLedgerDatasetSimple(block);
 	}
 
 	@Override
@@ -447,6 +487,16 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return new LedgerDataSetEditor(adminDataset, userAccountSet, dataAccountSet, contractAccountSet, true);
 	}
 
+	private LedgerDataSetEditorSimple innerGetLedgerDatasetSimple(LedgerBlock block) {
+		LedgerAdminDataSetEditorSimple adminDataset = createAdminDatasetSimple(block);
+		CryptoSetting cryptoSetting = adminDataset.getSettings().getCryptoSetting();
+
+		UserAccountSetEditorSimple userAccountSet = createUserAccountSetSimple(block, cryptoSetting);
+		DataAccountSetEditorSimple dataAccountSet = createDataAccountSetSimple(block, cryptoSetting);
+		ContractAccountSetEditorSimple contractAccountSet = createContractAccountSetSimple(block, cryptoSetting);
+		return new LedgerDataSetEditorSimple(adminDataset, userAccountSet, dataAccountSet, contractAccountSet, true);
+	}
+
 	private LedgerEventSetEditor innerGetLedgerEventSet(LedgerBlock block) {
 		LedgerAdminDataSetEditor adminDataset = createAdminDataset(block);
 		CryptoSetting cryptoSetting = adminDataset.getSettings().getCryptoSetting();
@@ -456,12 +506,23 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return new LedgerEventSetEditor(systemEventSet, userEventSet, true);
 	}
 
+	private LedgerEventSetEditorSimple innerGetLedgerEventSetSimple(LedgerBlock block) {
+		LedgerAdminDataSetEditorSimple adminDataset = createAdminDatasetSimple(block);
+		CryptoSetting cryptoSetting = adminDataset.getSettings().getCryptoSetting();
+
+		MerkleEventGroupPublisherSimple systemEventSet = createSystemEventSetSimple(block, cryptoSetting);
+		EventAccountSetEditorSimple userEventSet = createUserEventSetSimple(block, cryptoSetting);
+		return new LedgerEventSetEditorSimple(systemEventSet, userEventSet, true);
+	}
+
 	public synchronized void resetNextBlockEditor() {
 		this.nextBlockEditor = null;
 	}
 
 	@Override
 	public synchronized LedgerEditor createNextBlock() {
+		LedgerEditor editor;
+
 		if (closed) {
 			throw new RuntimeException("Ledger repository has been closed!");
 		}
@@ -470,8 +531,15 @@ class LedgerRepositoryImpl implements LedgerRepository {
 					"A new block is in process, cann't create another one until it finish by committing or canceling.");
 		}
 		LedgerBlock previousBlock = getLatestBlock();
-		LedgerTransactionalEditor editor = LedgerTransactionalEditor.createEditor(previousBlock, getLatestSettings(),
+
+		if (false) {//default simple
+			editor = LedgerTransactionalEditorSimple.createEditor(previousBlock, getLatestSettings(),
 				keyPrefix, exPolicyStorage, versioningStorage);
+		} else {
+			editor = LedgerTransactionalEditor.createEditor(previousBlock, getLatestSettings(),
+					keyPrefix, exPolicyStorage, versioningStorage);
+		}
+
 		NewBlockCommittingMonitor committingMonitor = new NewBlockCommittingMonitor(editor, this);
 		this.nextBlockEditor = committingMonitor;
 		return committingMonitor;
@@ -602,12 +670,30 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
 	}
 
+	static UserAccountSetEditorSimple loadUserAccountSetSimple(HashDigest userAccountSetHash, CryptoSetting cryptoSetting,
+												   String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
+												   boolean readonly) {
+
+		String usersetKeyPrefix = keyPrefix + USER_SET_PREFIX;
+		return new UserAccountSetEditorSimple(userAccountSetHash, cryptoSetting, usersetKeyPrefix, ledgerExStorage,
+				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
+	}
+
 	static DataAccountSetEditor loadDataAccountSet(HashDigest dataAccountSetHash, CryptoSetting cryptoSetting,
 			String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
 			boolean readonly) {
 
 		String datasetKeyPrefix = keyPrefix + DATA_SET_PREFIX;
 		return new DataAccountSetEditor(dataAccountSetHash, cryptoSetting, datasetKeyPrefix, ledgerExStorage,
+				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
+	}
+
+	static DataAccountSetEditorSimple loadDataAccountSetSimple(HashDigest dataAccountSetHash, CryptoSetting cryptoSetting,
+												   String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
+												   boolean readonly) {
+
+		String datasetKeyPrefix = keyPrefix + DATA_SET_PREFIX;
+		return new DataAccountSetEditorSimple(dataAccountSetHash, cryptoSetting, datasetKeyPrefix, ledgerExStorage,
 				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
 	}
 
@@ -620,11 +706,29 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
 	}
 
+	static ContractAccountSetEditorSimple loadContractAccountSetSimple(HashDigest contractAccountSetHash, CryptoSetting cryptoSetting,
+														   String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
+														   boolean readonly) {
+
+		String contractsetKeyPrefix = keyPrefix + CONTRACT_SET_PREFIX;
+		return new ContractAccountSetEditorSimple(contractAccountSetHash, cryptoSetting, contractsetKeyPrefix, ledgerExStorage,
+				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
+	}
+
 	static TransactionSetEditor loadTransactionSet(HashDigest txsetHash, CryptoSetting cryptoSetting, String keyPrefix,
 			ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, boolean readonly) {
 
 		String txsetKeyPrefix = keyPrefix + TRANSACTION_SET_PREFIX;
 		return new TransactionSetEditor(txsetHash, cryptoSetting, txsetKeyPrefix, ledgerExStorage, ledgerVerStorage,
+				readonly);
+
+	}
+
+	static TransactionSetEditorSimple loadTransactionSetSimple(HashDigest txsetHash, CryptoSetting cryptoSetting, String keyPrefix,
+												   ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, boolean readonly) {
+
+		String txsetKeyPrefix = keyPrefix + TRANSACTION_SET_PREFIX;
+		return new TransactionSetEditorSimple(txsetHash, cryptoSetting, txsetKeyPrefix, ledgerExStorage, ledgerVerStorage,
 				readonly);
 
 	}
@@ -636,6 +740,13 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				ledgerVerStorage, readonly);
 	}
 
+	static MerkleEventGroupPublisherSimple loadSystemEventSetSimple(HashDigest systemEventSetHash, CryptoSetting cryptoSetting,
+														String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
+														boolean readonly) {
+		return new MerkleEventGroupPublisherSimple(systemEventSetHash, cryptoSetting, keyPrefix+ SYSTEM_EVENT_SET_PREFIX, ledgerExStorage,
+				ledgerVerStorage, readonly);
+	}
+
 	static EventAccountSetEditor loadUserEventSet(HashDigest eventAccountSetHash, CryptoSetting cryptoSetting,
 											String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
 											boolean readonly) {
@@ -644,13 +755,21 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
 	}
 
+	static EventAccountSetEditorSimple loadUserEventSetSimple(HashDigest eventAccountSetHash, CryptoSetting cryptoSetting,
+												  String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
+												  boolean readonly) {
+
+		return new EventAccountSetEditorSimple(eventAccountSetHash, cryptoSetting, keyPrefix + USER_EVENT_SET_PREFIX, ledgerExStorage,
+				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
+	}
+
 	private static class NewBlockCommittingMonitor implements LedgerEditor {
 
-		private LedgerTransactionalEditor editor;
+		private LedgerEditor editor;
 
 		private LedgerRepositoryImpl ledgerRepo;
 
-		public NewBlockCommittingMonitor(LedgerTransactionalEditor editor, LedgerRepositoryImpl ledgerRepo) {
+		public NewBlockCommittingMonitor(LedgerEditor editor, LedgerRepositoryImpl ledgerRepo) {
 			this.editor = editor;
 			this.ledgerRepo = ledgerRepo;
 		}
@@ -666,18 +785,23 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 
 		@Override
+		public LedgerBlock getCurrentBlock() {
+			return editor.getCurrentBlock();
+		}
+
+		@Override
 		public LedgerDataSetEditor getLedgerDataset() {
-			return editor.getLedgerDataset();
+			return (LedgerDataSetEditor) editor.getLedgerDataset();
 		}
 
 		@Override
 		public LedgerEventSetEditor getLedgerEventSet() {
-			return editor.getLedgerEventSet();
+			return (LedgerEventSetEditor) editor.getLedgerEventSet();
 		}
 
 		@Override
 		public TransactionSetEditor getTransactionSet() {
-			return editor.getTransactionSet();
+			return (TransactionSetEditor) editor.getTransactionSet();
 		}
 
 		@Override
@@ -725,11 +849,11 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 		private final TransactionSet transactionSet;
 
-		private final LedgerDataSetEditor ledgerDataset;
+		private final LedgerDataSet ledgerDataset;
 
-		private final LedgerEventSetEditor ledgerEventSet;
+		private final LedgerEventSet ledgerEventSet;
 
-		public LedgerState(LedgerBlock block, LedgerDataSetEditor ledgerDataset, TransactionSet transactionSet, LedgerEventSetEditor ledgerEventSet) {
+		public LedgerState(LedgerBlock block, LedgerDataSet ledgerDataset, TransactionSet transactionSet, LedgerEventSet ledgerEventSet) {
 			this.block = block;
 			this.ledgerDataset = ledgerDataset;
 			this.transactionSet = transactionSet;
@@ -737,11 +861,11 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 		}
 
-		public LedgerAdminDataSetEditor getAdminDataset() {
+		public LedgerAdminDataSet getAdminDataset() {
 			return ledgerDataset.getAdminDataset();
 		}
 
-		public LedgerDataSetEditor getLedgerDataset() {
+		public LedgerDataSet getLedgerDataset() {
 			return ledgerDataset;
 		}
 

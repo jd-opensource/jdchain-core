@@ -1,10 +1,5 @@
 package com.jd.blockchain.ledger.core;
 
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
@@ -23,11 +18,14 @@ import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import utils.Bytes;
 import utils.codec.Base58Utils;
 
-public class LedgerTransactionalEditor implements LedgerEditor {
+import java.util.List;
+
+public class LedgerTransactionalEditorSimple implements LedgerEditor {
 	private static final boolean PARALLEL_DB_WRITE;
 
 	static {
@@ -59,7 +57,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	 */
 	private BufferedKVStorage baseStorage;
 
-	private final TransactionSetEditor txset;
+	private final TransactionSetEditorSimple txset;
 
 	/**
 	 * 上一个交易产生的账本快照；
@@ -74,7 +72,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	/**
 	 * 最后提交的账本数据集；
 	 */
-	private volatile LedgerDataSetEditor latestLedgerDataset;
+	private volatile LedgerDataSetEditorSimple latestLedgerDataset;
 
 	private volatile BufferedKVStorage datasetStorage;
 
@@ -99,9 +97,9 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	 * @param bufferedStorage
 	 * @param verifyTx        是否校验交易请求；当外部调用者在调用前已经实施了验证时，将次参数设置为 false 能够提升性能；
 	 */
-	private LedgerTransactionalEditor(HashDigest ledgerHash, CryptoSetting cryptoSetting, LedgerBlockData currentBlock,
-			StagedSnapshot startingPoint, String ledgerKeyPrefix, TransactionSetEditor txset,
-			BufferedKVStorage bufferedStorage) {
+	private LedgerTransactionalEditorSimple(HashDigest ledgerHash, CryptoSetting cryptoSetting, LedgerBlockData currentBlock,
+                                            StagedSnapshot startingPoint, String ledgerKeyPrefix, TransactionSetEditorSimple txset,
+                                            BufferedKVStorage bufferedStorage) {
 		this.ledgerHash = ledgerHash;
 		this.ledgerKeyPrefix = ledgerKeyPrefix;
 		this.cryptoSetting = cryptoSetting;
@@ -125,8 +123,8 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	 * @param verifyTx         是否校验交易请求；当外部调用者在调用前已经实施了验证时，将次参数设置为 false 能够提升性能；
 	 * @return
 	 */
-	public static LedgerTransactionalEditor createEditor(LedgerBlock previousBlock, LedgerSettings ledgerSetting,
-			String ledgerKeyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
+	public static LedgerTransactionalEditorSimple createEditor(LedgerBlock previousBlock, LedgerSettings ledgerSetting,
+                                                               String ledgerKeyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
 		// new block;
 		HashDigest ledgerHash = previousBlock.getLedgerHash();
 		if (ledgerHash == null) {
@@ -141,13 +139,13 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		// init storage;
 		BufferedKVStorage txStagedStorage = new BufferedKVStorage(ledgerExStorage, ledgerVerStorage, PARALLEL_DB_WRITE);
 
-		TransactionSetEditor txset = LedgerRepositoryImpl.loadTransactionSet(previousBlock.getTransactionSetHash(),
+		TransactionSetEditorSimple txset = LedgerRepositoryImplSimple.loadTransactionSet(previousBlock.getTransactionSetHash(),
 				ledgerSetting.getCryptoSetting(), ledgerKeyPrefix, txStagedStorage, txStagedStorage, false);
 
 		StagedSnapshot startingPoint = new TxSnapshot(null, previousBlock);
 
 		// instantiate editor;
-		return new LedgerTransactionalEditor(ledgerHash, ledgerSetting.getCryptoSetting(), currBlock, startingPoint,
+		return new LedgerTransactionalEditorSimple(ledgerHash, ledgerSetting.getCryptoSetting(), currBlock, startingPoint,
 				ledgerKeyPrefix, txset, txStagedStorage);
 	}
 
@@ -161,17 +159,17 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	 * @param verifyTx         是否校验交易请求；当外部调用者在调用前已经实施了验证时，将次参数设置为 false 能够提升性能；
 	 * @return
 	 */
-	public static LedgerTransactionalEditor createEditor(LedgerInitSetting initSetting, String ledgerKeyPrefix,
-			ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
+	public static LedgerTransactionalEditorSimple createEditor(LedgerInitSetting initSetting, String ledgerKeyPrefix,
+                                                               ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
 		LedgerBlockData genesisBlock = new LedgerBlockData(0, null, null);
 		StagedSnapshot startingPoint = new GenesisSnapshot(initSetting);
 		// init storage;
 		BufferedKVStorage txStagedStorage = new BufferedKVStorage(ledgerExStorage, ledgerVerStorage, false);
 
-		TransactionSetEditor txset = LedgerRepositoryImpl.newTransactionSet(initSetting.getCryptoSetting(), ledgerKeyPrefix,
+		TransactionSetEditorSimple txset = LedgerRepositoryImplSimple.newTransactionSet(initSetting.getCryptoSetting(), ledgerKeyPrefix,
 				txStagedStorage, txStagedStorage);
 
-		return new LedgerTransactionalEditor(null, initSetting.getCryptoSetting(), genesisBlock, startingPoint,
+		return new LedgerTransactionalEditorSimple(null, initSetting.getCryptoSetting(), genesisBlock, startingPoint,
 				ledgerKeyPrefix, txset, txStagedStorage);
 	}
 
@@ -216,11 +214,11 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	}
 
 	@Override
-	public LedgerDataSetEditor getLedgerDataset() {
+	public LedgerDataSetEditorSimple getLedgerDataset() {
 		return innerGetDataset();
 	}
 
-	private LedgerDataSetEditor innerGetDataset() {
+	private LedgerDataSetEditorSimple innerGetDataset() {
 		if (this.latestLedgerDataset == null) {
 			this.datasetStorage = new BufferedKVStorage(baseStorage, baseStorage, false);
 			this.latestLedgerDataset = createDatasetFromLastestSnapshot(datasetStorage);
@@ -242,7 +240,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	}
 
 	@Override
-	public TransactionSetEditor getTransactionSet() {
+	public TransactionSetEditorSimple getTransactionSet() {
 		// TODO: wrapper with readonly；
 		return txset;
 	}
@@ -348,21 +346,21 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 //		return currentTxCtx;
 	}
 
-	private LedgerDataSetEditor createDatasetFromLastestSnapshot(BufferedKVStorage txBufferedStorage) {
-		LedgerDataSetEditor txDataset = null;
+	private LedgerDataSetEditorSimple createDatasetFromLastestSnapshot(BufferedKVStorage txBufferedStorage) {
+		LedgerDataSetEditorSimple txDataset = null;
 		if (previousTxSnapshot == null) {
 			// load the starting point of the new transaction;
 			if (startingPoint instanceof GenesisSnapshot) {
 				// 准备生成创世区块；
 				GenesisSnapshot snpht = (GenesisSnapshot) startingPoint;
-				txDataset = LedgerRepositoryImpl.newDataSet(snpht.initSetting, ledgerKeyPrefix, txBufferedStorage,
+				txDataset = LedgerRepositoryImplSimple.newDataSet(snpht.initSetting, ledgerKeyPrefix, txBufferedStorage,
 						txBufferedStorage);
 			} else if (startingPoint instanceof TxSnapshot) {
 				// 新的区块；
 				// TxSnapshot; reload dataset and eventset;
 				TxSnapshot snpht = (TxSnapshot) startingPoint;
 				// load dataset;
-				txDataset = LedgerRepositoryImpl.loadDataSet(snpht.dataSnapshot, cryptoSetting, ledgerKeyPrefix,
+				txDataset = LedgerRepositoryImplSimple.loadDataSet(snpht.dataSnapshot, cryptoSetting, ledgerKeyPrefix,
 						txBufferedStorage, txBufferedStorage, false);
 			} else {
 				// Unreachable;
@@ -372,7 +370,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		} else {
 			// Reuse previous object to optimize performance;
 			// load dataset;
-			txDataset = LedgerRepositoryImpl.loadDataSet(previousTxSnapshot.dataSnapshot, cryptoSetting,
+			txDataset = LedgerRepositoryImplSimple.loadDataSet(previousTxSnapshot.dataSnapshot, cryptoSetting,
 					ledgerKeyPrefix, txBufferedStorage, txBufferedStorage, false);
 		}
 
@@ -386,14 +384,14 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			if (startingPoint instanceof GenesisSnapshot) {
 				// 准备生成创世区块；
 				GenesisSnapshot snpht = (GenesisSnapshot) startingPoint;
-				eventSet = LedgerRepositoryImpl.newEventSet(snpht.initSetting.getCryptoSetting(), ledgerKeyPrefix,
+				eventSet = LedgerRepositoryImplSimple.newEventSet(snpht.initSetting.getCryptoSetting(), ledgerKeyPrefix,
 						txBufferedStorage, txBufferedStorage);
 			} else if (startingPoint instanceof TxSnapshot) {
 				// 新的区块；
 				// TxSnapshot; reload dataset and eventset;
 				TxSnapshot snpht = (TxSnapshot) startingPoint;
 				// load eventset
-				eventSet = LedgerRepositoryImpl.loadEventSet(snpht.dataSnapshot, cryptoSetting, ledgerKeyPrefix,
+				eventSet = LedgerRepositoryImplSimple.loadEventSet(snpht.dataSnapshot, cryptoSetting, ledgerKeyPrefix,
 						txBufferedStorage, txBufferedStorage, false);
 			} else {
 				// Unreachable;
@@ -402,7 +400,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 		} else {
 			// load eventset
-			eventSet = LedgerRepositoryImpl.loadEventSet(previousTxSnapshot.dataSnapshot, cryptoSetting,
+			eventSet = LedgerRepositoryImplSimple.loadEventSet(previousTxSnapshot.dataSnapshot, cryptoSetting,
 					ledgerKeyPrefix, txBufferedStorage, txBufferedStorage, false);
 		}
 		return eventSet;
@@ -454,7 +452,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		// persist block bytes;
 		// only one version per block;
 		byte[] blockBytes = BinaryProtocol.encode(currentBlock, LedgerBlock.class);
-		Bytes blockStorageKey = LedgerRepositoryImpl.encodeBlockStorageKey(currentBlock.getHash());
+		Bytes blockStorageKey = LedgerRepositoryImplSimple.encodeBlockStorageKey(currentBlock.getHash());
 		long v = baseStorage.set(blockStorageKey, blockBytes, -1);
 		if (v < 0) {
 			throw new IllegalStateException(
@@ -466,7 +464,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		if (ledgerHash == null) {
 			ledgerHash = blockHash;
 		}
-		Bytes ledgerIndexKey = LedgerRepositoryImpl.encodeLedgerIndexKey(ledgerHash);
+		Bytes ledgerIndexKey = LedgerRepositoryImplSimple.encodeLedgerIndexKey(ledgerHash);
 		long expectedVersion = currentBlock.getHeight() - 1;
 		v = baseStorage.set(ledgerIndexKey, currentBlock.getHash().toBytes(), expectedVersion);
 		if (v < 0) {
@@ -622,9 +620,9 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	 *
 	 */
 	private static class LedgerTransactionContextImpl implements LedgerTransactionContext {
-		private Logger logger = LoggerFactory.getLogger(LedgerTransactionalEditor.class);
+		private Logger logger = LoggerFactory.getLogger(LedgerTransactionalEditorSimple.class);
 
-		private LedgerTransactionalEditor ledgerEditor;
+		private LedgerTransactionalEditorSimple ledgerEditor;
 
 		private TransactionRequest txRequest;
 
@@ -640,7 +638,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 		private boolean rollbacked = false;
 
-		private LedgerTransactionContextImpl(TransactionRequest txRequest, LedgerTransactionalEditor editor) {
+		private LedgerTransactionContextImpl(TransactionRequest txRequest, LedgerTransactionalEditorSimple editor) {
 			this.txRequest = txRequest;
 //			this.dataset = dataset;
 //			this.dataStorage = dataStorage;
@@ -656,7 +654,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		}
 
 		@Override
-		public LedgerDataSetEditor getDataset() {
+		public LedgerDataSetEditorSimple getDataset() {
 			// TODO: 控制只读；
 			return ledgerEditor.getLedgerDataset();
 		}
