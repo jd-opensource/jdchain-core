@@ -1,6 +1,6 @@
 package com.jd.blockchain.ledger.core.handles;
 
-import com.jd.blockchain.ca.CertificateType;
+import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.UserCAUpdateOperation;
@@ -30,11 +30,11 @@ public class UserCAUpdateOperationHandle extends AbstractLedgerOperationHandle<U
 
         // 证书校验
         X509Certificate cert = X509Utils.resolveCertificate(op.getCertificate());
-        X509Utils.checkCertificateTypesAny(cert, CertificateType.PEER, CertificateType.GW, CertificateType.USER);
+        X509Utils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
         X509Utils.checkValidity(cert);
         X509Certificate[] ledgerCAs = X509Utils.resolveCertificates(transactionContext.getDataset().getAdminDataset().getMetadata().getLedgerCAs());
         X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
-        X509Utils.checkCertificateType(issuers, CertificateType.LEDGER);
+        X509Utils.checkCertificateRole(issuers, CertificateRole.LEDGER);
         X509Utils.checkValidityAny(issuers);
 
         // 操作账本；

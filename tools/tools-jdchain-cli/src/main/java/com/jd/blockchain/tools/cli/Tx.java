@@ -1,7 +1,7 @@
 package com.jd.blockchain.tools.cli;
 
 import com.jd.binaryproto.BinaryProtocol;
-import com.jd.blockchain.ca.CertificateType;
+import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.HashDigest;
@@ -199,7 +199,7 @@ class TxLedgerCAUpdate implements Runnable {
     public void run() {
         TransactionTemplate txTemp = txCommand.newTransaction();
         X509Certificate certificate = X509Utils.resolveCertificate(new File(caPath));
-        X509Utils.checkCertificateTypesAny(certificate, CertificateType.LEDGER);
+        X509Utils.checkCertificateRolesAny(certificate, CertificateRole.LEDGER);
         X509Utils.checkValidity(certificate);
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);
@@ -281,7 +281,7 @@ class TxUserRegister implements Runnable {
                         System.err.println("the key pair does not match the certificate");
                         return;
                     }
-                    X509Utils.checkCertificateTypesAny(certificate, CertificateType.PEER, CertificateType.GW, CertificateType.USER);
+                    X509Utils.checkCertificateRolesAny(certificate, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
                     X509Utils.checkValidity(certificate);
                     txTemp.users().register(certificate);
                 } else {
@@ -361,7 +361,7 @@ class TxUserCAUpdate implements Runnable {
             certificate = X509Utils.resolveCertificate(new File(caPath));
             address = AddressEncoding.generateAddress(X509Utils.resolvePubKey(certificate));
         }
-        X509Utils.checkCertificateTypesAny(certificate, CertificateType.PEER, CertificateType.GW, CertificateType.USER);
+        X509Utils.checkCertificateRolesAny(certificate, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
         X509Utils.checkValidity(certificate);
         txTemp.user(address).ca(certificate);
         PreparedTransaction ptx = txTemp.prepare();

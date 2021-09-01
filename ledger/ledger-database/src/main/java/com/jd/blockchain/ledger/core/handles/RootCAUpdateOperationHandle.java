@@ -1,6 +1,6 @@
 package com.jd.blockchain.ledger.core.handles;
 
-import com.jd.blockchain.ca.CertificateType;
+import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.ledger.IdentityMode;
 import com.jd.blockchain.ledger.IllegalTransactionException;
@@ -34,7 +34,7 @@ public class RootCAUpdateOperationHandle extends AbstractLedgerOperationHandle<R
         LedgerAdminDataSetEditor adminDataset = transactionContext.getDataset().getAdminDataset();
         if (adminDataset.getMetadata().getIdentityMode() == IdentityMode.CA) {
             X509Certificate certificate = X509Utils.resolveCertificate(op.getCertificate());
-            X509Utils.checkCertificateType(certificate, CertificateType.LEDGER);
+            X509Utils.checkCertificateRole(certificate, CertificateRole.LEDGER);
             X509Utils.checkValidity(certificate);
             String[] ledgerCAs = adminDataset.getMetadata().getLedgerCAs();
             boolean updated = false;
