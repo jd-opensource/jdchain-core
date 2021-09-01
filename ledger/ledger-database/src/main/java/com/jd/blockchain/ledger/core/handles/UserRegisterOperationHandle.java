@@ -1,6 +1,6 @@
 package com.jd.blockchain.ledger.core.handles;
 
-import com.jd.blockchain.ca.CaType;
+import com.jd.blockchain.ca.CertificateType;
 import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.IdentityMode;
@@ -40,11 +40,11 @@ public class UserRegisterOperationHandle extends AbstractLedgerOperationHandle<U
             }
 
             X509Certificate cert = X509Utils.resolveCertificate(op.getCertificate());
-            X509Utils.checkCaTypesAny(cert, CaType.PEER, CaType.GW, CaType.USER);
+            X509Utils.checkCertificateTypesAny(cert, CertificateType.PEER, CertificateType.GW, CertificateType.USER);
             X509Utils.checkValidity(cert);
             X509Certificate[] ledgerCAs = X509Utils.resolveCertificates(transactionContext.getDataset().getAdminDataset().getMetadata().getLedgerCAs());
             X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
-            X509Utils.checkCaType(issuers, CaType.LEDGER);
+            X509Utils.checkCertificateType(issuers, CertificateType.LEDGER);
             X509Utils.checkValidityAny(issuers);
         }
 
