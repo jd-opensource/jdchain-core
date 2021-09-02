@@ -110,6 +110,10 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 		ledgerBaseSettings.setConsensusProtocol(ledgerAdminInfo.getSettings().getConsensusProvider());
 		// 设置账本结构版本号
 		ledgerBaseSettings.setLedgerStructureVersion(ledgerMetadata.getLedgerStructureVersion());
+		// 设置什么认证模式
+		ledgerBaseSettings.setIdentityMode(ledgerMetadata.getIdentityMode());
+		// 设置账本证书
+		ledgerBaseSettings.setLedgerCertificates(ledgerMetadata.getLedgerCAs());
 		return ledgerBaseSettings;
 	}
 

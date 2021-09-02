@@ -41,6 +41,12 @@ public class OperationDecoratorFactory {
             return decorateEventAccountRegisterOperation((EventAccountRegisterOperation) op);
         } else if (op instanceof EventPublishOperation) {
             return decorateEventPublishOperation((EventPublishOperation) op);
+        } else if (op instanceof UserCAUpdateOperation) {
+            return decorateUserCAUpdateOperation((UserCAUpdateOperation) op);
+        } else if (op instanceof UserRevokeOperation) {
+            return decorateUserRevokeOperation((UserRevokeOperation) op);
+        } else if (op instanceof RootCAUpdateOperation) {
+            return decorateRootCAUpdateOperation((RootCAUpdateOperation) op);
         }
 
         return null;
@@ -280,6 +286,18 @@ public class OperationDecoratorFactory {
             return typeValues;
         }
         return bytesValues;
+    }
+
+    public static Operation decorateUserCAUpdateOperation(UserCAUpdateOperation op) {
+        return new UserCAUpdateOpTemplate(op.getUserAddress(), op.getCertificate());
+    }
+
+    public static Operation decorateUserRevokeOperation(UserRevokeOperation op) {
+        return new UserRevokeOpTemplate(op.getUserAddress());
+    }
+
+    public static Operation decorateRootCAUpdateOperation(RootCAUpdateOperation op) {
+        return new RootCAUpdateOpTemplate(op.getCertificate());
     }
 
 }

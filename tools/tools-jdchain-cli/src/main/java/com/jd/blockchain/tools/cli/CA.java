@@ -1,16 +1,17 @@
 package com.jd.blockchain.tools.cli;
 
 import com.jd.blockchain.ca.CertificateRole;
-import com.jd.blockchain.ca.CertificateType;
 import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.PrivKey;
 import com.jd.blockchain.crypto.PubKey;
 import org.apache.commons.io.FilenameUtils;
+import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -229,13 +230,12 @@ class CACsr implements Runnable {
             if (StringUtils.isEmpty(name) && StringUtils.isEmpty(privPath) && StringUtils.isEmpty(pubPath)) {
                 System.err.println("name and key cannot be empty at the same time");
             } else {
-                String org = caCli.scanValue("organization name");
-                String type = caCli.scanValue("certificate type", Arrays.stream(CertificateType.values()).map(Enum::name).toArray(String[]::new));
                 String[] roles = caCli.scanValues("certificate roles", Arrays.stream(CertificateRole.values()).map(Enum::name).toArray(String[]::new));
                 String country = caCli.scanValue("country");
                 String locality = caCli.scanValue("locality");
                 String province = caCli.scanValue("province");
                 String email = caCli.scanValue("email address");
+                String org = caCli.scanValue("organization name");
 
                 X500NameBuilder nameBuilder = new X500NameBuilder(BCStyle.INSTANCE);
                 nameBuilder.addRDN(BCStyle.O, org);
@@ -300,36 +300,37 @@ class CACrt implements Runnable {
         }
         if (StringUtils.isEmpty(issuerName) && (StringUtils.isEmpty(issuerPrivPath) || StringUtils.isEmpty(issuerCrtPath))) {
             System.err.println("issuer name and issuer key cannot be empty at the same time");
-        } else {
-            try {
-                PKCS10CertificationRequest csr = X509Utils.resolveCertificationRequest(FileUtils.readText(csrPath));
-                String issuerKey = !StringUtils.isEmpty(issuerName) ? FileUtils.readText(caHome + File.separator + issuerName + ".priv") : FileUtils.readText(issuerPrivPath);
-                issuerName = !StringUtils.isEmpty(issuerName) ? issuerName : FilenameUtils.removeExtension(new File(issuerPrivPath).getName());
-                String issuerCrt = !StringUtils.isEmpty(issuerName) ? FileUtils.readText(caHome + File.separator + issuerName + ".crt") : FileUtils.readText(issuerCrtPath);
-                X509Certificate signerCrt = X509Utils.resolveCertificate(issuerCrt);
-                String password = caCli.scanValue("password of the issuer");
-                PrivKey issuerPrivKey = KeyGenUtils.decodePrivKeyWithRawPassword(issuerKey, password);
-                PrivateKey issuerPrivateKey = X509Utils.resolvePrivateKey(issuerPrivKey);
-                X509v3CertificateBuilder certificateBuilder = new X509v3CertificateBuilder(
-                        new X500Name(signerCrt.getSubjectDN().getName()),
-                        BigInteger.valueOf(new Random().nextInt() & 0x7fffffff),
-                        new Date(),
-                        new Date(System.currentTimeMillis() + days * 1000L * 24L * 60L * 60L),
-                        csr.getSubject(),
-                        csr.getSubjectPublicKeyInfo()
-                );
-                String algorithm = Crypto.getAlgorithm(issuerPrivKey.getAlgorithm()).name();
-                ContentSigner signer = new JcaContentSignerBuilder(caCli.CA_ALGORITHM_MAP.get(algorithm)).build(issuerPrivateKey);
-                X509CertificateHolder holder = certificateBuilder.build(signer);
-                X509Certificate cert = new JcaX509CertificateConverter().getCertificate(holder);
+            return;
+        }
+        try {
+            PKCS10CertificationRequest csr = X509Utils.resolveCertificationRequest(FileUtils.readText(csrPath));
+            String issuerKey = !StringUtils.isEmpty(issuerName) ? FileUtils.readText(caHome + File.separator + issuerName + ".priv") : FileUtils.readText(issuerPrivPath);
+            issuerName = !StringUtils.isEmpty(issuerName) ? issuerName : FilenameUtils.removeExtension(new File(issuerPrivPath).getName());
+            String issuerCrt = !StringUtils.isEmpty(issuerName) ? FileUtils.readText(caHome + File.separator + issuerName + ".crt") : FileUtils.readText(issuerCrtPath);
+            X509Certificate signerCrt = X509Utils.resolveCertificate(issuerCrt);
+//            X509Utils.checkCertificateRolesAny(signerCrt, CertificateRole.ROOT, CertificateRole.CA);
+            String password = caCli.scanValue("password of the issuer");
+            PrivKey issuerPrivKey = KeyGenUtils.decodePrivKeyWithRawPassword(issuerKey, password);
+            PrivateKey issuerPrivateKey = X509Utils.resolvePrivateKey(issuerPrivKey);
+            X509v3CertificateBuilder certificateBuilder = new X509v3CertificateBuilder(
+                    new X500Name(signerCrt.getSubjectDN().getName()),
+                    BigInteger.valueOf(new Random().nextInt() & 0x7fffffff),
+                    new Date(),
+                    new Date(System.currentTimeMillis() + days * 1000L * 24L * 60L * 60L),
+                    csr.getSubject(),
+                    csr.getSubjectPublicKeyInfo()
+            );
+            String algorithm = Crypto.getAlgorithm(issuerPrivKey.getAlgorithm()).name();
+            ContentSigner signer = new JcaContentSignerBuilder(caCli.CA_ALGORITHM_MAP.get(algorithm)).build(issuerPrivateKey);
+            X509CertificateHolder holder = certificateBuilder.build(signer);
+            X509Certificate cert = new JcaX509CertificateConverter().getCertificate(holder);
 
-                String crtFile = caHome + File.separator + FilenameUtils.removeExtension(new File(csrPath).getName()) + ".crt";
-                FileUtils.writeText(X509Utils.toPEMString(cert), new File(crtFile));
+            String crtFile = caHome + File.separator + FilenameUtils.removeExtension(new File(csrPath).getName()) + ".crt";
+            FileUtils.writeText(X509Utils.toPEMString(cert), new File(crtFile));
 
-                System.out.println("create [" + crtFile + "] success");
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            System.out.println("create [" + crtFile + "] success");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
@@ -343,11 +344,17 @@ class CARenew implements Runnable {
     @CommandLine.Option(names = "--crt", description = "File of the certificate")
     String crtPath;
 
+    @CommandLine.Option(names = "--days", required = true, description = "Days of certificate validity")
+    int days;
+
     @CommandLine.Option(names = "--issuer-name", description = "Name of the issuer key")
     String issuerName;
 
-    @CommandLine.Option(names = "--issuer-key", description = "Path of the issuer private key file")
-    String issuerKeyPath;
+    @CommandLine.Option(names = "--issuer-priv", description = "Path of the issuer private key file")
+    String issuerPrivPath;
+
+    @CommandLine.Option(names = "--issuer-crt", description = "Path of the issuer certificate file")
+    String issuerCrtPath;
 
     @CommandLine.ParentCommand
     private CA caCli;
@@ -362,9 +369,40 @@ class CARenew implements Runnable {
             System.err.println("crt name and crt path cannot be empty at the same time");
             return;
         }
-        if (StringUtils.isEmpty(issuerName) && StringUtils.isEmpty(issuerKeyPath)) {
+        if (StringUtils.isEmpty(issuerName) && (StringUtils.isEmpty(issuerPrivPath) || StringUtils.isEmpty(issuerCrtPath))) {
             System.err.println("issuer name and issuer key cannot be empty at the same time");
             return;
+        }
+
+        try {
+            X509Certificate originCrt = X509Utils.resolveCertificate(FileUtils.readText(crtPath));
+            String issuerKey = !StringUtils.isEmpty(issuerName) ? FileUtils.readText(caHome + File.separator + issuerName + ".priv") : FileUtils.readText(issuerPrivPath);
+            issuerName = !StringUtils.isEmpty(issuerName) ? issuerName : FilenameUtils.removeExtension(new File(issuerPrivPath).getName());
+            String issuerCrt = !StringUtils.isEmpty(issuerName) ? FileUtils.readText(caHome + File.separator + issuerName + ".crt") : FileUtils.readText(issuerCrtPath);
+            X509Certificate signerCrt = X509Utils.resolveCertificate(issuerCrt);
+//            X509Utils.checkCertificateRolesAny(signerCrt, CertificateRole.ROOT, CertificateRole.CA);
+            String password = caCli.scanValue("password of the issuer");
+            PrivKey issuerPrivKey = KeyGenUtils.decodePrivKeyWithRawPassword(issuerKey, password);
+            PrivateKey issuerPrivateKey = X509Utils.resolvePrivateKey(issuerPrivKey);
+            X509v3CertificateBuilder certificateBuilder = new X509v3CertificateBuilder(
+                    new X500Name(signerCrt.getSubjectDN().getName()),
+                    originCrt.getSerialNumber(),
+                    new Date(),
+                    new Date(System.currentTimeMillis() + days * 1000L * 24L * 60L * 60L),
+                    new X500Name(originCrt.getSubjectDN().getName()),
+                    SubjectPublicKeyInfo.getInstance(ASN1Sequence.getInstance(originCrt.getPublicKey().getEncoded()))
+            );
+            String algorithm = Crypto.getAlgorithm(issuerPrivKey.getAlgorithm()).name();
+            ContentSigner signer = new JcaContentSignerBuilder(caCli.CA_ALGORITHM_MAP.get(algorithm)).build(issuerPrivateKey);
+            X509CertificateHolder holder = certificateBuilder.build(signer);
+            X509Certificate cert = new JcaX509CertificateConverter().getCertificate(holder);
+
+            String crtFile = caHome + File.separator + FilenameUtils.removeExtension(new File(crtPath).getName()) + ".crt";
+            FileUtils.writeText(X509Utils.toPEMString(cert), new File(crtFile));
+
+            System.out.println("create [" + crtFile + "] success");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
