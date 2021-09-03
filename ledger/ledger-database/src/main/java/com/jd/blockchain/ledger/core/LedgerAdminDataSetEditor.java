@@ -141,7 +141,7 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 		this.metadata = new LedgerMetadataInfo();
 		this.metadata.setSeed(initSetting.getLedgerSeed());
 		this.metadata.setIdentityMode(initSetting.getIdentityMode());
-		this.metadata.setLedgerCAs(initSetting.getLedgerCAs());
+		this.metadata.setLedgerCertificates(initSetting.getLedgerCertificates());
 		this.metadata.setLedgerStructureVersion(initSetting.getLedgerStructureVersion());
 		// 新配置；
 		this.settings = new LedgerConfiguration(initSetting.getConsensusProvider(), initSetting.getConsensusSettings(),
@@ -398,7 +398,7 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 	}
 
 	public void updateLedgerCA(String[] certs) {
-		metadata.setLedgerCAs(certs);
+		metadata.setLedgerCertificates(certs);
 		updated = true;
 	}
 
@@ -408,7 +408,7 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 
 		private IdentityMode identityMode;
 
-		private String[] ledgerCAs;
+		private String[] ledgerCertificates;
 
 		private HashDigest participantsHash;
 
@@ -431,7 +431,7 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 			this.userRolesHash = metadata.getUserRolesHash();
 			this.ledgerStructureVersion = metadata.getLedgerStructureVersion();
 			this.identityMode = metadata.getIdentityMode();
-			this.ledgerCAs = metadata.getLedgerCAs();
+			this.ledgerCertificates = metadata.getLedgerCertificates();
 		}
 
 		@Override
@@ -449,12 +449,12 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 		}
 
 		@Override
-		public String[] getLedgerCAs() {
-			return ledgerCAs;
+		public String[] getLedgerCertificates() {
+			return ledgerCertificates;
 		}
 
-		public void setLedgerCAs(String[] ledgerCAs) {
-			this.ledgerCAs = ledgerCAs;
+		public void setLedgerCertificates(String[] ledgerCertificates) {
+			this.ledgerCertificates = ledgerCertificates;
 		}
 
 		@Override

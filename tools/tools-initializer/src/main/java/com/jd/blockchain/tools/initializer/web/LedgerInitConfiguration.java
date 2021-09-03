@@ -193,7 +193,7 @@ public class LedgerInitConfiguration {
 		LedgerInitData initSetting = new LedgerInitData();
 		initSetting.setLedgerSeed(ledgerProps.getLedgerSeed());
 		initSetting.setIdentityMode(ledgerProps.getIdentityMode());
-		initSetting.setLedgerCAs(ledgerProps.getLedgerCAs());
+		initSetting.setLedgerCertificates(ledgerProps.getLedgerCertificates());
 		initSetting.setCryptoSetting(cryptoSetting);
 		initSetting.setConsensusParticipants(participants);
 		initSetting.setCreatedTime(ledgerProps.getCreatedTime());

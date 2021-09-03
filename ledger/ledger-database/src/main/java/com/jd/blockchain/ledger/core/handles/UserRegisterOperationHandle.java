@@ -42,7 +42,7 @@ public class UserRegisterOperationHandle extends AbstractLedgerOperationHandle<U
             X509Certificate cert = X509Utils.resolveCertificate(op.getCertificate());
             X509Utils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
             X509Utils.checkValidity(cert);
-            X509Certificate[] ledgerCAs = X509Utils.resolveCertificates(transactionContext.getDataset().getAdminDataset().getMetadata().getLedgerCAs());
+            X509Certificate[] ledgerCAs = X509Utils.resolveCertificates(transactionContext.getDataset().getAdminDataset().getMetadata().getLedgerCertificates());
             X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
             X509Utils.checkCertificateRole(issuers, CertificateRole.LEDGER);
             X509Utils.checkValidityAny(issuers);

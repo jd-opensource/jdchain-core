@@ -358,7 +358,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					X509Utils.checkCertificateRole(peerCA, CertificateRole.PEER);
 					X509Utils.checkValidity(peerCA);
 
-					X509Certificate[] ledgerCAs = X509Utils.resolveCertificates(ledgerRepo.getAdminInfo().getMetadata().getLedgerCAs());
+					X509Certificate[] ledgerCAs = X509Utils.resolveCertificates(ledgerRepo.getAdminInfo().getMetadata().getLedgerCertificates());
 					X509Utils.checkCertificateRole(ledgerCAs, CertificateRole.LEDGER);
 
 					// 当前账本证书中当前节点证书发布者
@@ -466,7 +466,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				ledgerIdMode.put(ledgerHash, null != metadata.getIdentityMode() ? metadata.getIdentityMode() : IdentityMode.KEYPAIR);
 				if(metadata.getIdentityMode() == IdentityMode.CA) {
 					X509Certificate peerCA = X509Utils.resolveCertificate(ledgerRepository.getUserAccountSet().getAccount(currentNode.getAddress()).getCertificate());
-					X509Certificate[] issuers = X509Utils.findIssuers(peerCA, X509Utils.resolveCertificates(metadata.getLedgerCAs()));
+					X509Certificate[] issuers = X509Utils.findIssuers(peerCA, X509Utils.resolveCertificates(metadata.getLedgerCertificates()));
 					// 校验根证书
 					X509Utils.checkCertificateRole(issuers, CertificateRole.LEDGER);
 					X509Utils.checkValidityAny(issuers);

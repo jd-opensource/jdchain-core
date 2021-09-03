@@ -36,7 +36,7 @@ public class RootCAUpdateOperationHandle extends AbstractLedgerOperationHandle<R
             X509Certificate certificate = X509Utils.resolveCertificate(op.getCertificate());
             X509Utils.checkCertificateRole(certificate, CertificateRole.LEDGER);
             X509Utils.checkValidity(certificate);
-            String[] ledgerCAs = adminDataset.getMetadata().getLedgerCAs();
+            String[] ledgerCAs = adminDataset.getMetadata().getLedgerCertificates();
             boolean updated = false;
             for (int i = 0; i < ledgerCAs.length; i++) {
                 if (certificate.getPublicKey().equals(X509Utils.resolveCertificate(ledgerCAs[i]).getPublicKey())) {

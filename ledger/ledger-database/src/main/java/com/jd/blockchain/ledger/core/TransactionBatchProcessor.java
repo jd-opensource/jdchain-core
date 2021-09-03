@@ -58,7 +58,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 		if(null != ledger && null != ledger.getAdminInfo()) {
 			this.identityMode = ledger.getAdminInfo().getMetadata().getIdentityMode();
 			if (identityMode == IdentityMode.CA) {
-				this.ledgerCAs = X509Utils.resolveCertificates(ledger.getAdminInfo().getMetadata().getLedgerCAs());
+				this.ledgerCAs = X509Utils.resolveCertificates(ledger.getAdminInfo().getMetadata().getLedgerCertificates());
 			}
 		}
 	}
@@ -70,7 +70,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 		this.newBlockEditor = ledgerRepo.createNextBlock();
 		this.identityMode = ledger.getAdminInfo().getMetadata().getIdentityMode();
 		if(identityMode == IdentityMode.CA) {
-			this.ledgerCAs = X509Utils.resolveCertificates(ledger.getAdminInfo().getMetadata().getLedgerCAs());
+			this.ledgerCAs = X509Utils.resolveCertificates(ledger.getAdminInfo().getMetadata().getLedgerCertificates());
 		}
 	}
 

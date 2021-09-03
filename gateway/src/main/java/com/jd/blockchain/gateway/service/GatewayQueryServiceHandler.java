@@ -113,7 +113,7 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 		// 设置什么认证模式
 		ledgerBaseSettings.setIdentityMode(ledgerMetadata.getIdentityMode());
 		// 设置账本证书
-		ledgerBaseSettings.setLedgerCertificates(ledgerMetadata.getLedgerCAs());
+		ledgerBaseSettings.setLedgerCertificates(ledgerMetadata.getLedgerCertificates());
 		return ledgerBaseSettings;
 	}
 

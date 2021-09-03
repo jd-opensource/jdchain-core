@@ -120,7 +120,7 @@ public class OperationDecoratorFactory {
         ledgerInitData.setLedgerSeed(op.getInitSetting().getLedgerSeed());
         ledgerInitData.setIdentityMode(op.getInitSetting().getIdentityMode());
         if(op.getInitSetting().getIdentityMode() == IdentityMode.CA) {
-            ledgerInitData.setLedgerCAs(op.getInitSetting().getLedgerCAs());
+            ledgerInitData.setLedgerCertificates(op.getInitSetting().getLedgerCertificates());
         }
         ledgerInitData.setConsensusProvider(op.getInitSetting().getConsensusProvider());
         ledgerInitData.setCreatedTime(op.getInitSetting().getCreatedTime());
