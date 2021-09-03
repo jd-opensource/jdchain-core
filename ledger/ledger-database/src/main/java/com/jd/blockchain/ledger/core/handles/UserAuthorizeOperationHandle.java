@@ -6,6 +6,7 @@ import java.util.List;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.RolePrivilegeSettings;
 import com.jd.blockchain.ledger.RolesPolicy;
+import com.jd.blockchain.ledger.UserAuthorizationSettings;
 import com.jd.blockchain.ledger.UserAuthorizeOperation;
 import com.jd.blockchain.ledger.UserAuthorizeOperation.UserRolesEntry;
 import com.jd.blockchain.ledger.UserRoles;
@@ -19,6 +20,7 @@ import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
 import com.jd.blockchain.ledger.core.UserRoleDatasetEditor;
 
+import com.jd.blockchain.ledger.core.UserRoleDatasetEditorSimple;
 import utils.Bytes;
 
 public class UserAuthorizeOperationHandle extends AbstractLedgerOperationHandle<UserAuthorizeOperation> {
@@ -36,10 +38,10 @@ public class UserAuthorizeOperationHandle extends AbstractLedgerOperationHandle<
 		securityPolicy.checkEndpointPermission(LedgerPermission.CONFIGURE_ROLES, MultiIDsPolicy.AT_LEAST_ONE);
 
 		// 操作账本；
-
 		UserRolesEntry[] urcfgs = operation.getUserRolesAuthorizations();
-		UserRoleDatasetEditor userRoleDataset = transactionContext.getDataset().getAdminDataset().getAuthorizations();
-		RolePrivilegeSettings rolesSettings = transactionContext.getDataset().getAdminDataset().getRolePrivileges();
+
+		UserAuthorizationSettings userRoleDataset = transactionContext.getDataset().getAdminDataset().getAdminSettings().getAuthorizations();
+		RolePrivilegeSettings rolesSettings = transactionContext.getDataset().getAdminDataset().getAdminSettings().getRolePrivileges();
 		if (urcfgs != null) {
 			for (UserRolesEntry urcfg : urcfgs) {
 				//
@@ -60,7 +62,11 @@ public class UserAuthorizeOperationHandle extends AbstractLedgerOperationHandle<
 						if (policy == null) {
 							policy = RolesPolicy.UNION;
 						}
-						userRoleDataset.addUserRoles(address, policy, validRoles);
+						if (ledger.getAnchorType().equals("default")) {
+							((UserRoleDatasetEditor)userRoleDataset).addUserRoles(address, policy, validRoles);
+						} else {
+							((UserRoleDatasetEditorSimple)userRoleDataset).addUserRoles(address, policy, validRoles);
+						}
 					} else {
 						// 更改之前的授权；
 						ur.addRoles(validRoles);
@@ -71,7 +77,11 @@ public class UserAuthorizeOperationHandle extends AbstractLedgerOperationHandle<
 						if (policy != null) {
 							ur.setPolicy(policy);
 						}
-						userRoleDataset.updateUserRoles(ur);
+						if (ledger.getAnchorType().equals("default")) {
+							((UserRoleDatasetEditor)userRoleDataset).updateUserRoles(ur);
+						} else {
+							((UserRoleDatasetEditorSimple)userRoleDataset).updateUserRoles(ur);
+						}
 					}
 				}
 			}

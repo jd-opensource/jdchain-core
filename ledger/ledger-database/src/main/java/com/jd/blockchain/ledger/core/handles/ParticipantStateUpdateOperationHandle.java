@@ -3,7 +3,9 @@ package com.jd.blockchain.ledger.core.handles;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.ledger.core.LedgerAdminDataSet;
 import com.jd.blockchain.ledger.core.LedgerAdminDataSetEditor;
+import com.jd.blockchain.ledger.core.LedgerAdminDataSetEditorSimple;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
@@ -31,9 +33,14 @@ public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperati
         SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
         securityPolicy.checkEndpointPermission(LedgerPermission.REGISTER_PARTICIPANT, MultiIDsPolicy.AT_LEAST_ONE);
 
-        LedgerAdminDataSetEditor adminAccountDataSet = transactionContext.getDataset().getAdminDataset();
+        LedgerAdminDataSet adminAccountDataSet = transactionContext.getDataset().getAdminDataset();
 
-        ParticipantNode[] participants = adminAccountDataSet.getParticipants();
+        ParticipantNode[] participants = null;
+        if (previousBlockDataset.getAnchorType().equals("default")) {
+            participants = ((LedgerAdminDataSetEditor)adminAccountDataSet).getParticipants();
+        } else {
+            participants = ((LedgerAdminDataSetEditorSimple)adminAccountDataSet).getParticipants();
+        }
 
         ParticipantNode participantNode = null;
 
@@ -45,7 +52,11 @@ public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperati
         }
 
         // 激活新参与方的共识状态
-        adminAccountDataSet.updateParticipant(participantNode);
+        if (previousBlockDataset.getAnchorType().equals("default")) {
+            ((LedgerAdminDataSetEditor)adminAccountDataSet).updateParticipant(participantNode);
+        } else {
+            ((LedgerAdminDataSetEditorSimple)adminAccountDataSet).updateParticipant(participantNode);
+        }
 
     }
 

@@ -63,14 +63,26 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 		// chainCodeVersion != null? then use it;
 		long contractVersion = contractOP.getChainCodeVersion();
 		if(contractVersion != -1L){
-			long rst = transactionContext.getDataset().getContractAccountSet().update(contractOP.getContractID().getAddress(),
-					contractOP.getChainCode(), contractVersion);
+			long rst = 0;
+			if (ledger.getAnchorType().equals("default")) {
+				rst = ((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).update(contractOP.getContractID().getAddress(),
+						contractOP.getChainCode(), contractVersion);
+			} else {
+				rst = ((ContractAccountSetEditorSimple)(transactionContext.getDataset().getContractAccountSet())).update(contractOP.getContractID().getAddress(),
+						contractOP.getChainCode(), contractVersion);
+			}
 			if(rst < 0 ){
 				throw new ContractVersionConflictException();
 			}
 		} else {
-			transactionContext.getDataset().getContractAccountSet().deploy(contractOP.getContractID().getAddress(),
+			if (ledger.getAnchorType().equals("default")) {
+				((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).deploy(contractOP.getContractID().getAddress(),
 					contractOP.getContractID().getPubKey(), contractOP.getAddressSignature(), contractOP.getChainCode());
+			} else {
+				((ContractAccountSetEditorSimple)(transactionContext.getDataset().getContractAccountSet())).deploy(contractOP.getContractID().getAddress(),
+						contractOP.getContractID().getPubKey(), contractOP.getAddressSignature(), contractOP.getChainCode());
+			}
+
 		}
 	}
 

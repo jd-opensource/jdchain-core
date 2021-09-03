@@ -46,11 +46,20 @@ public interface LedgerQuery {
 
 	/**
 	 * 指定高度的区块哈希；
-	 * 
+	 *
 	 * @param height
 	 * @return
 	 */
 	HashDigest getBlockHash(long height);
+
+	/**
+	 * 账本仓库锚定类型：default, simple
+	 *
+	 *
+	 * @return
+	 */
+	String getAnchorType();
+
 
 	/**
 	 * 指定高度的区块；

@@ -26,14 +26,23 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
 
 		ParticipantRegisterOperation participantRegOp = (ParticipantRegisterOperation) op;
 
-		LedgerAdminDataSetEditor adminAccountDataSet = transactionContext.getDataset().getAdminDataset();
+		LedgerAdminDataSet adminAccountDataSet = transactionContext.getDataset().getAdminDataset();
 
-		ParticipantNode participantNode = new PartNode((int) (adminAccountDataSet.getParticipantCount()),
-				participantRegOp.getParticipantName(), participantRegOp.getParticipantID().getPubKey(),
-				ParticipantRegisterOperation.DEFAULT_STATE);
+		if (previousBlockDataset.getAnchorType().equals("default")) {
+			ParticipantNode participantNode = new PartNode((int) (((LedgerAdminDataSetEditor)adminAccountDataSet).getParticipantCount()),
+					participantRegOp.getParticipantName(), participantRegOp.getParticipantID().getPubKey(),
+					ParticipantRegisterOperation.DEFAULT_STATE);
 
-		// add new participant
-		adminAccountDataSet.addParticipant(participantNode);
+			// add new participant
+			((LedgerAdminDataSetEditor)adminAccountDataSet).addParticipant(participantNode);
+		} else {
+			ParticipantNode participantNode = new PartNode((int) (((LedgerAdminDataSetEditorSimple)adminAccountDataSet).getParticipantCount()),
+					participantRegOp.getParticipantName(), participantRegOp.getParticipantID().getPubKey(),
+					ParticipantRegisterOperation.DEFAULT_STATE);
+
+			// add new participant
+			((LedgerAdminDataSetEditorSimple)adminAccountDataSet).addParticipant(participantNode);
+		}
 
 		// Build UserRegisterOperation, reg participant as user
 		UserRegisterOperation userRegOp = new UserRegisterOpTemplate(participantRegOp.getParticipantID());

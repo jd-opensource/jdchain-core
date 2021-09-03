@@ -129,6 +129,10 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return latestState.block;
 	}
 
+	@Override
+	public String getAnchorType() {
+		return anchorType;
+	}
 	/**
 	 * 重新检索加载最新的状态；
 	 * 
@@ -605,6 +609,30 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return newDataSet;
 	}
 
+	static LedgerDataSetEditorSimple newDataSetSimple(LedgerInitSetting initSetting, String keyPrefix,
+										  ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
+		LedgerAdminDataSetEditorSimple adminAccount = new LedgerAdminDataSetEditorSimple(initSetting, keyPrefix, ledgerExStorage,
+				ledgerVerStorage);
+
+		String usersetKeyPrefix = keyPrefix + USER_SET_PREFIX;
+		String datasetKeyPrefix = keyPrefix + DATA_SET_PREFIX;
+		String contractsetKeyPrefix = keyPrefix + CONTRACT_SET_PREFIX;
+
+		UserAccountSetEditorSimple userAccountSet = new UserAccountSetEditorSimple(adminAccount.getSettings().getCryptoSetting(),
+				usersetKeyPrefix, ledgerExStorage, ledgerVerStorage, DEFAULT_ACCESS_POLICY);
+
+		DataAccountSetEditorSimple dataAccountSet = new DataAccountSetEditorSimple(adminAccount.getSettings().getCryptoSetting(),
+				datasetKeyPrefix, ledgerExStorage, ledgerVerStorage, DEFAULT_ACCESS_POLICY);
+
+		ContractAccountSetEditorSimple contractAccountSet = new ContractAccountSetEditorSimple(adminAccount.getSettings().getCryptoSetting(),
+				contractsetKeyPrefix, ledgerExStorage, ledgerVerStorage, DEFAULT_ACCESS_POLICY);
+
+		LedgerDataSetEditorSimple newDataSet = new LedgerDataSetEditorSimple(adminAccount, userAccountSet, dataAccountSet,
+				contractAccountSet, false);
+
+		return newDataSet;
+	}
+
 	static LedgerEventSetEditor newEventSet(CryptoSetting cryptoSetting, String keyPrefix,
 									ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
 
@@ -619,12 +647,36 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return newEventSet;
 	}
 
+	static LedgerEventSetEditorSimple newEventSetSimple(CryptoSetting cryptoSetting, String keyPrefix,
+											ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
+
+		MerkleEventGroupPublisherSimple systemEventSet = new MerkleEventGroupPublisherSimple(cryptoSetting,
+				keyPrefix + SYSTEM_EVENT_SET_PREFIX, ledgerExStorage, ledgerVerStorage);
+
+		EventAccountSetEditorSimple userEventSet = new EventAccountSetEditorSimple(cryptoSetting,
+				keyPrefix + USER_EVENT_SET_PREFIX, ledgerExStorage, ledgerVerStorage, DEFAULT_ACCESS_POLICY);
+
+		LedgerEventSetEditorSimple newEventSet = new LedgerEventSetEditorSimple(systemEventSet, userEventSet, false);
+
+		return newEventSet;
+	}
+
 	static TransactionSetEditor newTransactionSet(CryptoSetting cryptoSetting, String keyPrefix,
 			ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
 
 		String txsetKeyPrefix = keyPrefix + TRANSACTION_SET_PREFIX;
 
 		TransactionSetEditor transactionSet = new TransactionSetEditor(cryptoSetting, txsetKeyPrefix,
+				ledgerExStorage, ledgerVerStorage);
+		return transactionSet;
+	}
+
+	static TransactionSetEditorSimple newTransactionSetSimple(CryptoSetting cryptoSetting, String keyPrefix,
+												  ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
+
+		String txsetKeyPrefix = keyPrefix + TRANSACTION_SET_PREFIX;
+
+		TransactionSetEditorSimple transactionSet = new TransactionSetEditorSimple(cryptoSetting, txsetKeyPrefix,
 				ledgerExStorage, ledgerVerStorage);
 		return transactionSet;
 	}
@@ -649,6 +701,26 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return dataset;
 	}
 
+	static LedgerDataSetEditorSimple loadDataSetSimple(LedgerDataSnapshot dataSnapshot, CryptoSetting cryptoSetting, String keyPrefix,
+										   ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, boolean readonly) {
+		LedgerAdminDataSetEditorSimple adminAccount = new LedgerAdminDataSetEditorSimple(dataSnapshot.getAdminAccountHash(), keyPrefix,
+				ledgerExStorage, ledgerVerStorage, readonly);
+
+		UserAccountSetEditorSimple userAccountSet = loadUserAccountSetSimple(dataSnapshot.getUserAccountSetHash(), cryptoSetting,
+				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
+
+		DataAccountSetEditorSimple dataAccountSet = loadDataAccountSetSimple(dataSnapshot.getDataAccountSetHash(), cryptoSetting,
+				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
+
+		ContractAccountSetEditorSimple contractAccountSet = loadContractAccountSetSimple(dataSnapshot.getContractAccountSetHash(),
+				cryptoSetting, keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
+
+		LedgerDataSetEditorSimple dataset = new LedgerDataSetEditorSimple(adminAccount, userAccountSet, dataAccountSet,
+				contractAccountSet, readonly);
+
+		return dataset;
+	}
+
 	static LedgerEventSetEditor loadEventSet(LedgerDataSnapshot dataSnapshot, CryptoSetting cryptoSetting, String keyPrefix,
 									   ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, boolean readonly) {
 
@@ -657,6 +729,18 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		EventAccountSetEditor userEventSet = loadUserEventSet(dataSnapshot.getUserEventSetHash(), cryptoSetting,
 				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
 		LedgerEventSetEditor newEventSet = new LedgerEventSetEditor(systemEventSet, userEventSet, false);
+
+		return newEventSet;
+	}
+
+	static LedgerEventSetEditorSimple loadEventSetSimple(LedgerDataSnapshot dataSnapshot, CryptoSetting cryptoSetting, String keyPrefix,
+											 ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, boolean readonly) {
+
+		MerkleEventGroupPublisherSimple systemEventSet = loadSystemEventSetSimple(dataSnapshot.getSystemEventSetHash(), cryptoSetting,
+				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
+		EventAccountSetEditorSimple userEventSet = loadUserEventSetSimple(dataSnapshot.getUserEventSetHash(), cryptoSetting,
+				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
+		LedgerEventSetEditorSimple newEventSet = new LedgerEventSetEditorSimple(systemEventSet, userEventSet, false);
 
 		return newEventSet;
 	}
