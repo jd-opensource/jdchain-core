@@ -50,6 +50,14 @@ public class Keys implements Runnable {
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;
 
+    protected String getKeysHome() {
+        try {
+            return jdChainCli.path.getCanonicalPath() + File.separator + KEYS_HOME;
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
     @Override
     public void run() {
         spec.commandLine().usage(System.err);
@@ -64,7 +72,7 @@ class KeysList implements Runnable {
 
     @Override
     public void run() {
-        File keysHome = new File(keys.jdChainCli.path.getAbsolutePath() + File.separator + Keys.KEYS_HOME);
+        File keysHome = new File(keys.getKeysHome());
         if (!keysHome.exists()) {
             keysHome.mkdirs();
         }
@@ -97,7 +105,7 @@ class KeysShow implements Runnable {
 
     @Override
     public void run() {
-        File keysHome = new File(keys.jdChainCli.path.getAbsolutePath() + File.separator + Keys.KEYS_HOME);
+        File keysHome = new File(keys.getKeysHome());
         if (!keysHome.exists()) {
             keysHome.mkdirs();
         }
@@ -142,7 +150,7 @@ class KeysAdd implements Runnable {
 
     @Override
     public void run() {
-        File keysHome = new File(keys.jdChainCli.path.getAbsolutePath() + File.separator + Keys.KEYS_HOME);
+        File keysHome = new File(keys.getKeysHome());
         if (!keysHome.exists()) {
             keysHome.mkdirs();
         }
@@ -188,7 +196,7 @@ class KeysUpdate implements Runnable {
 
     @Override
     public void run() {
-        File keysHome = new File(keys.jdChainCli.path.getAbsolutePath() + File.separator + Keys.KEYS_HOME);
+        File keysHome = new File(keys.getKeysHome());
         if (!keysHome.exists()) {
             keysHome.mkdirs();
         }
@@ -239,7 +247,7 @@ class KeysDelete implements Runnable {
 
     @Override
     public void run() {
-        File keysHome = new File(keys.jdChainCli.path.getAbsolutePath() + File.separator + Keys.KEYS_HOME);
+        File keysHome = new File(keys.getKeysHome());
         if (!keysHome.exists()) {
             keysHome.mkdirs();
         }
@@ -286,7 +294,7 @@ class KeysImport implements Runnable {
 
     @Override
     public void run() {
-        File keysHome = new File(keys.jdChainCli.path.getAbsolutePath() + File.separator + Keys.KEYS_HOME);
+        File keysHome = new File(keys.getKeysHome());
         if (!keysHome.exists()) {
             keysHome.mkdirs();
         }

@@ -4,8 +4,10 @@ import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.crypto.AddressEncoding;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
+import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BlockchainIdentityData;
 import com.jd.blockchain.ledger.BlockchainKeyGenerator;
@@ -32,6 +34,7 @@ import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 import utils.Bytes;
 import utils.StringUtils;
+import utils.codec.Base58Utils;
 import utils.io.BytesUtils;
 import utils.io.FileUtils;
 
@@ -53,6 +56,7 @@ import java.util.Scanner;
                 TxLedgerCAUpdate.class,
                 TxUserRegister.class,
                 TxUserCAUpdate.class,
+                TxUserRevoke.class,
                 TxRoleConfig.class,
                 TxAuthorziationConfig.class,
                 TxDataAccountRegister.class,
@@ -127,8 +131,16 @@ public class Tx implements Runnable {
         }
     }
 
+    protected String getKeysHome() {
+        try {
+            return jdChainCli.path.getCanonicalPath() + File.separator + Keys.KEYS_HOME;
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
     DigitalSignature sign(HashDigest txHash) {
-        File keysHome = new File(jdChainCli.getHomePath() + File.separator + Keys.KEYS_HOME);
+        File keysHome = new File(getKeysHome());
         File[] pubs = keysHome.listFiles((dir, name) -> {
             if (name.endsWith(".priv")) {
                 return true;
@@ -222,77 +234,71 @@ class TxLedgerCAUpdate implements Runnable {
 @CommandLine.Command(name = "user-register", mixinStandardHelpOptions = true, header = "Register new user.")
 class TxUserRegister implements Runnable {
 
-    @CommandLine.Option(names = "--ca-mode", description = "Register with CA", scope = CommandLine.ScopeType.INHERIT)
-    boolean caMode;
+    @CommandLine.Option(names = {"-n", "--name"}, description = "Name of the key")
+    String name;
+
+    @CommandLine.Option(names = "--pubkey", description = "Pubkey of the user", scope = CommandLine.ScopeType.INHERIT)
+    String pubkey;
 
     @CommandLine.Option(names = "--crt", description = "File of the X509 certificate", scope = CommandLine.ScopeType.INHERIT)
     String caPath;
+
+    @CommandLine.Option(names = "--ca-mode", description = "Register with CA", scope = CommandLine.ScopeType.INHERIT)
+    boolean caMode;
 
     @CommandLine.ParentCommand
     private Tx txCommand;
 
     @Override
     public void run() {
-        TransactionTemplate txTemp = txCommand.newTransaction();
-        BlockchainKeypair keypair;
-        File keysHome = new File(txCommand.jdChainCli.getHomePath() + File.separator + Keys.KEYS_HOME);
-        File[] pubs = keysHome.listFiles((dir, name) -> {
-            if (name.endsWith(".priv")) {
-                return true;
-            }
-            return false;
-        });
-        if (pubs.length == 0) {
-            System.err.printf("no keypair in path [%s]%n", keysHome.getAbsolutePath());
-            return;
-        } else {
-            System.out.printf("select keypair to register: %n%-7s\t%s\t%s%n", "INDEX", "KEY", "ADDRESS");
-            BlockchainKeypair[] keypairs = new BlockchainKeypair[pubs.length];
-            String[] certs = new String[pubs.length];
-            String[] passwords = new String[pubs.length];
-            for (int i = 0; i < pubs.length; i++) {
-                String key = FilenameUtils.removeExtension(pubs[i].getName());
-                String keyPath = FilenameUtils.removeExtension(pubs[i].getAbsolutePath());
-                String privkey = FileUtils.readText(new File(keyPath + ".priv"));
-                String pwd = FileUtils.readText(new File(keyPath + ".pwd"));
-                String pubkey = FileUtils.readText(new File(keyPath + ".pub"));
-                certs[i] = keyPath + ".crt";
-                keypairs[i] = new BlockchainKeypair(KeyGenUtils.decodePubKey(pubkey), KeyGenUtils.decodePrivKey(privkey, pwd));
-                passwords[i] = pwd;
-                System.out.printf("%-7s\t%s\t%s%n", i, key, keypairs[i].getAddress());
-            }
-            System.out.print("> ");
-            Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-            int keyIndex = Integer.parseInt(scanner.next().trim());
-            System.out.println("input password of the key: ");
-            System.out.print("> ");
-            String pwd = scanner.next();
-            if (KeyGenUtils.encodePasswordAsBase58(pwd).equals(passwords[keyIndex])) {
-                keypair = keypairs[keyIndex];
-                if (caMode) {
-                    X509Certificate certificate;
-                    if (StringUtils.isEmpty(caPath)) {
-                        certificate = X509Utils.resolveCertificate(FileUtils.readText(new File(certs[keyIndex])));
-                    } else {
-                        certificate = X509Utils.resolveCertificate(new File(caPath));
+        File keysHome = new File(txCommand.getKeysHome());
+        PubKey pubKey = null;
+        X509Certificate certificate = null;
+        if (!StringUtils.isEmpty(name)) {
+            File[] pubs;
+            if (caMode) {
+                pubs = keysHome.listFiles((dir, name) -> {
+                    if (name.endsWith(this.name + ".crt")) {
+                        return true;
                     }
-                    Bytes address = AddressEncoding.generateAddress(X509Utils.resolvePubKey(certificate));
-                    if (!address.equals(keypair.getAddress())) {
-                        System.err.println("the key pair does not match the certificate");
-                        return;
-                    }
-                    X509Utils.checkCertificateRolesAny(certificate, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
-                    X509Utils.checkValidity(certificate);
-                    txTemp.users().register(certificate);
-                } else {
-                    txTemp.users().register(keypair.getIdentity());
+                    return false;
+                });
+                if (pubs.length != 1) {
+                    System.err.printf("no [%s.crt] in path [%s]%n", name, keysHome.getAbsolutePath());
+                    return;
                 }
+                certificate = X509Utils.resolveCertificate(FileUtils.readText(pubs[0]));
             } else {
-                System.err.println("password wrong");
-                return;
+                pubs = keysHome.listFiles((dir, name) -> {
+                    if (name.endsWith(this.name + ".pub")) {
+                        return true;
+                    }
+                    return false;
+                });
+                if (pubs.length != 1) {
+                    System.err.printf("no [%s.pub] in path [%s]%n", name, keysHome.getAbsolutePath());
+                    return;
+                }
+                pubKey = Crypto.resolveAsPubKey(Base58Utils.decode(FileUtils.readText(pubs[0])));
             }
+        } else if (!StringUtils.isEmpty(caPath)) {
+            certificate = X509Utils.resolveCertificate(caPath);
+        } else if (!StringUtils.isEmpty(pubkey) && !caMode) {
+            pubKey = Crypto.resolveAsPubKey(Base58Utils.decode(pubkey));
+        } else {
+            System.err.println("key name, public key and certificate file can not be empty at the same time");
+            return;
         }
 
+        TransactionTemplate txTemp = txCommand.newTransaction();
+        if (null != certificate) {
+            X509Utils.checkCertificateRolesAny(certificate, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
+            X509Utils.checkValidity(certificate);
+            pubKey = X509Utils.resolvePubKey(certificate);
+            txTemp.users().register(certificate);
+        } else {
+            txTemp.users().register(new BlockchainIdentityData(pubKey));
+        }
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);
         if (null != txFile) {
@@ -301,7 +307,7 @@ class TxUserRegister implements Runnable {
             if (txCommand.sign(ptx)) {
                 TransactionResponse response = ptx.commit();
                 if (response.isSuccess()) {
-                    System.out.printf("register user: [%s]%n", keypair.getAddress());
+                    System.out.printf("register user: [%s]%n", AddressEncoding.generateAddress(pubKey));
                 } else {
                     System.err.println("register user failed!");
                 }
@@ -325,7 +331,7 @@ class TxUserCAUpdate implements Runnable {
         X509Certificate certificate;
         Bytes address;
         if (StringUtils.isEmpty(caPath)) {
-            File keysHome = new File(txCommand.jdChainCli.getHomePath() + File.separator + Keys.KEYS_HOME);
+            File keysHome = new File(txCommand.getKeysHome());
             File[] pubs = keysHome.listFiles((dir, name) -> {
                 if (name.endsWith(".crt")) {
                     return true;
@@ -375,6 +381,36 @@ class TxUserCAUpdate implements Runnable {
                     System.out.printf("user: [%s] ca updated%n", address);
                 } else {
                     System.err.println("update user ca failed!");
+                }
+            }
+        }
+    }
+}
+
+@CommandLine.Command(name = "user-revoke", mixinStandardHelpOptions = true, header = "Revoke user(certificate).")
+class TxUserRevoke implements Runnable {
+
+    @CommandLine.Option(names = "--address", required = true, description = "User address", scope = CommandLine.ScopeType.INHERIT)
+    String address;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        TransactionTemplate txTemp = txCommand.newTransaction();
+        txTemp.user(address).revoke();
+        PreparedTransaction ptx = txTemp.prepare();
+        String txFile = txCommand.export(ptx);
+        if (null != txFile) {
+            System.out.println("export transaction success: " + txFile);
+        } else {
+            if (txCommand.sign(ptx)) {
+                TransactionResponse response = ptx.commit();
+                if (response.isSuccess()) {
+                    System.out.printf("user: [%s] revoked%n", address);
+                } else {
+                    System.err.println("revoke user ca failed!");
                 }
             }
         }

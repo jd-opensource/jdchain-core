@@ -53,19 +53,17 @@
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-context</artifactId>
 		</dependency>
-		<!-- dependencies for test -->
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>crypto-classic</artifactId>
 			<version>${framework.version}</version>
-			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>crypto-sm</artifactId>
 			<version>${framework.version}</version>
-			<scope>test</scope>
 		</dependency>
+		<!-- dependencies for test -->
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>

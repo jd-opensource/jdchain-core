@@ -2,7 +2,8 @@
 
 ```bash
 :bin$ ./jdchain-cli.sh tx -h
-Usage: git status [<options>...] [--] [<pathspec>...]
+Usage: jdchain-cli tx [-hV] [--pretty] [--export=<export>] [--gw-host=<gwHost>]
+                      [--gw-port=<gwPort>] [--home=<path>] [COMMAND]
 Build, sign or send transaction.
       --export=<export>    Transaction export directory
       --gw-host=<gwHost>   Set the gateway host. Default: 127.0.0.1
@@ -15,7 +16,10 @@ Build, sign or send transaction.
       --pretty             Pretty json print
   -V, --version            Print version information and exit.
 Commands:
+  ledger-ca-update        Update ledger certificate.
   user-register           Register new user.
+  user-ca-update          Update user certificate.
+  user-revoke             Revoke user(certificate).
   role                    Create or config role.
   authorization           User role authorization.
   data-account-register   Register new data account.
@@ -36,7 +40,10 @@ Commands:
 - `home`，指定密钥存储相关目录，`${home}/config/keys`
 
 命令：
+- `ledger-ca-update`，[更新账本证书](#更新账本证书)
 - `user-register`，[注册用户](#注册用户)
+- `user-ca-update`，[更新用户证书](#更新用户证书)
+- `user-revoke`，[撤销用户(证书)](#撤销用户(证书))
 - `role`，[角色管理](#角色管理)
 - `authorization`，[权限配置](#权限配置)
 - `data-account-register`，[注册数据账户](#注册数据账户)
@@ -48,14 +55,15 @@ Commands:
 - `sign`，[离线交易签名](#离线交易签名)
 - `send`，[离线交易发送](#离线交易发送)
 
-#### 注册用户
+#### 更新账本证书
 
 ```bash
-:bin$ ./jdchain-cli.sh tx user-register -h
-Register new user.
-Usage: jdchain-cli tx user-register [-hV] [--pretty] [--export=<export>]
-                                    [--gw-host=<gwHost>] [--gw-port=<gwPort>]
-                                    [--home=<path>]
+:bin$ ./jdchain-cli.sh tx ledger-ca-update -h
+Update ledger certificate.
+Usage: jdchain-cli tx ledger-ca-update [-hV] [--pretty] --crt=<caPath>
+                                       [--export=<export>] [--gw-host=<gwHost>]
+                                       [--gw-port=<gwPort>] [--home=<path>]
+      --crt=<caPath>       File of the X509 certificate
       --export=<export>    Transaction export directory
       --gw-host=<gwHost>   Set the gateway host. Default: 127.0.0.1
       --gw-port=<gwPort>   Set the gateway port. Default: 8080
@@ -64,25 +72,66 @@ Usage: jdchain-cli tx user-register [-hV] [--pretty] [--export=<export>]
       --pretty             Pretty json print
   -V, --version            Print version information and exit.
 ```
+- `crt`，证书文件路径
+
+如：
+```bash
+:bin$ $ ./jdchain-cli.sh tx ledger-ca-update --crt /home/imuge/jd/nodes/peer0/config/keys/ledger.crt 
+select ledger, input the index: 
+INDEX   LEDGER
+0       j5pFrMigE47t6TobQJXsztnoeA29H31v1vHHF1wqCp4rzi
+// 选择账本，当前网关服务只有上面一个可用账本
+> 0
+select keypair to sign tx: 
+INDEX   KEY     ADDRESS
+0       peer0   LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W
+// 选择链上已存在且有注册用户权限的用户所对应的公私钥对，用于交易签名
+> 0
+input password of the key: 
+// 输入签名私钥密码
+> 1
+ledger ca: [7VeRBQ9jpsgNXje2NYXU5MhyGKVRj462RtkJ8f6FNL1oxYbX](pubkey) updated
+```
+会更新链上公钥为`7VeRBQ9jpsgNXje2NYXU5MhyGKVRj462RtkJ8f6FNL1oxYbX`的账本证书信息。
+
+
+#### 注册用户
+
+```bash
+:bin$ ./jdchain-cli.sh tx user-register -h
+Register new user.
+Usage: jdchain-cli tx user-register [-hV] [--ca-mode] [--pretty]
+                                    [--crt=<caPath>] [--export=<export>]
+                                    [--gw-host=<gwHost>] [--gw-port=<gwPort>]
+                                    [--home=<path>] [-n=<name>]
+                                    [--pubkey=<pubkey>]
+      --ca-mode            Register with CA
+      --crt=<caPath>       File of the X509 certificate
+      --export=<export>    Transaction export directory
+      --gw-host=<gwHost>   Set the gateway host. Default: 127.0.0.1
+      --gw-port=<gwPort>   Set the gateway port. Default: 8080
+  -h, --help               Show this help message and exit.
+      --home=<path>        Set the home directory.
+  -n, --name=<name>        Name of the key
+      --pretty             Pretty json print
+      --pubkey=<pubkey>    Pubkey of the user
+  -V, --version            Print version information and exit.
+```
+- `ca-mode`，身份认证模式是否为证书（`CA`）模式，默认`false`
+- `name`，当`ca-mode`为`true`时会读取本地`${home}/config/keys/${name}.crt`文件，反之读取`${home}/config/keys/${name}.pub`
+- `crt`，证书文件路径
+- `pubkey`，`Base58`编码公钥信息，仅在非`ca-mode`情况下使用
+
 从`${home}/config/keys`目录下密钥对选择密钥注册到网关服务对应的区块链网络。
 
 如：
 ```bash
-:bin$ ./jdchain-cli.sh tx user-register
+:bin$ ./jdchain-cli.sh tx user-register -name k1
 select ledger, input the index:
 INDEX  LEDGER
 0      j5sB3sVTFgTqTYzo7KtQjBLSy8YQGPpJpvQZaW9Eqk46dg
 // 选择账本，当前网关服务只有上面一个可用账本
 > 0
-select keypair to register:
-INDEX  KEY                                     ADDRESS
-0      peer0                                   LdeNyibeafrAQXgHjBxgQxoLbna6hL4BcXZiw
-1      k1                                      LdeNwQWabrf6WSjZ35saFo52MfQFhVKvm11aC
-// 选择公私钥对用于注册用户
-> 1
-input password of the key:
-// 输入所选择公私钥对密钥密码
-> 1
 select keypair to sign tx:
 INDEX  KEY                                     ADDRESS
 0      peer0                                   LdeNyibeafrAQXgHjBxgQxoLbna6hL4BcXZiw
@@ -96,6 +145,83 @@ register user: [LdeNwQWabrf6WSjZ35saFo52MfQFhVKvm11aC]
 ```
 会在链上注册地址为`LdeNwQWabrf6WSjZ35saFo52MfQFhVKvm11aC`的用户账户信息。
 
+#### 更新用户证书
+
+```bash
+:bin$ ./jdchain-cli.sh tx ledger-ca-update -h
+Update user certificate.
+Usage: jdchain-cli tx user-ca-update [-hV] [--pretty] [--crt=<caPath>]
+                                     [--export=<export>] [--gw-host=<gwHost>]
+                                     [--gw-port=<gwPort>] [--home=<path>]
+      --crt=<caPath>       File of the X509 certificate
+      --export=<export>    Transaction export directory
+      --gw-host=<gwHost>   Set the gateway host. Default: 127.0.0.1
+      --gw-port=<gwPort>   Set the gateway port. Default: 8080
+  -h, --help               Show this help message and exit.
+      --home=<path>        Set the home directory.
+      --pretty             Pretty json print
+  -V, --version            Print version information and exit.
+```
+- `crt`，证书文件路径
+
+如：
+```bash
+:bin$ $ ./jdchain-cli.sh tx user-ca-update --crt /home/imuge/jd/nodes/peer0/config/keys/peer0.crt 
+select ledger, input the index: 
+INDEX   LEDGER
+0       j5pFrMigE47t6TobQJXsztnoeA29H31v1vHHF1wqCp4rzi
+// 选择账本，当前网关服务只有上面一个可用账本
+> 0
+select keypair to sign tx: 
+INDEX   KEY     ADDRESS
+0       peer0   LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W
+// 选择链上已存在且有注册用户权限的用户所对应的公私钥对，用于交易签名
+> 0
+input password of the key: 
+// 输入签名私钥密码
+> 1
+user: [LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W] ca updated
+```
+会更新链上地址为`LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W`的用户证书信息。
+
+#### 撤销用户(证书)
+
+```bash
+:bin$ ./jdchain-cli.sh tx user-revoke -h
+Revoke user(certificate).
+Usage: jdchain-cli tx user-revoke [-hV] [--pretty] --address=<address>
+                                  [--export=<export>] [--gw-host=<gwHost>]
+                                  [--gw-port=<gwPort>] [--home=<path>]
+      --address=<address>   User address
+      --export=<export>     Transaction export directory
+      --gw-host=<gwHost>    Set the gateway host. Default: 127.0.0.1
+      --gw-port=<gwPort>    Set the gateway port. Default: 8080
+  -h, --help                Show this help message and exit.
+      --home=<path>         Set the home directory.
+      --pretty              Pretty json print
+  -V, --version             Print version information and exit.
+```
+- `address`，待撤销用户(证书)地址
+
+如：
+```bash
+:bin$ $ ./jdchain-cli.sh tx user-revoke --address LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W
+select ledger, input the index: 
+INDEX   LEDGER
+0       j5pFrMigE47t6TobQJXsztnoeA29H31v1vHHF1wqCp4rzi
+// 选择账本，当前网关服务只有上面一个可用账本
+> 0
+select keypair to sign tx: 
+INDEX   KEY     ADDRESS
+0       peer0   LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W
+// 选择链上已存在且有注册用户权限的用户所对应的公私钥对，用于交易签名
+> 0
+input password of the key: 
+// 输入签名私钥密码
+> 1
+user: [LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W] revoked
+```
+会撤销链上地址为`LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W`的用户（证书），此用户无法再接入使用此网络。
 
 #### 角色管理
 ```bash
