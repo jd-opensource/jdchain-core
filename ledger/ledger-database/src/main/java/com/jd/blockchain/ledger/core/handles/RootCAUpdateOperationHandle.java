@@ -17,6 +17,7 @@ import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
 
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 
 public class RootCAUpdateOperationHandle extends AbstractLedgerOperationHandle<RootCAUpdateOperation> {
 
@@ -34,7 +35,7 @@ public class RootCAUpdateOperationHandle extends AbstractLedgerOperationHandle<R
         LedgerAdminDataSetEditor adminDataset = transactionContext.getDataset().getAdminDataset();
         if (adminDataset.getMetadata().getIdentityMode() == IdentityMode.CA) {
             X509Certificate certificate = X509Utils.resolveCertificate(op.getCertificate());
-            X509Utils.checkCertificateRole(certificate, CertificateRole.LEDGER);
+            X509Utils.checkCertificateRolesAny(certificate, CertificateRole.ROOT, CertificateRole.CA);
             X509Utils.checkValidity(certificate);
             String[] ledgerCAs = adminDataset.getMetadata().getLedgerCertificates();
             boolean updated = false;

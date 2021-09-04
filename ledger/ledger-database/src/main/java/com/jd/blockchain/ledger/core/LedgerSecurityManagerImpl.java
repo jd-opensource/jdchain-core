@@ -2,6 +2,7 @@ package com.jd.blockchain.ledger.core;
 
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -324,7 +325,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 						X509Utils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
 						X509Utils.checkValidity(cert);
 						X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
-						X509Utils.checkCertificateRole(issuers, CertificateRole.LEDGER);
+						Arrays.stream(issuers).forEach(issuer -> X509Utils.checkCertificateRolesAny(issuer, CertificateRole.ROOT, CertificateRole.CA));
 						X509Utils.checkValidityAny(issuers);
 
 						return;
@@ -343,7 +344,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 						X509Utils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
 						X509Utils.checkValidity(cert);
 						X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
-						X509Utils.checkCertificateRole(issuers, CertificateRole.LEDGER);
+						Arrays.stream(issuers).forEach(issuer -> X509Utils.checkCertificateRolesAny(issuer, CertificateRole.ROOT, CertificateRole.CA));
 						X509Utils.checkValidityAny(issuers);
 					}
 				} catch (Exception e) {
@@ -368,7 +369,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 						X509Utils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW);
 						X509Utils.checkValidity(cert);
 						X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
-						X509Utils.checkCertificateRole(issuers, CertificateRole.LEDGER);
+						Arrays.stream(issuers).forEach(issuer -> X509Utils.checkCertificateRolesAny(issuer, CertificateRole.ROOT, CertificateRole.CA));
 						X509Utils.checkValidityAny(issuers);
 
 						return;
@@ -387,7 +388,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 						X509Utils.checkValidity(cert);
 						X509Utils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW);
 						X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
-						X509Utils.checkCertificateRole(issuers, CertificateRole.LEDGER);
+						Arrays.stream(issuers).forEach(issuer -> X509Utils.checkCertificateRolesAny(issuer, CertificateRole.ROOT, CertificateRole.CA));
 						X509Utils.checkValidityAny(issuers);
 					}
 				} catch (Exception e) {

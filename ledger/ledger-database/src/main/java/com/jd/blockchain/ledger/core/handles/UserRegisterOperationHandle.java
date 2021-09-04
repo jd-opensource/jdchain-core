@@ -19,6 +19,7 @@ import utils.Bytes;
 import utils.StringUtils;
 
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 
 public class UserRegisterOperationHandle extends AbstractLedgerOperationHandle<UserRegisterOperation> {
 
@@ -44,7 +45,7 @@ public class UserRegisterOperationHandle extends AbstractLedgerOperationHandle<U
             X509Utils.checkValidity(cert);
             X509Certificate[] ledgerCAs = X509Utils.resolveCertificates(transactionContext.getDataset().getAdminDataset().getMetadata().getLedgerCertificates());
             X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
-            X509Utils.checkCertificateRole(issuers, CertificateRole.LEDGER);
+            Arrays.stream(issuers).forEach(issuer -> X509Utils.checkCertificateRolesAny(issuer, CertificateRole.ROOT, CertificateRole.CA));
             X509Utils.checkValidityAny(issuers);
         }
 

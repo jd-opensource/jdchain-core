@@ -155,6 +155,7 @@ import java.net.URL;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
@@ -359,7 +360,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					X509Utils.checkValidity(peerCA);
 
 					X509Certificate[] ledgerCAs = X509Utils.resolveCertificates(ledgerRepo.getAdminInfo().getMetadata().getLedgerCertificates());
-					X509Utils.checkCertificateRole(ledgerCAs, CertificateRole.LEDGER);
+					Arrays.stream(ledgerCAs).forEach(issuer -> X509Utils.checkCertificateRolesAny(issuer, CertificateRole.ROOT, CertificateRole.CA));
 
 					// 当前账本证书中当前节点证书发布者
 					X509Certificate[] peerIssuers = X509Utils.findIssuers(peerCA, ledgerCAs);
@@ -468,7 +469,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					X509Certificate peerCA = X509Utils.resolveCertificate(ledgerRepository.getUserAccountSet().getAccount(currentNode.getAddress()).getCertificate());
 					X509Certificate[] issuers = X509Utils.findIssuers(peerCA, X509Utils.resolveCertificates(metadata.getLedgerCertificates()));
 					// 校验根证书
-					X509Utils.checkCertificateRole(issuers, CertificateRole.LEDGER);
+					Arrays.stream(issuers).forEach(issuer -> X509Utils.checkCertificateRolesAny(issuer, CertificateRole.ROOT, CertificateRole.CA));
 					X509Utils.checkValidityAny(issuers);
 					// 校验节点证书
 					X509Utils.checkCertificateRole(peerCA, CertificateRole.PEER);
