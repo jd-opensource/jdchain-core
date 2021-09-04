@@ -201,6 +201,9 @@ public class Tx implements Runnable {
 @CommandLine.Command(name = "ledger-ca-update", mixinStandardHelpOptions = true, header = "Update ledger certificate.")
 class TxLedgerCAUpdate implements Runnable {
 
+    @CommandLine.Option(names = {"-n", "--name"}, description = "Name of the certificate")
+    String name;
+
     @CommandLine.Option(names = "--crt", required = true, description = "File of the X509 certificate", scope = CommandLine.ScopeType.INHERIT)
     String caPath;
 
@@ -209,10 +212,15 @@ class TxLedgerCAUpdate implements Runnable {
 
     @Override
     public void run() {
+        if (StringUtils.isEmpty(name) && StringUtils.isEmpty(caPath)) {
+            System.err.println("crt name and crt path cannot be empty at the same time");
+            return;
+        }
         TransactionTemplate txTemp = txCommand.newTransaction();
-        X509Certificate certificate = X509Utils.resolveCertificate(new File(caPath));
+        X509Certificate certificate = X509Utils.resolveCertificate(!StringUtils.isEmpty(name) ? FileUtils.readText(txCommand.getKeysHome() + File.separator + name + ".crt") : FileUtils.readText(caPath));
         X509Utils.checkCertificateRolesAny(certificate, CertificateRole.ROOT, CertificateRole.CA);
         X509Utils.checkValidity(certificate);
+        txTemp.metaInfo().ca(certificate);
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);
         if (null != txFile) {

@@ -148,10 +148,17 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 			resp = discard(request, e.getState());
 			LOGGER.error(String.format(
 					"Ignore transaction caused by BlockRollbackException! --[BlockHeight=%s][TxHash=%s] --%s",
-					newBlockEditor.getBlockHeight(), request.getTransactionHash(), 
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(),
 					e.getMessage()), e);
 			throw e;
-		}catch (LedgerException e) {
+		}  catch (LedgerSecurityException e) {
+			// 安全验证错误
+			resp = discard(request, TransactionState.REJECTED_BY_SECURITY_POLICY);
+			LOGGER.error(String.format(
+					"Ignore transaction caused by LedgerSecurityException! --[BlockHeight=%s][TxHash=%s] --%s",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(),
+					e.getMessage()), e);
+		} catch (LedgerException e) {
 			// 发生账本级别的非回滚处理异常，只记录错误，不回滚；
 			resp = discard(request, e.getState());
 			LOGGER.error(String.format(

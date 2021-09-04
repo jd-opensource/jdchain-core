@@ -549,7 +549,7 @@ class CATest implements Runnable {
         nameBuilder.addRDN(BCStyle.EmailAddress, "jdchain@jd.com");
         X500Name subject = nameBuilder.build();
         X509v3CertificateBuilder certificateBuilder;
-        if (null == issuerCrt) {
+        if (null != issuerCrt) {
             certificateBuilder = new JcaX509v3CertificateBuilder(
                     issuerCrt,
                     BigInteger.valueOf(new Random().nextInt() & 0x7fffffff),

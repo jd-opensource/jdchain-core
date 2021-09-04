@@ -88,7 +88,7 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 
 	public void revoke() {
 		long version = getHeaders().getVersion(DATA_REVOKED);
-		getHeaders().setValue(DATA_REVOKED, TypedValue.fromBoolean(false), version);
+		getHeaders().setValue(DATA_REVOKED, TypedValue.fromBoolean(true), version);
 		revoked = true;
 	}
 

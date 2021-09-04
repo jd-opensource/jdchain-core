@@ -64,6 +64,7 @@ Usage: jdchain-cli tx ledger-ca-update [-hV] [--pretty] --crt=<caPath>
                                        [--export=<export>] [--gw-host=<gwHost>]
                                        [--gw-port=<gwPort>] [--home=<path>]
       --crt=<caPath>       File of the X509 certificate
+      -n, --name=<name>    Name of the certificate
       --export=<export>    Transaction export directory
       --gw-host=<gwHost>   Set the gateway host. Default: 127.0.0.1
       --gw-port=<gwPort>   Set the gateway port. Default: 8080
