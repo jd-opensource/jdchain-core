@@ -211,7 +211,7 @@ class TxLedgerCAUpdate implements Runnable {
     public void run() {
         TransactionTemplate txTemp = txCommand.newTransaction();
         X509Certificate certificate = X509Utils.resolveCertificate(new File(caPath));
-        X509Utils.checkCertificateRolesAny(certificate, CertificateRole.LEDGER);
+        X509Utils.checkCertificateRolesAny(certificate, CertificateRole.ROOT, CertificateRole.CA);
         X509Utils.checkValidity(certificate);
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);

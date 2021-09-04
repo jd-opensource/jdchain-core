@@ -110,7 +110,7 @@ class KeysShow implements Runnable {
             keysHome.mkdirs();
         }
         File[] pubs = keysHome.listFiles((dir, name) -> {
-            if (name.equals(this.name + ".pub")) {
+            if (FilenameUtils.removeExtension(name).equals(this.name)) {
                 return true;
             }
             return false;
@@ -155,7 +155,7 @@ class KeysAdd implements Runnable {
             keysHome.mkdirs();
         }
         String[] names = keysHome.list((dir, fileName) -> {
-            if (FilenameUtils.removeExtension(fileName).contains(name)) {
+            if (FilenameUtils.removeExtension(fileName).equals(name)) {
                 return true;
             }
             return false;
@@ -201,7 +201,7 @@ class KeysUpdate implements Runnable {
             keysHome.mkdirs();
         }
         String[] names = keysHome.list((dir, fileName) -> {
-            if (FilenameUtils.removeExtension(fileName).contains(name)) {
+            if (FilenameUtils.removeExtension(fileName).equals(name)) {
                 return true;
             }
             return false;
@@ -252,7 +252,7 @@ class KeysDelete implements Runnable {
             keysHome.mkdirs();
         }
         String[] names = keysHome.list((dir, fileName) -> {
-            if (FilenameUtils.removeExtension(fileName).contains(name)) {
+            if (FilenameUtils.removeExtension(fileName).equals(name)) {
                 return true;
             }
             return false;
@@ -299,7 +299,7 @@ class KeysImport implements Runnable {
             keysHome.mkdirs();
         }
         String[] names = keysHome.list((dir, fileName) -> {
-            if (FilenameUtils.removeExtension(fileName).contains(name + ".priv")) {
+            if (FilenameUtils.removeExtension(fileName).equals(name)) {
                 return true;
             }
             return false;
