@@ -40,6 +40,8 @@ public class LedgerInitializer {
 
 	private static final LedgerQuery EMPTY_LEDGER = new EmptyLedgerQuery();
 
+	private static final LedgerQuery EMPTY_LEDGER_SIMPLE = new EmptyLedgerQuerySimple();
+
 	private static final OperationHandleRegisteration DEFAULT_OP_HANDLE_REG = new DefaultOperationHandleRegisteration();
 
 //	private LedgerService EMPTY_LEDGERS = new LedgerManager();
@@ -192,9 +194,17 @@ public class LedgerInitializer {
 	}
 
 	public static LedgerEditor createLedgerEditor(LedgerInitSetting initSetting, KVStorageService storageService) {
-		LedgerEditor genesisBlockEditor = LedgerTransactionalEditor.createEditor(initSetting,
+		LedgerEditor genesisBlockEditor;
+
+		if (initSetting.getAnchorType().equals("default")) {
+			genesisBlockEditor = LedgerTransactionalEditor.createEditor(initSetting,
 				LedgerManage.LEDGER_PREFIX, storageService.getExPolicyKVStorage(),
 				storageService.getVersioningKVStorage());
+		} else {
+			genesisBlockEditor = LedgerTransactionalEditorSimple.createEditor(initSetting,
+					LedgerManage.LEDGER_PREFIX, storageService.getExPolicyKVStorage(),
+					storageService.getVersioningKVStorage());
+		}
 		return genesisBlockEditor;
 	}
 
@@ -212,8 +222,16 @@ public class LedgerInitializer {
 		txReqBuilder.addNodeSignature(nodeSignatures);
 
 		TransactionRequest txRequest = txReqBuilder.buildRequest();
-		TransactionBatchProcessor txProcessor = new TransactionBatchProcessor(FULL_PERMISSION_SECURITY_MANAGER,
+
+		TransactionBatchProcessor txProcessor = null;
+
+		if (initSetting.getAnchorType().equals("default")) {
+			txProcessor = new TransactionBatchProcessor(FULL_PERMISSION_SECURITY_MANAGER,
 				ledgerEditor, EMPTY_LEDGER, DEFAULT_OP_HANDLE_REG);
+		} else {
+			txProcessor = new TransactionBatchProcessor(FULL_PERMISSION_SECURITY_MANAGER,
+					ledgerEditor, EMPTY_LEDGER_SIMPLE, DEFAULT_OP_HANDLE_REG);
+		}
 		LedgerEditor.TIMESTAMP_HOLDER.set(initSetting.getCreatedTime());
 		txProcessor.schedule(txRequest);
 		txResultsHandle = txProcessor.prepare();

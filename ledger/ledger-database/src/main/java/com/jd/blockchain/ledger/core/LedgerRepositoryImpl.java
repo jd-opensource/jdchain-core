@@ -140,20 +140,28 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	 */
 	private LedgerState retrieveLatestState() {
 		LedgerBlock latestBlock = innerGetBlock(innerGetLatestBlockHeight());
-		LedgerDataSetEditor ledgerDataset = innerGetLedgerDataset(latestBlock);
+		LedgerDataSet ledgerDataset;
 		TransactionSet txSet;
+		LedgerEventSet ledgerEventset;
+
 		if (anchorType.equals("default")) {
+			ledgerDataset = innerGetLedgerDataset(latestBlock);
 			txSet = loadTransactionSet(latestBlock.getTransactionSetHash(),
-					ledgerDataset.getAdminDataset().getSettings().getCryptoSetting(), keyPrefix, exPolicyStorage,
+					((LedgerAdminDataSetEditor)(ledgerDataset.getAdminDataset())).getSettings().getCryptoSetting(), keyPrefix, exPolicyStorage,
 					versioningStorage, true);
+			ledgerEventset = innerGetLedgerEventSet(latestBlock);
+			this.ledgerStructureVersion = ((LedgerAdminDataSetEditor)(ledgerDataset.getAdminDataset())).getMetadata().getLedgerStructureVersion();
 		} else {
+			ledgerDataset = innerGetLedgerDatasetSimple(latestBlock);
 			txSet = loadTransactionSetSimple(latestBlock.getTransactionSetHash(),
-					ledgerDataset.getAdminDataset().getSettings().getCryptoSetting(), keyPrefix, exPolicyStorage,
+					((LedgerAdminDataSetEditorSimple)(ledgerDataset.getAdminDataset())).getSettings().getCryptoSetting(), keyPrefix, exPolicyStorage,
 					versioningStorage, true);
+			ledgerEventset = innerGetLedgerEventSetSimple(latestBlock);
+			this.ledgerStructureVersion = ((LedgerAdminDataSetEditorSimple)(ledgerDataset.getAdminDataset())).getMetadata().getLedgerStructureVersion();
 		}
-		LedgerEventSetEditor ledgerEventset = innerGetLedgerEventSet(latestBlock);
+
 		this.latestState = new LedgerState(latestBlock, ledgerDataset, txSet, ledgerEventset);
-		this.ledgerStructureVersion = ledgerDataset.getAdminDataset().getMetadata().getLedgerStructureVersion();
+
 		return latestState;
 	}
 
@@ -536,12 +544,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 		LedgerBlock previousBlock = getLatestBlock();
 
-		if (false) {//default simple
-			editor = LedgerTransactionalEditorSimple.createEditor(previousBlock, getLatestSettings(),
-				keyPrefix, exPolicyStorage, versioningStorage);
+		if (anchorType.equals("default")) {//default simple
+            editor = LedgerTransactionalEditor.createEditor(previousBlock, getLatestSettings(),
+                    keyPrefix, exPolicyStorage, versioningStorage);
 		} else {
-			editor = LedgerTransactionalEditor.createEditor(previousBlock, getLatestSettings(),
-					keyPrefix, exPolicyStorage, versioningStorage);
+            editor = LedgerTransactionalEditorSimple.createEditor(previousBlock, getLatestSettings(),
+                    keyPrefix, exPolicyStorage, versioningStorage);
 		}
 
 		NewBlockCommittingMonitor committingMonitor = new NewBlockCommittingMonitor(editor, this);

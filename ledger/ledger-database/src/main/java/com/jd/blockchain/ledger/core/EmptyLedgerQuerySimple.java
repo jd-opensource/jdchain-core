@@ -5,7 +5,7 @@ import com.jd.blockchain.ledger.LedgerAdminInfo;
 import com.jd.blockchain.ledger.LedgerAdminSettings;
 import com.jd.blockchain.ledger.LedgerBlock;
 
-class EmptyLedgerQuery implements LedgerQuery {
+class EmptyLedgerQuerySimple implements LedgerQuery {
 
 		private LedgerDataSet dataset = EmptyLedgerDataSet.INSTANCE;
 
@@ -127,7 +127,7 @@ class EmptyLedgerQuery implements LedgerQuery {
 
 		@Override
 	    public String getAnchorType() {
-			return "default";
+			return "simple";
 		}
 
 	}

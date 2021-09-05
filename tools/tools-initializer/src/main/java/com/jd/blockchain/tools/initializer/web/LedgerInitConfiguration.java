@@ -200,6 +200,8 @@ public class LedgerInitConfiguration {
 
 		initSetting.setCreatedTime(ledgerProps.getCreatedTime());
 
+		initSetting.setAnchorType(ledgerProps.getAnchorType());
+
 		// 创建共识配置；
 		try {
 			byte[] consensusSettingsBytes = encodeConsensusSettings(consensusConfig.getProvider(),
