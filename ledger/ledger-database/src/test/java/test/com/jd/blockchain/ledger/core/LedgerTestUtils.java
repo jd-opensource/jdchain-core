@@ -258,7 +258,7 @@ public class LedgerTestUtils {
 
 		TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest_SHA256(partiKeys);
 		LedgerTransactionContext genisisTxCtx = ldgEdt.newTransaction(genesisTxReq);
-		LedgerDataSetEditor ldgDS = genisisTxCtx.getDataset();
+		LedgerDataSetEditor ldgDS = (LedgerDataSetEditor) genisisTxCtx.getDataset();
 
 		for (int i = 0; i < partiKeys.length; i++) {
 			UserAccount userAccount = ldgDS.getUserAccountSet().register(partiKeys[i].getAddress(),

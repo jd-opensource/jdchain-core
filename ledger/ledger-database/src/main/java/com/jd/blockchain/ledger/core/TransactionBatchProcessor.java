@@ -251,7 +251,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 		EventManager eventManager;
 		List<OperationResult> operationResults = new ArrayList<>();
 		try {
-			eventManager = new EventManager(request, txCtx);
+			eventManager = new EventManager(request, txCtx, ledger);
 
 			// 执行操作；
 			Operation[] ops = request.getTransactionContent().getOperations();

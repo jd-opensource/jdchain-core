@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import com.jd.blockchain.ledger.core.UserAccountSetEditor;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -118,7 +119,7 @@ public class LedgerEditorTest {
 		LedgerEditor ldgEdt = createLedgerInitEditor(storage);
 
 		LedgerTransactionContext genisisTxCtx = createGenisisTx(ldgEdt, participants);
-		LedgerDataSetEditor ldgDS = genisisTxCtx.getDataset();
+		LedgerDataSetEditor ldgDS = (LedgerDataSetEditor) genisisTxCtx.getDataset();
 
 		AsymmetricKeypair cryptoKeyPair = signatureFunction.generateKeypair();
 		BlockchainKeypair dataKP = new BlockchainKeypair(cryptoKeyPair.getPubKey(), cryptoKeyPair.getPrivKey());
@@ -166,7 +167,7 @@ public class LedgerEditorTest {
 	public void testGennesisBlockCreation() {
 		LedgerEditor ldgEdt = createLedgerInitEditor();
 		LedgerTransactionContext genisisTxCtx = createGenisisTx(ldgEdt, participants);
-		LedgerDataSetEditor ldgDS = genisisTxCtx.getDataset();
+		LedgerDataSetEditor ldgDS = (LedgerDataSetEditor) genisisTxCtx.getDataset();
 
 		AsymmetricKeypair cryptoKeyPair = signatureFunction.generateKeypair();
 		BlockchainKeypair userKP = new BlockchainKeypair(cryptoKeyPair.getPubKey(), cryptoKeyPair.getPrivKey());
@@ -251,20 +252,20 @@ public class LedgerEditorTest {
 
 		System.out.println("\r\n--------------- Start new tx1 --------------\r\n");
 		LedgerTransactionContext txctx1 = editor.newTransaction(req1);
-		txctx1.getDataset().getUserAccountSet().register(user1.getAddress(), user1.getPubKey());
+		((UserAccountSetEditor)(txctx1.getDataset().getUserAccountSet())).register(user1.getAddress(), user1.getPubKey());
 		TransactionResult tx1 = txctx1.commit(TransactionState.SUCCESS);
 		HashDigest txHash1 = tx1.getTransactionHash();
 
 		System.out.println("\r\n--------------- Start new tx2 --------------\r\n");
 
 		LedgerTransactionContext txctx2 = editor.newTransaction(req2);
-		txctx2.getDataset().getUserAccountSet().register(user2.getAddress(), user2.getPubKey());
+		((UserAccountSetEditor)(txctx2.getDataset().getUserAccountSet())).register(user2.getAddress(), user2.getPubKey());
 		TransactionResult tx2 = txctx2.discardAndCommit(TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST);
 		HashDigest txHash2 = tx2.getTransactionHash();
 
 		System.out.println("\r\n--------------- Start new tx3 --------------\r\n");
 		LedgerTransactionContext txctx3 = editor.newTransaction(req3);
-		txctx3.getDataset().getUserAccountSet().register(user3.getAddress(), user3.getPubKey());
+		((UserAccountSetEditor)(txctx3.getDataset().getUserAccountSet())).register(user3.getAddress(), user3.getPubKey());
 		TransactionResult tx3 = txctx3.commit(TransactionState.SUCCESS);
 		HashDigest txHash3 = tx3.getTransactionHash();
 

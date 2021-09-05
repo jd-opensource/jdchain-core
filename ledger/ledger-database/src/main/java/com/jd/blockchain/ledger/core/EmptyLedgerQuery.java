@@ -125,4 +125,9 @@ class EmptyLedgerQuery implements LedgerQuery {
 			return null;
 		}
 
+		@Override
+	    public String getAnchorType() {
+			return null;
+		}
+
 	}

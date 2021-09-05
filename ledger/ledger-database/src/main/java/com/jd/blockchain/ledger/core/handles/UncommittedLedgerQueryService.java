@@ -54,17 +54,17 @@ public class UncommittedLedgerQueryService implements LedgerQueryService {
 
     @Override
     public LedgerAdminInfo getLedgerAdminInfo() {
-        return transactionContext.getDataset().getAdminDataset();
+        return (LedgerAdminInfo) transactionContext.getDataset().getAdminDataset();
     }
 
     @Override
     public ParticipantNode[] getConsensusParticipants() {
-        return transactionContext.getDataset().getAdminDataset().getParticipants();
+        return transactionContext.getDataset().getAdminDataset().getAdminSettings().getParticipants();
     }
 
     @Override
     public LedgerMetadata getLedgerMetadata() {
-        return transactionContext.getDataset().getAdminDataset().getMetadata();
+        return transactionContext.getDataset().getAdminDataset().getAdminSettings().getMetadata();
     }
 
     @Override
@@ -313,7 +313,7 @@ public class UncommittedLedgerQueryService implements LedgerQueryService {
 
     @Override
     public PrivilegeSet getRolePrivileges(String roleName) {
-        return transactionContext.getDataset().getAdminDataset().getRolePrivileges().getRolePrivilege(roleName);
+        return transactionContext.getDataset().getAdminDataset().getAdminSettings().getRolePrivileges().getRolePrivilege(roleName);
     }
 
     @Override

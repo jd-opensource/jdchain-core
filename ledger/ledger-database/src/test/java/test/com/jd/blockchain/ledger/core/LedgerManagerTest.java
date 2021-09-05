@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import java.util.stream.Stream;
 
 import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.ledger.core.DataAccountSetEditor;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -87,7 +88,7 @@ public class LedgerManagerTest {
 
 		// 记录交易，注册用户；
 		LedgerTransactionContext txCtx = ldgEdt.newTransaction(genesisTxReq);
-		LedgerDataSetEditor ldgDS = txCtx.getDataset();
+		LedgerDataSetEditor ldgDS = (LedgerDataSetEditor) txCtx.getDataset();
 		BlockchainKeypair userKP = BlockchainKeyGenerator.getInstance().generate();
 
 		UserAccount userAccount = ldgDS.getUserAccountSet().register(userKP.getAddress(), userKP.getPubKey());
@@ -142,7 +143,7 @@ public class LedgerManagerTest {
 		TransactionRequest txRequest = txReqBuilder.buildRequest();
 
 		LedgerTransactionContext txCtx1 = editor1.newTransaction(txRequest);
-		txCtx1.getDataset().getDataAccountSet().register(dataKey.getAddress(), dataKey.getPubKey(), null);
+		((DataAccountSetEditor)(txCtx1.getDataset().getDataAccountSet())).register(dataKey.getAddress(), dataKey.getPubKey(), null);
 		txCtx1.commit(TransactionState.SUCCESS);
 
 		LedgerBlock block1 = editor1.prepare();

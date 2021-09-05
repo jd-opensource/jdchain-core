@@ -82,7 +82,7 @@ public interface LedgerTransactionContext {
 	 *
 	 * @return
 	 */
-	LedgerEventSetEditor getEventSet();
+	LedgerEventSet getEventSet();
 
 	/**
 	 * 交易数据集合；

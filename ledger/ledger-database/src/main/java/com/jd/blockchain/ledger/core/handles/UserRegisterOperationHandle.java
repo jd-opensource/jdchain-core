@@ -11,6 +11,8 @@ import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
 
+import com.jd.blockchain.ledger.core.UserAccountSetEditor;
+import com.jd.blockchain.ledger.core.UserAccountSetEditorSimple;
 import utils.Bytes;
 
 import com.jd.blockchain.ledger.core.EventManager;
@@ -34,7 +36,11 @@ public class UserRegisterOperationHandle extends AbstractLedgerOperationHandle<U
 
 		Bytes userAddress = bid.getAddress();
 
-		transactionContext.getDataset().getUserAccountSet().register(userAddress, bid.getPubKey());
+		if (ledger.getAnchorType().equals("default")) {
+			((UserAccountSetEditor)(transactionContext.getDataset().getUserAccountSet())).register(userAddress, bid.getPubKey());
+		} else {
+			((UserAccountSetEditorSimple)(transactionContext.getDataset().getUserAccountSet())).register(userAddress, bid.getPubKey());
+		}
 	}
 
 }

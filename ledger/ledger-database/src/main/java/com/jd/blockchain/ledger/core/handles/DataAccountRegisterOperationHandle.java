@@ -3,6 +3,8 @@ package com.jd.blockchain.ledger.core.handles;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.DataAccountRegisterOperation;
 import com.jd.blockchain.ledger.LedgerPermission;
+import com.jd.blockchain.ledger.core.DataAccountSetEditor;
+import com.jd.blockchain.ledger.core.DataAccountSetEditorSimple;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
@@ -34,7 +36,13 @@ public class DataAccountRegisterOperationHandle extends AbstractLedgerOperationH
 		DataAccountRegisterOperation dataAccountRegOp = (DataAccountRegisterOperation) op;
 		BlockchainIdentity bid = dataAccountRegOp.getAccountID();
 		logger.debug("before register.[dataAddress={}]",bid.getAddress());
-		transactionContext.getDataset().getDataAccountSet().register(bid.getAddress(), bid.getPubKey(), null);
+
+		if (ledger.getAnchorType().equals("default")) {
+			((DataAccountSetEditor)(transactionContext.getDataset().getDataAccountSet())).register(bid.getAddress(), bid.getPubKey(), null);
+		} else {
+			((DataAccountSetEditorSimple)(transactionContext.getDataset().getDataAccountSet())).register(bid.getAddress(), bid.getPubKey(), null);
+		}
+
 		logger.debug("after register.[dataAddress={}]",bid.getAddress());
 	}
 

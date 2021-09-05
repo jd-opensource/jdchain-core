@@ -84,7 +84,7 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 	/**
 	 * 最后提交的事件数据集；
 	 */
-	private volatile LedgerEventSetEditor latestLedgerEventSet;
+	private volatile LedgerEventSetEditorSimple latestLedgerEventSet;
 
 	private volatile BufferedKVStorage eventsetStorage;
 
@@ -227,11 +227,11 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 	}
 
 	@Override
-	public LedgerEventSetEditor getLedgerEventSet() {
+	public LedgerEventSetEditorSimple getLedgerEventSet() {
 		return innerGetEventset();
 	}
 
-	private LedgerEventSetEditor innerGetEventset() {
+	private LedgerEventSetEditorSimple innerGetEventset() {
 		if (this.latestLedgerEventSet == null) {
 			this.eventsetStorage = new BufferedKVStorage(baseStorage, baseStorage, false);
 			this.latestLedgerEventSet = createEventSetFromLastestSnapshot(eventsetStorage);
@@ -660,7 +660,7 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 		}
 
 		@Override
-		public LedgerEventSetEditor getEventSet() {
+		public LedgerEventSetEditorSimple getEventSet() {
 			// TODO: 控制只读；
 			return ledgerEditor.getLedgerEventSet();
 		}

@@ -16,15 +16,22 @@ public class EventManager implements EventOperationHandle {
 
     private TransactionRequestExtension request;
     private LedgerTransactionContext txCtx;
+    private LedgerQuery ledger;
 
-    public EventManager(TransactionRequestExtension request, LedgerTransactionContext txCtx) {
+    public EventManager(TransactionRequestExtension request, LedgerTransactionContext txCtx, LedgerQuery ledger) {
         this.request = request;
         this.txCtx = txCtx;
+        this.ledger = ledger;
+
     }
 
     @Override
     public void registerAccount(BlockchainIdentity identity) {
-        txCtx.getEventSet().getEventAccountSet().register(identity.getAddress(), identity.getPubKey(), null);
+        if (ledger.getAnchorType().equals("default")) {
+            ((EventAccountSetEditor)(txCtx.getEventSet().getEventAccountSet())).register(identity.getAddress(), identity.getPubKey(), null);
+        } else {
+            ((EventAccountSetEditorSimple)(txCtx.getEventSet().getEventAccountSet())).register(identity.getAddress(), identity.getPubKey(), null);
+        }
     }
 
     @Override
@@ -40,7 +47,14 @@ public class EventManager implements EventOperationHandle {
 
     @Override
     public long publish(String eventName, BytesValue content, long latestSequence) {
-        long v = txCtx.getEventSet().getSystemEventGroup().publish(new EventInfo(eventName, latestSequence+1, content, request.getTransactionHash(), txCtx.getBlockHeight()));
+        long v = 0;
+
+        if (ledger.getAnchorType().equals("default")) {
+            v = ((MerkleEventGroupPublisher)(txCtx.getEventSet().getSystemEventGroup())).publish(new EventInfo(eventName, latestSequence+1, content, request.getTransactionHash(), txCtx.getBlockHeight()));
+        } else {
+            v = ((MerkleEventGroupPublisherSimple)(txCtx.getEventSet().getSystemEventGroup())).publish(new EventInfo(eventName, latestSequence+1, content, request.getTransactionHash(), txCtx.getBlockHeight()));
+        }
+
         if (v < 0) {
             throw new DataVersionConflictException();
         }
