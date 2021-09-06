@@ -46,6 +46,7 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
     private ConsensusClientManager clientManager;
     private LedgersListener ledgersListener;
     private LedgerPeersTopologyStorage topologyStorage;
+    private boolean topologyAware;
     // 连接列表
     private Map<NetworkAddress, LedgerPeerConnectionManager> connections;
 
@@ -57,12 +58,19 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
     public LedgerPeersManager(HashDigest ledger, LedgerPeerConnectionManager[] peerConnectionServices, AsymmetricKeypair keyPair,
                               SessionCredentialProvider credentialProvider, ConsensusClientManager clientManager,
                               LedgersListener ledgersListener, LedgerPeersTopologyStorage topologyStorage) {
+        this(ledger, peerConnectionServices, keyPair, credentialProvider, clientManager, ledgersListener, topologyStorage, true);
+    }
+
+    public LedgerPeersManager(HashDigest ledger, LedgerPeerConnectionManager[] peerConnectionServices, AsymmetricKeypair keyPair,
+                              SessionCredentialProvider credentialProvider, ConsensusClientManager clientManager,
+                              LedgersListener ledgersListener, LedgerPeersTopologyStorage topologyStorage, boolean topologyAware) {
         this.ledger = ledger;
         this.keyPair = keyPair;
         this.credentialProvider = credentialProvider;
         this.clientManager = clientManager;
         this.ledgersListener = ledgersListener;
         this.topologyStorage = topologyStorage;
+        this.topologyAware = topologyAware;
         executorService = Executors.newSingleThreadScheduledExecutor();
         this.connections = new ConcurrentHashMap<>();
         for (LedgerPeerConnectionManager manager : peerConnectionServices) {
@@ -177,8 +185,12 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
             manager.startTimerTask();
         }
 
-        // 启动有效性检测或重连
-        executorService.scheduleWithFixedDelay(() -> updateTopologyTask(), 5000, UPDATE_TOPOLOGY_INTERVAL, TimeUnit.MILLISECONDS);
+        if(topologyAware) {
+            // 启动定期拓扑感知
+            executorService.scheduleWithFixedDelay(() -> updateTopologyTask(), 5000, UPDATE_TOPOLOGY_INTERVAL, TimeUnit.MILLISECONDS);
+        } else {
+            storeTopology(new LedgerPeerApiServicesTopology(ledger, keyPair, connections.keySet()));
+        }
     }
 
     /**

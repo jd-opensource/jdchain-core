@@ -177,10 +177,9 @@ public class GatewayServerBooter {
 		dataSearchController.setSchemaRetrievalUrl(config.getSchemaRetrievalUrl());
 		LedgersManager peerConnector = appCtx.getBean(LedgersManager.class);
 
-		NetworkAddress peerAddress = config.masterPeerAddress();
-		peerConnector.init(peerAddress, defaultKeyPair, config.isStoreTopology());
+		peerConnector.init(defaultKeyPair, config);
 
-		ConsoleUtils.info("Peer[%s] is connected success!", peerAddress.toString());
+		ConsoleUtils.info("Peer[%s] is connected success!", config.masterPeerAddress().toString());
 	}
 
 	public synchronized void close() {

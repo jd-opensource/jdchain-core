@@ -31,6 +31,8 @@ public class GatewayConfigProperties {
 
 	// 账本配置拓扑信息落盘，默认false
 	public static final String TOPOLOGY_STORE = "topology.store";
+	// 开启动态感知，默认true 1.5.0版本新增
+	public static final String TOPOLOGY_AWARE = "topology.aware";
 
 	// 数据检索服务URL地址
 	public static final String DATA_RETRIEVAL_URL="data.retrieval.url";
@@ -56,6 +58,7 @@ public class GatewayConfigProperties {
 
 	private NetworkAddress masterPeerAddress = null;
 	private boolean storeTopology;
+	private boolean awareTopology;
 
 	private String dataRetrievalUrl;
 	private String schemaRetrievalUrl;
@@ -131,6 +134,7 @@ public class GatewayConfigProperties {
 		configProps.setMasterPeerAddress(new NetworkAddress(peerHost, peerPort, peerSecure));
 
 		configProps.setStoreTopology(getBoolean(props, TOPOLOGY_STORE, false));
+		configProps.setAwareTopology(getBoolean(props, TOPOLOGY_AWARE, false, true));
 
 		String dataRetrievalUrl = getProperty(props, DATA_RETRIEVAL_URL, false);
 		configProps.dataRetrievalUrl = dataRetrievalUrl;
@@ -180,6 +184,14 @@ public class GatewayConfigProperties {
 		return Boolean.parseBoolean(strBool);
 	}
 
+	private static boolean getBoolean(Properties props, String key, boolean required, boolean defaultValue) {
+		String strBool = getProperty(props, key, required);
+		if (strBool == null) {
+			return defaultValue;
+		}
+		return Boolean.parseBoolean(strBool);
+	}
+
 	private static int getInt(Properties props, String key, boolean required) {
 		String strInt = getProperty(props, key, required);
 		if (strInt == null) {
@@ -200,7 +212,14 @@ public class GatewayConfigProperties {
 		this.storeTopology = storeTopology;
 	}
 
-	// ------------------------------------------------------------
+	public boolean isAwareTopology() {
+		return awareTopology;
+	}
+
+	public void setAwareTopology(boolean awareTopology) {
+		this.awareTopology = awareTopology;
+	}
+// ------------------------------------------------------------
 
 	public static class ProviderConfig {
 		List<String> providers = new ArrayList<>();
