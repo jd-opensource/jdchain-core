@@ -15,6 +15,8 @@ import com.jd.blockchain.consensus.bftsmart.service.BftsmartNodeState;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.ledger.BlockRollbackException;
 import com.jd.blockchain.ledger.IdentityMode;
+import com.jd.blockchain.ledger.UserState;
+import com.jd.blockchain.ledger.core.UserAccount;
 import com.jd.blockchain.sdk.proxy.HttpBlockchainBrowserService;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.httpservice.agent.HttpServiceAgent;
@@ -355,7 +357,12 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				// 证书模式下认证校验
 				if(ledgerIdMode.get(ledgerHash) == IdentityMode.CA) {
 					// 当前Peer证书
-					X509Certificate peerCA = X509Utils.resolveCertificate(ledgerRepo.getUserAccountSet().getAccount(ledgerCurrNodes.get(ledgerHash).getAddress()).getCertificate());
+					UserAccount peerAccount = ledgerRepo.getUserAccountSet().getAccount(ledgerCurrNodes.get(ledgerHash).getAddress());
+					if(peerAccount.getState() != UserState.NORMAL) {
+						LOGGER.error(String.format("Authenticate ledger[%s] error ! peer state is [%s]", ledgerHash.toBase58(), peerAccount.getState()));
+						continue;
+					}
+					X509Certificate peerCA = X509Utils.resolveCertificate(peerAccount.getCertificate());
 					X509Utils.checkCertificateRole(peerCA, CertificateRole.PEER);
 					X509Utils.checkValidity(peerCA);
 
@@ -367,7 +374,12 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					X509Utils.checkValidityAny(peerIssuers);
 
 					// 接入网关CA
-					X509Certificate gwCA = X509Utils.resolveCertificate(ledgerRepo.getUserAccountSet().getAccount(AddressEncoding.generateAddress(clientPubKey)).getCertificate());
+					UserAccount gwAccount = ledgerRepo.getUserAccountSet().getAccount(AddressEncoding.generateAddress(clientPubKey));
+					if(gwAccount.getState() != UserState.NORMAL) {
+						LOGGER.error(String.format("Authenticate ledger[%s] error ! gateway state is [%s]", ledgerHash.toBase58(), peerAccount.getState()));
+						continue;
+					}
+					X509Certificate gwCA = X509Utils.resolveCertificate(gwAccount.getCertificate());
 					X509Utils.checkCertificateRole(gwCA, CertificateRole.GW);
 					X509Utils.checkValidity(gwCA);
 					X509Certificate[] gwIssuers = X509Utils.findIssuers(gwCA, ledgerCAs);
