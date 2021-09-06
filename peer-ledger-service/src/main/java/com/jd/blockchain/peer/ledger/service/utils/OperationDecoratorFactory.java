@@ -43,8 +43,8 @@ public class OperationDecoratorFactory {
             return decorateEventPublishOperation((EventPublishOperation) op);
         } else if (op instanceof UserCAUpdateOperation) {
             return decorateUserCAUpdateOperation((UserCAUpdateOperation) op);
-        } else if (op instanceof UserRevokeOperation) {
-            return decorateUserRevokeOperation((UserRevokeOperation) op);
+        } else if (op instanceof UserStateUpdateOperation) {
+            return decorateUserRevokeOperation((UserStateUpdateOperation) op);
         } else if (op instanceof RootCAUpdateOperation) {
             return decorateRootCAUpdateOperation((RootCAUpdateOperation) op);
         }
@@ -292,8 +292,8 @@ public class OperationDecoratorFactory {
         return new UserCAUpdateOpTemplate(op.getUserAddress(), op.getCertificate());
     }
 
-    public static Operation decorateUserRevokeOperation(UserRevokeOperation op) {
-        return new UserRevokeOpTemplate(op.getUserAddress());
+    public static Operation decorateUserRevokeOperation(UserStateUpdateOperation op) {
+        return new UserStateUpdateOpTemplate(op.getUserAddress(), op.getState());
     }
 
     public static Operation decorateRootCAUpdateOperation(RootCAUpdateOperation op) {

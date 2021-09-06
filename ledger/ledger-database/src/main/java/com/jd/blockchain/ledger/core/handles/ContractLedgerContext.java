@@ -34,7 +34,8 @@ import com.jd.blockchain.ledger.UserCAUpdateOperation;
 import com.jd.blockchain.ledger.UserInfo;
 import com.jd.blockchain.ledger.UserPrivilegeSet;
 import com.jd.blockchain.ledger.UserRegisterOperation;
-import com.jd.blockchain.ledger.UserRevokeOperation;
+import com.jd.blockchain.ledger.UserState;
+import com.jd.blockchain.ledger.UserStateUpdateOperation;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.transaction.DataAccountKVSetOperationBuilder;
@@ -52,7 +53,7 @@ import com.jd.blockchain.transaction.UserCAUpdateOpTemplate;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilder;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilderImpl;
 
-import com.jd.blockchain.transaction.UserRevokeOpTemplate;
+import com.jd.blockchain.transaction.UserStateUpdateOpTemplate;
 import com.jd.blockchain.transaction.UserUpdateOperationBuilder;
 import utils.Bytes;
 
@@ -353,8 +354,32 @@ public class ContractLedgerContext implements LedgerContext {
 		}
 
 		@Override
-		public UserRevokeOperation revoke() {
-			UserRevokeOperation op = new UserRevokeOpTemplate(address);
+		public UserStateUpdateOperation revoke() {
+			UserStateUpdateOperation op = new UserStateUpdateOpTemplate(address, UserState.REVOKE);
+			generatedOpList.add(op);
+			opHandleContext.handle(op);
+			return op;
+		}
+
+		@Override
+		public UserStateUpdateOperation freeze() {
+			UserStateUpdateOperation op = new UserStateUpdateOpTemplate(address, UserState.FREEZE);
+			generatedOpList.add(op);
+			opHandleContext.handle(op);
+			return op;
+		}
+
+		@Override
+		public UserStateUpdateOperation restore() {
+			UserStateUpdateOperation op = new UserStateUpdateOpTemplate(address, UserState.NORMAL);
+			generatedOpList.add(op);
+			opHandleContext.handle(op);
+			return op;
+		}
+
+		@Override
+		public UserStateUpdateOperation state(UserState state) {
+			UserStateUpdateOperation op = new UserStateUpdateOpTemplate(address, state);
 			generatedOpList.add(op);
 			opHandleContext.handle(op);
 			return op;

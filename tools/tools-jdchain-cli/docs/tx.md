@@ -19,7 +19,7 @@ Commands:
   ledger-ca-update        Update ledger certificate.
   user-register           Register new user.
   user-ca-update          Update user certificate.
-  user-revoke             Revoke user(certificate).
+  user-state-update       Update user(certificate) state.
   role                    Create or config role.
   authorization           User role authorization.
   data-account-register   Register new data account.
@@ -43,7 +43,7 @@ Commands:
 - `ledger-ca-update`，[更新账本证书](#更新账本证书)
 - `user-register`，[注册用户](#注册用户)
 - `user-ca-update`，[更新用户证书](#更新用户证书)
-- `user-revoke`，[撤销用户(证书)](#撤销用户(证书))
+- `user-state-update`，[更新用户(证书)状态](#更新用户(证书)状态)
 - `role`，[角色管理](#角色管理)
 - `authorization`，[权限配置](#权限配置)
 - `data-account-register`，[注册数据账户](#注册数据账户)
@@ -64,7 +64,6 @@ Usage: jdchain-cli tx ledger-ca-update [-hV] [--pretty] --crt=<caPath>
                                        [--export=<export>] [--gw-host=<gwHost>]
                                        [--gw-port=<gwPort>] [--home=<path>]
       --crt=<caPath>       File of the X509 certificate
-      -n, --name=<name>    Name of the certificate
       --export=<export>    Transaction export directory
       --gw-host=<gwHost>   Set the gateway host. Default: 127.0.0.1
       --gw-port=<gwPort>   Set the gateway port. Default: 8080
@@ -77,18 +76,18 @@ Usage: jdchain-cli tx ledger-ca-update [-hV] [--pretty] --crt=<caPath>
 
 如：
 ```bash
-:bin$ $ ./jdchain-cli.sh tx ledger-ca-update --crt /home/imuge/jd/nodes/peer0/config/keys/ledger.crt 
-select ledger, input the index: 
+:bin$ $ ./jdchain-cli.sh tx ledger-ca-update --crt /home/imuge/jd/nodes/peer0/config/keys/ledger.crt
+select ledger, input the index:
 INDEX   LEDGER
 0       j5pFrMigE47t6TobQJXsztnoeA29H31v1vHHF1wqCp4rzi
 // 选择账本，当前网关服务只有上面一个可用账本
 > 0
-select keypair to sign tx: 
+select keypair to sign tx:
 INDEX   KEY     ADDRESS
 0       peer0   LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W
 // 选择链上已存在且有注册用户权限的用户所对应的公私钥对，用于交易签名
 > 0
-input password of the key: 
+input password of the key:
 // 输入签名私钥密码
 > 1
 ledger ca: [7VeRBQ9jpsgNXje2NYXU5MhyGKVRj462RtkJ8f6FNL1oxYbX](pubkey) updated
@@ -167,32 +166,34 @@ Usage: jdchain-cli tx user-ca-update [-hV] [--pretty] [--crt=<caPath>]
 
 如：
 ```bash
-:bin$ $ ./jdchain-cli.sh tx user-ca-update --crt /home/imuge/jd/nodes/peer0/config/keys/peer0.crt 
-select ledger, input the index: 
+:bin$ $ ./jdchain-cli.sh tx user-ca-update --crt /home/imuge/jd/nodes/peer0/config/keys/peer0.crt
+select ledger, input the index:
 INDEX   LEDGER
 0       j5pFrMigE47t6TobQJXsztnoeA29H31v1vHHF1wqCp4rzi
 // 选择账本，当前网关服务只有上面一个可用账本
 > 0
-select keypair to sign tx: 
+select keypair to sign tx:
 INDEX   KEY     ADDRESS
 0       peer0   LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W
 // 选择链上已存在且有注册用户权限的用户所对应的公私钥对，用于交易签名
 > 0
-input password of the key: 
+input password of the key:
 // 输入签名私钥密码
 > 1
 user: [LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W] ca updated
 ```
 会更新链上地址为`LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W`的用户证书信息。
 
-#### 撤销用户(证书)
+#### 更新用户(证书)状态
 
 ```bash
-:bin$ ./jdchain-cli.sh tx user-revoke -h
-Revoke user(certificate).
-Usage: jdchain-cli tx user-revoke [-hV] [--pretty] --address=<address>
-                                  [--export=<export>] [--gw-host=<gwHost>]
-                                  [--gw-port=<gwPort>] [--home=<path>]
+:bin$ ./jdchain-cli.sh tx user-state-update -h
+Update user(certificate) state.
+Usage: jdchain-cli tx user-state-update [-hV] [--pretty] --address=<address>
+                                        [--export=<export>]
+                                        [--gw-host=<gwHost>]
+                                        [--gw-port=<gwPort>] [--home=<path>]
+                                        --state=<state>
       --address=<address>   User address
       --export=<export>     Transaction export directory
       --gw-host=<gwHost>    Set the gateway host. Default: 127.0.0.1
@@ -200,29 +201,31 @@ Usage: jdchain-cli tx user-revoke [-hV] [--pretty] --address=<address>
   -h, --help                Show this help message and exit.
       --home=<path>         Set the home directory.
       --pretty              Pretty json print
+      --state=<state>       User state，Optional values: FREEZE,NORMAL,REVOKE
   -V, --version             Print version information and exit.
 ```
 - `address`，待撤销用户(证书)地址
+- `state`，用户状态，可选值：FREEZE，NORMAL，REVOKE
 
-如：
+如冻结用户`LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W`：
 ```bash
-:bin$ $ ./jdchain-cli.sh tx user-revoke --address LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W
-select ledger, input the index: 
+:bin$ $ ./jdchain-cli.sh tx user-revoke --address LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W  --state FREEZE
+select ledger, input the index:
 INDEX   LEDGER
 0       j5pFrMigE47t6TobQJXsztnoeA29H31v1vHHF1wqCp4rzi
 // 选择账本，当前网关服务只有上面一个可用账本
 > 0
-select keypair to sign tx: 
+select keypair to sign tx:
 INDEX   KEY     ADDRESS
 0       peer0   LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W
 // 选择链上已存在且有注册用户权限的用户所对应的公私钥对，用于交易签名
 > 0
-input password of the key: 
+input password of the key:
 // 输入签名私钥密码
 > 1
 user: [LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W] revoked
 ```
-会撤销链上地址为`LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W`的用户（证书），此用户无法再接入使用此网络。
+会冻结链上地址为`LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W`的用户（证书），此用户无法再接入使用此网络。
 
 #### 角色管理
 ```bash

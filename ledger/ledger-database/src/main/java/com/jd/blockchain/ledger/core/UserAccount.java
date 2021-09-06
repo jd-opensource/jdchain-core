@@ -1,6 +1,5 @@
 package com.jd.blockchain.ledger.core;
 
-import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BytesValue;
@@ -8,11 +7,9 @@ import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
 
+import com.jd.blockchain.ledger.UserState;
 import utils.Bytes;
 import utils.io.BytesUtils;
-
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
 
 /**
  * 用户账户；
@@ -26,7 +23,7 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 
 	private static final String DATA_PUB_KEY = "DATA-PUBKEY";
 	private static final String DATA_CA = "DATA-CA";
-	private static final String DATA_REVOKED = "DATA-REVOKE";
+	private static final String DATA_STATE = "DATA-STATE";
 
 	public UserAccount(CompositeAccount baseAccount) {
 		super(baseAccount);
@@ -34,7 +31,7 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 
 	private PubKey dataPubKey;
 	private String certificate;
-	private Boolean revoked;
+	private UserState state;
 
 	@Override
 	public Bytes getAddress() {
@@ -74,22 +71,22 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 	}
 
 	@Override
-	public boolean isRevoked() {
-		if(revoked == null) {
-			BytesValue rbs = getHeaders().getValue(DATA_REVOKED);
+	public UserState getState() {
+		if(state == null) {
+			BytesValue rbs = getHeaders().getValue(DATA_STATE);
 			if (rbs == null) {
-				revoked = false;
+				state = UserState.NORMAL;
 			} else {
-				revoked = BytesUtils.toBoolean(rbs.getBytes().byteAt(0));
+				state = UserState.valueOf(BytesUtils.toString(rbs.getBytes().toBytes()));
 			}
 		}
-		return revoked;
+		return state;
 	}
 
-	public void revoke() {
-		long version = getHeaders().getVersion(DATA_REVOKED);
-		getHeaders().setValue(DATA_REVOKED, TypedValue.fromBoolean(true), version);
-		revoked = true;
+	public void setState(UserState state) {
+		long version = getHeaders().getVersion(DATA_STATE);
+		getHeaders().setValue(DATA_STATE, TypedValue.fromText(state.name()), version);
+		this.state = state;
 	}
 
 	@Override

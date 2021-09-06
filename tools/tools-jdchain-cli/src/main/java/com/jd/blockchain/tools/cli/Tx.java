@@ -23,6 +23,7 @@ import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.ledger.TransactionTemplate;
 import com.jd.blockchain.ledger.TypedValue;
+import com.jd.blockchain.ledger.UserState;
 import com.jd.blockchain.sdk.client.GatewayBlockchainServiceProxy;
 import com.jd.blockchain.sdk.client.GatewayServiceFactory;
 import com.jd.blockchain.transaction.RolePrivilegeConfigurer;
@@ -395,11 +396,14 @@ class TxUserCAUpdate implements Runnable {
     }
 }
 
-@CommandLine.Command(name = "user-revoke", mixinStandardHelpOptions = true, header = "Revoke user(certificate).")
+@CommandLine.Command(name = "user-state-update", mixinStandardHelpOptions = true, header = "Update user(certificate) state.")
 class TxUserRevoke implements Runnable {
 
     @CommandLine.Option(names = "--address", required = true, description = "User address", scope = CommandLine.ScopeType.INHERIT)
     String address;
+
+    @CommandLine.Option(names = "--state", required = true, description = "User state，Optional values: FREEZE,NORMAL,REVOKE", scope = CommandLine.ScopeType.INHERIT)
+    UserState state;
 
     @CommandLine.ParentCommand
     private Tx txCommand;
@@ -407,7 +411,7 @@ class TxUserRevoke implements Runnable {
     @Override
     public void run() {
         TransactionTemplate txTemp = txCommand.newTransaction();
-        txTemp.user(address).revoke();
+        txTemp.user(address).state(state);
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);
         if (null != txFile) {
@@ -416,9 +420,9 @@ class TxUserRevoke implements Runnable {
             if (txCommand.sign(ptx)) {
                 TransactionResponse response = ptx.commit();
                 if (response.isSuccess()) {
-                    System.out.printf("user: [%s] revoked%n", address);
+                    System.out.printf("change user: [%s] state to:[%s]%n", address, state);
                 } else {
-                    System.err.println("revoke user ca failed!");
+                    System.err.println("change user state failed!");
                 }
             }
         }
