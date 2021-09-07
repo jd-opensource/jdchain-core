@@ -26,7 +26,7 @@ import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.PrivilegeSet;
-import com.jd.blockchain.ledger.RootCAUpdateOperation;
+import com.jd.blockchain.ledger.RootCAUpdateOperationBuilder;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
@@ -304,16 +304,59 @@ public class ContractLedgerContext implements LedgerContext {
 	private class MetaInfoUpdateOperationBuilder1 implements MetaInfoUpdateOperationBuilder {
 
 		@Override
-		public RootCAUpdateOperation ca(String cert) {
-			RootCAUpdateOperation op = new RootCAUpdateOpTemplate(cert);
-			generatedOpList.add(op);
+		public RootCAUpdateOperationBuilder ca() {
+			return new RootCAUpdateOperationBuilder1();
+		}
+	}
+
+	private class RootCAUpdateOperationBuilder1 implements RootCAUpdateOperationBuilder {
+
+		@Override
+		public RootCAUpdateOperationBuilder add(String certificate) {
+			RootCAUpdateOpTemplate op = new RootCAUpdateOpTemplate();
+			op.addCertificate(certificate);
 			opHandleContext.handle(op);
-			return op;
+			return this;
 		}
 
 		@Override
-		public RootCAUpdateOperation ca(X509Certificate cert) {
-			return ca(X509Utils.toPEMString(cert));
+		public RootCAUpdateOperationBuilder add(X509Certificate certificate) {
+			RootCAUpdateOpTemplate op = new RootCAUpdateOpTemplate();
+			op.addCertificate(X509Utils.toPEMString(certificate));
+			opHandleContext.handle(op);
+			return this;
+		}
+
+		@Override
+		public RootCAUpdateOperationBuilder update(String certificate) {
+			RootCAUpdateOpTemplate op = new RootCAUpdateOpTemplate();
+			op.updateCertificate(certificate);
+			opHandleContext.handle(op);
+			return this;
+		}
+
+		@Override
+		public RootCAUpdateOperationBuilder update(X509Certificate certificate) {
+			RootCAUpdateOpTemplate op = new RootCAUpdateOpTemplate();
+			op.updateCertificate(X509Utils.toPEMString(certificate));
+			opHandleContext.handle(op);
+			return this;
+		}
+
+		@Override
+		public RootCAUpdateOperationBuilder remove(String certificate) {
+			RootCAUpdateOpTemplate op = new RootCAUpdateOpTemplate();
+			op.removeCertificate(certificate);
+			opHandleContext.handle(op);
+			return this;
+		}
+
+		@Override
+		public RootCAUpdateOperationBuilder remove(X509Certificate certificate) {
+			RootCAUpdateOpTemplate op = new RootCAUpdateOpTemplate();
+			op.removeCertificate(X509Utils.toPEMString(certificate));
+			opHandleContext.handle(op);
+			return this;
 		}
 	}
 

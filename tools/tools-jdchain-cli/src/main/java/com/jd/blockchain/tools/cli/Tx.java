@@ -199,14 +199,17 @@ public class Tx implements Runnable {
     }
 }
 
-@CommandLine.Command(name = "ledger-ca-update", mixinStandardHelpOptions = true, header = "Update ledger certificate.")
+@CommandLine.Command(name = "ledger-ca-update", mixinStandardHelpOptions = true, header = "Update ledger certificates.")
 class TxLedgerCAUpdate implements Runnable {
 
     @CommandLine.Option(names = {"-n", "--name"}, description = "Name of the certificate")
     String name;
 
-    @CommandLine.Option(names = "--crt", required = true, description = "File of the X509 certificate", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--crt", description = "File of the X509 certificate", scope = CommandLine.ScopeType.INHERIT)
     String caPath;
+
+    @CommandLine.Option(names = "--operation", required = true, description = "Operation for this certificate. Optional values: ADD,UPDATE,REMOVE", scope = CommandLine.ScopeType.INHERIT)
+    Operation operation;
 
     @CommandLine.ParentCommand
     private Tx txCommand;
@@ -221,7 +224,13 @@ class TxLedgerCAUpdate implements Runnable {
         X509Certificate certificate = X509Utils.resolveCertificate(!StringUtils.isEmpty(name) ? FileUtils.readText(txCommand.getKeysHome() + File.separator + name + ".crt") : FileUtils.readText(caPath));
         X509Utils.checkCertificateRolesAny(certificate, CertificateRole.ROOT, CertificateRole.CA);
         X509Utils.checkValidity(certificate);
-        txTemp.metaInfo().ca(certificate);
+        if (operation == Operation.ADD) {
+            txTemp.metaInfo().ca().add(certificate);
+        } else if (operation == Operation.UPDATE) {
+            txTemp.metaInfo().ca().update(certificate);
+        } else {
+            txTemp.metaInfo().ca().remove(certificate);
+        }
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);
         if (null != txFile) {
@@ -237,6 +246,12 @@ class TxLedgerCAUpdate implements Runnable {
                 }
             }
         }
+    }
+
+    private enum Operation {
+        ADD,
+        UPDATE,
+        REMOVE
     }
 }
 

@@ -16,7 +16,7 @@ Build, sign or send transaction.
       --pretty             Pretty json print
   -V, --version            Print version information and exit.
 Commands:
-  ledger-ca-update        Update ledger certificate.
+  ledger-ca-update        Update ledger certificates.
   user-register           Register new user.
   user-ca-update          Update user certificate.
   user-state-update       Update user(certificate) state.
@@ -59,11 +59,12 @@ Commands:
 
 ```bash
 :bin$ ./jdchain-cli.sh tx ledger-ca-update -h
-Update ledger certificate.
+Update ledger certificates.
 Usage: jdchain-cli tx ledger-ca-update [-hV] [--pretty] --crt=<caPath>
                                        [--export=<export>] [--gw-host=<gwHost>]
                                        [--gw-port=<gwPort>] [--home=<path>]
       --crt=<caPath>       File of the X509 certificate
+      --operation          Operation for this certificate. Optional values: ADD,UPDATE,REMOVE
       --export=<export>    Transaction export directory
       --gw-host=<gwHost>   Set the gateway host. Default: 127.0.0.1
       --gw-port=<gwPort>   Set the gateway port. Default: 8080
@@ -73,10 +74,11 @@ Usage: jdchain-cli tx ledger-ca-update [-hV] [--pretty] --crt=<caPath>
   -V, --version            Print version information and exit.
 ```
 - `crt`，证书文件路径
+- `operation`，操作类型：`ADD`，`UPDATE`,`REMOVE`
 
 如：
 ```bash
-:bin$ $ ./jdchain-cli.sh tx ledger-ca-update --crt /home/imuge/jd/nodes/peer0/config/keys/ledger.crt
+:bin$ $ ./jdchain-cli.sh tx ledger-ca-update --crt /home/imuge/jd/nodes/peer0/config/keys/ledger.crt --operation UPDATE
 select ledger, input the index:
 INDEX   LEDGER
 0       j5pFrMigE47t6TobQJXsztnoeA29H31v1vHHF1wqCp4rzi

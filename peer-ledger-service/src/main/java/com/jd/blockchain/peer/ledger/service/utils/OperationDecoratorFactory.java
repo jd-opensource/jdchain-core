@@ -297,7 +297,7 @@ public class OperationDecoratorFactory {
     }
 
     public static Operation decorateRootCAUpdateOperation(RootCAUpdateOperation op) {
-        return new RootCAUpdateOpTemplate(op.getCertificate());
+        return new RootCAUpdateOpTemplate(op);
     }
 
 }
