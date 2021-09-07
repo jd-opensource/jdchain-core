@@ -1,8 +1,8 @@
 ### 证书管理
 
-`jdchain-cli`提供**`RSA`,`ECDSA`,`SM2`**密钥算法的证书签发工具：[证书列表](#证书列表)，[显示证书](#显示证书)，[CSR](#CSR)，[CRT](#CRT)，[更新证书](#更新证书)，[生成测试证书](#生成测试证书)
+`jdchain-cli`提供**`ED25519`,`RSA`,`ECDSA`,`SM2`**密钥算法的证书签发工具：[证书列表](#证书列表)，[显示证书](#显示证书)，[CSR](#CSR)，[CRT](#CRT)，[更新证书](#更新证书)，[生成测试证书](#生成测试证书)
 
-> 目前仅支持创建`RSA`,`ECDSA`,`SM2`三种签名算法，请使用对应算法的公私钥
+> 目前支持创建`ED25519`,RSA`,`ECDSA`,`SM2`四种签名算法，请使用对应算法的公私钥
 
 ```bash
 :bin$ ./jdchain-cli.sh ca -h
@@ -222,7 +222,7 @@ Usage: jdchain-cli ca test [-hV] [--pretty] [-a=<algorithm>] [--home=<path>]
       --users=<users>   Available user size
   -V, --version         Print version information and exit.
 ```
-- `algorithm`，签名算法，仅支持传入`RSA`，`ECDSA`，`SM2`之一
+- `algorithm`，签名算法，默认`ED25519`，仅支持传入`ED25519`, RSA`，`ECDSA`，`SM2`之一
 - `nodes`，共识节点个数，生成`nodes`个`PEER`+`GW`类型的证书，可用于节点和网关使用。默认：4
 - `users`，用户个数，生成`users`可个可用于普通用户使用的证书。默认：10
 

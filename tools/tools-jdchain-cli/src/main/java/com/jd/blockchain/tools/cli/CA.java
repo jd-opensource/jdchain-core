@@ -14,10 +14,8 @@ import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
-import org.bouncycastle.cert.bc.BcX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
@@ -68,11 +66,10 @@ import java.util.UUID;
 public class CA implements Runnable {
     static final String CA_HOME = "config/keys";
     static final String CA_LIST_FORMAT = "%s\t%s\t%s\t%s%n";
-    static final String[] SUPPORT_ALGORITHMS = new String[]{"ED25519", "SM2", "RSA", "ECDSA"};
-    static Map<String, String> CA_ALGORITHM_MAP = new HashMap<String, String>();
+    static Map<String, String> CA_ALGORITHM_MAP = new HashMap<>();
 
     static {
-        CA_ALGORITHM_MAP.put("ED25519", "ED25519");
+        CA_ALGORITHM_MAP.put("ED25519", "Ed25519");
         CA_ALGORITHM_MAP.put("SM2", "SM3WITHSM2");
         CA_ALGORITHM_MAP.put("RSA", "SHA256withRSA");
         CA_ALGORITHM_MAP.put("ECDSA", "SHA256WITHECDSA");
@@ -471,7 +468,7 @@ class CARenew implements Runnable {
 @CommandLine.Command(name = "test", mixinStandardHelpOptions = true, header = "Create certificates for a testnet.")
 class CATest implements Runnable {
 
-    @CommandLine.Option(names = {"-a", "--algorithm"}, required = true, description = "Crypto algorithm", defaultValue = "RSA")
+    @CommandLine.Option(names = {"-a", "--algorithm"}, required = true, description = "Crypto algorithm", defaultValue = "ED25519")
     String algorithm;
 
     @CommandLine.Option(names = "--nodes", required = true, description = "Node size", defaultValue = "4")
@@ -570,7 +567,7 @@ class CATest implements Runnable {
         }
         certificateBuilder.addExtension(Extension.basicConstraints, false, new BasicConstraints(ou.equals(CertificateRole.ROOT) || ou.equals(CertificateRole.CA)));
 
-        ContentSigner signer = new JcaContentSignerBuilder(caCli.CA_ALGORITHM_MAP.get(algorithm)).build(issuerPrivateKey);
+        ContentSigner signer = new JcaContentSignerBuilder(caCli.CA_ALGORITHM_MAP.get(algorithm.toUpperCase())).build(issuerPrivateKey);
         X509CertificateHolder holder = certificateBuilder.build(signer);
         return new JcaX509CertificateConverter().getCertificate(holder);
     }
