@@ -14,17 +14,19 @@ import utils.Transactional;
 
 public class ContractAccountSetEditorSimple implements Transactional, ContractAccountSet {
 
-	private MerkleAccountSetEditor accountSet;
+	private SimpleAccountSetEditor accountSet;
+
+	private static final String CONTRACTACCOUNTSET_PREFIX = "CONTRACTACCOUNTSET" + LedgerConsts.KEY_SEPERATOR;
 
 	public ContractAccountSetEditorSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage,
                                           VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
-		accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+		accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix + CONTRACTACCOUNTSET_PREFIX), exStorage, verStorage, accessPolicy);
 	}
 
 	public ContractAccountSetEditorSimple(HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
                                           ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
                                           AccountAccessPolicy accessPolicy) {
-		accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
+		accountSet = new SimpleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix + CONTRACTACCOUNTSET_PREFIX), exStorage, verStorage,
 				readonly, accessPolicy);
 	}
 	

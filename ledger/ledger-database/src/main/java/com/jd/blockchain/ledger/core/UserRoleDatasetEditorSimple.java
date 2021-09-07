@@ -21,21 +21,27 @@ import java.util.Collection;
 /**
  * User-Role authorization data set;
  * 
- * @author huanghaiquan
+ *
  *
  */
 public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvable<Bytes>, UserAuthorizationSettings {
 
-	private MerkleHashDataset dataset;
+	private SimpleDatasetImpl dataset;
+
+	private static final String USERROLE_PREFIX = "USERROLE" + LedgerConsts.KEY_SEPERATOR;
 
 	public UserRoleDatasetEditorSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
                                        VersioningKVStorage verStorage) {
-		dataset = new MerkleHashDataset(cryptoSetting, prefix, exPolicyStorage, verStorage);
+		Bytes userRolePrefix = Bytes.fromString(prefix + USERROLE_PREFIX);
+		dataset = new SimpleDatasetImpl(cryptoSetting, userRolePrefix, exPolicyStorage, verStorage);
 	}
 
 	public UserRoleDatasetEditorSimple(HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
                                        ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage, verStorage, readonly);
+		Bytes userRolePrefix = Bytes.fromString(prefix + USERROLE_PREFIX);
+		dataset = new SimpleDatasetImpl(merkleRootHash, cryptoSetting, userRolePrefix, exPolicyStorage, verStorage, readonly);
+
+
 	}
 
 	@Override

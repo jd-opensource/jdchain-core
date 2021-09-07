@@ -19,17 +19,19 @@ public class EventAccountSetEditorSimple implements EventAccountSet, Transaction
         DataContractRegistry.register(Event.class);
     }
 
-    private MerkleAccountSetEditor accountSet;
+    private SimpleAccountSetEditor accountSet;
+
+    private static final String EVENTACCOUNTSET_PREFIX = "EVENTACCOUNTSET" + LedgerConsts.KEY_SEPERATOR;
 
     public EventAccountSetEditorSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage,
                                        VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
-        accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+        accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix + EVENTACCOUNTSET_PREFIX), exStorage, verStorage, accessPolicy);
     }
 
     public EventAccountSetEditorSimple(HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
                                        ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
                                        AccountAccessPolicy accessPolicy) {
-        accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
+        accountSet = new SimpleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix + EVENTACCOUNTSET_PREFIX), exStorage, verStorage,
                 readonly, accessPolicy);
     }
 

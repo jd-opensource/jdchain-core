@@ -17,17 +17,19 @@ import utils.Transactional;
 public class DataAccountSetEditorSimple implements Transactional, DataAccountSet {
 	private Logger logger = LoggerFactory.getLogger(DataAccountSetEditorSimple.class);
 
-	private MerkleAccountSetEditor accountSet;
+	private SimpleAccountSetEditor accountSet;
+
+	private static final String DATAACCOUNTSET_PREFIX = "DATAACCOUNTSET" + LedgerConsts.KEY_SEPERATOR;
 
 	public DataAccountSetEditorSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage,
                                       VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
-		accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+		accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix + DATAACCOUNTSET_PREFIX), exStorage, verStorage, accessPolicy);
 	}
 
 	public DataAccountSetEditorSimple(HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
                                       ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
                                       AccountAccessPolicy accessPolicy) {
-		accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
+		accountSet = new SimpleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix + DATAACCOUNTSET_PREFIX), exStorage, verStorage,
 				readonly, accessPolicy);
 	}
 

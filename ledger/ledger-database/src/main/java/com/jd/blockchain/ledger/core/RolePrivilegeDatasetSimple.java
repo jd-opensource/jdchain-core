@@ -23,16 +23,20 @@ import utils.Transactional;
 
 public class RolePrivilegeDatasetSimple implements Transactional, MerkleProvable<Bytes>, RolePrivilegeSettings {
 
-	private MerkleDataset<Bytes, byte[]> dataset;
+	private SimpleDataset<Bytes, byte[]> dataset;
+
+	private static final String ROLEPRI_PREFIX = "ROLEPRI" + LedgerConsts.KEY_SEPERATOR;
 
 	public RolePrivilegeDatasetSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
                                       VersioningKVStorage verStorage) {
-		dataset = new MerkleHashDataset(cryptoSetting, prefix, exPolicyStorage, verStorage);
+		Bytes rolePriPrefix = Bytes.fromString(prefix + ROLEPRI_PREFIX);
+		dataset = new SimpleDatasetImpl(cryptoSetting, rolePriPrefix, exPolicyStorage, verStorage);
 	}
 
 	public RolePrivilegeDatasetSimple(HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
                                       ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage,
+		Bytes rolePriPrefix = Bytes.fromString(prefix + ROLEPRI_PREFIX);
+		dataset = new SimpleDatasetImpl(merkleRootHash, cryptoSetting, rolePriPrefix, exPolicyStorage,
 				verStorage, readonly);
 	}
 

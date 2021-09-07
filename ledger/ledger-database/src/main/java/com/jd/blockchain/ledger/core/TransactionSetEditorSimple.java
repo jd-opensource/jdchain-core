@@ -30,17 +30,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		DataContractRegistry.register(LedgerTransaction.class);
 	}
 
-//	private static final TransactionRequestConverter REQUEST_CONVERTER = new TransactionRequestConverter();
-	private static final HashDigestBytesConverter HASH_DIGEST_CONVERTER = new HashDigestBytesConverter();
-
-	private static final String TX_STATE_PREFIX = "STA" + LedgerConsts.KEY_SEPERATOR;
-
-	private static final String TX_SEQUENCE_PREFIX = "SEQ" + LedgerConsts.KEY_SEPERATOR;
-
-	/**
-	 * 交易请求列表的根哈希保存在交易状态集的 key ；
-	 */
-	private static final Bytes TX_REQUEST_ROOT_HASH = Bytes.fromString("TX-REQUEST-BLOCKS");
+	private static final String TX_PREFIX = "TX" + LedgerConsts.KEY_SEPERATOR;
 
 	private static final Bytes TX_REQUEST_KEY_PREFIX = Bytes.fromString("REQ" + LedgerConsts.KEY_SEPERATOR);
 
@@ -49,18 +39,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	/**
 	 * 交易状态集合；用于记录交易执行结果；
 	 */
-	private MerkleDataset<Bytes, byte[]> txStateSet;
-
-	/**
-	 * 交易请求列表；用于记录交易请求的顺序；
-	 */
-	private MerkleList<HashDigest> txSequence;
-
-	/**
-	 * 交易请求列表的根哈希在交易状态集合中的版本；(key 为 {@link #TX_REQUEST_ROOT_HASH} );
-	 *
-	 */
-	private volatile long txRequestBlockID;
+	private SimpleDataset<Bytes, byte[]> txDataSet;
 
 	/**
 	 * Create a new TransactionSet which can be added transaction;
@@ -72,16 +51,8 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	public TransactionSetEditorSimple(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage merkleTreeStorage,
                                       VersioningKVStorage dataStorage) {
 
-		Bytes txStatePrefix = Bytes.fromString(keyPrefix + TX_STATE_PREFIX);
-		this.txStateSet = new MerkleHashDataset(setting, txStatePrefix, merkleTreeStorage, dataStorage);
-
-		this.txRequestBlockID = -1;
-
-		Bytes txSequencePrefix = Bytes.fromString(keyPrefix + TX_SEQUENCE_PREFIX);
-		TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(setting.getHashAlgorithm())
-				.setVerifyHashOnLoad(setting.getAutoVerifyHash());
-		this.txSequence = new MerkleList<>(options, txSequencePrefix, merkleTreeStorage, HASH_DIGEST_CONVERTER);
-
+		Bytes txPrefix = Bytes.fromString(keyPrefix + TX_PREFIX);
+		this.txDataSet = new SimpleDatasetImpl(setting, txPrefix, merkleTreeStorage, dataStorage);
 	}
 
 	/**
@@ -94,19 +65,9 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	public TransactionSetEditorSimple(HashDigest txRootHash, CryptoSetting setting, String keyPrefix,
                                       ExPolicyKVStorage merkleTreeStorage, VersioningKVStorage dataStorage, boolean readonly) {
 
-		Bytes txStatePrefix = Bytes.fromString(keyPrefix + TX_STATE_PREFIX);
-		this.txStateSet = new MerkleHashDataset(txRootHash, setting, txStatePrefix, merkleTreeStorage, dataStorage,
+		Bytes txPrefix = Bytes.fromString(keyPrefix + TX_PREFIX);
+		this.txDataSet = new SimpleDatasetImpl(txRootHash, setting, txPrefix, merkleTreeStorage, dataStorage,
 				readonly);
-
-		DataEntry<Bytes, byte[]> txReqRootHashData = this.txStateSet.getDataEntry(TX_REQUEST_ROOT_HASH);
-		this.txRequestBlockID = txReqRootHashData.getVersion();
-		HashDigest txRequestRootHash = Crypto.resolveAsHashDigest(txReqRootHashData.getValue());
-
-		Bytes txRequestPrefix = Bytes.fromString(keyPrefix + TX_SEQUENCE_PREFIX);
-		TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(setting.getHashAlgorithm())
-				.setVerifyHashOnLoad(setting.getAutoVerifyHash());
-		this.txSequence = new MerkleList<>(txRequestRootHash, options, txRequestPrefix, merkleTreeStorage,
-				HASH_DIGEST_CONVERTER);
 	}
 
 	@Override
@@ -151,12 +112,12 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 
 	@Override
 	public HashDigest getRootHash() {
-		return txStateSet.getRootHash();
+		return txDataSet.getRootHash();
 	}
 
 	@Override
 	public MerkleProof getProof(Bytes key) {
-		return txStateSet.getProof(key);
+		return txDataSet.getProof(key);
 	}
 
 	@Override
@@ -170,7 +131,6 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	 */
 	public void addTransaction(TransactionRequest txRequest, TransactionResult txResult) {
 		// TODO: 优化对交易内存存储的优化，应对大数据量单交易，共享操作的“写集”与实际写入账户的KV版本；
-		txSequence.add(txRequest.getTransactionHash());
 		saveRequest(txRequest);
 		saveResult(txResult);
 	}
@@ -220,7 +180,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	private TransactionResult loadResult(HashDigest txContentHash) {
 		// transaction has only one version;
 		Bytes key = encodeResultKey(txContentHash);
-		byte[] txBytes = txStateSet.getValue(key, 0);
+		byte[] txBytes = txDataSet.getValue(key, 0);
 		if (txBytes == null) {
 			return null;
 		}
@@ -233,7 +193,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		// 以交易内容的 hash 为 key；
 		Bytes key = encodeResultKey(txResult.getTransactionHash());
 		// 交易只有唯一的版本；
-		long v = txStateSet.setValue(key, txResultBytes, -1);
+		long v = txDataSet.setValue(key, txResultBytes, -1);
 		if (v < 0) {
 			throw new IllegalTransactionException("Repeated transaction request! --[" + key + "]");
 		}
@@ -242,20 +202,20 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	private TransactionRequest loadRequest(HashDigest txContentHash) {
 		// transaction has only one version;
 		Bytes key = encodeRequestKey(txContentHash);
-		byte[] txBytes = txStateSet.getValue(key, 0);
+		byte[] txBytes = txDataSet.getValue(key, 0);
 		if (txBytes == null) {
 			return null;
 		}
 		return BinaryProtocol.decode(txBytes, TransactionRequest.class);
 	}
 	
-	private void saveRequest(TransactionRequest txResult) {
+	private void saveRequest(TransactionRequest txRequest) {
 		// 序列化交易内容；
-		byte[] txResultBytes = BinaryProtocol.encode(txResult, TransactionRequest.class);
+		byte[] txResultBytes = BinaryProtocol.encode(txRequest, TransactionRequest.class);
 		// 以交易内容的 hash 为 key；
-		Bytes key = encodeRequestKey(txResult.getTransactionHash());
+		Bytes key = encodeRequestKey(txRequest.getTransactionHash());
 		// 交易只有唯一的版本；
-		long v = txStateSet.setValue(key, txResultBytes, -1);
+		long v = txDataSet.setValue(key, txResultBytes, -1);
 		if (v < 0) {
 			throw new IllegalTransactionException("Repeated transaction request! --[" + key + "]");
 		}
@@ -270,58 +230,22 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	}
 
 	public boolean isReadonly() {
-		return txStateSet.isReadonly();
+		return txDataSet.isReadonly();
 	}
 
 	@Override
 	public boolean isUpdated() {
-		return txStateSet.isUpdated();
+		return txDataSet.isUpdated();
 	}
 
 	@Override
 	public synchronized void commit() {
-		txSequence.commit();
-		HashDigest txReqRootHash = txSequence.getRootHash();
-		long v = txStateSet.setValue(TX_REQUEST_ROOT_HASH, txReqRootHash.toBytes(), txRequestBlockID);
-		if (v < 0) {
-			throw new LedgerException("Fail to save the root hash of transaction request!");
-		}
-		txStateSet.commit();
-		txRequestBlockID = v;
+		txDataSet.commit();
 	}
 
 	@Override
 	public void cancel() {
-		txSequence.cancel();
-		txStateSet.cancel();
-	}
-
-//	private static class TransactionRequestConverter implements BytesConverter<TransactionRequest> {
-//
-//		@Override
-//		public byte[] toBytes(TransactionRequest value) {
-//			return BinaryProtocol.encode(value, TransactionRequest.class);
-//		}
-//
-//		@Override
-//		public TransactionRequest fromBytes(byte[] bytes) {
-//			return BinaryProtocol.decode(bytes, TransactionRequest.class);
-//		}
-//
-//	}
-
-	private static class HashDigestBytesConverter implements BytesConverter<HashDigest> {
-
-		@Override
-		public byte[] toBytes(HashDigest value) {
-			return value.toBytes();
-		}
-
-		@Override
-		public HashDigest fromBytes(byte[] bytes) {
-			return Crypto.resolveAsHashDigest(bytes);
-		}
-
+		txDataSet.cancel();
 	}
 
 }

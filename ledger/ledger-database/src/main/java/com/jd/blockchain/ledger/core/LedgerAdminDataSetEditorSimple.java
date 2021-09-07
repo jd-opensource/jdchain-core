@@ -55,17 +55,17 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 	/**
 	 * 账本的参与节点；
 	 */
-	private ParticipantDataset participants;
+	private ParticipantDatasetSimple participants;
 
 	/**
 	 * “角色-权限”数据集；
 	 */
-	private RolePrivilegeDataset rolePrivileges;
+	private RolePrivilegeDatasetSimple rolePrivileges;
 
 	/**
 	 * “用户-角色”数据集；
 	 */
-	private UserRoleDatasetEditor userRoles;
+	private UserRoleDatasetEditorSimple userRoles;
 
 	/**
 	 * 账本参数配置；
@@ -97,12 +97,12 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 	}
 
 	@Override
-	public RolePrivilegeDataset getRolePrivileges() {
+	public RolePrivilegeDatasetSimple getRolePrivileges() {
 		return rolePrivileges;
 	}
 
 	@Override
-	public UserRoleDatasetEditor getAuthorizations() {
+	public UserRoleDatasetEditorSimple getAuthorizations() {
 		return userRoles;
 	}
 
@@ -147,7 +147,7 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 
 		// 基于原配置初始化参与者列表；
 		String partiPrefix = keyPrefix + LEDGER_PARTICIPANT_PREFIX;
-		this.participants = new ParticipantDataset(previousSettings.getCryptoSetting(), partiPrefix, exPolicyStorage,
+		this.participants = new ParticipantDatasetSimple(previousSettings.getCryptoSetting(), partiPrefix, exPolicyStorage,
 				versioningStorage);
 
 		for (ParticipantNode p : parties) {
@@ -155,11 +155,11 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 		}
 
 		String rolePrivilegePrefix = keyPrefix + ROLE_PRIVILEGE_PREFIX;
-		this.rolePrivileges = new RolePrivilegeDataset(this.settings.getCryptoSetting(), rolePrivilegePrefix,
+		this.rolePrivileges = new RolePrivilegeDatasetSimple(this.settings.getCryptoSetting(), rolePrivilegePrefix,
 				exPolicyStorage, versioningStorage);
 
 		String userRolePrefix = keyPrefix + USER_ROLE_PREFIX;
-		this.userRoles = new UserRoleDatasetEditor(this.settings.getCryptoSetting(), userRolePrefix, exPolicyStorage,
+		this.userRoles = new UserRoleDatasetEditorSimple(this.settings.getCryptoSetting(), userRolePrefix, exPolicyStorage,
 				versioningStorage);
 
 		// 初始化其它属性；
@@ -182,15 +182,15 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 		this.adminDataHash = adminAccountHash;
 
 		String partiPrefix = keyPrefix + LEDGER_PARTICIPANT_PREFIX;
-		this.participants = new ParticipantDataset(metadata.getParticipantsHash(), previousSettings.getCryptoSetting(),
+		this.participants = new ParticipantDatasetSimple(metadata.getParticipantsHash(), previousSettings.getCryptoSetting(),
 				partiPrefix, kvStorage, versioningKVStorage, readonly);
 
 		String rolePrivilegePrefix = keyPrefix + ROLE_PRIVILEGE_PREFIX;
-		this.rolePrivileges = new RolePrivilegeDataset(metadata.getRolePrivilegesHash(),
+		this.rolePrivileges = new RolePrivilegeDatasetSimple(metadata.getRolePrivilegesHash(),
 				previousSettings.getCryptoSetting(), rolePrivilegePrefix, kvStorage, versioningKVStorage, readonly);
 
 		String userRolePrefix = keyPrefix + USER_ROLE_PREFIX;
-		this.userRoles = new UserRoleDatasetEditor(metadata.getUserRolesHash(), previousSettings.getCryptoSetting(),
+		this.userRoles = new UserRoleDatasetEditorSimple(metadata.getUserRolesHash(), previousSettings.getCryptoSetting(),
 				userRolePrefix, kvStorage, versioningKVStorage, readonly);
 	}
 
@@ -296,7 +296,7 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 	}
 
 	@Override
-	public ParticipantDataset getParticipantDataset() {
+	public ParticipantDatasetSimple getParticipantDataset() {
 		return participants;
 	}
 
