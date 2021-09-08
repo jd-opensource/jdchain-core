@@ -6,15 +6,20 @@ import java.util.Properties;
 
 import utils.PathUtils;
 import utils.PropertiesUtils;
+import utils.StringUtils;
 import utils.io.FileUtils;
 
 public class LocalConfig {
 
-	// 当前参与方的 id；
+	// 当前参与方的 公钥；
 	public static final String LOCAL_PARTI_PUBKEY = "local.parti.pubkey";
+	// 当前参与方的 证书；
+	public static final String LOCAL_PARTI_CA_PATH = "local.parti.ca-path";
 
 	// 当前参与方的私钥（密文编码）；
 	public static final String LOCAL_PARTI_PRIVKEY = "local.parti.privkey";
+	// 当前参与方的私钥文件；
+	public static final String LOCAL_PARTI_PRIVKEY_PATH = "local.parti.privkey-path";
 
 	// 当前参与方的私钥解密密钥(原始口令的一次哈希，Base58格式)，如果不设置，则启动过程中需要从控制台输入；
 	public static final String LOCAL_PARTI_PWD = "local.parti.pwd";
@@ -82,10 +87,17 @@ public class LocalConfig {
 
 		LocalConfig conf = new LocalConfig();
 
-		String pubKeyString = PropertiesUtils.getRequiredProperty(props, LOCAL_PARTI_PUBKEY);
-		conf.local.pubKeyString = pubKeyString;
+		conf.local.pubKeyString = PropertiesUtils.getOptionalProperty(props, LOCAL_PARTI_PUBKEY);
+		conf.local.caPath = PropertiesUtils.getOptionalProperty(props, LOCAL_PARTI_CA_PATH);
+		if(StringUtils.isEmpty(conf.local.pubKeyString) && StringUtils.isEmpty(conf.local.caPath)) {
+			throw new IllegalArgumentException("Property[" + LOCAL_PARTI_PUBKEY + "] and ["+ LOCAL_PARTI_CA_PATH +"] cannot be empty at the same time!");
+		}
 
-		conf.local.privKeyString = PropertiesUtils.getRequiredProperty(props, LOCAL_PARTI_PRIVKEY);
+		conf.local.privKeyString = PropertiesUtils.getOptionalProperty(props, LOCAL_PARTI_PRIVKEY);
+		conf.local.privKeyPath = PropertiesUtils.getOptionalProperty(props, LOCAL_PARTI_PRIVKEY_PATH);
+		if(StringUtils.isEmpty(conf.local.privKeyString) && StringUtils.isEmpty(conf.local.privKeyPath)) {
+			throw new IllegalArgumentException("Property[" + LOCAL_PARTI_PRIVKEY + "] and ["+ LOCAL_PARTI_PRIVKEY_PATH +"] cannot be empty at the same time!");
+		}
 		conf.local.password = PropertiesUtils.getProperty(props, LOCAL_PARTI_PWD, false);
 
 		conf.storagedDb.setConnectionUri(PropertiesUtils.getRequiredProperty(props, LEDGER_DB_URI));
@@ -119,8 +131,9 @@ public class LocalConfig {
 	 */
 	public static class LocalParticipantConfig {
 		private String pubKeyString;
-
+		private String caPath;
 		private String privKeyString;
+		private String privKeyPath;
 
 		private String password;
 
@@ -148,6 +161,25 @@ public class LocalConfig {
 			this.password = password;
 		}
 
+		public void setPubKeyString(String pubKeyString) {
+			this.pubKeyString = pubKeyString;
+		}
+
+		public String getCaPath() {
+			return caPath;
+		}
+
+		public void setCaPath(String caPath) {
+			this.caPath = caPath;
+		}
+
+		public String getPrivKeyPath() {
+			return privKeyPath;
+		}
+
+		public void setPrivKeyPath(String privKeyPath) {
+			this.privKeyPath = privKeyPath;
+		}
 	}
 
 }

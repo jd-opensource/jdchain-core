@@ -1,7 +1,10 @@
 package com.jd.blockchain.tools.initializer;
 
 import java.io.File;
+import java.security.cert.X509Certificate;
 
+import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.ledger.IdentityMode;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -88,8 +91,24 @@ public class LedgerInitCommand {
 
 			// load ledger init setting;
 			LedgerInitProperties ledgerInitProperties = LedgerInitProperties.resolve(iniArg.getValue());
-			String localNodePubKeyString = localConf.getLocal().getPubKeyString();
-			PubKey localNodePubKey = KeyGenUtils.decodePubKey(localNodePubKeyString);
+			// 加载当前节点的私钥；
+			String base58Pwd = localConf.getLocal().getPassword();
+			// TODO imuge 密码问题
+//			if (base58Pwd == null) {
+//				base58Pwd = KeyGenUtils.readPasswordString();
+//			}
+			// 根据 identity-mode 验证 local.conf 参数的正确性
+			PubKey localNodePubKey;
+			PrivKey privKey;
+			if(ledgerInitProperties.getIdentityMode() == IdentityMode.CA) {
+				X509Certificate certificate = X509Utils.resolveCertificate(FileUtils.readText(localConf.getLocal().getCaPath()));
+				localNodePubKey = X509Utils.resolvePubKey(certificate);
+				// TODO imuge 此处涉及到解密
+				privKey = X509Utils.resolvePrivKey(FileUtils.readText(localConf.getLocal().getPrivKeyPath()));
+			} else {
+				localNodePubKey = KeyGenUtils.decodePubKey(localConf.getLocal().getPubKeyString());
+				privKey = KeyGenUtils.decodePrivKey(localConf.getLocal().getPrivKeyString(), base58Pwd);
+			}
 			// 地址根据公钥生成
 			String localNodeAddress = AddressEncoding.generateAddress(localNodePubKey).toBase58();
 
@@ -104,13 +123,6 @@ public class LedgerInitCommand {
 			if (currId == -1) {
 				throw new IllegalStateException("The current node specified in local.conf is not found in ledger.init!");
 			}
-
-			// 加载当前节点的私钥；
-			String base58Pwd = localConf.getLocal().getPassword();
-			if (base58Pwd == null) {
-				base58Pwd = KeyGenUtils.readPasswordString();
-			}
-			PrivKey privKey = KeyGenUtils.decodePrivKey(localConf.getLocal().getPrivKeyString(), base58Pwd);
 
 			// Output ledger binding config of peer;
 			if (!FileUtils.existDirectory(localConf.getBindingOutDir())) {

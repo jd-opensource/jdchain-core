@@ -1,5 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
+import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PrivKey;
@@ -30,6 +31,8 @@ import com.jd.blockchain.storage.service.KVStorageService;
 import com.jd.blockchain.transaction.SignatureUtils;
 import com.jd.blockchain.transaction.TxBuilder;
 import com.jd.blockchain.transaction.TxRequestBuilder;
+
+import java.security.cert.X509Certificate;
 
 /**
  * 账本初始化器；
@@ -93,8 +96,12 @@ public class LedgerInitializer {
 	}
 
 	public static LedgerInitializer create(LedgerInitSetting initSetting, SecurityInitSettings securityInitSettings) {
+		return create(initSetting, securityInitSettings, null);
+	}
+
+	public static LedgerInitializer create(LedgerInitSetting initSetting, SecurityInitSettings securityInitSettings, X509Certificate[] genesisUserCertificates) {
 		// 生成创世交易；
-		TransactionContent initTxContent = buildGenesisTransaction(initSetting, securityInitSettings);
+		TransactionContent initTxContent = buildGenesisTransaction(initSetting, securityInitSettings, genesisUserCertificates);
 
 		return new LedgerInitializer(initSetting, initTxContent);
 	}
@@ -115,7 +122,7 @@ public class LedgerInitializer {
 	 * @return
 	 */
 	public static TransactionContent buildGenesisTransaction(LedgerInitSetting initSetting,
-			SecurityInitSettings securityInitSettings) {
+			SecurityInitSettings securityInitSettings, X509Certificate[] genesisUserCertificates) {
 		// 账本初始化交易的账本 hash 为 null；
 		TransactionBuilder initTxBuilder = new TxBuilder(null, initSetting.getCryptoSetting().getHashAlgorithm());
 
@@ -144,6 +151,15 @@ public class LedgerInitializer {
 		for (UserAuthInitSettings userAuthSettings : securityInitSettings.getUserAuthorizations()) {
 			initTxBuilder.security().authorziations().forUser(userAuthSettings.getUserAddress())
 					.authorize(userAuthSettings.getRoles()).setPolicy(userAuthSettings.getPolicy());
+		}
+
+		// 初始化用户信息
+		for(int i=0; null != genesisUserCertificates && i < genesisUserCertificates.length; i++) {
+			if(X509Utils.checkCertificateRolesAnyNoException(genesisUserCertificates[i], CertificateRole.GW)) {
+				initTxBuilder.participants().register(X509Utils.resolvePubKey(genesisUserCertificates[i]).toBase58(), genesisUserCertificates[i]);
+			} else {
+				initTxBuilder.users().register(genesisUserCertificates[i]);
+			}
 		}
 
 		// 账本初始化配置声明的创建时间来初始化交易时间戳；注：不能用本地时间，因为共识节点之间的本地时间系统不一致；

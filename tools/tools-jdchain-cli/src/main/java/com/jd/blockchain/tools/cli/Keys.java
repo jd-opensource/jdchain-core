@@ -145,6 +145,9 @@ class KeysAdd implements Runnable {
     @CommandLine.Option(names = {"-a", "--algorithm"}, description = "Crypto algorithm")
     String algorithm;
 
+    @CommandLine.Option(names = {"-p", "--password"}, description = "Password of the key")
+    String password;
+
     @CommandLine.ParentCommand
     private Keys keys;
 
@@ -165,10 +168,12 @@ class KeysAdd implements Runnable {
         } else {
             algorithm = null != algorithm ? algorithm.toUpperCase() : "ED25519";
             AsymmetricKeypair keypair = Crypto.getSignatureFunction(algorithm.toUpperCase()).generateKeypair();
-            System.out.println("please input password: ");
-            System.out.print("> ");
-            Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-            String password = scanner.next();
+            if(StringUtils.isEmpty(password)) {
+                System.out.println("please input password: ");
+                System.out.print("> ");
+                Scanner scanner = new Scanner(System.in).useDelimiter("\n");
+                password = scanner.next();
+            }
             if (!StringUtils.isEmpty(password)) {
                 String pubkey = KeyGenUtils.encodePubKey(keypair.getPubKey());
                 String base58pwd = KeyGenUtils.encodePasswordAsBase58(password);

@@ -306,7 +306,7 @@ class TxUserRegister implements Runnable {
                 pubKey = Crypto.resolveAsPubKey(Base58Utils.decode(FileUtils.readText(pubs[0])));
             }
         } else if (!StringUtils.isEmpty(caPath)) {
-            certificate = X509Utils.resolveCertificate(caPath);
+            certificate = X509Utils.resolveCertificate(FileUtils.readText(caPath));
         } else if (!StringUtils.isEmpty(pubkey) && !caMode) {
             pubKey = Crypto.resolveAsPubKey(Base58Utils.decode(pubkey));
         } else {

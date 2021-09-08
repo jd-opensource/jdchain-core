@@ -25,6 +25,7 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import picocli.CommandLine;
+import sun.misc.BASE64Encoder;
 import utils.StringUtils;
 import utils.io.FileUtils;
 
@@ -474,11 +475,59 @@ class CATest implements Runnable {
     @CommandLine.Option(names = "--nodes", required = true, description = "Node size", defaultValue = "4")
     int nodes;
 
+    @CommandLine.Option(names = "--gws", required = true, description = "Gateway size", defaultValue = "1")
+    int gws;
+
     @CommandLine.Option(names = "--users", description = "Available user size", defaultValue = "10")
     int users;
 
+    @CommandLine.Option(names = {"-p", "--password"}, description = "Password of the key")
+    String password;
+
+    @CommandLine.Option(names = "--org", required = true, description = "Organization name")
+    String organization;
+
+    @CommandLine.Option(names = "--country", required = true, description = "Country")
+    String country;
+
+    @CommandLine.Option(names = "--locality", required = true, description = "Locality")
+    String locality;
+
+    @CommandLine.Option(names = "--province", required = true, description = "Province")
+    String province;
+
+    @CommandLine.Option(names = "--email", required = true, description = "Email address")
+    String email;
+
     @CommandLine.ParentCommand
     private CA caCli;
+
+    public static String toPEMString(String algorithm, PrivateKey privateKey) {
+        StringBuilder builder = new StringBuilder();
+        BASE64Encoder encoder = new BASE64Encoder();
+        if (algorithm.equals("SM2")) {
+            builder.append("-----BEGIN EC PARAMETERS----\n" +
+                    "BggqgRzPVQGCLQ==\n" +
+                    "-----END EC PARAMETERS-----\n" +
+                    "-----BEGIN EC PRIVATE KEY-----\n");
+            builder.append(encoder.encodeBuffer(privateKey.getEncoded()));
+            builder.append("-----END EC PRIVATE KEY-----");
+        } else if (algorithm.equals("ECDSA")) {
+            builder.append("-----BEGIN EC PARAMETERS----\n" +
+                    "BgUrgQQACg==\n" +
+                    "-----END EC PARAMETERS-----\n" +
+                    "-----BEGIN EC PRIVATE KEY-----\n");
+            builder.append(encoder.encodeBuffer(privateKey.getEncoded()));
+            builder.append("-----END EC PRIVATE KEY-----");
+        } else {
+            builder.append("-----BEGIN PRIVATE KEY-----");
+            builder.append("\n");
+            builder.append(encoder.encodeBuffer(privateKey.getEncoded()));
+            builder.append("-----END PRIVATE KEY-----");
+        }
+
+        return builder.toString();
+    }
 
     @Override
     public void run() {
@@ -488,12 +537,13 @@ class CATest implements Runnable {
         }
 
         try {
-
-            String password = caCli.scanValue("private key password");
+            if (StringUtils.isEmpty(password)) {
+                password = caCli.scanValue("password for all private keys");
+            }
             // 初始化公私钥对 root,peer[0~nodes-1],user[1~users]
             PrivKey issuerPrivKey = null;
             X509Certificate issuerCrt = null;
-            for (int i = 0; i < nodes + users + 1; i++) {
+            for (int i = 0; i < nodes + users + gws + 1; i++) {
                 String name;
                 CertificateRole ou;
                 if (i == 0) {
@@ -502,17 +552,22 @@ class CATest implements Runnable {
                 } else if (i <= nodes) {
                     name = "peer" + (i - 1);
                     ou = CertificateRole.PEER;
+                } else if (i <= nodes + gws) {
+                    name = "gw" + (i - nodes);
+                    ou = CertificateRole.GW;
                 } else {
-                    name = "user" + (i - nodes);
+                    name = "user" + (i - nodes - gws);
                     ou = CertificateRole.USER;
                 }
-                AsymmetricKeypair keypair = Crypto.getSignatureFunction(algorithm.toUpperCase()).generateKeypair();
+                algorithm = algorithm.toUpperCase();
+                AsymmetricKeypair keypair = Crypto.getSignatureFunction(algorithm).generateKeypair();
                 String pubkey = KeyGenUtils.encodePubKey(keypair.getPubKey());
                 String base58pwd = KeyGenUtils.encodePasswordAsBase58(password);
                 String privkey = KeyGenUtils.encodePrivKey(keypair.getPrivKey(), base58pwd);
                 FileUtils.writeText(pubkey, new File(caCli.getCaHome() + File.separator + name + ".pub"));
                 FileUtils.writeText(privkey, new File(caCli.getCaHome() + File.separator + name + ".priv"));
                 FileUtils.writeText(base58pwd, new File(caCli.getCaHome() + File.separator + name + ".pwd"));
+                FileUtils.writeText(toPEMString(algorithm, X509Utils.resolvePrivateKey(keypair.getPrivKey())), new File(caCli.getCaHome() + File.separator + name + ".key"));
 
                 if (i == 0) {
                     issuerPrivKey = keypair.getPrivKey();
@@ -532,18 +587,13 @@ class CATest implements Runnable {
 
     private X509Certificate genCert(String name, CertificateRole ou, PublicKey publicKey, PrivateKey issuerPrivateKey, X509Certificate issuerCrt) throws Exception {
         X500NameBuilder nameBuilder = new X500NameBuilder(BCStyle.INSTANCE);
-        nameBuilder.addRDN(BCStyle.O, "JDT");
-        if (ou.equals(CertificateRole.PEER)) {
-            nameBuilder.addRDN(BCStyle.OU, CertificateRole.PEER.name());
-            nameBuilder.addRDN(BCStyle.OU, CertificateRole.GW.name());
-        } else {
-            nameBuilder.addRDN(BCStyle.OU, ou.name());
-        }
-        nameBuilder.addRDN(BCStyle.C, "CN");
-        nameBuilder.addRDN(BCStyle.ST, "BJ");
-        nameBuilder.addRDN(BCStyle.L, "BJ");
+        nameBuilder.addRDN(BCStyle.O, organization);
+        nameBuilder.addRDN(BCStyle.OU, ou.name());
+        nameBuilder.addRDN(BCStyle.C, country);
+        nameBuilder.addRDN(BCStyle.ST, province);
+        nameBuilder.addRDN(BCStyle.L, locality);
         nameBuilder.addRDN(BCStyle.CN, name);
-        nameBuilder.addRDN(BCStyle.EmailAddress, "jdchain@jd.com");
+        nameBuilder.addRDN(BCStyle.EmailAddress, email);
         X500Name subject = nameBuilder.build();
         X509v3CertificateBuilder certificateBuilder;
         if (null != issuerCrt) {

@@ -2,9 +2,12 @@ package com.jd.blockchain.gateway;
 
 import java.io.File;
 import java.io.InputStream;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jd.blockchain.ca.CertificateRole;
+import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.gateway.service.topology.LedgerPeersTopology;
 import org.apache.commons.io.FileUtils;
@@ -57,6 +60,7 @@ import utils.ArgumentSet;
 import utils.ArgumentSet.ArgEntry;
 import utils.BaseConstant;
 import utils.ConsoleUtils;
+import utils.StringUtils;
 import utils.net.NetworkAddress;
 import utils.reflection.TypeUtils;
 
@@ -146,18 +150,33 @@ public class GatewayServerBooter {
 		this.springConfigLocation = springConfigLocation;
 
 		String base58Pwd = config.keys().getDefault().getPrivKeyPassword();
-		if (base58Pwd == null || base58Pwd.length() == 0) {
-			base58Pwd = KeyGenUtils.readPasswordString();
-		}
+		// TODO imuge 密码问题
+
+
+//		if (base58Pwd == null || base58Pwd.length() == 0) {
+//			base58Pwd = KeyGenUtils.readPasswordString();
+//		}
 
 		// 加载密钥；
-		PubKey pubKey = KeyGenUtils.decodePubKey(config.keys().getDefault().getPubKeyValue());
+		PubKey pubKey;
+		if(!StringUtils.isEmpty(config.keys().getDefault().getPubKeyValue())) {
+			pubKey = KeyGenUtils.decodePubKey(config.keys().getDefault().getPubKeyValue());
+		} else {
+			X509Certificate certificate = X509Utils.resolveCertificate(utils.io.FileUtils.readText(config.keys().getDefault().getCaPath()));
+			X509Utils.checkValidity(certificate);
+			X509Utils.checkCertificateRole(certificate, CertificateRole.GW);
+			pubKey = X509Utils.resolvePubKey(certificate);
+		}
 
-		PrivKey privKey = null;
+		PrivKey privKey;
 		String base58PrivKey = config.keys().getDefault().getPrivKeyValue();
 		if (base58PrivKey == null) {
-			// 注：GatewayConfigProperties 确保了 PrivKeyValue 和 PrivKeyPath 必有其一；
-			privKey = KeyGenUtils.readPrivKey(config.keys().getDefault().getPrivKeyPath(), base58Pwd);
+			String privkeyString = utils.io.FileUtils.readText(config.keys().getDefault().getPrivKeyPath());
+			if(privkeyString.startsWith("-----BEGIN") && privkeyString.endsWith("PRIVATE KEY-----")) {
+				privKey = X509Utils.resolvePrivKey(privkeyString);
+			} else {
+				privKey = KeyGenUtils.readPrivKey(config.keys().getDefault().getPrivKeyPath(), base58Pwd);
+			}
 		} else {
 			privKey = KeyGenUtils.decodePrivKey(base58PrivKey, base58Pwd);
 		}

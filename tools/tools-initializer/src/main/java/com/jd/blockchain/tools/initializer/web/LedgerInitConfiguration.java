@@ -1,5 +1,6 @@
 package com.jd.blockchain.tools.initializer.web;
 
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -45,6 +46,16 @@ public class LedgerInitConfiguration {
 	private LedgerInitData ledgerSettings;
 
 	private SecurityInitData securitySettings;
+
+	private X509Certificate[] genesisUserCertificates;
+
+	public X509Certificate[] getGenesisUserCertificates() {
+		return genesisUserCertificates;
+	}
+
+	public void setGenesisUserCertificates(X509Certificate[] genesisUserCertificates) {
+		this.genesisUserCertificates = genesisUserCertificates;
+	}
 
 	public ParticipantProperties[] getParticipants() {
 		return participants;
@@ -111,6 +122,8 @@ public class LedgerInitConfiguration {
 
 		SecurityInitData securitySettings = createSecurityInitSettings(ledgerInitProps, participants);
 		ledgerConfig.securitySettings = securitySettings;
+
+		ledgerConfig.genesisUserCertificates = ledgerInitProps.getGenesisUserCertificates();
 
 		return ledgerConfig;
 	}

@@ -339,7 +339,7 @@ public class LedgerInitializeWebController implements LedgerInitProcess, LedgerI
 
 		// 初始化账本；
 		this.initializer = LedgerInitializer.create(ledgerInitConfig.getLedgerSettings(),
-				ledgerInitConfig.getSecuritySettings());
+				ledgerInitConfig.getSecuritySettings(), ledgerInitConfig.getGenesisUserCertificates());
 
 		// 对初始交易签名，生成当前参与者的账本初始化许可；
 		SignatureDigest permissionSign = initializer.signTransaction(privKey);
