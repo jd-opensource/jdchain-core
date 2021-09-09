@@ -1,5 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
+import com.jd.blockchain.ledger.GenesisUser;
 import com.jd.blockchain.ledger.IdentityMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -143,6 +144,7 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 		this.metadata.setIdentityMode(initSetting.getIdentityMode());
 		this.metadata.setLedgerCertificates(initSetting.getLedgerCertificates());
 		this.metadata.setLedgerStructureVersion(initSetting.getLedgerStructureVersion());
+		this.metadata.setGenesisUsers(initSetting.getGenesisUsers());
 		// 新配置；
 		this.settings = new LedgerConfiguration(initSetting.getConsensusProvider(), initSetting.getConsensusSettings(),
 				initSetting.getCryptoSetting());
@@ -406,7 +408,7 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 
 		private byte[] seed;
 
-		private IdentityMode identityMode;
+		private IdentityMode identityMode = IdentityMode.KEYPAIR;
 
 		private String[] ledgerCertificates;
 
@@ -420,6 +422,8 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 
 		private long ledgerStructureVersion = -1L;
 
+		private GenesisUser[] genesisUsers;
+
 		public LedgerMetadataInfo() {
 		}
 
@@ -430,8 +434,11 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 			this.rolePrivilegesHash = metadata.getRolePrivilegesHash();
 			this.userRolesHash = metadata.getUserRolesHash();
 			this.ledgerStructureVersion = metadata.getLedgerStructureVersion();
-			this.identityMode = metadata.getIdentityMode();
+			if(null != metadata.getIdentityMode()) {
+				this.identityMode = metadata.getIdentityMode();
+			}
 			this.ledgerCertificates = metadata.getLedgerCertificates();
+			this.genesisUsers = metadata.getGenesisUsers();
 		}
 
 		@Override
@@ -451,6 +458,15 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 		@Override
 		public String[] getLedgerCertificates() {
 			return ledgerCertificates;
+		}
+
+		public void setGenesisUsers(GenesisUser[] genesisUsers) {
+			this.genesisUsers = genesisUsers;
+		}
+
+		@Override
+		public GenesisUser[] getGenesisUsers() {
+			return genesisUsers;
 		}
 
 		public void setLedgerCertificates(String[] ledgerCertificates) {

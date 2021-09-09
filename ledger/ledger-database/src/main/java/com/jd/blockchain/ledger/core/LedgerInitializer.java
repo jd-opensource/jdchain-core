@@ -10,6 +10,7 @@ import com.jd.blockchain.ledger.BlockchainIdentityData;
 import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.DigitalSignature;
+import com.jd.blockchain.ledger.GenesisUser;
 import com.jd.blockchain.ledger.IdentityMode;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerInitException;
@@ -96,12 +97,7 @@ public class LedgerInitializer {
 	}
 
 	public static LedgerInitializer create(LedgerInitSetting initSetting, SecurityInitSettings securityInitSettings) {
-		return create(initSetting, securityInitSettings, null);
-	}
-
-	public static LedgerInitializer create(LedgerInitSetting initSetting, SecurityInitSettings securityInitSettings, X509Certificate[] genesisUserCertificates) {
-		// 生成创世交易；
-		TransactionContent initTxContent = buildGenesisTransaction(initSetting, securityInitSettings, genesisUserCertificates);
+		TransactionContent initTxContent = buildGenesisTransaction(initSetting, securityInitSettings);
 
 		return new LedgerInitializer(initSetting, initTxContent);
 	}
@@ -122,7 +118,7 @@ public class LedgerInitializer {
 	 * @return
 	 */
 	public static TransactionContent buildGenesisTransaction(LedgerInitSetting initSetting,
-			SecurityInitSettings securityInitSettings, X509Certificate[] genesisUserCertificates) {
+			SecurityInitSettings securityInitSettings) {
 		// 账本初始化交易的账本 hash 为 null；
 		TransactionBuilder initTxBuilder = new TxBuilder(null, initSetting.getCryptoSetting().getHashAlgorithm());
 
@@ -131,13 +127,13 @@ public class LedgerInitializer {
 
 		// TODO: 注册参与方; 目前由 LedgerInitSetting 定义，在 LedgerAdminDataset 中解释执行；
 
-		// 注册用户；
-		for (ParticipantNode p : initSetting.getConsensusParticipants()) {
+		// 注册用户
+		for (GenesisUser u : initSetting.getGenesisUsers()) {
 			if(initSetting.getIdentityMode() == IdentityMode.CA) {
-				initTxBuilder.users().register(X509Utils.resolveCertificate(p.getCertificate()));
+				X509Certificate cert = X509Utils.resolveCertificate(u.getCertificate());
+				initTxBuilder.users().register(cert);
 			} else {
-				BlockchainIdentity superUserId = new BlockchainIdentityData(p.getPubKey());
-				initTxBuilder.users().register(superUserId);
+				initTxBuilder.users().register(new BlockchainIdentityData(u.getPubKey()));
 			}
 		}
 
@@ -151,15 +147,6 @@ public class LedgerInitializer {
 		for (UserAuthInitSettings userAuthSettings : securityInitSettings.getUserAuthorizations()) {
 			initTxBuilder.security().authorziations().forUser(userAuthSettings.getUserAddress())
 					.authorize(userAuthSettings.getRoles()).setPolicy(userAuthSettings.getPolicy());
-		}
-
-		// 初始化用户信息
-		for(int i=0; null != genesisUserCertificates && i < genesisUserCertificates.length; i++) {
-			if(X509Utils.checkCertificateRolesAnyNoException(genesisUserCertificates[i], CertificateRole.GW)) {
-				initTxBuilder.participants().register(X509Utils.resolvePubKey(genesisUserCertificates[i]).toBase58(), genesisUserCertificates[i]);
-			} else {
-				initTxBuilder.users().register(genesisUserCertificates[i]);
-			}
 		}
 
 		// 账本初始化配置声明的创建时间来初始化交易时间戳；注：不能用本地时间，因为共识节点之间的本地时间系统不一致；

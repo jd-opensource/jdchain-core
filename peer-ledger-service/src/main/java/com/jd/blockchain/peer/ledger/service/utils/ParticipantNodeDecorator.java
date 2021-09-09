@@ -18,15 +18,12 @@ public class ParticipantNodeDecorator implements ParticipantNode {
 
     private ParticipantNodeState participantNodeState;
 
-    private String certificate;
-
     public ParticipantNodeDecorator(ParticipantNode participantNode) {
         this.id = participantNode.getId();
         this.address = participantNode.getAddress();
         this.name = participantNode.getName();
         this.pubKey = participantNode.getPubKey();
         this.participantNodeState = participantNode.getParticipantNodeState();
-        this.certificate = participantNode.getCertificate();
     }
 
     @Override
@@ -52,10 +49,5 @@ public class ParticipantNodeDecorator implements ParticipantNode {
     @Override
     public ParticipantNodeState getParticipantNodeState() {
         return this.participantNodeState;
-    }
-
-    @Override
-    public String getCertificate() {
-        return certificate;
     }
 }

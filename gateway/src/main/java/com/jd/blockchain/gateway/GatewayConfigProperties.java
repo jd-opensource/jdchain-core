@@ -170,7 +170,7 @@ public class GatewayConfigProperties {
 		if (configProps.keys.defaultPK.privKeyPath == null && configProps.keys.defaultPK.privKeyValue == null) {
 			throw new IllegalArgumentException("Miss both of pk-path and pk content!");
 		}
-		configProps.keys.defaultPK.privKeyPassword = getProperty(props, DEFAULT_PK_PWD, true);
+		configProps.keys.defaultPK.privKeyPassword = getProperty(props, DEFAULT_PK_PWD, false);
 
 		return configProps;
 	}

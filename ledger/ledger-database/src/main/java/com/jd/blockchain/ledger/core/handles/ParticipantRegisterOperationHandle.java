@@ -28,7 +28,7 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
 
 		ParticipantNode participantNode = new PartNode((int) (adminAccountDataSet.getParticipantCount()),
 				op.getParticipantName(), op.getParticipantID().getPubKey(),
-				ParticipantRegisterOperation.DEFAULT_STATE, op.getCertificate());
+				ParticipantRegisterOperation.DEFAULT_STATE);
 
 		// add new participant
 		adminAccountDataSet.addParticipant(participantNode);
@@ -50,15 +50,12 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
 
 		private ParticipantNodeState participantNodeState;
 
-		private String certificate;
-
-		public PartNode(int id, String name, PubKey pubKey, ParticipantNodeState participantNodeState, String certificate) {
+		public PartNode(int id, String name, PubKey pubKey, ParticipantNodeState participantNodeState) {
 			this.id = id;
 			this.name = name;
 			this.pubKey = pubKey;
 			this.address = AddressEncoding.generateAddress(pubKey);
 			this.participantNodeState = participantNodeState;
-			this.certificate = certificate;
 		}
 
 		@Override
@@ -84,11 +81,6 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
 		@Override
 		public ParticipantNodeState getParticipantNodeState() {
 			return participantNodeState;
-		}
-
-		@Override
-		public String getCertificate() {
-			return certificate;
 		}
 	}
 

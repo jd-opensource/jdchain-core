@@ -19,7 +19,6 @@ public class ParticipantCertData implements ParticipantNode {
 	private String name;
 	private PubKey pubKey;
 	private ParticipantNodeState participantNodeState;
-	private String certificate;
 
 	public ParticipantCertData() {
 	}
@@ -30,7 +29,6 @@ public class ParticipantCertData implements ParticipantNode {
 		this.name = participantNode.getName();
 		this.pubKey = participantNode.getPubKey();
 		this.participantNodeState = participantNode.getParticipantNodeState();
-		this.certificate = participantNode.getCertificate();
 	}
 
 	public ParticipantCertData(Bytes address, String name, PubKey pubKey, ParticipantNodeState participantNodeState) {
@@ -67,11 +65,6 @@ public class ParticipantCertData implements ParticipantNode {
 	@Override
 	public ParticipantNodeState getParticipantNodeState() {
 		return participantNodeState;
-	}
-
-	@Override
-	public String getCertificate() {
-		return certificate;
 	}
 
 	public void setParticipantNodeState(ParticipantNodeState participantNodeState) {

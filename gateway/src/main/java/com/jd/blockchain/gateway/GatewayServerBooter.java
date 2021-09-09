@@ -61,7 +61,6 @@ import utils.ArgumentSet.ArgEntry;
 import utils.BaseConstant;
 import utils.ConsoleUtils;
 import utils.StringUtils;
-import utils.net.NetworkAddress;
 import utils.reflection.TypeUtils;
 
 public class GatewayServerBooter {
@@ -149,14 +148,6 @@ public class GatewayServerBooter {
 		this.config = config;
 		this.springConfigLocation = springConfigLocation;
 
-		String base58Pwd = config.keys().getDefault().getPrivKeyPassword();
-		// TODO imuge 密码问题
-
-
-//		if (base58Pwd == null || base58Pwd.length() == 0) {
-//			base58Pwd = KeyGenUtils.readPasswordString();
-//		}
-
 		// 加载密钥；
 		PubKey pubKey;
 		if(!StringUtils.isEmpty(config.keys().getDefault().getPubKeyValue())) {
@@ -167,18 +158,24 @@ public class GatewayServerBooter {
 			X509Utils.checkCertificateRole(certificate, CertificateRole.GW);
 			pubKey = X509Utils.resolvePubKey(certificate);
 		}
-
+		String base58Pwd = config.keys().getDefault().getPrivKeyPassword();
 		PrivKey privKey;
-		String base58PrivKey = config.keys().getDefault().getPrivKeyValue();
-		if (base58PrivKey == null) {
-			String privkeyString = utils.io.FileUtils.readText(config.keys().getDefault().getPrivKeyPath());
+		String privkeyString = config.keys().getDefault().getPrivKeyValue();
+		if (StringUtils.isEmpty(privkeyString)) {
+			privkeyString = utils.io.FileUtils.readText(config.keys().getDefault().getPrivKeyPath());
 			if(privkeyString.startsWith("-----BEGIN") && privkeyString.endsWith("PRIVATE KEY-----")) {
 				privKey = X509Utils.resolvePrivKey(privkeyString);
 			} else {
-				privKey = KeyGenUtils.readPrivKey(config.keys().getDefault().getPrivKeyPath(), base58Pwd);
+				if (StringUtils.isEmpty(base58Pwd)) {
+					base58Pwd = KeyGenUtils.readPasswordString();
+				}
+				privKey = KeyGenUtils.decodePrivKey(privkeyString, base58Pwd);
 			}
 		} else {
-			privKey = KeyGenUtils.decodePrivKey(base58PrivKey, base58Pwd);
+			if (StringUtils.isEmpty(base58Pwd)) {
+				base58Pwd = KeyGenUtils.readPasswordString();
+			}
+			privKey = KeyGenUtils.decodePrivKey(privkeyString, base58Pwd);
 		}
 		defaultKeyPair = new AsymmetricKeypair(pubKey, privKey);
 	}

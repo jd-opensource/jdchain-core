@@ -124,7 +124,6 @@ public class OperationDecoratorFactory {
         }
         ledgerInitData.setConsensusProvider(op.getInitSetting().getConsensusProvider());
         ledgerInitData.setCreatedTime(op.getInitSetting().getCreatedTime());
-
         ParticipantNode[] participantNodes = op.getInitSetting().getConsensusParticipants();
         if (participantNodes != null && participantNodes.length > 0) {
             ParticipantNode[] participants = new ParticipantNode[participantNodes.length];
@@ -138,6 +137,19 @@ public class OperationDecoratorFactory {
                 participant.setParticipantState(participantNode.getParticipantNodeState());
                 participants[i] = participant;
             }
+
+            GenesisUser[] gus = op.getInitSetting().getGenesisUsers();
+            if(null == gus || gus.length == 0) {
+                gus = new GenesisUserConfig[participantNodes.length];
+                for (int i = 0; i < participantNodes.length; i++) {
+                    gus[i] = new GenesisUserConfig(participantNodes[i].getPubKey(), null, null, null);
+                }
+            }
+            GenesisUser[] genesisUsers = new GenesisUserConfig[gus.length];
+            for(int i=0; i<gus.length; i++) {
+                genesisUsers[i] = new GenesisUserConfig(gus[i]);
+            }
+            ledgerInitData.setGenesisUsers(genesisUsers);
 
             ledgerInitData.setConsensusParticipants(participants);
         }

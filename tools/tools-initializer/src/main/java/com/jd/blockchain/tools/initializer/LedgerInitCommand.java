@@ -2,6 +2,7 @@ package com.jd.blockchain.tools.initializer;
 
 import java.io.File;
 import java.security.cert.X509Certificate;
+import java.util.UUID;
 
 import com.jd.blockchain.ca.X509Utils;
 import com.jd.blockchain.ledger.IdentityMode;
@@ -92,20 +93,18 @@ public class LedgerInitCommand {
 			// load ledger init setting;
 			LedgerInitProperties ledgerInitProperties = LedgerInitProperties.resolve(iniArg.getValue());
 			// 加载当前节点的私钥；
-			String base58Pwd = localConf.getLocal().getPassword();
-			// TODO imuge 密码问题
-//			if (base58Pwd == null) {
-//				base58Pwd = KeyGenUtils.readPasswordString();
-//			}
 			// 根据 identity-mode 验证 local.conf 参数的正确性
+			String base58Pwd = localConf.getLocal().getPassword();
 			PubKey localNodePubKey;
 			PrivKey privKey;
 			if(ledgerInitProperties.getIdentityMode() == IdentityMode.CA) {
 				X509Certificate certificate = X509Utils.resolveCertificate(FileUtils.readText(localConf.getLocal().getCaPath()));
 				localNodePubKey = X509Utils.resolvePubKey(certificate);
-				// TODO imuge 此处涉及到解密
 				privKey = X509Utils.resolvePrivKey(FileUtils.readText(localConf.getLocal().getPrivKeyPath()));
 			} else {
+				if (base58Pwd == null) {
+					base58Pwd = KeyGenUtils.readPasswordString();
+				}
 				localNodePubKey = KeyGenUtils.decodePubKey(localConf.getLocal().getPubKeyString());
 				privKey = KeyGenUtils.decodePrivKey(localConf.getLocal().getPrivKeyString(), base58Pwd);
 			}
@@ -174,6 +173,10 @@ public class LedgerInitCommand {
 	public HashDigest startInit(int currId, PrivKey privKey, String base58Pwd,
 			LedgerInitProperties ledgerInitProperties, DBConnectionConfig dbConnConfig, Prompter prompter,
 			LedgerBindingConfig conf, Object... extBeans) {
+		if(StringUtils.isEmpty(base58Pwd)) {
+			base58Pwd = UUID.randomUUID().toString();
+			prompter.info("Your base58 encode private key password : [%s]!!!", base58Pwd);
+		}
 		if (currId < 0 || currId >= ledgerInitProperties.getConsensusParticipantCount()) {
 			prompter.info(
 					"Your participant id is illegal which is less than 1 or great than the total participants count[%s]!!!",

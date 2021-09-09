@@ -93,11 +93,6 @@ public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperati
         public ParticipantNodeState getParticipantNodeState() {
             return participantNodeState;
         }
-
-        @Override
-        public String getCertificate() {
-            throw new IllegalStateException("Not implement!");
-        }
     }
 
 }
