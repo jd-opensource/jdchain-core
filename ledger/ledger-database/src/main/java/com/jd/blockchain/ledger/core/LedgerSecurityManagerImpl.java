@@ -21,7 +21,7 @@ import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.UserDoesNotExistException;
 import com.jd.blockchain.ledger.UserRoles;
 
-import com.jd.blockchain.ledger.UserState;
+import com.jd.blockchain.ledger.AccountState;
 import utils.Bytes;
 
 import com.jd.blockchain.ledger.UserAuthorizationSettings;
@@ -319,7 +319,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 				for (Bytes address : getEndpoints()) {
 					UserAccount account = userAccountsQuery.getAccount(address);
 					try {
-						if(account.getState() != UserState.NORMAL) {
+						if(account.getState() != AccountState.NORMAL) {
 							continue;
 						}
 						X509Certificate cert = X509Utils.resolveCertificate(account.getCertificate());
@@ -338,7 +338,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 				try {
 					for (Bytes address : getEndpoints()) {
 						UserAccount account = userAccountsQuery.getAccount(address);
-						if(account.getState() != UserState.NORMAL) {
+						if(account.getState() != AccountState.NORMAL) {
 							throw new LedgerSecurityException("Invalid endpoint user!");
 						}
 						X509Certificate cert = X509Utils.resolveCertificate(account.getCertificate());
@@ -363,7 +363,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 				for (Bytes address : getNodes()) {
 					try {
 						UserAccount account = userAccountsQuery.getAccount(address);
-						if(account.getState() != UserState.NORMAL) {
+						if(account.getState() != AccountState.NORMAL) {
 							continue;
 						}
 						X509Certificate cert = X509Utils.resolveCertificate(account.getCertificate());
@@ -382,7 +382,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 				try {
 					for (Bytes address : getNodes()) {
 						UserAccount account = userAccountsQuery.getAccount(address);
-						if(account.getState() != UserState.NORMAL) {
+						if(account.getState() != AccountState.NORMAL) {
 							throw new LedgerSecurityException("Invalid node signer!");
 						}
 						X509Certificate cert = X509Utils.resolveCertificate(account.getCertificate());

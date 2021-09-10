@@ -7,7 +7,7 @@ import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
 
-import com.jd.blockchain.ledger.UserState;
+import com.jd.blockchain.ledger.AccountState;
 import utils.Bytes;
 import utils.io.BytesUtils;
 
@@ -31,7 +31,7 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 
 	private PubKey dataPubKey;
 	private String certificate;
-	private UserState state;
+	private AccountState state;
 
 	@Override
 	public Bytes getAddress() {
@@ -71,19 +71,19 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 	}
 
 	@Override
-	public UserState getState() {
+	public AccountState getState() {
 		if(state == null) {
 			BytesValue rbs = getHeaders().getValue(DATA_STATE);
 			if (rbs == null) {
-				state = UserState.NORMAL;
+				state = AccountState.NORMAL;
 			} else {
-				state = UserState.valueOf(BytesUtils.toString(rbs.getBytes().toBytes()));
+				state = AccountState.valueOf(BytesUtils.toString(rbs.getBytes().toBytes()));
 			}
 		}
 		return state;
 	}
 
-	public void setState(UserState state) {
+	public void setState(AccountState state) {
 		long version = getHeaders().getVersion(DATA_STATE);
 		getHeaders().setValue(DATA_STATE, TypedValue.fromText(state.name()), version);
 		this.state = state;

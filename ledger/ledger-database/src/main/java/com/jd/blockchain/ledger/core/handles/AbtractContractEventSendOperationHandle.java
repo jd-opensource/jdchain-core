@@ -1,5 +1,7 @@
 package com.jd.blockchain.ledger.core.handles;
 
+import com.jd.blockchain.ledger.AccountState;
+import com.jd.blockchain.ledger.IllegalTransactionException;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.MultiLedgerQueryService;
 import org.springframework.stereotype.Service;
@@ -55,12 +57,17 @@ public abstract class AbtractContractEventSendOperationHandle implements Operati
 					contractOP.getContractAddress()));
 		}
 
+		// 校验合约状态
+		ContractAccount contract = contractSet.getAccount(contractOP.getContractAddress());
+		if (null != contract && contract.getState() != AccountState.NORMAL) {
+			throw new IllegalTransactionException("Can not call contract[" + contract.getAddress() + "] in "+ contract.getState() +" state.");
+		}
+
 		// 创建合约的账本上下文实例；
 		ContractLedgerContext ledgerContext = new ContractLedgerContext(opHandleContext, new ContractLedgerQueryService(ledger), new MultiLedgerQueryService(ledger));
 		UncommittedLedgerQueryService uncommittedLedgerQueryService = new UncommittedLedgerQueryService(transactionContext);
 
 		// 先检查合约引擎是否已经加载合约；如果未加载，再从账本中读取合约代码并装载到引擎中执行；
-		ContractAccount contract = contractSet.getAccount(contractOP.getContractAddress());
 		if (contract == null) {
 			throw new LedgerException(String.format("Contract was not registered! --[ContractAddress=%s]",
 					contractOP.getContractAddress()));

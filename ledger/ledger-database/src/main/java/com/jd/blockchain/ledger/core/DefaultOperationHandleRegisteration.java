@@ -51,6 +51,8 @@ public class DefaultOperationHandleRegisteration implements OperationHandleRegis
 		registerDefaultHandle(new RootCAUpdateOperationHandle());
 
 		registerDefaultHandle(new UserCAUpdateOperationHandle());
+
+		registerDefaultHandle(new ContractStateUpdateOperationHandle());
 	}
 
 	private static void registerDefaultHandle(OperationHandle handle) {

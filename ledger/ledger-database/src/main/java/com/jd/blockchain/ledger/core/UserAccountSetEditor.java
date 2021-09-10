@@ -6,7 +6,7 @@ import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.UserState;
+import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 
@@ -134,7 +134,7 @@ public class UserAccountSetEditor implements Transactional, UserAccountSet {
 		accountSet.cancel();
 	}
 
-	public void setState(Bytes address, UserState state) {
+	public void setState(Bytes address, AccountState state) {
 		getAccount(address).setState(state);
 	}
 

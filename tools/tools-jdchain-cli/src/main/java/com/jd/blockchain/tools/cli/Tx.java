@@ -23,7 +23,7 @@ import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.ledger.TransactionTemplate;
 import com.jd.blockchain.ledger.TypedValue;
-import com.jd.blockchain.ledger.UserState;
+import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.sdk.client.GatewayBlockchainServiceProxy;
 import com.jd.blockchain.sdk.client.GatewayServiceFactory;
 import com.jd.blockchain.transaction.RolePrivilegeConfigurer;
@@ -57,7 +57,7 @@ import java.util.Scanner;
                 TxLedgerCAUpdate.class,
                 TxUserRegister.class,
                 TxUserCAUpdate.class,
-                TxUserRevoke.class,
+                TxUserStateUpdate.class,
                 TxRoleConfig.class,
                 TxAuthorziationConfig.class,
                 TxDataAccountRegister.class,
@@ -65,6 +65,7 @@ import java.util.Scanner;
                 TxEventPublish.class,
                 TxContractDeploy.class,
                 TxContractCall.class,
+                TxContractStateUpdate.class,
                 TxEventAccountRegister.class,
                 TxSign.class,
                 TxSend.class,
@@ -412,13 +413,13 @@ class TxUserCAUpdate implements Runnable {
 }
 
 @CommandLine.Command(name = "user-state-update", mixinStandardHelpOptions = true, header = "Update user(certificate) state.")
-class TxUserRevoke implements Runnable {
+class TxUserStateUpdate implements Runnable {
 
     @CommandLine.Option(names = "--address", required = true, description = "User address", scope = CommandLine.ScopeType.INHERIT)
     String address;
 
     @CommandLine.Option(names = "--state", required = true, description = "User state，Optional values: FREEZE,NORMAL,REVOKE", scope = CommandLine.ScopeType.INHERIT)
-    UserState state;
+    AccountState state;
 
     @CommandLine.ParentCommand
     private Tx txCommand;
@@ -690,6 +691,39 @@ class TxContractCall implements Runnable {
                     }
                 } else {
                     System.err.println("call contract failed!");
+                }
+            }
+        }
+    }
+}
+
+@CommandLine.Command(name = "contract-state-update", mixinStandardHelpOptions = true, header = "Update contract state.")
+class TxContractStateUpdate implements Runnable {
+
+    @CommandLine.Option(names = "--address", required = true, description = "Contract address", scope = CommandLine.ScopeType.INHERIT)
+    String address;
+
+    @CommandLine.Option(names = "--state", required = true, description = "Contract state，Optional values: FREEZE,NORMAL,REVOKE", scope = CommandLine.ScopeType.INHERIT)
+    AccountState state;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        TransactionTemplate txTemp = txCommand.newTransaction();
+        txTemp.contract(address).state(state);
+        PreparedTransaction ptx = txTemp.prepare();
+        String txFile = txCommand.export(ptx);
+        if (null != txFile) {
+            System.out.println("export transaction success: " + txFile);
+        } else {
+            if (txCommand.sign(ptx)) {
+                TransactionResponse response = ptx.commit();
+                if (response.isSuccess()) {
+                    System.out.printf("change contract: [%s] state to:[%s]%n", address, state);
+                } else {
+                    System.err.println("change contract state failed!");
                 }
             }
         }

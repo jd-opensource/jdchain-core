@@ -15,7 +15,7 @@ import com.jd.blockchain.consensus.bftsmart.service.BftsmartNodeState;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.ledger.BlockRollbackException;
 import com.jd.blockchain.ledger.IdentityMode;
-import com.jd.blockchain.ledger.UserState;
+import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.ledger.core.UserAccount;
 import com.jd.blockchain.sdk.proxy.HttpBlockchainBrowserService;
 import com.jd.blockchain.transaction.BlockchainQueryService;
@@ -358,7 +358,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				if(ledgerIdMode.get(ledgerHash) == IdentityMode.CA) {
 					// 当前Peer证书
 					UserAccount peerAccount = ledgerRepo.getUserAccountSet().getAccount(ledgerCurrNodes.get(ledgerHash).getAddress());
-					if(peerAccount.getState() != UserState.NORMAL) {
+					if(peerAccount.getState() != AccountState.NORMAL) {
 						LOGGER.error(String.format("Authenticate ledger[%s] error ! peer state is [%s]", ledgerHash.toBase58(), peerAccount.getState()));
 						continue;
 					}
@@ -375,7 +375,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 					// 接入网关CA
 					UserAccount gwAccount = ledgerRepo.getUserAccountSet().getAccount(AddressEncoding.generateAddress(clientPubKey));
-					if(gwAccount.getState() != UserState.NORMAL) {
+					if(gwAccount.getState() != AccountState.NORMAL) {
 						LOGGER.error(String.format("Authenticate ledger[%s] error ! gateway state is [%s]", ledgerHash.toBase58(), peerAccount.getState()));
 						continue;
 					}

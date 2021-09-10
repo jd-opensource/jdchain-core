@@ -1,6 +1,7 @@
 package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.ledger.GenesisUser;
+import com.jd.blockchain.ledger.GenesisUserConfig;
 import com.jd.blockchain.ledger.IdentityMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -438,7 +439,13 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 				this.identityMode = metadata.getIdentityMode();
 			}
 			this.ledgerCertificates = metadata.getLedgerCertificates();
-			this.genesisUsers = metadata.getGenesisUsers();
+			if(null != metadata.getGenesisUsers()) {
+				GenesisUser[] users = metadata.getGenesisUsers();
+				this.genesisUsers = new GenesisUserConfig[users.length];
+				for (int i = 0; i < users.length; i++) {
+					this.genesisUsers[i] = new GenesisUserConfig(users[i]);
+				}
+			}
 		}
 
 		@Override

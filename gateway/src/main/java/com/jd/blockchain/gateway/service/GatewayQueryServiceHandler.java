@@ -68,8 +68,7 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 	}
 
 	private DecompliedContractInfo contractSettings(ContractInfo contractInfo) {
-		DecompliedContractInfo contractSettings = new DecompliedContractInfo(contractInfo.getAddress(), contractInfo.getPubKey(),
-				contractInfo.getHeaderRootHash(), contractInfo.getDataRootHash());
+		DecompliedContractInfo contractSettings = new DecompliedContractInfo(contractInfo);
 		byte[] chainCodeBytes = contractInfo.getChainCode();
 
 		try {

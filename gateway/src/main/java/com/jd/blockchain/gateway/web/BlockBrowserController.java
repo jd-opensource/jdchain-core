@@ -376,8 +376,7 @@ public class BlockBrowserController implements BlockchainBrowserService {
 		if (null == contractInfo) {
 			return null;
 		}
-		DecompliedContractInfo contractSettings = new DecompliedContractInfo(contractInfo.getAddress(),
-				contractInfo.getPubKey(), contractInfo.getHeaderRootHash(), contractInfo.getDataRootHash());
+		DecompliedContractInfo contractSettings = new DecompliedContractInfo(contractInfo);
 		byte[] chainCodeBytes = contractInfo.getChainCode();
 		try {
 			// 将反编译chainCode

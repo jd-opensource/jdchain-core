@@ -27,6 +27,7 @@ Commands:
   event                   Publish event.
   contract-deploy         Deploy or update contract.
   contract                Call contract method.
+  contract-state-update   Update contract state.
   event-account-register  Register event account.
   sign                    Sign transaction.
   send                    Send transaction.
@@ -48,10 +49,11 @@ Commands:
 - `authorization`，[权限配置](#权限配置)
 - `data-account-register`，[注册数据账户](#注册数据账户)
 - `kv`，[KV设值](#KV设值)
--  `event-account-register`，[注册事件账户](#注册事件账户)
+- `event-account-register`，[注册事件账户](#注册事件账户)
 - `event`，[发布事件](#发布事件)
 - `contract-deploy`，[部署合约](#部署合约)
 - `contract`，[合约调用](#合约调用)
+- `contract-state-update`，[更新合约状态](#更新合约状态)
 - `sign`，[离线交易签名](#离线交易签名)
 - `send`，[离线交易发送](#离线交易发送)
 
@@ -206,7 +208,7 @@ Usage: jdchain-cli tx user-state-update [-hV] [--pretty] --address=<address>
       --state=<state>       User state，Optional values: FREEZE,NORMAL,REVOKE
   -V, --version             Print version information and exit.
 ```
-- `address`，待撤销用户(证书)地址
+- `address`，用户地址
 - `state`，用户状态，可选值：FREEZE，NORMAL，REVOKE
 
 如冻结用户`LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W`：
@@ -581,6 +583,48 @@ call contract success
 return string: LdeNqvSjL4izfpMNsGpQiBpTBse4g6qLxZ6j5
 ```
 调用成功并返回了字符串：`LdeNqvSjL4izfpMNsGpQiBpTBse4g6qLxZ6j5`
+
+#### 更新合约状态
+
+```bash
+:bin$ ./jdchain-cli.sh tx contract-state-update -h
+Update contract state.
+Usage: jdchain-cli tx contract-state-update [-hV] [--pretty]
+       --address=<address> [--export=<export>] [--gw-host=<gwHost>]
+       [--gw-port=<gwPort>] [--home=<path>] --state=<state>
+      --address=<address>   Contract address
+      --export=<export>     Transaction export directory
+      --gw-host=<gwHost>    Set the gateway host. Default: 127.0.0.1
+      --gw-port=<gwPort>    Set the gateway port. Default: 8080
+  -h, --help                Show this help message and exit.
+      --home=<path>         Set the home directory.
+      --pretty              Pretty json print
+      --state=<state>       Contract state，Optional values: FREEZE,NORMAL,
+                              REVOKE
+  -V, --version             Print version information and exit.
+```
+- `address`，合约地址
+- `state`，合约状态，可选值：FREEZE，NORMAL，REVOKE
+
+如冻结合约`LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W`：
+```bash
+:bin$ $ ./jdchain-cli.sh tx contract-revoke --address LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W  --state FREEZE
+select ledger, input the index:
+INDEX   LEDGER
+0       j5pFrMigE47t6TobQJXsztnoeA29H31v1vHHF1wqCp4rzi
+// 选择账本，当前网关服务只有上面一个可用账本
+> 0
+select keypair to sign tx:
+INDEX   KEY     ADDRESS
+0       peer0   LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W
+// 选择链上已存在且有注册用户权限的用户所对应的公私钥对，用于交易签名
+> 0
+input password of the key:
+// 输入签名私钥密码
+> 1
+contract: [LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W] revoked
+```
+会冻结链上地址为`LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W`的合约，此合约不能再被调用。
 
 
 #### 离线交易签名

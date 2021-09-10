@@ -34,7 +34,7 @@ import com.jd.blockchain.ledger.UserCAUpdateOperation;
 import com.jd.blockchain.ledger.UserInfo;
 import com.jd.blockchain.ledger.UserPrivilegeSet;
 import com.jd.blockchain.ledger.UserRegisterOperation;
-import com.jd.blockchain.ledger.UserState;
+import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.ledger.UserStateUpdateOperation;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.transaction.BlockchainQueryService;
@@ -398,7 +398,7 @@ public class ContractLedgerContext implements LedgerContext {
 
 		@Override
 		public UserStateUpdateOperation revoke() {
-			UserStateUpdateOperation op = new UserStateUpdateOpTemplate(address, UserState.REVOKE);
+			UserStateUpdateOperation op = new UserStateUpdateOpTemplate(address, AccountState.REVOKE);
 			generatedOpList.add(op);
 			opHandleContext.handle(op);
 			return op;
@@ -406,7 +406,7 @@ public class ContractLedgerContext implements LedgerContext {
 
 		@Override
 		public UserStateUpdateOperation freeze() {
-			UserStateUpdateOperation op = new UserStateUpdateOpTemplate(address, UserState.FREEZE);
+			UserStateUpdateOperation op = new UserStateUpdateOpTemplate(address, AccountState.FREEZE);
 			generatedOpList.add(op);
 			opHandleContext.handle(op);
 			return op;
@@ -414,14 +414,14 @@ public class ContractLedgerContext implements LedgerContext {
 
 		@Override
 		public UserStateUpdateOperation restore() {
-			UserStateUpdateOperation op = new UserStateUpdateOpTemplate(address, UserState.NORMAL);
+			UserStateUpdateOperation op = new UserStateUpdateOpTemplate(address, AccountState.NORMAL);
 			generatedOpList.add(op);
 			opHandleContext.handle(op);
 			return op;
 		}
 
 		@Override
-		public UserStateUpdateOperation state(UserState state) {
+		public UserStateUpdateOperation state(AccountState state) {
 			UserStateUpdateOperation op = new UserStateUpdateOpTemplate(address, state);
 			generatedOpList.add(op);
 			opHandleContext.handle(op);
