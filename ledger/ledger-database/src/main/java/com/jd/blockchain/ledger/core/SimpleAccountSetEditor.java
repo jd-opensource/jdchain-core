@@ -23,7 +23,7 @@ import utils.Transactional;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<CompositeAccountSimple> {
+public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<CompositeAccount> {
 
 	private final Bytes keyPrefix;
 
@@ -48,6 +48,8 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 
 	private volatile boolean updated;
 
+	private long preBlockHeight;
+
 	private AccountAccessPolicy accessPolicy;
 
 	public boolean isReadonly() {
@@ -56,17 +58,18 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 
 	public SimpleAccountSetEditor(CryptoSetting cryptoSetting, Bytes keyPrefix, ExPolicyKVStorage exStorage,
                                   VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
-		this(null, cryptoSetting, keyPrefix, exStorage, verStorage, false, accessPolicy);
+		this(-1, null, cryptoSetting, keyPrefix, exStorage, verStorage, false, accessPolicy);
 	}
 
-	public SimpleAccountSetEditor(HashDigest rootHash, CryptoSetting cryptoSetting, Bytes keyPrefix,
+	public SimpleAccountSetEditor(long preBlockHeight, HashDigest rootHash, CryptoSetting cryptoSetting, Bytes keyPrefix,
                                   ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
                                   AccountAccessPolicy accessPolicy) {
 		this.keyPrefix = keyPrefix;
 		this.cryptoSetting = cryptoSetting;
 		this.baseExStorage = exStorage;
 		this.baseVerStorage = verStorage;
-		this.merkleDataset = new SimpleDatasetImpl(rootHash, cryptoSetting, keyPrefix, this.baseExStorage,
+		this.preBlockHeight = preBlockHeight;
+		this.merkleDataset = new SimpleDatasetImpl(preBlockHeight, rootHash, cryptoSetting, keyPrefix, this.baseExStorage,
 				this.baseVerStorage, readonly);
 
 		this.accessPolicy = accessPolicy;
@@ -127,7 +130,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 	}
 
 	@Override
-	public CompositeAccountSimple getAccount(String address) {
+	public CompositeAccount getAccount(String address) {
 		return getAccount(Bytes.fromBase58(address));
 	}
 
@@ -138,7 +141,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 	 * @return
 	 */
 	@Override
-	public CompositeAccountSimple getAccount(Bytes address) {
+	public CompositeAccount getAccount(Bytes address) {
 		return this.getAccount(address, -1);
 	}
 
@@ -190,7 +193,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 	 * @param version 账户版本；如果指定为 -1，则返回最新版本；
 	 * @return
 	 */
-	public CompositeAccountSimple getAccount(Bytes address, long version) {
+	public CompositeAccount getAccount(Bytes address, long version) {
 		version = version < 0 ? -1 : version;
 		InnerSimpleAccount acc = latestAccountsCache.get(address);
 		if (acc != null && version == -1) {
@@ -237,7 +240,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 		return acc;
 	}
 
-	public CompositeAccountSimple register(Bytes address, PubKey pubKey) {
+	public CompositeAccount register(Bytes address, PubKey pubKey) {
 		return register(new BlockchainIdentityData(address, pubKey));
 	}
 
@@ -252,7 +255,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 	 * @param pubKey  公钥；
 	 * @return 注册成功的账户对象；
 	 */
-	public CompositeAccountSimple register(BlockchainIdentity accountId) {
+	public CompositeAccount register(BlockchainIdentity accountId) {
 		if (isReadonly()) {
 			throw new IllegalArgumentException("This AccountSet is readonly!");
 		}
@@ -391,7 +394,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 
 	/**
 	 * 内部实现的账户，监听和同步账户数据的变更；
-	 * 
+	 *
 	 * @author huanghaiquan
 	 *
 	 */
@@ -401,14 +404,14 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 
 		public InnerSimpleAccount(BlockchainIdentity accountID, CryptoSetting cryptoSetting, Bytes keyPrefix,
 				ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
-			super(accountID, cryptoSetting, keyPrefix, exStorage, verStorage);
+			super(preBlockHeight, accountID, cryptoSetting, keyPrefix, exStorage, verStorage);
 			this.version = -1;
 		}
 
 		public InnerSimpleAccount(Bytes address, long version, HashDigest headerRootHash, HashDigest dataRootHash,
 				CryptoSetting cryptoSetting, Bytes keyPrefix, ExPolicyKVStorage exStorage,
 				VersioningKVStorage verStorage, boolean readonly) {
-			super(address, headerRootHash, dataRootHash, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
+			super(preBlockHeight, address, headerRootHash, dataRootHash, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
 			this.version = version;
 		}
 

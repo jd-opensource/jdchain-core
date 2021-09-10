@@ -6,20 +6,14 @@ import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.IllegalTransactionException;
-import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionResult;
 import com.jd.blockchain.ledger.TransactionState;
-import com.jd.blockchain.ledger.merkletree.BytesConverter;
-import com.jd.blockchain.ledger.merkletree.MerkleList;
-import com.jd.blockchain.ledger.merkletree.TreeOptions;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import utils.Bytes;
-import utils.DataEntry;
-import utils.SkippingIterator;
 import utils.Transactional;
 import utils.codec.Base58Utils;
 
@@ -30,16 +24,22 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		DataContractRegistry.register(LedgerTransaction.class);
 	}
 
-	private static final String TX_PREFIX = "TX" + LedgerConsts.KEY_SEPERATOR;
-
 	private static final Bytes TX_REQUEST_KEY_PREFIX = Bytes.fromString("REQ" + LedgerConsts.KEY_SEPERATOR);
 
 	private static final Bytes TX_RESULT_KEY_PREFIX = Bytes.fromString("RST" + LedgerConsts.KEY_SEPERATOR);
+
+	private static final Bytes TX_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
+
+	private static final Bytes TX_TOTOAL_KEY_PREFIX = Bytes.fromString("TOTAL" + LedgerConsts.KEY_SEPERATOR);
 
 	/**
 	 * 交易状态集合；用于记录交易执行结果；
 	 */
 	private SimpleDataset<Bytes, byte[]> txDataSet;
+
+	private long preBlockHeight;
+
+	private long txIndex = -1;
 
 	/**
 	 * Create a new TransactionSet which can be added transaction;
@@ -50,9 +50,8 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	 */
 	public TransactionSetEditorSimple(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage merkleTreeStorage,
                                       VersioningKVStorage dataStorage) {
-
-		Bytes txPrefix = Bytes.fromString(keyPrefix + TX_PREFIX);
-		this.txDataSet = new SimpleDatasetImpl(setting, txPrefix, merkleTreeStorage, dataStorage);
+		this.preBlockHeight = -1;
+		this.txDataSet = new SimpleDatasetImpl(setting, keyPrefix, merkleTreeStorage, dataStorage);
 	}
 
 	/**
@@ -62,11 +61,10 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	 * @param merkleTreeStorage
 	 * @param dataStorage
 	 */
-	public TransactionSetEditorSimple(HashDigest txRootHash, CryptoSetting setting, String keyPrefix,
+	public TransactionSetEditorSimple(long preBlockHeight, HashDigest txsetHash, CryptoSetting setting, String keyPrefix,
                                       ExPolicyKVStorage merkleTreeStorage, VersioningKVStorage dataStorage, boolean readonly) {
-
-		Bytes txPrefix = Bytes.fromString(keyPrefix + TX_PREFIX);
-		this.txDataSet = new SimpleDatasetImpl(txRootHash, setting, txPrefix, merkleTreeStorage, dataStorage,
+		this.preBlockHeight = preBlockHeight;
+		this.txDataSet = new SimpleDatasetImpl(preBlockHeight, txsetHash, setting, keyPrefix, merkleTreeStorage, dataStorage,
 				readonly);
 	}
 
@@ -76,15 +74,11 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
 		}
 
-		SkippingIterator<HashDigest> txReqIterator = txSequence.iterator();
-
-		txReqIterator.skip(fromIndex);
-
-		int txCount = (int) Math.min(txReqIterator.getCount(), (long) count);
+		int txCount = (int) Math.min(getTotalCount(), (long) count);
 		LedgerTransaction[] ledgerTransactions = new LedgerTransaction[txCount];
 
-		for (int i = 0; i < txCount; i++) {
-			HashDigest txHash = txReqIterator.next();
+		for (int i = fromIndex; i < fromIndex + txCount; i++) {
+			HashDigest txHash = loadReqHash(i);
 			ledgerTransactions[i] = getTransaction(txHash);
 		}
 		return ledgerTransactions;
@@ -96,15 +90,11 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
 		}
 
-		SkippingIterator<HashDigest> txReqIterator = txSequence.iterator();
-
-		txReqIterator.skip(fromIndex);
-
-		int txCount = (int) Math.min(txReqIterator.getCount(), (long) count);
+		int txCount = (int) Math.min(getTotalCount(), (long) count);
 		TransactionResult[] ledgerTransactions = new TransactionResult[txCount];
 
-		for (int i = 0; i < txCount; i++) {
-			HashDigest txHash = txReqIterator.next();
+		for (int i = fromIndex; i < fromIndex + txCount; i++) {
+			HashDigest txHash = loadReqHash(i);
 			ledgerTransactions[i] = loadResult(txHash);
 		}
 		return ledgerTransactions;
@@ -122,7 +112,11 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 
 	@Override
 	public long getTotalCount() {
-		return txSequence.size();
+		// key =  keyprefix + TOTAL/preBlockHeight
+		// 暂时未包括缓存中的交易数
+		Bytes key = encodeTotalNumKey(preBlockHeight);
+
+		return txDataSet.getDataCount();
 	}
 
 	/**
@@ -133,6 +127,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		// TODO: 优化对交易内存存储的优化，应对大数据量单交易，共享操作的“写集”与实际写入账户的KV版本；
 		saveRequest(txRequest);
 		saveResult(txResult);
+		saveSequence(txRequest);
 	}
 
 	public LedgerTransaction getTransaction(String base58Hash) {
@@ -221,12 +216,88 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		}
 	}
 
+	// 以区块高度为维度记录交易索引号
+	private void saveSequenceByHeight(TransactionRequest txRequest) {
+		txIndex++;
+		Bytes blockHeightPrefix = Bytes.fromString(String.valueOf(preBlockHeight + 1) + LedgerConsts.KEY_SEPERATOR);
+
+		// key =  keyprefix + SEQ/blockheight/txindex
+		Bytes key = encodeSeqKeyByHeight(blockHeightPrefix, txIndex);
+		// 交易序号只有唯一的版本；
+		long v = txDataSet.setValue(key, txRequest.getTransactionHash().toBytes(), -1);
+		if (v < 0) {
+			throw new IllegalTransactionException("Repeated transaction request sequence! --[" + key + "]");
+		}
+
+	}
+
+	// 以账本为维度记录交易索引号
+	private void saveSequence(TransactionRequest txRequest) {
+		txIndex++;
+		// key = keyprefix + SEQ/txindex
+		Bytes key = encodeSeqKey(getTotalCount() + txIndex);
+		// 交易序号只有唯一的版本；
+		long v = txDataSet.setValue(key, txRequest.getTransactionHash().toBytes(), -1);
+		if (v < 0) {
+			throw new IllegalTransactionException("Repeated transaction request sequence! --[" + key + "]");
+		}
+	}
+
+	// 以区块为维度，加载指定交易索引的交易请求hash
+	private HashDigest loadReqHash(long blockHeight, long txIndex) {
+		// transaction sequence has only one version;
+		Bytes blockHeightPrefix = Bytes.fromString(String.valueOf(blockHeight) + LedgerConsts.KEY_SEPERATOR);
+
+		Bytes key = encodeSeqKeyByHeight(blockHeightPrefix, txIndex);
+		byte[] txHashBytes = txDataSet.getValue(key, 0);
+		if (txHashBytes == null) {
+			return null;
+		}
+		return Crypto.resolveAsHashDigest(txHashBytes);
+	}
+
+	// 以账本为维度，加载指定交易索引的交易请求hash
+	private HashDigest loadReqHash(long txIndex) {
+		Bytes key = encodeSeqKey(txIndex);
+		byte[] txHashBytes = txDataSet.getValue(key, 0);
+		if (txHashBytes == null) {
+			return null;
+		}
+		return Crypto.resolveAsHashDigest(txHashBytes);
+	}
+
+	// 需要仔细考虑，比如中间状态
+//	private long loadTxTotalNum() {
+//		// transaction sequence has only one version;
+//		Bytes blockHeightPrefix = Bytes.fromString(String.valueOf(preBlockHeight + 1) + LedgerConsts.KEY_SEPERATOR);
+//
+//		Bytes key = encodeSeqKey(txIndex);
+//
+//		byte[] txHashBytes = txDataSet.getValue(key, preBlockHeight);
+//		if (txHashBytes == null) {
+//			return 0;
+//		}
+//		return 0;
+//	}
+
 	private Bytes encodeResultKey(HashDigest txContentHash) {
 		return TX_RESULT_KEY_PREFIX.concat(txContentHash);
 	}
 	
 	private Bytes encodeRequestKey(HashDigest txContentHash) {
 		return TX_REQUEST_KEY_PREFIX.concat(txContentHash);
+	}
+
+	private Bytes encodeSeqKeyByHeight(Bytes blockHeightPrefix, long txIndex) {
+		return TX_SEQUENCE_KEY_PREFIX.concat(blockHeightPrefix).concat(Bytes.fromString(String.valueOf(txIndex)));
+	}
+
+	private Bytes encodeSeqKey(long txIndex) {
+		return TX_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(txIndex)));
+	}
+
+	private Bytes encodeTotalNumKey(long preBlockHeight) {
+		return TX_TOTOAL_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(preBlockHeight)));
 	}
 
 	public boolean isReadonly() {

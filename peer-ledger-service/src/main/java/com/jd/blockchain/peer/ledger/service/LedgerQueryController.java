@@ -3,6 +3,9 @@ package com.jd.blockchain.peer.ledger.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jd.blockchain.ledger.core.IteratorDataset;
+import com.jd.blockchain.ledger.core.MerkleDataset;
+import com.jd.blockchain.ledger.core.SimpleDataset;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -594,7 +597,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		fromIndex = queryArgs.getFrom();
 		count = queryArgs.getCount();
 
-		SkippingIterator<DataEntry<String, TypedValue>> iterator = dataAccount.getDataset().iterator();
+		SkippingIterator<DataEntry<String, TypedValue>> iterator = ((IteratorDataset)dataAccount.getDataset()).iterator();
 		iterator.skip(fromIndex);
 		TypedKVEntry[] typedKVEntries = iterator.next(count, TypedKVEntry.class,
 				new Mapper<DataEntry<String, TypedValue>, TypedKVEntry>() {

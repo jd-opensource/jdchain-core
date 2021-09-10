@@ -17,14 +17,15 @@ import utils.AbstractSkippingIterator;
 import utils.Bytes;
 import utils.DataEntry;
 import utils.SkippingIterator;
+import utils.io.BytesUtils;
 
 /**
- * {@link SimpleDatasetImpl} 是基于默克尔树({@link MerkleHashSortTree})对数据的键维护一种数据集结构；
+ * {@link SimpleDatasetImpl}
  * <br>
  *
  * 注：此实现不是线程安全的；
  *
- * @author huanghaiquan
+ * @author
  *
  */
 public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
@@ -38,7 +39,6 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	public static final Bytes DATA_PREFIX = Bytes.fromString("KV" + LedgerConsts.KEY_SEPERATOR);
 
 	@SuppressWarnings("unchecked")
-	private static final DataEntry<Bytes, byte[]>[] EMPTY_ENTRIES = new DataEntry[0];
 
 	private final HashFunction DEFAULT_HASH_FUNCTION;
 
@@ -46,7 +46,9 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 
 	private BufferedKVStorage valueStorage;
 
-//	private MerkleTree merkleTree;
+	private HashDigest rootHash;
+
+	private long preBlockHeight;
 
 	private boolean readonly;
 
@@ -57,7 +59,7 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 */
 	@Override
 	public HashDigest getRootHash() {
-		return merkleTree.getRootHash();
+		return rootHash;
 	}
 
 	/**
@@ -81,7 +83,7 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 */
 	public SimpleDatasetImpl(CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage exPolicyStorage,
                              VersioningKVStorage versioningStorage) {
-		this(null, setting, keyPrefix, exPolicyStorage, versioningStorage, false);
+		this(-1, null, setting, keyPrefix, exPolicyStorage, versioningStorage, false);
 	}
 
 	/**
@@ -93,9 +95,9 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 * @param merkleTreeStorage
 	 * @param snGenerator
 	 */
-	public SimpleDatasetImpl(HashDigest merkleRootHash, CryptoSetting setting, String keyPrefix,
+	public SimpleDatasetImpl(long preBlockHeight, HashDigest prevRootHash, CryptoSetting setting, String keyPrefix,
                              ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
-		this(merkleRootHash, setting, Bytes.fromString(keyPrefix), exPolicyStorage, versioningStorage, readonly);
+		this(preBlockHeight, prevRootHash, setting, Bytes.fromString(keyPrefix), exPolicyStorage, versioningStorage, readonly);
 	}
 
 	/**
@@ -107,7 +109,7 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 * @param merkleTreeStorage
 	 * @param snGenerator
 	 */
-	public SimpleDatasetImpl(HashDigest merkleRootHash, CryptoSetting setting, Bytes keyPrefix,
+	public SimpleDatasetImpl(long preBlockHeight, HashDigest prevRootHash, CryptoSetting setting, Bytes keyPrefix,
                              ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
 		// 把存储数据值、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
 		this.dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
@@ -115,6 +117,10 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 		this.valueStorage = new BufferedKVStorage(exPolicyStorage, versioningStorage, false);
 
 		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
+
+		this.preBlockHeight = preBlockHeight;
+
+		this.rootHash = prevRootHash;
 
 		this.readonly = readonly;
 	}
@@ -130,70 +136,27 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 
 	@Override
 	public long getDataCount() {
-		return merkleTree.getTotalKeys();
+		// not used in simple anchor type
+		return 0;
 	}
 
-	public byte[][] getValues(long fromIndex, int count) {
-		if (count > LedgerConsts.MAX_LIST_COUNT) {
-			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
-		}
-		if (fromIndex < 0 || (fromIndex + count) > merkleTree.getTotalKeys()) {
-			throw new IllegalArgumentException("The specified from-index and count are out of bound!");
-		}
-		byte[][] values = new byte[count][];
-		SkippingIterator<KVEntry> iterator = merkleTree.iterator();
-		iterator.skip(fromIndex);
-		for (int i = 0; i < count && iterator.hasNext(); i++) {
-			KVEntry dataNode = iterator.next();
-			Bytes dataKey = encodeDataKey(dataNode.getKey());
-			values[i] = valueStorage.get(dataKey, dataNode.getVersion());
-		}
-		return values;
+//	@Override
+//	// 根据Key查找数据总数，分为交易，用户账户，数据账户等
+//	public long getDataCount(Bytes key) {
+//		long latestVersion = valueStorage.getVersion(key);
+//		if (latestVersion != 0) {
+//			// key not exist, or the specified version is out of the latest version indexed
+//			return 0;
+//		}
+//
+//		Bytes dataKey = encodeDataKey(key);
+//		byte[] value = valueStorage.get(dataKey, 0);
+//		if (value == null) {
+//			return 0;
+//		}
+//		return BytesUtils.toLong(value);
+//	}
 
-	}
-
-	public DataEntry<Bytes, byte[]>[] getDataEntries(long fromIndex, int count) {
-		if (count > LedgerConsts.MAX_LIST_COUNT) {
-			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
-		}
-		if (fromIndex < 0 || (fromIndex + count) > merkleTree.getTotalKeys()) {
-			throw new IllegalArgumentException("Index out of bound!");
-		}
-		if (count == 0) {
-			return EMPTY_ENTRIES;
-		}
-		@SuppressWarnings("unchecked")
-		DataEntry<Bytes, byte[]>[] values = new DataEntry[count];
-		byte[] bytesValue;
-
-		SkippingIterator<KVEntry> iterator = merkleTree.iterator();
-		iterator.skip(fromIndex);
-		for (int i = 0; i < count && iterator.hasNext(); i++) {
-			KVEntry dataNode = iterator.next();
-			Bytes dataKey = encodeDataKey(dataNode.getKey());
-			bytesValue = valueStorage.get(dataKey, dataNode.getVersion());
-			values[i] = new VersioningKVData<Bytes, byte[]>(dataNode.getKey(), dataNode.getVersion(), bytesValue);
-		}
-		return values;
-	}
-
-	public DataEntry<Bytes, byte[]> getDataEntryAt(long index) {
-		if (index < 0 || index + 1 > merkleTree.getTotalKeys()) {
-			throw new IllegalArgumentException("Index out of bound!");
-		}
-		byte[] bytesValue;
-		SkippingIterator<KVEntry> iterator = merkleTree.iterator();
-		iterator.skip(index);
-		if (iterator.hasNext()) {
-			KVEntry dataNode = iterator.next();
-			Bytes dataKey = encodeDataKey(dataNode.getKey());
-			bytesValue = valueStorage.get(dataKey, dataNode.getVersion());
-			DataEntry<Bytes, byte[]> entry = new VersioningKVData<Bytes, byte[]>(dataNode.getKey(),
-					dataNode.getVersion(), bytesValue);
-			return entry;
-		}
-		return null;
-	}
 
 	/**
 	 * Create or update the value associated the specified key if the version
@@ -260,17 +223,6 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	}
 
 	/**
-	 * 返回默克尔树中记录的指定键的版本，在由默克尔树表示的数据集的快照中，这是指定键的最新版本，<br>
-	 * 但该版本有可能小于实际存储的最新版本（由于后续追加的新修改被之后生成的快照维护）；
-	 *
-	 * @param key
-	 * @return 返回指定的键的版本；如果不存在，则返回 -1；
-	 */
-	private long getMerkleVersion(Bytes key) {
-		return merkleTree.getVersion(key.toBytes());
-	}
-
-	/**
 	 * Return the specified version's value;<br>
 	 *
 	 * If the key with the specified version doesn't exist, then return null;<br>
@@ -281,7 +233,7 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 */
 	@Override
 	public byte[] getValue(Bytes key, long version) {
-		long latestVersion = getMerkleVersion(key);
+		long latestVersion = getVersion(key);
 		if (latestVersion < 0 || version > latestVersion) {
 			// key not exist, or the specified version is out of the latest version indexed
 			// by the current merkletree;
@@ -291,7 +243,7 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 		Bytes dataKey = encodeDataKey(key);
 		byte[] value = valueStorage.get(dataKey, version);
 		if (value == null) {
-			throw new MerkleProofException("Expected value does not exist!");
+			throw new DataExistException("Expected value does not exist!");
 		}
 		return value;
 	}
@@ -316,7 +268,7 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 */
 	@Override
 	public long getVersion(Bytes key) {
-		return getMerkleVersion(key);
+		return valueStorage.getVersion(key);
 	}
 
 	/**
@@ -331,7 +283,7 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 
 	@Override
 	public DataEntry<Bytes, byte[]> getDataEntry(Bytes key, long version) {
-		long latestVersion = getMerkleVersion(key);
+		long latestVersion = getVersion(key);
 		if (latestVersion < 0 || version > latestVersion) {
 			// key not exist, or the specified version is out of the latest version indexed
 			// by the current merkletree;
@@ -341,19 +293,21 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 		Bytes dataKey = encodeDataKey(key);
 		byte[] value = valueStorage.get(dataKey, version);
 		if (value == null) {
-			throw new MerkleProofException("Expected value does not exist!");
+			throw new DataExistException("Expected value does not exist!");
 		}
 		return new VersioningKVData<Bytes, byte[]>(key, version, value);
 	}
 
+	// not used in simple anchor type, can get by order directly
 	@Override
 	public SkippingIterator<DataEntry<Bytes, byte[]>> iterator() {
-		return new AscDataInterator(getDataCount());
+		return null;
 	}
 
+	// not used in simple anchor type, can get by order directly
 	@Override
 	public SkippingIterator<DataEntry<Bytes, byte[]>> iteratorDesc() {
-		return new DescDataInterator(getDataCount());
+		return null;
 	}
 
 	public MerkleDataProof getDataProof(Bytes key, long version) {
@@ -385,7 +339,7 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 */
 	@Override
 	public MerkleProof getProof(Bytes key) {
-		return merkleTree.getProof(key.toBytes());
+		return null;
 	}
 
 	/**
@@ -433,44 +387,44 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 
 	// ----------------------------------------------------------
 
-	private class AscDataInterator extends AbstractSkippingIterator<DataEntry<Bytes, byte[]>> {
+//	private class AscDataInterator extends AbstractSkippingIterator<DataEntry<Bytes, byte[]>> {
+//
+//		private final long total;
+//
+//		@Override
+//		public long getTotalCount() {
+//			return total;
+//		}
+//
+//		public AscDataInterator(long total) {
+//			this.total = total;
+//		}
+//
+//		@Override
+//		protected DataEntry<Bytes, byte[]> get(long cursor) {
+//			return getDataEntryAt(cursor);
+//		}
+//
+//	}
 
-		private final long total;
-
-		@Override
-		public long getTotalCount() {
-			return total;
-		}
-
-		public AscDataInterator(long total) {
-			this.total = total;
-		}
-
-		@Override
-		protected DataEntry<Bytes, byte[]> get(long cursor) {
-			return getDataEntryAt(cursor);
-		}
-
-	}
-
-	private class DescDataInterator extends AbstractSkippingIterator<DataEntry<Bytes, byte[]>> {
-
-		private final long total;
-
-		public DescDataInterator(long total) {
-			this.total = total;
-		}
-
-		@Override
-		public long getTotalCount() {
-			return total;
-		}
-
-		@Override
-		protected DataEntry<Bytes, byte[]> get(long cursor) {
-			// 倒序的迭代器从后往前返回；
-			return getDataEntryAt(total - cursor - 1);
-		}
-	}
+//	private class DescDataInterator extends AbstractSkippingIterator<DataEntry<Bytes, byte[]>> {
+//
+//		private final long total;
+//
+//		public DescDataInterator(long total) {
+//			this.total = total;
+//		}
+//
+//		@Override
+//		public long getTotalCount() {
+//			return total;
+//		}
+//
+//		@Override
+//		protected DataEntry<Bytes, byte[]> get(long cursor) {
+//			// 倒序的迭代器从后往前返回；
+//			return getDataEntryAt(total - cursor - 1);
+//		}
+//	}
 
 }

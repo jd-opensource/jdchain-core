@@ -139,7 +139,7 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 		// init storage;
 		BufferedKVStorage txStagedStorage = new BufferedKVStorage(ledgerExStorage, ledgerVerStorage, PARALLEL_DB_WRITE);
 
-		TransactionSetEditorSimple txset = LedgerRepositoryImpl.loadTransactionSetSimple(previousBlock.getTransactionSetHash(),
+		TransactionSetEditorSimple txset = LedgerRepositoryImpl.loadTransactionSetSimple(previousBlock.getHeight(), previousBlock.getTransactionSetHash(),
 				ledgerSetting.getCryptoSetting(), ledgerKeyPrefix, txStagedStorage, txStagedStorage, false);
 
 		StagedSnapshot startingPoint = new TxSnapshot(null, previousBlock);
@@ -360,7 +360,7 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 				// TxSnapshot; reload dataset and eventset;
 				TxSnapshot snpht = (TxSnapshot) startingPoint;
 				// load dataset;
-				txDataset = LedgerRepositoryImpl.loadDataSetSimple(snpht.dataSnapshot, cryptoSetting, ledgerKeyPrefix,
+				txDataset = LedgerRepositoryImpl.loadDataSetSimple(currentBlock.getHeight() - 1, snpht.dataSnapshot, cryptoSetting, ledgerKeyPrefix,
 						txBufferedStorage, txBufferedStorage, false);
 			} else {
 				// Unreachable;
@@ -370,7 +370,7 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 		} else {
 			// Reuse previous object to optimize performance;
 			// load dataset;
-			txDataset = LedgerRepositoryImpl.loadDataSetSimple(previousTxSnapshot.dataSnapshot, cryptoSetting,
+			txDataset = LedgerRepositoryImpl.loadDataSetSimple(currentBlock.getHeight() - 1, previousTxSnapshot.dataSnapshot, cryptoSetting,
 					ledgerKeyPrefix, txBufferedStorage, txBufferedStorage, false);
 		}
 
@@ -391,7 +391,7 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 				// TxSnapshot; reload dataset and eventset;
 				TxSnapshot snpht = (TxSnapshot) startingPoint;
 				// load eventset
-				eventSet = LedgerRepositoryImpl.loadEventSetSimple(snpht.dataSnapshot, cryptoSetting, ledgerKeyPrefix,
+				eventSet = LedgerRepositoryImpl.loadEventSetSimple(currentBlock.getHeight() - 1, snpht.dataSnapshot, cryptoSetting, ledgerKeyPrefix,
 						txBufferedStorage, txBufferedStorage, false);
 			} else {
 				// Unreachable;
@@ -400,7 +400,7 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 
 		} else {
 			// load eventset
-			eventSet = LedgerRepositoryImpl.loadEventSetSimple(previousTxSnapshot.dataSnapshot, cryptoSetting,
+			eventSet = LedgerRepositoryImpl.loadEventSetSimple(currentBlock.getHeight() - 1, previousTxSnapshot.dataSnapshot, cryptoSetting,
 					ledgerKeyPrefix, txBufferedStorage, txBufferedStorage, false);
 		}
 		return eventSet;

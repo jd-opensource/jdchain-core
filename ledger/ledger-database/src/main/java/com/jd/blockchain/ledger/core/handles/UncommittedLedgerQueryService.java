@@ -24,6 +24,7 @@ import com.jd.blockchain.ledger.core.DataAccount;
 import com.jd.blockchain.ledger.core.DataAccountSet;
 import com.jd.blockchain.ledger.core.EventAccountSet;
 import com.jd.blockchain.ledger.core.EventPublishingAccount;
+import com.jd.blockchain.ledger.core.IteratorDataset;
 import com.jd.blockchain.ledger.core.LedgerAdminDataSet;
 import com.jd.blockchain.ledger.core.LedgerDataSet;
 import com.jd.blockchain.ledger.core.LedgerSecurityManager;
@@ -188,7 +189,7 @@ public class UncommittedLedgerQueryService implements LedgerQueryService {
         DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
 
         QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) dataAccount.getDataset().getDataCount());
-        SkippingIterator<DataEntry<String, TypedValue>> iterator = dataAccount.getDataset().iterator();
+        SkippingIterator<DataEntry<String, TypedValue>> iterator = ((IteratorDataset)dataAccount.getDataset()).iterator();
         iterator.skip(queryArgs.getFrom());
 
         TypedKVEntry[] typedKVEntries = iterator.next(queryArgs.getCount(), TypedKVEntry.class, entry -> new TypedKVData(entry.getKey(), entry.getVersion(), entry.getValue()));

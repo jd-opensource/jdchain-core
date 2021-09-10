@@ -431,7 +431,7 @@ public class MultiLedgerQueryService implements BlockchainQueryService {
 		DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
 
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) dataAccount.getDataset().getDataCount());
-		SkippingIterator<DataEntry<String, TypedValue>> iterator = dataAccount.getDataset().iterator();
+		SkippingIterator<DataEntry<String, TypedValue>> iterator = ((IteratorDataset)dataAccount.getDataset()).iterator();
 		iterator.skip(queryArgs.getFrom());
 		
 		TypedKVEntry[] typedKVEntries = iterator.next(queryArgs.getCount(), TypedKVEntry.class, new Mapper<DataEntry<String,TypedValue>, TypedKVEntry>() {

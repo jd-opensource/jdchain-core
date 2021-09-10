@@ -21,17 +21,15 @@ public class EventAccountSetEditorSimple implements EventAccountSet, Transaction
 
     private SimpleAccountSetEditor accountSet;
 
-    private static final String EVENTACCOUNTSET_PREFIX = "EVENTACCOUNTSET" + LedgerConsts.KEY_SEPERATOR;
-
     public EventAccountSetEditorSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage,
                                        VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
-        accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix + EVENTACCOUNTSET_PREFIX), exStorage, verStorage, accessPolicy);
+        accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
     }
 
-    public EventAccountSetEditorSimple(HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
+    public EventAccountSetEditorSimple(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
                                        ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
                                        AccountAccessPolicy accessPolicy) {
-        accountSet = new SimpleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix + EVENTACCOUNTSET_PREFIX), exStorage, verStorage,
+        accountSet = new SimpleAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
                 readonly, accessPolicy);
     }
 

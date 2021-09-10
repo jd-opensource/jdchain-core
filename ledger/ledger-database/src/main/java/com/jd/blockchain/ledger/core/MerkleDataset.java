@@ -5,22 +5,8 @@ import utils.Dataset;
 import utils.SkippingIterator;
 import utils.Transactional;
 
-public interface MerkleDataset<K, V> extends Transactional, MerkleProvable<K>, Dataset<K, V> {
+public interface MerkleDataset<K, V> extends IteratorDataset<K, V> {
 
 	boolean isReadonly();
-
-	/**
-	 * Ascending iterator；
-	 * 
-	 * @return
-	 */
-	SkippingIterator<DataEntry<K, V>> iterator();
-
-	/**
-	 * Descending iterator；
-	 * 
-	 * @return
-	 */
-	SkippingIterator<DataEntry<K, V>> iteratorDesc();
 
 }

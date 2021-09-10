@@ -24,7 +24,7 @@ import utils.Transactional;
  * @author huanghaiquan
  *
  */
-public class ComplecatedSimpleAccount implements CompositeAccountSimple, HashProvable, AccountSnapshot, Transactional {
+public class ComplecatedSimpleAccount implements CompositeAccount, HashProvable, AccountSnapshot, Transactional {
 
 	private static final Bytes HEADER_PREFIX = Bytes.fromString("HD/");
 	private static final Bytes DATA_PREFIX = Bytes.fromString("DT/");
@@ -47,6 +47,7 @@ public class ComplecatedSimpleAccount implements CompositeAccountSimple, HashPro
 
 	private SimpleDataset<String, TypedValue> typedData;
 
+	private long preblockHeight;
 	/**
 	 * Create a new Account with the specified identity(address and pubkey); <br>
 	 *
@@ -61,8 +62,9 @@ public class ComplecatedSimpleAccount implements CompositeAccountSimple, HashPro
 	 * @param exStorage     The base storage for existance operation;
 	 * @param verStorage    The base storage for versioning operation;
 	 */
-	public ComplecatedSimpleAccount(BlockchainIdentity accountID, CryptoSetting cryptoSetting, Bytes keyPrefix,
+	public ComplecatedSimpleAccount(long preblockHeight, BlockchainIdentity accountID, CryptoSetting cryptoSetting, Bytes keyPrefix,
                                     ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
+		this.preblockHeight = preblockHeight;
 		// 初始化数据集；
 		initializeDatasets(null, null, cryptoSetting, keyPrefix, exStorage, verStorage, false);
 
@@ -83,7 +85,7 @@ public class ComplecatedSimpleAccount implements CompositeAccountSimple, HashPro
 	 * @param verStorage    The base storage for versioning operation;
 	 * @param readonly      Readonly about this account's dataset;
 	 */
-	public ComplecatedSimpleAccount(Bytes address, HashDigest headerRoot, HashDigest dataRoot, CryptoSetting cryptoSetting,
+	public ComplecatedSimpleAccount(long preblockHeight, Bytes address, HashDigest headerRoot, HashDigest dataRoot, CryptoSetting cryptoSetting,
                                     Bytes keyPrefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
 		if (headerRoot == null) {
 			throw new IllegalArgumentException(
@@ -93,6 +95,7 @@ public class ComplecatedSimpleAccount implements CompositeAccountSimple, HashPro
 			throw new IllegalArgumentException(
 					"Specified a null data-root hash for account[" + address.toBase58() + "]!");
 		}
+		this.preblockHeight = preblockHeight;
 
 		// 初始化数据集；
 		initializeDatasets(headerRoot, dataRoot, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
@@ -132,14 +135,14 @@ public class ComplecatedSimpleAccount implements CompositeAccountSimple, HashPro
 		// 加载“头数据集”；
 //		HashDigest headerRoot = loadHeaderRoot();
 		Bytes headerPrefix = keyPrefix.concat(HEADER_PREFIX);
-		this.headerDataset = new SimpleDatasetImpl(headerRoot, cryptoSetting, headerPrefix, exStorage, verStorage,
+		this.headerDataset = new SimpleDatasetImpl(preblockHeight, headerRoot, cryptoSetting, headerPrefix, exStorage, verStorage,
 				readonly);
 		this.typedHeader = DatasetHelperSimple.listen(DatasetHelperSimple.map(headerDataset, valueMapper), dataChangedListener);
 
 		// 加载“主数据集”
 //		HashDigest dataRoot = loadDataRoot();
 		Bytes dataPrefix = keyPrefix.concat(DATA_PREFIX);
-		this.dataDataset = new SimpleDatasetImpl(dataRoot, cryptoSetting, dataPrefix, exStorage, verStorage, readonly);
+		this.dataDataset = new SimpleDatasetImpl(preblockHeight, dataRoot, cryptoSetting, dataPrefix, exStorage, verStorage, readonly);
 		this.typedData = DatasetHelperSimple.listen(DatasetHelperSimple.map(dataDataset, valueMapper), dataChangedListener);
 	}
 

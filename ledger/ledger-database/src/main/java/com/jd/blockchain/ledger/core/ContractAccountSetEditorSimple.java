@@ -16,17 +16,15 @@ public class ContractAccountSetEditorSimple implements Transactional, ContractAc
 
 	private SimpleAccountSetEditor accountSet;
 
-	private static final String CONTRACTACCOUNTSET_PREFIX = "CONTRACTACCOUNTSET" + LedgerConsts.KEY_SEPERATOR;
-
 	public ContractAccountSetEditorSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage,
                                           VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
-		accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix + CONTRACTACCOUNTSET_PREFIX), exStorage, verStorage, accessPolicy);
+		accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
 	}
 
-	public ContractAccountSetEditorSimple(HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
+	public ContractAccountSetEditorSimple(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
                                           ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
                                           AccountAccessPolicy accessPolicy) {
-		accountSet = new SimpleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix + CONTRACTACCOUNTSET_PREFIX), exStorage, verStorage,
+		accountSet = new SimpleAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
 				readonly, accessPolicy);
 	}
 	

@@ -167,7 +167,7 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 		this.readonly = false;
 	}
 
-	public LedgerAdminDataSetEditorSimple(HashDigest adminAccountHash, String keyPrefix, ExPolicyKVStorage kvStorage,
+	public LedgerAdminDataSetEditorSimple(long preBlockHeight, HashDigest adminAccountHash, String keyPrefix, ExPolicyKVStorage kvStorage,
                                           VersioningKVStorage versioningKVStorage, boolean readonly) {
 		this.metaPrefix = Bytes.fromString(keyPrefix + LEDGER_META_PREFIX);
 		this.settingPrefix = Bytes.fromString(keyPrefix + LEDGER_SETTING_PREFIX);
@@ -182,15 +182,15 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 		this.adminDataHash = adminAccountHash;
 
 		String partiPrefix = keyPrefix + LEDGER_PARTICIPANT_PREFIX;
-		this.participants = new ParticipantDatasetSimple(metadata.getParticipantsHash(), previousSettings.getCryptoSetting(),
+		this.participants = new ParticipantDatasetSimple(preBlockHeight, metadata.getParticipantsHash(), previousSettings.getCryptoSetting(),
 				partiPrefix, kvStorage, versioningKVStorage, readonly);
 
 		String rolePrivilegePrefix = keyPrefix + ROLE_PRIVILEGE_PREFIX;
-		this.rolePrivileges = new RolePrivilegeDatasetSimple(metadata.getRolePrivilegesHash(),
+		this.rolePrivileges = new RolePrivilegeDatasetSimple(preBlockHeight, metadata.getRolePrivilegesHash(),
 				previousSettings.getCryptoSetting(), rolePrivilegePrefix, kvStorage, versioningKVStorage, readonly);
 
 		String userRolePrefix = keyPrefix + USER_ROLE_PREFIX;
-		this.userRoles = new UserRoleDatasetEditorSimple(metadata.getUserRolesHash(), previousSettings.getCryptoSetting(),
+		this.userRoles = new UserRoleDatasetEditorSimple(preBlockHeight, metadata.getUserRolesHash(), previousSettings.getCryptoSetting(),
 				userRolePrefix, kvStorage, versioningKVStorage, readonly);
 	}
 

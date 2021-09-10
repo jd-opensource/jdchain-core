@@ -11,7 +11,7 @@ import utils.SkippingIterator;
 /**
  * Helper for {@link Dataset};
  * 
- * @author huanghaiquan
+ *
  *
  */
 public class DatasetHelperSimple {

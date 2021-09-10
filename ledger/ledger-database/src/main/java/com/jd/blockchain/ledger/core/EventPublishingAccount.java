@@ -49,7 +49,7 @@ public class EventPublishingAccount implements EventAccount, EventPublisher {
 
     @Override
     public String[] getEventNames(long fromIndex, int count) {
-        SkippingIterator<DataEntry<String, TypedValue>> iterator = account.getDataset().iterator();
+        SkippingIterator<DataEntry<String, TypedValue>> iterator = ((IteratorDataset)account.getDataset()).iterator();
         iterator.skip(fromIndex);
         
         String[] eventNames = iterator.next(count, String.class, new Mapper<DataEntry<String,TypedValue>, String>() {

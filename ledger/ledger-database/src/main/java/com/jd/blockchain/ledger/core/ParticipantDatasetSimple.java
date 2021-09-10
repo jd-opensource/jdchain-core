@@ -21,20 +21,16 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 		DataContractRegistry.register(ParticipantNode.class);
 	}
 
-	private static final String PARTICIPANT_PREFIX = "PARTICIPANT" + LedgerConsts.KEY_SEPERATOR;
-
 	private SimpleDataset<Bytes, byte[]> dataset;
 
 	public ParticipantDatasetSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
                                     VersioningKVStorage verStorage) {
-		Bytes participantPrefix = Bytes.fromString(prefix + PARTICIPANT_PREFIX);
-		dataset = new SimpleDatasetImpl(cryptoSetting, participantPrefix, exPolicyStorage, verStorage);
+		dataset = new SimpleDatasetImpl(cryptoSetting, Bytes.fromString(prefix), exPolicyStorage, verStorage);
 	}
 
-	public ParticipantDatasetSimple(HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
+	public ParticipantDatasetSimple(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
                                     ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		Bytes participantPrefix = Bytes.fromString(prefix + PARTICIPANT_PREFIX);
-		dataset = new SimpleDatasetImpl(merkleRootHash, cryptoSetting, participantPrefix, exPolicyStorage,
+		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage,
 				verStorage, readonly);
 	}
 

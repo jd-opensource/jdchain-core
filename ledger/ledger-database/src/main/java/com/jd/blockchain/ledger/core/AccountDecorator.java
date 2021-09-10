@@ -37,7 +37,7 @@ public class AccountDecorator implements Account, HashProvable, AccountSnapshot{
 	}
 
 	@Override
-	public MerkleDataset<String, TypedValue> getDataset() {
+	public Dataset<String, TypedValue> getDataset() {
 		return mklAccount.getDataset();
 	}
 

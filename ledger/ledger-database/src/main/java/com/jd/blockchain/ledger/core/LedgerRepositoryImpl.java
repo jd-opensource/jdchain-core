@@ -153,7 +153,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 			this.ledgerStructureVersion = ((LedgerAdminDataSetEditor)(ledgerDataset.getAdminDataset())).getMetadata().getLedgerStructureVersion();
 		} else {
 			ledgerDataset = innerGetLedgerDatasetSimple(latestBlock);
-			txSet = loadTransactionSetSimple(latestBlock.getTransactionSetHash(),
+			txSet = loadTransactionSetSimple(latestBlock.getHeight(), latestBlock.getTransactionSetHash(),
 					((LedgerAdminDataSetEditorSimple)(ledgerDataset.getAdminDataset())).getSettings().getCryptoSetting(), keyPrefix, exPolicyStorage,
 					versioningStorage, true);
 			ledgerEventset = innerGetLedgerEventSetSimple(latestBlock);
@@ -308,7 +308,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		LedgerAdminInfo adminAccount = getAdminInfo(block);
 		// All of existing block is readonly;
 		return anchorType.equals("default")? loadTransactionSet(block.getTransactionSetHash(), adminAccount.getSettings().getCryptoSetting(),
-				keyPrefix, exPolicyStorage, versioningStorage, true) : loadTransactionSetSimple(block.getTransactionSetHash(), adminAccount.getSettings().getCryptoSetting(),
+				keyPrefix, exPolicyStorage, versioningStorage, true) : loadTransactionSetSimple(block.getHeight(), block.getTransactionSetHash(), adminAccount.getSettings().getCryptoSetting(),
 				keyPrefix, exPolicyStorage, versioningStorage, true);
 	}
 
@@ -360,7 +360,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	private LedgerAdminDataSetEditorSimple createAdminDatasetSimple(LedgerBlock block) {
-		return new LedgerAdminDataSetEditorSimple(block.getAdminAccountHash(), keyPrefix, exPolicyStorage, versioningStorage, true);
+		return new LedgerAdminDataSetEditorSimple(block.getHeight(), block.getAdminAccountHash(), keyPrefix, exPolicyStorage, versioningStorage, true);
 	}
 
 	@Override
@@ -379,7 +379,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	private UserAccountSetEditorSimple createUserAccountSetSimple(LedgerBlock block, CryptoSetting cryptoSetting) {
-		return loadUserAccountSetSimple(block.getUserAccountSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
+		return loadUserAccountSetSimple(block.getHeight(), block.getUserAccountSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
 				versioningStorage, true);
 	}
 
@@ -400,7 +400,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	private DataAccountSetEditorSimple createDataAccountSetSimple(LedgerBlock block, CryptoSetting setting) {
-		return loadDataAccountSetSimple(block.getDataAccountSetHash(), setting, keyPrefix, exPolicyStorage, versioningStorage,
+		return loadDataAccountSetSimple(block.getHeight(), block.getDataAccountSetHash(), setting, keyPrefix, exPolicyStorage, versioningStorage,
 				true);
 	}
 
@@ -453,7 +453,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	private EventAccountSetEditorSimple createUserEventSetSimple(LedgerBlock block, CryptoSetting cryptoSetting) {
-		return loadUserEventSetSimple(block.getUserEventSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
+		return loadUserEventSetSimple(block.getHeight(), block.getUserEventSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
 				versioningStorage, true);
 	}
 
@@ -463,7 +463,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	private ContractAccountSetEditorSimple createContractAccountSetSimple(LedgerBlock block, CryptoSetting cryptoSetting) {
-		return loadContractAccountSetSimple(block.getContractAccountSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
+		return loadContractAccountSetSimple(block.getHeight(), block.getContractAccountSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
 				versioningStorage, true);
 	}
 
@@ -709,18 +709,18 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return dataset;
 	}
 
-	static LedgerDataSetEditorSimple loadDataSetSimple(LedgerDataSnapshot dataSnapshot, CryptoSetting cryptoSetting, String keyPrefix,
+	static LedgerDataSetEditorSimple loadDataSetSimple(long preBlockHeight, LedgerDataSnapshot dataSnapshot, CryptoSetting cryptoSetting, String keyPrefix,
 										   ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, boolean readonly) {
-		LedgerAdminDataSetEditorSimple adminAccount = new LedgerAdminDataSetEditorSimple(dataSnapshot.getAdminAccountHash(), keyPrefix,
+		LedgerAdminDataSetEditorSimple adminAccount = new LedgerAdminDataSetEditorSimple(preBlockHeight, dataSnapshot.getAdminAccountHash(), keyPrefix,
 				ledgerExStorage, ledgerVerStorage, readonly);
 
-		UserAccountSetEditorSimple userAccountSet = loadUserAccountSetSimple(dataSnapshot.getUserAccountSetHash(), cryptoSetting,
+		UserAccountSetEditorSimple userAccountSet = loadUserAccountSetSimple(preBlockHeight, dataSnapshot.getUserAccountSetHash(), cryptoSetting,
 				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
 
-		DataAccountSetEditorSimple dataAccountSet = loadDataAccountSetSimple(dataSnapshot.getDataAccountSetHash(), cryptoSetting,
+		DataAccountSetEditorSimple dataAccountSet = loadDataAccountSetSimple(preBlockHeight, dataSnapshot.getDataAccountSetHash(), cryptoSetting,
 				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
 
-		ContractAccountSetEditorSimple contractAccountSet = loadContractAccountSetSimple(dataSnapshot.getContractAccountSetHash(),
+		ContractAccountSetEditorSimple contractAccountSet = loadContractAccountSetSimple(preBlockHeight, dataSnapshot.getContractAccountSetHash(),
 				cryptoSetting, keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
 
 		LedgerDataSetEditorSimple dataset = new LedgerDataSetEditorSimple(adminAccount, userAccountSet, dataAccountSet,
@@ -741,12 +741,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		return newEventSet;
 	}
 
-	static LedgerEventSetEditorSimple loadEventSetSimple(LedgerDataSnapshot dataSnapshot, CryptoSetting cryptoSetting, String keyPrefix,
+	static LedgerEventSetEditorSimple loadEventSetSimple(long preBlockHeight, LedgerDataSnapshot dataSnapshot, CryptoSetting cryptoSetting, String keyPrefix,
 											 ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, boolean readonly) {
 
 		MerkleEventGroupPublisherSimple systemEventSet = loadSystemEventSetSimple(dataSnapshot.getSystemEventSetHash(), cryptoSetting,
 				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
-		EventAccountSetEditorSimple userEventSet = loadUserEventSetSimple(dataSnapshot.getUserEventSetHash(), cryptoSetting,
+		EventAccountSetEditorSimple userEventSet = loadUserEventSetSimple(preBlockHeight, dataSnapshot.getUserEventSetHash(), cryptoSetting,
 				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
 		LedgerEventSetEditorSimple newEventSet = new LedgerEventSetEditorSimple(systemEventSet, userEventSet, false);
 
@@ -762,12 +762,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
 	}
 
-	static UserAccountSetEditorSimple loadUserAccountSetSimple(HashDigest userAccountSetHash, CryptoSetting cryptoSetting,
+	static UserAccountSetEditorSimple loadUserAccountSetSimple(long preBlockHeight, HashDigest userAccountSetHash, CryptoSetting cryptoSetting,
 												   String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
 												   boolean readonly) {
 
 		String usersetKeyPrefix = keyPrefix + USER_SET_PREFIX;
-		return new UserAccountSetEditorSimple(userAccountSetHash, cryptoSetting, usersetKeyPrefix, ledgerExStorage,
+		return new UserAccountSetEditorSimple(preBlockHeight, userAccountSetHash, cryptoSetting, usersetKeyPrefix, ledgerExStorage,
 				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
 	}
 
@@ -780,12 +780,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
 	}
 
-	static DataAccountSetEditorSimple loadDataAccountSetSimple(HashDigest dataAccountSetHash, CryptoSetting cryptoSetting,
+	static DataAccountSetEditorSimple loadDataAccountSetSimple(long preBlockHeight, HashDigest dataAccountSetHash, CryptoSetting cryptoSetting,
 												   String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
 												   boolean readonly) {
 
 		String datasetKeyPrefix = keyPrefix + DATA_SET_PREFIX;
-		return new DataAccountSetEditorSimple(dataAccountSetHash, cryptoSetting, datasetKeyPrefix, ledgerExStorage,
+		return new DataAccountSetEditorSimple(preBlockHeight, dataAccountSetHash, cryptoSetting, datasetKeyPrefix, ledgerExStorage,
 				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
 	}
 
@@ -798,12 +798,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
 	}
 
-	static ContractAccountSetEditorSimple loadContractAccountSetSimple(HashDigest contractAccountSetHash, CryptoSetting cryptoSetting,
+	static ContractAccountSetEditorSimple loadContractAccountSetSimple(long preBlockHeight, HashDigest contractAccountSetHash, CryptoSetting cryptoSetting,
 														   String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
 														   boolean readonly) {
 
 		String contractsetKeyPrefix = keyPrefix + CONTRACT_SET_PREFIX;
-		return new ContractAccountSetEditorSimple(contractAccountSetHash, cryptoSetting, contractsetKeyPrefix, ledgerExStorage,
+		return new ContractAccountSetEditorSimple(preBlockHeight, contractAccountSetHash, cryptoSetting, contractsetKeyPrefix, ledgerExStorage,
 				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
 	}
 
@@ -816,11 +816,11 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 	}
 
-	static TransactionSetEditorSimple loadTransactionSetSimple(HashDigest txsetHash, CryptoSetting cryptoSetting, String keyPrefix,
+	static TransactionSetEditorSimple loadTransactionSetSimple(long preBlockHeight, HashDigest preTxsetHash, CryptoSetting cryptoSetting, String keyPrefix,
 												   ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, boolean readonly) {
 
 		String txsetKeyPrefix = keyPrefix + TRANSACTION_SET_PREFIX;
-		return new TransactionSetEditorSimple(txsetHash, cryptoSetting, txsetKeyPrefix, ledgerExStorage, ledgerVerStorage,
+		return new TransactionSetEditorSimple(preBlockHeight, preTxsetHash, cryptoSetting, txsetKeyPrefix, ledgerExStorage, ledgerVerStorage,
 				readonly);
 
 	}
@@ -847,11 +847,11 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
 	}
 
-	static EventAccountSetEditorSimple loadUserEventSetSimple(HashDigest eventAccountSetHash, CryptoSetting cryptoSetting,
+	static EventAccountSetEditorSimple loadUserEventSetSimple(long preBlockHeight, HashDigest eventAccountSetHash, CryptoSetting cryptoSetting,
 												  String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
 												  boolean readonly) {
 
-		return new EventAccountSetEditorSimple(eventAccountSetHash, cryptoSetting, keyPrefix + USER_EVENT_SET_PREFIX, ledgerExStorage,
+		return new EventAccountSetEditorSimple(preBlockHeight, eventAccountSetHash, cryptoSetting, keyPrefix + USER_EVENT_SET_PREFIX, ledgerExStorage,
 				ledgerVerStorage, readonly, DEFAULT_ACCESS_POLICY);
 	}
 

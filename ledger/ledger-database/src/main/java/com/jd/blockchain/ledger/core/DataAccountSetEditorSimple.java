@@ -19,17 +19,15 @@ public class DataAccountSetEditorSimple implements Transactional, DataAccountSet
 
 	private SimpleAccountSetEditor accountSet;
 
-	private static final String DATAACCOUNTSET_PREFIX = "DATAACCOUNTSET" + LedgerConsts.KEY_SEPERATOR;
-
 	public DataAccountSetEditorSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage,
                                       VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
-		accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix + DATAACCOUNTSET_PREFIX), exStorage, verStorage, accessPolicy);
+		accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
 	}
 
-	public DataAccountSetEditorSimple(HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
+	public DataAccountSetEditorSimple(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
                                       ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
                                       AccountAccessPolicy accessPolicy) {
-		accountSet = new SimpleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix + DATAACCOUNTSET_PREFIX), exStorage, verStorage,
+		accountSet = new SimpleAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
 				readonly, accessPolicy);
 	}
 

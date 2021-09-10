@@ -13,25 +13,24 @@ import utils.SkippingIterator;
 import utils.Transactional;
 
 /**
- * @author huanghaiquan
+ * @author
  *
  */
 public class UserAccountSetEditorSimple implements Transactional, UserAccountSet {
 
 	private SimpleAccountSetEditor accountSet;
 
-	private static final String USERACCOUNTSET_PREFIX = "USERACCOUNTSET" + LedgerConsts.KEY_SEPERATOR;
 
 	public UserAccountSetEditorSimple(CryptoSetting cryptoSetting, String keyPrefix, ExPolicyKVStorage simpleStorage,
                                       VersioningKVStorage versioningStorage, AccountAccessPolicy accessPolicy) {
-		accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(keyPrefix + USERACCOUNTSET_PREFIX), simpleStorage, versioningStorage,
+		accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(keyPrefix), simpleStorage, versioningStorage,
 				accessPolicy);
 	}
 
-	public UserAccountSetEditorSimple(HashDigest dataRootHash, CryptoSetting cryptoSetting, String keyPrefix,
+	public UserAccountSetEditorSimple(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String keyPrefix,
                                       ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
                                       AccountAccessPolicy accessPolicy) {
-		accountSet = new SimpleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(keyPrefix + USERACCOUNTSET_PREFIX), exStorage,
+		accountSet = new SimpleAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(keyPrefix), exStorage,
 				verStorage, readonly, accessPolicy);
 	}
 	
