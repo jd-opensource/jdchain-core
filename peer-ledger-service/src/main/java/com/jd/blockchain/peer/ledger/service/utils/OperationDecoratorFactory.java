@@ -47,6 +47,8 @@ public class OperationDecoratorFactory {
             return decorateUserRevokeOperation((UserStateUpdateOperation) op);
         } else if (op instanceof RootCAUpdateOperation) {
             return decorateRootCAUpdateOperation((RootCAUpdateOperation) op);
+        } else if (op instanceof ContractStateUpdateOperation) {
+            return decorateContractStateUpdateOperation((ContractStateUpdateOperation) op);
         }
 
         return null;
@@ -312,4 +314,7 @@ public class OperationDecoratorFactory {
         return new RootCAUpdateOpTemplate(op);
     }
 
+    public static Operation decorateContractStateUpdateOperation(ContractStateUpdateOperation op) {
+        return new ContractStateUpdateOpTemplate(op.getContractAddress(), op.getState());
+    }
 }
