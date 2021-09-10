@@ -29,6 +29,7 @@ import utils.ConsoleUtils;
 import utils.StringUtils;
 import utils.ArgumentSet.ArgEntry;
 import utils.ArgumentSet.Setting;
+import utils.codec.Base58Utils;
 import utils.io.FileUtils;
 import utils.net.NetworkAddress;
 
@@ -174,7 +175,7 @@ public class LedgerInitCommand {
 			LedgerInitProperties ledgerInitProperties, DBConnectionConfig dbConnConfig, Prompter prompter,
 			LedgerBindingConfig conf, Object... extBeans) {
 		if(StringUtils.isEmpty(base58Pwd)) {
-			base58Pwd = UUID.randomUUID().toString();
+			base58Pwd = Base58Utils.encode(UUID.randomUUID().toString().getBytes());
 			prompter.info("Your base58 encode private key password : [%s]!!!", base58Pwd);
 		}
 		if (currId < 0 || currId >= ledgerInitProperties.getConsensusParticipantCount()) {
