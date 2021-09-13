@@ -313,8 +313,9 @@ class KeysImport implements Runnable {
             System.err.println("[" + name + "] already exists");
         } else {
             X509Certificate certificate = X509Utils.resolveCertificate(new File(caPath));
-            PrivKey privKey = X509Utils.resolvePrivKey(new File(keyPath));
-            AsymmetricKeypair keypair = new BlockchainKeypair(X509Utils.resolvePubKey(certificate), privKey);
+            PubKey pubKey = X509Utils.resolvePubKey(certificate);
+            PrivKey privKey = X509Utils.resolvePrivKey(pubKey.getAlgorithm(), new File(keyPath));
+            AsymmetricKeypair keypair = new BlockchainKeypair(pubKey, privKey);
             System.out.println("please input password: ");
             System.out.print("> ");
             Scanner scanner = new Scanner(System.in).useDelimiter("\n");

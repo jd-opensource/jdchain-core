@@ -61,6 +61,7 @@ import utils.ArgumentSet.ArgEntry;
 import utils.BaseConstant;
 import utils.ConsoleUtils;
 import utils.StringUtils;
+import utils.codec.Base58Utils;
 import utils.reflection.TypeUtils;
 
 public class GatewayServerBooter {
@@ -164,7 +165,7 @@ public class GatewayServerBooter {
 		if (StringUtils.isEmpty(privkeyString)) {
 			privkeyString = utils.io.FileUtils.readText(config.keys().getDefault().getPrivKeyPath()).trim();
 			if(privkeyString.startsWith("-----BEGIN") && privkeyString.endsWith("PRIVATE KEY-----")) {
-				privKey = X509Utils.resolvePrivKey(privkeyString);
+				privKey = X509Utils.resolvePrivKey(pubKey.getAlgorithm(), privkeyString, base58Pwd);
 			} else {
 				if (StringUtils.isEmpty(base58Pwd)) {
 					base58Pwd = KeyGenUtils.readPasswordString();

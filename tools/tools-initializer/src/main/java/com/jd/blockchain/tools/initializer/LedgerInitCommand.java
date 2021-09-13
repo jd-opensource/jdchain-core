@@ -101,9 +101,12 @@ public class LedgerInitCommand {
 			if(ledgerInitProperties.getIdentityMode() == IdentityMode.CA) {
 				X509Certificate certificate = X509Utils.resolveCertificate(FileUtils.readText(localConf.getLocal().getCaPath()));
 				localNodePubKey = X509Utils.resolvePubKey(certificate);
-				privKey = X509Utils.resolvePrivKey(FileUtils.readText(localConf.getLocal().getPrivKeyPath()));
+				privKey = X509Utils.resolvePrivKey(localNodePubKey.getAlgorithm(), FileUtils.readText(localConf.getLocal().getPrivKeyPath()), base58Pwd);
+				if (!StringUtils.isEmpty(base58Pwd)) {
+					base58Pwd = Base58Utils.encode(base58Pwd.getBytes());
+				}
 			} else {
-				if (base58Pwd == null) {
+				if (!StringUtils.isEmpty(base58Pwd)) {
 					base58Pwd = KeyGenUtils.readPasswordString();
 				}
 				localNodePubKey = KeyGenUtils.decodePubKey(localConf.getLocal().getPubKeyString());
