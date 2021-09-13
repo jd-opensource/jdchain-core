@@ -25,7 +25,6 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import picocli.CommandLine;
-import sun.misc.BASE64Encoder;
 import utils.StringUtils;
 import utils.io.FileUtils;
 
@@ -502,33 +501,6 @@ class CATest implements Runnable {
     @CommandLine.ParentCommand
     private CA caCli;
 
-    public static String toPEMString(String algorithm, PrivateKey privateKey) {
-        StringBuilder builder = new StringBuilder();
-        BASE64Encoder encoder = new BASE64Encoder();
-        if (algorithm.equals("SM2")) {
-            builder.append("-----BEGIN EC PARAMETERS----\n" +
-                    "BggqgRzPVQGCLQ==\n" +
-                    "-----END EC PARAMETERS-----\n" +
-                    "-----BEGIN EC PRIVATE KEY-----\n");
-            builder.append(encoder.encodeBuffer(privateKey.getEncoded()));
-            builder.append("-----END EC PRIVATE KEY-----");
-        } else if (algorithm.equals("ECDSA")) {
-            builder.append("-----BEGIN EC PARAMETERS----\n" +
-                    "BgUrgQQACg==\n" +
-                    "-----END EC PARAMETERS-----\n" +
-                    "-----BEGIN EC PRIVATE KEY-----\n");
-            builder.append(encoder.encodeBuffer(privateKey.getEncoded()));
-            builder.append("-----END EC PRIVATE KEY-----");
-        } else {
-            builder.append("-----BEGIN PRIVATE KEY-----");
-            builder.append("\n");
-            builder.append(encoder.encodeBuffer(privateKey.getEncoded()));
-            builder.append("-----END PRIVATE KEY-----");
-        }
-
-        return builder.toString();
-    }
-
     @Override
     public void run() {
         File caHome = new File(caCli.getCaHome());
@@ -567,7 +539,7 @@ class CATest implements Runnable {
                 FileUtils.writeText(pubkey, new File(caCli.getCaHome() + File.separator + name + ".pub"));
                 FileUtils.writeText(privkey, new File(caCli.getCaHome() + File.separator + name + ".priv"));
                 FileUtils.writeText(base58pwd, new File(caCli.getCaHome() + File.separator + name + ".pwd"));
-                FileUtils.writeText(toPEMString(algorithm, X509Utils.resolvePrivateKey(keypair.getPrivKey())), new File(caCli.getCaHome() + File.separator + name + ".key"));
+                FileUtils.writeText(X509Utils.toPEMString(algorithm, X509Utils.resolvePrivateKey(keypair.getPrivKey(), keypair.getPubKey())), new File(caCli.getCaHome() + File.separator + name + ".key"));
 
                 if (i == 0) {
                     issuerPrivKey = keypair.getPrivKey();
