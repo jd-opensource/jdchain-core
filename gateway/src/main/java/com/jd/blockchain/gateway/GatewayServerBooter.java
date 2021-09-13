@@ -162,7 +162,7 @@ public class GatewayServerBooter {
 		PrivKey privKey;
 		String privkeyString = config.keys().getDefault().getPrivKeyValue();
 		if (StringUtils.isEmpty(privkeyString)) {
-			privkeyString = utils.io.FileUtils.readText(config.keys().getDefault().getPrivKeyPath());
+			privkeyString = utils.io.FileUtils.readText(config.keys().getDefault().getPrivKeyPath()).trim();
 			if(privkeyString.startsWith("-----BEGIN") && privkeyString.endsWith("PRIVATE KEY-----")) {
 				privKey = X509Utils.resolvePrivKey(privkeyString);
 			} else {
