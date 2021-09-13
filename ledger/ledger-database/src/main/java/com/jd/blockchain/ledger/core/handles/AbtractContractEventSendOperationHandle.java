@@ -1,6 +1,7 @@
 package com.jd.blockchain.ledger.core.handles;
 
 import com.jd.blockchain.ledger.AccountState;
+import com.jd.blockchain.ledger.ContractExecuteException;
 import com.jd.blockchain.ledger.IllegalTransactionException;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.MultiLedgerQueryService;
@@ -24,10 +25,16 @@ import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
 import com.jd.blockchain.ledger.core.EventManager;
 
+import java.util.Stack;
 import java.util.stream.Collectors;
 
 @Service
 public abstract class AbtractContractEventSendOperationHandle implements OperationHandle {
+
+	// 保存合约调用栈信息
+	private ThreadLocal<Stack<String>> contractEventStackTL = new ThreadLocal<>();
+	// 合约调用栈最大深度
+	private static final int MAX_CONTRACT_EVENT_STACK_SIZE = 100;
 
 	@Override
 	public Class<?> getOperationType() {
@@ -44,7 +51,24 @@ public abstract class AbtractContractEventSendOperationHandle implements Operati
 		// 操作账本；
 		ContractEventSendOperation contractOP = (ContractEventSendOperation) op;
 
-		return doProcess(requestContext, contractOP, transactionContext, ledger, opHandleContext, manager);
+		// 处理合约调用栈
+		Stack<String> contractEventStack = contractEventStackTL.get();
+		if(null == contractEventStack) {
+			contractEventStack = new Stack<>();
+			contractEventStackTL.set(contractEventStack);
+		}
+		// 合约调用入栈
+		contractEventStack.push(contractOP.getContractAddress() + contractOP.getEvent());
+		try {
+			// 合约调用栈最大深度检查，超过则回滚交易
+			if(contractEventStack.size() > MAX_CONTRACT_EVENT_STACK_SIZE) {
+				throw new ContractExecuteException(String.format("Size of contract event stack is greater than %d", MAX_CONTRACT_EVENT_STACK_SIZE));
+			}
+			return doProcess(requestContext, contractOP, transactionContext, ledger, opHandleContext, manager);
+		} finally {
+			// 合约调用出栈
+			contractEventStack.pop();
+		}
 	}
 
 	private BytesValue doProcess(TransactionRequestExtension request, ContractEventSendOperation contractOP,

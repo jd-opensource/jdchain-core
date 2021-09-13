@@ -271,11 +271,11 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 			Operation[] ops = request.getTransactionContent().getOperations();
 			OperationHandleContext handleContext = new OperationHandleContext() {
 				@Override
-				public void handle(Operation operation) {
+				public BytesValue handle(Operation operation) {
 					// assert; Instance of operation are one of User related operations or
 					// DataAccount related operations;
 					OperationHandle hdl = handlesRegisteration.getHandle(operation.getClass());
-					hdl.process(operation, txCtx, request, ledger, this, eventManager);
+					return hdl.process(operation, txCtx, request, ledger, this, eventManager);
 				}
 			};
 			OperationHandle opHandle;

@@ -10,6 +10,9 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BlockchainIdentityData;
 import com.jd.blockchain.ledger.BytesValue;
+import com.jd.blockchain.ledger.BytesValueList;
+import com.jd.blockchain.ledger.ContractCrossEventSendOperation;
+import com.jd.blockchain.ledger.ContractEventSendOperation;
 import com.jd.blockchain.ledger.ContractInfo;
 import com.jd.blockchain.ledger.DataAccountInfo;
 import com.jd.blockchain.ledger.DataAccountKVSetOperation;
@@ -38,6 +41,10 @@ import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.ledger.UserStateUpdateOperation;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.transaction.BlockchainQueryService;
+import com.jd.blockchain.transaction.ContractCrossEventSendOpTemplate;
+import com.jd.blockchain.transaction.ContractEventSendOpTemplate;
+import com.jd.blockchain.transaction.ContractEventSendOperationBuilder;
+import com.jd.blockchain.transaction.ContractInvocationProxyBuilder;
 import com.jd.blockchain.transaction.DataAccountKVSetOperationBuilder;
 import com.jd.blockchain.transaction.DataAccountRegisterOperationBuilder;
 import com.jd.blockchain.transaction.DataAccountRegisterOperationBuilderImpl;
@@ -299,6 +306,35 @@ public class ContractLedgerContext implements LedgerContext {
 	@Override
 	public MetaInfoUpdateOperationBuilder metaInfo() {
 		return new MetaInfoUpdateOperationBuilder1();
+	}
+
+	@Override
+	public <T> T contract(String address, Class<T> contractIntf) {
+		return new ContractInvocationProxyBuilder().create(address, -1L, contractIntf, contract());
+	}
+
+	@Override
+	public <T> T contract(Bytes address, Class<T> contractIntf) {
+		return new ContractInvocationProxyBuilder().create(address, -1L, contractIntf, contract());
+	}
+
+	@Override
+	public ContractEventSendOperationBuilder contract() {
+		return new ContractEventSendOperationBuilder1();
+	}
+
+	private class ContractEventSendOperationBuilder1 implements ContractEventSendOperationBuilder {
+
+		@Override
+		public ContractCrossEventSendOperation send(String address, String event, BytesValueList args) {
+			return send(Bytes.fromBase58(address), event, args);
+		}
+
+		@Override
+		public ContractCrossEventSendOperation send(Bytes address, String event, BytesValueList args) {
+			ContractEventSendOperation op =  new ContractEventSendOpTemplate(address, event, args);
+			return new ContractCrossEventSendOpTemplate(op, opHandleContext.handle(op));
+		}
 	}
 
 	private class MetaInfoUpdateOperationBuilder1 implements MetaInfoUpdateOperationBuilder {
