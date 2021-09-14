@@ -9,7 +9,7 @@ import bftsmart.reconfiguration.views.NodeNetwork;
 import bftsmart.reconfiguration.views.View;
 import bftsmart.tom.ServiceProxy;
 import com.jd.blockchain.ca.CertificateRole;
-import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.consensus.NodeNetworkAddress;
 import com.jd.blockchain.consensus.bftsmart.service.BftsmartNodeState;
 import com.jd.blockchain.crypto.AddressEncoding;
@@ -362,16 +362,16 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 						LOGGER.error(String.format("Authenticate ledger[%s] error ! peer state is [%s]", ledgerHash.toBase58(), peerAccount.getState()));
 						continue;
 					}
-					X509Certificate peerCA = X509Utils.resolveCertificate(peerAccount.getCertificate());
-					X509Utils.checkCertificateRole(peerCA, CertificateRole.PEER);
-					X509Utils.checkValidity(peerCA);
+					X509Certificate peerCA = CertificateUtils.parseCertificate(peerAccount.getCertificate());
+					CertificateUtils.checkCertificateRole(peerCA, CertificateRole.PEER);
+					CertificateUtils.checkValidity(peerCA);
 
-					X509Certificate[] ledgerCAs = X509Utils.resolveCertificates(ledgerRepo.getAdminInfo().getMetadata().getLedgerCertificates());
-					Arrays.stream(ledgerCAs).forEach(issuer -> X509Utils.checkCertificateRolesAny(issuer, CertificateRole.ROOT, CertificateRole.CA));
+					X509Certificate[] ledgerCAs = CertificateUtils.parseCertificates(ledgerRepo.getAdminInfo().getMetadata().getLedgerCertificates());
+					Arrays.stream(ledgerCAs).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
 
 					// 当前账本证书中当前节点证书发布者
-					X509Certificate[] peerIssuers = X509Utils.findIssuers(peerCA, ledgerCAs);
-					X509Utils.checkValidityAny(peerIssuers);
+					X509Certificate[] peerIssuers = CertificateUtils.findIssuers(peerCA, ledgerCAs);
+					CertificateUtils.checkValidityAny(peerIssuers);
 
 					// 接入网关CA
 					UserAccount gwAccount = ledgerRepo.getUserAccountSet().getAccount(AddressEncoding.generateAddress(clientPubKey));
@@ -379,11 +379,11 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 						LOGGER.error(String.format("Authenticate ledger[%s] error ! gateway state is [%s]", ledgerHash.toBase58(), peerAccount.getState()));
 						continue;
 					}
-					X509Certificate gwCA = X509Utils.resolveCertificate(gwAccount.getCertificate());
-					X509Utils.checkCertificateRole(gwCA, CertificateRole.GW);
-					X509Utils.checkValidity(gwCA);
-					X509Certificate[] gwIssuers = X509Utils.findIssuers(gwCA, ledgerCAs);
-					X509Utils.checkValidityAny(gwIssuers);
+					X509Certificate gwCA = CertificateUtils.parseCertificate(gwAccount.getCertificate());
+					CertificateUtils.checkCertificateRole(gwCA, CertificateRole.GW);
+					CertificateUtils.checkValidity(gwCA);
+					X509Certificate[] gwIssuers = CertificateUtils.findIssuers(gwCA, ledgerCAs);
+					CertificateUtils.checkValidityAny(gwIssuers);
 				}
 				clientIncomingSettings = peer.getClientAuthencationService().authencateIncoming(clientRedential);
 			} catch (Exception e) {
@@ -478,14 +478,14 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				LedgerMetadata_V2 metadata = ledgerRepository.getAdminInfo().getMetadata();
 				ledgerIdMode.put(ledgerHash, null != metadata.getIdentityMode() ? metadata.getIdentityMode() : IdentityMode.KEYPAIR);
 				if(metadata.getIdentityMode() == IdentityMode.CA) {
-					X509Certificate peerCA = X509Utils.resolveCertificate(ledgerRepository.getUserAccountSet().getAccount(currentNode.getAddress()).getCertificate());
-					X509Certificate[] issuers = X509Utils.findIssuers(peerCA, X509Utils.resolveCertificates(metadata.getLedgerCertificates()));
+					X509Certificate peerCA = CertificateUtils.parseCertificate(ledgerRepository.getUserAccountSet().getAccount(currentNode.getAddress()).getCertificate());
+					X509Certificate[] issuers = CertificateUtils.findIssuers(peerCA, CertificateUtils.parseCertificates(metadata.getLedgerCertificates()));
 					// 校验根证书
-					Arrays.stream(issuers).forEach(issuer -> X509Utils.checkCertificateRolesAny(issuer, CertificateRole.ROOT, CertificateRole.CA));
-					X509Utils.checkValidityAny(issuers);
+					Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
+					CertificateUtils.checkValidityAny(issuers);
 					// 校验节点证书
-					X509Utils.checkCertificateRole(peerCA, CertificateRole.PEER);
-					X509Utils.checkValidity(peerCA);
+					CertificateUtils.checkCertificateRole(peerCA, CertificateRole.PEER);
+					CertificateUtils.checkValidity(peerCA);
 				}
 				ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(ledgerHash.toBase58(), csSettings, currentNode.getAddress().toBase58());
 				((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());

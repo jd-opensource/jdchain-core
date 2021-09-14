@@ -1,7 +1,7 @@
 package com.jd.blockchain.tools.cli;
 
 import com.jd.blockchain.ca.CertificateRole;
-import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
@@ -184,7 +184,7 @@ class ParticipantRegister implements Runnable {
                     System.err.printf("no [%s.crt] in path [%s]%n", name, keysHome.getAbsolutePath());
                     return;
                 }
-                certificate = X509Utils.resolveCertificate(FileUtils.readText(pubs[0]));
+                certificate = CertificateUtils.parseCertificate(FileUtils.readText(pubs[0]));
             } else {
                 pubs = keysHome.listFiles((dir, name) -> {
                     if (name.endsWith(this.name + ".pub")) {
@@ -199,7 +199,7 @@ class ParticipantRegister implements Runnable {
                 pubKey = Crypto.resolveAsPubKey(Base58Utils.decode(FileUtils.readText(pubs[0])));
             }
         } else if (!StringUtils.isEmpty(caPath)) {
-            certificate = X509Utils.resolveCertificate(caPath);
+            certificate = CertificateUtils.parseCertificate(caPath);
         } else if (!StringUtils.isEmpty(pubkey) && !caMode) {
             pubKey = Crypto.resolveAsPubKey(Base58Utils.decode(pubkey));
         } else {
@@ -209,9 +209,9 @@ class ParticipantRegister implements Runnable {
 
         TransactionTemplate txTemp = newTransaction();
         if (null != certificate) {
-            X509Utils.checkCertificateRolesAny(certificate, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
-            X509Utils.checkValidity(certificate);
-            pubKey = X509Utils.resolvePubKey(certificate);
+            CertificateUtils.checkCertificateRolesAny(certificate, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
+            CertificateUtils.checkValidity(certificate);
+            pubKey = CertificateUtils.resolvePubKey(certificate);
             txTemp.participants().register(participantName, certificate);
         } else {
             txTemp.participants().register(participantName, new BlockchainIdentityData(pubKey));

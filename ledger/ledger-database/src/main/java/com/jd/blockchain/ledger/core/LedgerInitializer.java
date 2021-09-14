@@ -1,11 +1,9 @@
 package com.jd.blockchain.ledger.core;
 
-import com.jd.blockchain.ca.CertificateRole;
-import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PrivKey;
 import com.jd.blockchain.crypto.SignatureDigest;
-import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BlockchainIdentityData;
 import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.ledger.CryptoSetting;
@@ -16,7 +14,6 @@ import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerInitException;
 import com.jd.blockchain.ledger.LedgerInitOperation;
 import com.jd.blockchain.ledger.LedgerInitSetting;
-import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.RoleInitSettings;
 import com.jd.blockchain.ledger.RolesConfigureOperation;
 import com.jd.blockchain.ledger.SecurityInitSettings;
@@ -130,7 +127,7 @@ public class LedgerInitializer {
 		// 注册用户
 		for (GenesisUser u : initSetting.getGenesisUsers()) {
 			if(initSetting.getIdentityMode() == IdentityMode.CA) {
-				X509Certificate cert = X509Utils.resolveCertificate(u.getCertificate());
+				X509Certificate cert = CertificateUtils.parseCertificate(u.getCertificate());
 				initTxBuilder.users().register(cert);
 			} else {
 				initTxBuilder.users().register(new BlockchainIdentityData(u.getPubKey()));

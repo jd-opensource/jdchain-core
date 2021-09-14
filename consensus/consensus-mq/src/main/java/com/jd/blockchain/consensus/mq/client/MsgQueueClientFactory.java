@@ -8,7 +8,7 @@
  */
 package com.jd.blockchain.consensus.mq.client;
 
-import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.consensus.ClientIncomingSettings;
 import com.jd.blockchain.consensus.SessionCredential;
 import com.jd.binaryproto.BinaryProtocol;
@@ -58,7 +58,7 @@ public class MsgQueueClientFactory implements ClientFactory {
                 .setPubKey(clientKeyPair.getPubKey())
                 .setIdentityInfo(mqCredentialInfo)
                 .setSignature(signatureDigest)
-                .setCertificate(gatewayCertificate != null ? X509Utils.toPEMString(gatewayCertificate) : null);
+                .setCertificate(gatewayCertificate != null ? CertificateUtils.toPEMString(gatewayCertificate) : null);
                 ;
         return mqci;
     }

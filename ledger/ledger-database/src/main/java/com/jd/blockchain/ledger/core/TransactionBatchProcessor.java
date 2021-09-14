@@ -6,7 +6,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.ledger.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +58,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 		if(null != ledger && null != ledger.getAdminInfo()) {
 			this.identityMode = ledger.getAdminInfo().getMetadata().getIdentityMode();
 			if (identityMode == IdentityMode.CA) {
-				this.ledgerCAs = X509Utils.resolveCertificates(ledger.getAdminInfo().getMetadata().getLedgerCertificates());
+				this.ledgerCAs = CertificateUtils.parseCertificates(ledger.getAdminInfo().getMetadata().getLedgerCertificates());
 			}
 		}
 	}
@@ -70,7 +70,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 		this.newBlockEditor = ledgerRepo.createNextBlock();
 		this.identityMode = ledger.getAdminInfo().getMetadata().getIdentityMode();
 		if(identityMode == IdentityMode.CA) {
-			this.ledgerCAs = X509Utils.resolveCertificates(ledger.getAdminInfo().getMetadata().getLedgerCertificates());
+			this.ledgerCAs = CertificateUtils.parseCertificates(ledger.getAdminInfo().getMetadata().getLedgerCertificates());
 		}
 	}
 

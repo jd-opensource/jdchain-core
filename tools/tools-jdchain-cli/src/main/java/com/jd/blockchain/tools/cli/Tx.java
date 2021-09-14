@@ -2,7 +2,7 @@ package com.jd.blockchain.tools.cli;
 
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.ca.CertificateRole;
-import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
@@ -222,9 +222,9 @@ class TxLedgerCAUpdate implements Runnable {
             return;
         }
         TransactionTemplate txTemp = txCommand.newTransaction();
-        X509Certificate certificate = X509Utils.resolveCertificate(!StringUtils.isEmpty(name) ? FileUtils.readText(txCommand.getKeysHome() + File.separator + name + ".crt") : FileUtils.readText(caPath));
-        X509Utils.checkCertificateRolesAny(certificate, CertificateRole.ROOT, CertificateRole.CA);
-        X509Utils.checkValidity(certificate);
+        X509Certificate certificate = CertificateUtils.parseCertificate(!StringUtils.isEmpty(name) ? FileUtils.readText(txCommand.getKeysHome() + File.separator + name + ".crt") : FileUtils.readText(caPath));
+        CertificateUtils.checkCertificateRolesAny(certificate, CertificateRole.ROOT, CertificateRole.CA);
+        CertificateUtils.checkValidity(certificate);
         if (operation == Operation.ADD) {
             txTemp.metaInfo().ca().add(certificate);
         } else if (operation == Operation.UPDATE) {
@@ -239,7 +239,7 @@ class TxLedgerCAUpdate implements Runnable {
         } else {
             if (txCommand.sign(ptx)) {
                 TransactionResponse response = ptx.commit();
-                String pubkey = KeyGenUtils.encodePubKey(X509Utils.resolvePubKey(certificate));
+                String pubkey = KeyGenUtils.encodePubKey(CertificateUtils.resolvePubKey(certificate));
                 if (response.isSuccess()) {
                     System.out.printf("ledger ca: [%s](pubkey) updated%n", pubkey);
                 } else {
@@ -292,7 +292,7 @@ class TxUserRegister implements Runnable {
                     System.err.printf("no [%s.crt] in path [%s]%n", name, keysHome.getAbsolutePath());
                     return;
                 }
-                certificate = X509Utils.resolveCertificate(FileUtils.readText(pubs[0]));
+                certificate = CertificateUtils.parseCertificate(FileUtils.readText(pubs[0]));
             } else {
                 pubs = keysHome.listFiles((dir, name) -> {
                     if (name.endsWith(this.name + ".pub")) {
@@ -307,7 +307,7 @@ class TxUserRegister implements Runnable {
                 pubKey = Crypto.resolveAsPubKey(Base58Utils.decode(FileUtils.readText(pubs[0])));
             }
         } else if (!StringUtils.isEmpty(caPath)) {
-            certificate = X509Utils.resolveCertificate(FileUtils.readText(caPath));
+            certificate = CertificateUtils.parseCertificate(FileUtils.readText(caPath));
         } else if (!StringUtils.isEmpty(pubkey) && !caMode) {
             pubKey = Crypto.resolveAsPubKey(Base58Utils.decode(pubkey));
         } else {
@@ -317,9 +317,9 @@ class TxUserRegister implements Runnable {
 
         TransactionTemplate txTemp = txCommand.newTransaction();
         if (null != certificate) {
-            X509Utils.checkCertificateRolesAny(certificate, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
-            X509Utils.checkValidity(certificate);
-            pubKey = X509Utils.resolvePubKey(certificate);
+            CertificateUtils.checkCertificateRolesAny(certificate, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
+            CertificateUtils.checkValidity(certificate);
+            pubKey = CertificateUtils.resolvePubKey(certificate);
             txTemp.users().register(certificate);
         } else {
             txTemp.users().register(new BlockchainIdentityData(pubKey));
@@ -382,18 +382,18 @@ class TxUserCAUpdate implements Runnable {
                 Scanner scanner = new Scanner(System.in).useDelimiter("\n");
                 int keyIndex = Integer.parseInt(scanner.next().trim());
                 address = addresses[keyIndex];
-                certificate = X509Utils.resolveCertificate(FileUtils.readText(new File(certs[keyIndex])));
+                certificate = CertificateUtils.parseCertificate(FileUtils.readText(new File(certs[keyIndex])));
                 if (!address.equals(address)) {
                     System.err.println("the key pair does not match the certificate");
                     return;
                 }
             }
         } else {
-            certificate = X509Utils.resolveCertificate(new File(caPath));
-            address = AddressEncoding.generateAddress(X509Utils.resolvePubKey(certificate));
+            certificate = CertificateUtils.parseCertificate(new File(caPath));
+            address = AddressEncoding.generateAddress(CertificateUtils.resolvePubKey(certificate));
         }
-        X509Utils.checkCertificateRolesAny(certificate, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
-        X509Utils.checkValidity(certificate);
+        CertificateUtils.checkCertificateRolesAny(certificate, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
+        CertificateUtils.checkValidity(certificate);
         txTemp.user(address).ca(certificate);
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);

@@ -1,6 +1,6 @@
 package com.jd.blockchain.tools.cli;
 
-import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.Crypto;
@@ -312,9 +312,9 @@ class KeysImport implements Runnable {
         if (names.length != 0) {
             System.err.println("[" + name + "] already exists");
         } else {
-            X509Certificate certificate = X509Utils.resolveCertificate(new File(caPath));
-            PubKey pubKey = X509Utils.resolvePubKey(certificate);
-            PrivKey privKey = X509Utils.resolvePrivKey(pubKey.getAlgorithm(), new File(keyPath));
+            X509Certificate certificate = CertificateUtils.parseCertificate(new File(caPath));
+            PubKey pubKey = CertificateUtils.resolvePubKey(certificate);
+            PrivKey privKey = CertificateUtils.parsePrivKey(pubKey.getAlgorithm(), new File(keyPath));
             AsymmetricKeypair keypair = new BlockchainKeypair(pubKey, privKey);
             System.out.println("please input password: ");
             System.out.print("> ");
@@ -327,7 +327,7 @@ class KeysImport implements Runnable {
                 FileUtils.writeText(pubkey, new File(keysHome + File.separator + name + ".pub"));
                 FileUtils.writeText(privkey, new File(keysHome + File.separator + name + ".priv"));
                 FileUtils.writeText(base58pwd, new File(keysHome + File.separator + name + ".pwd"));
-                FileUtils.writeText(X509Utils.toPEMString(certificate), new File(keysHome + File.separator + name + ".crt"));
+                FileUtils.writeText(CertificateUtils.toPEMString(certificate), new File(keysHome + File.separator + name + ".crt"));
                 System.out.printf(Keys.KEYS_PRINT_FORMAT, "NAME", "ALGORITHM", "ADDRESS", "PUBKEY");
                 System.out.printf(Keys.KEYS_PRINT_FORMAT, name, Crypto.getAlgorithm(privKey.getAlgorithm()).name(), AddressEncoding.generateAddress(keypair.getPubKey()), keypair.getPubKey());
             } else {

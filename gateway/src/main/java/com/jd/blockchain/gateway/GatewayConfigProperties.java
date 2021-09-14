@@ -2,12 +2,8 @@ package com.jd.blockchain.gateway;
 
 import java.io.File;
 import java.io.InputStream;
-import java.security.cert.X509Certificate;
 import java.util.*;
 
-import com.jd.blockchain.ca.CertificateRole;
-import com.jd.blockchain.ca.X509Utils;
-import com.jd.blockchain.crypto.KeyGenUtils;
 import utils.StringUtils;
 import utils.io.FileUtils;
 import utils.net.NetworkAddress;

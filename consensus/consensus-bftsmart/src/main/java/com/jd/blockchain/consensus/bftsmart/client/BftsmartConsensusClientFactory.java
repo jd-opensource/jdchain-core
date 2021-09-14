@@ -1,7 +1,7 @@
 package com.jd.blockchain.consensus.bftsmart.client;
 
 import com.jd.binaryproto.BinaryProtocol;
-import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.consensus.ClientIncomingSettings;
 import com.jd.blockchain.consensus.SessionCredential;
 import com.jd.blockchain.consensus.bftsmart.BftsmartClientAuthCredit;
@@ -53,7 +53,7 @@ public class BftsmartConsensusClientFactory implements ClientFactory {
 		bftsmartClientAuthCredential.setSessionCredential((BftsmartSessionCredential)sessionCredential);
 		bftsmartClientAuthCredential.setPubKey(pubKey);
 		bftsmartClientAuthCredential.setSignatureDigest(signatureDigest);
-		bftsmartClientAuthCredential.setCertificate(null != gatewayCertificate ? X509Utils.toPEMString(gatewayCertificate) : null);
+		bftsmartClientAuthCredential.setCertificate(null != gatewayCertificate ? CertificateUtils.toPEMString(gatewayCertificate) : null);
 
 		return bftsmartClientAuthCredential;
 	}

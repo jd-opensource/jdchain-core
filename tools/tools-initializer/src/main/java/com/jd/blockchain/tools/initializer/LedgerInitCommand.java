@@ -4,7 +4,7 @@ import java.io.File;
 import java.security.cert.X509Certificate;
 import java.util.UUID;
 
-import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.ledger.IdentityMode;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.SpringApplication;
@@ -99,14 +99,18 @@ public class LedgerInitCommand {
 			PubKey localNodePubKey;
 			PrivKey privKey;
 			if(ledgerInitProperties.getIdentityMode() == IdentityMode.CA) {
-				X509Certificate certificate = X509Utils.resolveCertificate(FileUtils.readText(localConf.getLocal().getCaPath()));
-				localNodePubKey = X509Utils.resolvePubKey(certificate);
-				privKey = X509Utils.resolvePrivKey(localNodePubKey.getAlgorithm(), FileUtils.readText(localConf.getLocal().getPrivKeyPath()), base58Pwd);
+				X509Certificate certificate = CertificateUtils.parseCertificate(FileUtils.readText(localConf.getLocal().getCaPath()));
+				localNodePubKey = CertificateUtils.resolvePubKey(certificate);
+				if(StringUtils.isEmpty(base58Pwd)) {
+					privKey = CertificateUtils.parsePrivKey(localNodePubKey.getAlgorithm(), FileUtils.readText(localConf.getLocal().getPrivKeyPath()));
+				} else {
+					privKey = CertificateUtils.parsePrivKey(localNodePubKey.getAlgorithm(), FileUtils.readText(localConf.getLocal().getPrivKeyPath()), base58Pwd);
+				}
 				if (!StringUtils.isEmpty(base58Pwd)) {
 					base58Pwd = Base58Utils.encode(base58Pwd.getBytes());
 				}
 			} else {
-				if (!StringUtils.isEmpty(base58Pwd)) {
+				if (StringUtils.isEmpty(base58Pwd)) {
 					base58Pwd = KeyGenUtils.readPasswordString();
 				}
 				localNodePubKey = KeyGenUtils.decodePubKey(localConf.getLocal().getPubKeyString());

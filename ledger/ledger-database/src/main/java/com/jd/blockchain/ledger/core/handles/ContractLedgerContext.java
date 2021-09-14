@@ -4,7 +4,7 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.contract.LedgerContext;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
@@ -358,7 +358,7 @@ public class ContractLedgerContext implements LedgerContext {
 		@Override
 		public RootCAUpdateOperationBuilder add(X509Certificate certificate) {
 			RootCAUpdateOpTemplate op = new RootCAUpdateOpTemplate();
-			op.addCertificate(X509Utils.toPEMString(certificate));
+			op.addCertificate(CertificateUtils.toPEMString(certificate));
 			opHandleContext.handle(op);
 			return this;
 		}
@@ -374,7 +374,7 @@ public class ContractLedgerContext implements LedgerContext {
 		@Override
 		public RootCAUpdateOperationBuilder update(X509Certificate certificate) {
 			RootCAUpdateOpTemplate op = new RootCAUpdateOpTemplate();
-			op.updateCertificate(X509Utils.toPEMString(certificate));
+			op.updateCertificate(CertificateUtils.toPEMString(certificate));
 			opHandleContext.handle(op);
 			return this;
 		}
@@ -390,7 +390,7 @@ public class ContractLedgerContext implements LedgerContext {
 		@Override
 		public RootCAUpdateOperationBuilder remove(X509Certificate certificate) {
 			RootCAUpdateOpTemplate op = new RootCAUpdateOpTemplate();
-			op.removeCertificate(X509Utils.toPEMString(certificate));
+			op.removeCertificate(CertificateUtils.toPEMString(certificate));
 			opHandleContext.handle(op);
 			return this;
 		}
@@ -420,7 +420,7 @@ public class ContractLedgerContext implements LedgerContext {
 
 		@Override
 		public UserRegisterOperation register(X509Certificate certificate) {
-			return register(new BlockchainIdentityData(X509Utils.resolvePubKey(certificate)));
+			return register(new BlockchainIdentityData(CertificateUtils.resolvePubKey(certificate)));
 		}
 	}
 

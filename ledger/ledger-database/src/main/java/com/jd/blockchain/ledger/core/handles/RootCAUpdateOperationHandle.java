@@ -1,7 +1,7 @@
 package com.jd.blockchain.ledger.core.handles;
 
 import com.jd.blockchain.ca.CertificateRole;
-import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.ledger.IdentityMode;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.LedgerPermission;
@@ -39,40 +39,40 @@ public class RootCAUpdateOperationHandle extends AbstractLedgerOperationHandle<R
             String[] ledgerCAs = adminDataset.getMetadata().getLedgerCertificates();
             Map<PublicKey, String> ledgerCAMap = new HashMap<>();
             for (int i = 0; i < ledgerCAs.length; i++) {
-                X509Certificate cert = X509Utils.resolveCertificate(ledgerCAs[i]);
+                X509Certificate cert = CertificateUtils.parseCertificate(ledgerCAs[i]);
                 PublicKey publicKey = cert.getPublicKey();
                 ledgerCAMap.put(publicKey, ledgerCAs[i]);
             }
             String[] certificatesAdd = op.getCertificatesAdd();
             for (String cert : certificatesAdd) {
-                X509Certificate certificate = X509Utils.resolveCertificate(cert);
-                X509Utils.checkCertificateRolesAny(certificate, CertificateRole.ROOT, CertificateRole.CA);
-                X509Utils.checkValidity(certificate);
+                X509Certificate certificate = CertificateUtils.parseCertificate(cert);
+                CertificateUtils.checkCACertificate(certificate);
+                CertificateUtils.checkValidity(certificate);
                 if (!ledgerCAMap.containsKey(certificate.getPublicKey())) {
                     ledgerCAMap.put(certificate.getPublicKey(), cert);
                 } else {
-                    throw new LedgerException("Certificate [" + X509Utils.toPEMString(certificate) + "] already exists in the ledger!");
+                    throw new LedgerException("Certificate [" + CertificateUtils.toPEMString(certificate) + "] already exists in the ledger!");
                 }
             }
             String[] certificatesUpdate = op.getCertificatesUpdate();
             for (String cert : certificatesUpdate) {
-                X509Certificate certificate = X509Utils.resolveCertificate(cert);
-                X509Utils.checkCertificateRolesAny(certificate, CertificateRole.ROOT, CertificateRole.CA);
-                X509Utils.checkValidity(certificate);
+                X509Certificate certificate = CertificateUtils.parseCertificate(cert);
+                CertificateUtils.checkCACertificate(certificate);
+                CertificateUtils.checkValidity(certificate);
                 if (ledgerCAMap.containsKey(certificate.getPublicKey())) {
                     ledgerCAMap.put(certificate.getPublicKey(), cert);
                 } else {
-                    throw new LedgerException("Certificate [" + X509Utils.toPEMString(certificate) + "] not exists in the ledger!");
+                    throw new LedgerException("Certificate [" + CertificateUtils.toPEMString(certificate) + "] not exists in the ledger!");
                 }
             }
             String[] certificatesRemove = op.getCertificatesRemove();
             for (String cert : certificatesRemove) {
-                X509Certificate certificate = X509Utils.resolveCertificate(cert);
-                X509Utils.checkCertificateRolesAny(certificate, CertificateRole.ROOT, CertificateRole.CA);
+                X509Certificate certificate = CertificateUtils.parseCertificate(cert);
+                CertificateUtils.checkCACertificate(certificate);
                 if (ledgerCAMap.containsKey(certificate.getPublicKey())) {
                     ledgerCAMap.remove(certificate.getPublicKey(), cert);
                 } else {
-                    throw new LedgerException("Certificate [" + X509Utils.toPEMString(certificate) + "] not exists in the ledger!");
+                    throw new LedgerException("Certificate [" + CertificateUtils.toPEMString(certificate) + "] not exists in the ledger!");
                 }
             }
 

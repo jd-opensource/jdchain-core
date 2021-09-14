@@ -1,7 +1,7 @@
 package com.jd.blockchain.ledger.core.handles;
 
 import com.jd.blockchain.ca.CertificateRole;
-import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.IdentityMode;
 import com.jd.blockchain.ledger.IllegalTransactionException;
@@ -40,13 +40,13 @@ public class UserRegisterOperationHandle extends AbstractLedgerOperationHandle<U
                 throw new IllegalTransactionException("User ca is empty!");
             }
 
-            X509Certificate cert = X509Utils.resolveCertificate(op.getCertificate());
-            X509Utils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
-            X509Utils.checkValidity(cert);
-            X509Certificate[] ledgerCAs = X509Utils.resolveCertificates(transactionContext.getDataset().getAdminDataset().getMetadata().getLedgerCertificates());
-            X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
-            Arrays.stream(issuers).forEach(issuer -> X509Utils.checkCertificateRolesAny(issuer, CertificateRole.ROOT, CertificateRole.CA));
-            X509Utils.checkValidityAny(issuers);
+            X509Certificate cert = CertificateUtils.parseCertificate(op.getCertificate());
+            CertificateUtils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
+            CertificateUtils.checkValidity(cert);
+            X509Certificate[] ledgerCAs = CertificateUtils.parseCertificates(transactionContext.getDataset().getAdminDataset().getMetadata().getLedgerCertificates());
+            X509Certificate[] issuers = CertificateUtils.findIssuers(cert, ledgerCAs);
+            Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
+            CertificateUtils.checkValidityAny(issuers);
         }
 
         // 操作账本；

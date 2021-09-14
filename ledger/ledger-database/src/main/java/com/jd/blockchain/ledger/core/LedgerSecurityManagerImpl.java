@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.jd.blockchain.ca.CertificateRole;
-import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerSecurityException;
 import com.jd.blockchain.ledger.ParticipantDoesNotExistException;
@@ -322,12 +322,12 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 						if(account.getState() != AccountState.NORMAL) {
 							continue;
 						}
-						X509Certificate cert = X509Utils.resolveCertificate(account.getCertificate());
-						X509Utils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
-						X509Utils.checkValidity(cert);
-						X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
-						Arrays.stream(issuers).forEach(issuer -> X509Utils.checkCertificateRolesAny(issuer, CertificateRole.ROOT, CertificateRole.CA));
-						X509Utils.checkValidityAny(issuers);
+						X509Certificate cert = CertificateUtils.parseCertificate(account.getCertificate());
+						CertificateUtils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
+						CertificateUtils.checkValidity(cert);
+						X509Certificate[] issuers = CertificateUtils.findIssuers(cert, ledgerCAs);
+						Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
+						CertificateUtils.checkValidityAny(issuers);
 
 						return;
 					} catch (Exception e) {}
@@ -341,12 +341,12 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 						if(account.getState() != AccountState.NORMAL) {
 							throw new LedgerSecurityException("Invalid endpoint user!");
 						}
-						X509Certificate cert = X509Utils.resolveCertificate(account.getCertificate());
-						X509Utils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
-						X509Utils.checkValidity(cert);
-						X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
-						Arrays.stream(issuers).forEach(issuer -> X509Utils.checkCertificateRolesAny(issuer, CertificateRole.ROOT, CertificateRole.CA));
-						X509Utils.checkValidityAny(issuers);
+						X509Certificate cert = CertificateUtils.parseCertificate(account.getCertificate());
+						CertificateUtils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
+						CertificateUtils.checkValidity(cert);
+						X509Certificate[] issuers = CertificateUtils.findIssuers(cert, ledgerCAs);
+						Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
+						CertificateUtils.checkValidityAny(issuers);
 					}
 				} catch (Exception e) {
 					throw new LedgerSecurityException("Invalid endpoint user!");
@@ -366,12 +366,12 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 						if(account.getState() != AccountState.NORMAL) {
 							continue;
 						}
-						X509Certificate cert = X509Utils.resolveCertificate(account.getCertificate());
-						X509Utils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW);
-						X509Utils.checkValidity(cert);
-						X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
-						Arrays.stream(issuers).forEach(issuer -> X509Utils.checkCertificateRolesAny(issuer, CertificateRole.ROOT, CertificateRole.CA));
-						X509Utils.checkValidityAny(issuers);
+						X509Certificate cert = CertificateUtils.parseCertificate(account.getCertificate());
+						CertificateUtils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW);
+						CertificateUtils.checkValidity(cert);
+						X509Certificate[] issuers = CertificateUtils.findIssuers(cert, ledgerCAs);
+						Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
+						CertificateUtils.checkValidityAny(issuers);
 
 						return;
 					} catch (Exception e) {}
@@ -385,12 +385,12 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 						if(account.getState() != AccountState.NORMAL) {
 							throw new LedgerSecurityException("Invalid node signer!");
 						}
-						X509Certificate cert = X509Utils.resolveCertificate(account.getCertificate());
-						X509Utils.checkValidity(cert);
-						X509Utils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW);
-						X509Certificate[] issuers = X509Utils.findIssuers(cert, ledgerCAs);
-						Arrays.stream(issuers).forEach(issuer -> X509Utils.checkCertificateRolesAny(issuer, CertificateRole.ROOT, CertificateRole.CA));
-						X509Utils.checkValidityAny(issuers);
+						X509Certificate cert = CertificateUtils.parseCertificate(account.getCertificate());
+						CertificateUtils.checkValidity(cert);
+						CertificateUtils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW);
+						X509Certificate[] issuers = CertificateUtils.findIssuers(cert, ledgerCAs);
+						Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
+						CertificateUtils.checkValidityAny(issuers);
 					}
 				} catch (Exception e) {
 					throw new LedgerSecurityException("Invalid node signer!");

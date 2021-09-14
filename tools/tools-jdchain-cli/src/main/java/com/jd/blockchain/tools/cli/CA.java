@@ -1,7 +1,7 @@
 package com.jd.blockchain.tools.cli;
 
 import com.jd.blockchain.ca.CertificateRole;
-import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.KeyGenUtils;
@@ -173,9 +173,9 @@ class CAList implements Runnable {
         Arrays.stream(certs).forEach(cert -> {
             try {
                 String name = FilenameUtils.removeExtension(cert.getName());
-                X509Certificate certificate = X509Utils.resolveCertificate(FileUtils.readText(cert));
-                PubKey pubKey = X509Utils.resolvePubKey(certificate);
-                Set<String> ous = X509Utils.getSubject(certificate, BCStyle.OU);
+                X509Certificate certificate = CertificateUtils.parseCertificate(FileUtils.readText(cert));
+                PubKey pubKey = CertificateUtils.resolvePubKey(certificate);
+                Set<String> ous = CertificateUtils.getSubject(certificate, BCStyle.OU);
                 System.out.printf(caCli.CA_LIST_FORMAT, name, Crypto.getAlgorithm(pubKey.getAlgorithm()).name(), ous, pubKey);
             } catch (Exception e) {
                 System.err.print("error certificate: " + cert);
@@ -206,10 +206,10 @@ class CAShow implements Runnable {
             return false;
         });
         if (null != crts && crts.length > 0) {
-            X509Certificate certificate = X509Utils.resolveCertificate(FileUtils.readText(new File(caHome + File.separator + name + ".crt")));
+            X509Certificate certificate = CertificateUtils.parseCertificate(FileUtils.readText(new File(caHome + File.separator + name + ".crt")));
             System.out.printf(caCli.CA_LIST_FORMAT, "NAME", "ALGORITHM", "ROLE", "PUBKEY");
-            PubKey pubKey = X509Utils.resolvePubKey(certificate);
-            Set<String> ous = X509Utils.getSubject(certificate, BCStyle.OU);
+            PubKey pubKey = CertificateUtils.resolvePubKey(certificate);
+            Set<String> ous = CertificateUtils.getSubject(certificate, BCStyle.OU);
             System.out.printf(caCli.CA_LIST_FORMAT, name, Crypto.getAlgorithm(pubKey.getAlgorithm()).name(), ous, pubKey);
             System.out.println(certificate.toString());
         } else {
@@ -267,10 +267,10 @@ class CACsr implements Runnable {
                 String password = caCli.scanValue("password of the key");
                 PrivKey privKey = KeyGenUtils.decodePrivKeyWithRawPassword(priv, password);
                 PubKey pubKey = KeyGenUtils.decodePubKey(pub);
-                PrivateKey privateKey = X509Utils.resolvePrivateKey(privKey);
+                PrivateKey privateKey = CertificateUtils.retrievePrivateKey(privKey);
                 String algorithm = Crypto.getAlgorithm(privKey.getAlgorithm()).name();
                 ContentSigner signGen = new JcaContentSignerBuilder(caCli.CA_ALGORITHM_MAP.get(algorithm)).build(privateKey);
-                PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(subject, X509Utils.resolvePublicKey(pubKey));
+                PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(subject, CertificateUtils.retrievePublicKey(pubKey));
                 PKCS10CertificationRequest csr = p10Builder.build(signGen);
                 String csrFile = caHome + File.separator + name + ".csr";
                 JcaPEMWriter jcaPEMWriter = new JcaPEMWriter(new FileWriter(csrFile));
@@ -323,27 +323,27 @@ class CACrt implements Runnable {
             return;
         }
         try {
-            PKCS10CertificationRequest csr = X509Utils.resolveCertificationRequest(!StringUtils.isEmpty(name) ? FileUtils.readText(caHome + File.separator + name + ".csr") : FileUtils.readText(csrPath));
+            PKCS10CertificationRequest csr = CertificateUtils.parseCertificationRequest(!StringUtils.isEmpty(name) ? FileUtils.readText(caHome + File.separator + name + ".csr") : FileUtils.readText(csrPath));
             String issuerKey = !StringUtils.isEmpty(issuerName) ? FileUtils.readText(caHome + File.separator + issuerName + ".priv") : FileUtils.readText(issuerPrivPath);
             issuerName = !StringUtils.isEmpty(issuerName) ? issuerName : FilenameUtils.removeExtension(new File(issuerPrivPath).getName());
             String password = caCli.scanValue("password of the issuer");
             PrivKey issuerPrivKey = KeyGenUtils.decodePrivKeyWithRawPassword(issuerKey, password);
-            PrivateKey issuerPrivateKey = X509Utils.resolvePrivateKey(issuerPrivKey);
-            PubKey csrPubKey = X509Utils.resolvePubKey(csr);
+            PrivateKey issuerPrivateKey = CertificateUtils.retrievePrivateKey(issuerPrivKey);
+            PubKey csrPubKey = CertificateUtils.resolvePubKey(csr);
             SignatureFunction signatureFunction = Crypto.getSignatureFunction(issuerPrivKey.getAlgorithm());
             byte[] testBytes = UUID.randomUUID().toString().getBytes();
             X509v3CertificateBuilder certificateBuilder;
             if (!signatureFunction.verify(signatureFunction.sign(issuerPrivKey, testBytes), csrPubKey, testBytes)) {
                 String issuerCrt = !StringUtils.isEmpty(issuerName) ? FileUtils.readText(caHome + File.separator + issuerName + ".crt") : FileUtils.readText(issuerCrtPath);
-                X509Certificate signerCrt = X509Utils.resolveCertificate(issuerCrt);
-                X509Utils.checkCertificateRolesAny(signerCrt, CertificateRole.ROOT, CertificateRole.CA);
+                X509Certificate signerCrt = CertificateUtils.parseCertificate(issuerCrt);
+                CertificateUtils.checkCertificateRolesAny(signerCrt, CertificateRole.ROOT, CertificateRole.CA);
                 certificateBuilder = new JcaX509v3CertificateBuilder(
                         signerCrt,
                         BigInteger.valueOf(new Random().nextInt() & 0x7fffffff),
                         new Date(),
                         new Date(System.currentTimeMillis() + days * 1000L * 24L * 60L * 60L),
                         csr.getSubject(),
-                        X509Utils.resolvePublicKey(csrPubKey)
+                        CertificateUtils.retrievePublicKey(csrPubKey)
                 );
             } else {
                 // 自签名证书
@@ -353,10 +353,10 @@ class CACrt implements Runnable {
                         new Date(),
                         new Date(System.currentTimeMillis() + days * 1000L * 24L * 60L * 60L),
                         csr.getSubject(),
-                        X509Utils.resolvePublicKey(csrPubKey)
+                        CertificateUtils.retrievePublicKey(csrPubKey)
                 );
             }
-            certificateBuilder.addExtension(Extension.basicConstraints, false, new BasicConstraints(X509Utils.checkCertificateRolesAnyNoException(csr, CertificateRole.ROOT, CertificateRole.CA)));
+            certificateBuilder.addExtension(Extension.basicConstraints, false, new BasicConstraints(CertificateUtils.checkCertificateRolesAnyNoException(csr, CertificateRole.ROOT, CertificateRole.CA)));
 
             String algorithm = Crypto.getAlgorithm(issuerPrivKey.getAlgorithm()).name();
             ContentSigner signer = new JcaContentSignerBuilder(caCli.CA_ALGORITHM_MAP.get(algorithm)).build(issuerPrivateKey);
@@ -365,7 +365,7 @@ class CACrt implements Runnable {
 
             String crtName = !StringUtils.isEmpty(name) ? name : FilenameUtils.removeExtension(new File(csrPath).getName());
             String crtFile = caHome + File.separator + crtName + ".crt";
-            FileUtils.writeText(X509Utils.toPEMString(cert), new File(crtFile));
+            FileUtils.writeText(CertificateUtils.toPEMString(cert), new File(crtFile));
 
             System.out.println("create [" + crtFile + "] success");
         } catch (Exception e) {
@@ -414,27 +414,27 @@ class CARenew implements Runnable {
         }
 
         try {
-            X509Certificate originCrt = X509Utils.resolveCertificate(!StringUtils.isEmpty(name) ? FileUtils.readText(caHome + File.separator + name + ".crt") : FileUtils.readText(crtPath));
+            X509Certificate originCrt = CertificateUtils.parseCertificate(!StringUtils.isEmpty(name) ? FileUtils.readText(caHome + File.separator + name + ".crt") : FileUtils.readText(crtPath));
             String issuerKey = !StringUtils.isEmpty(issuerName) ? FileUtils.readText(caHome + File.separator + issuerName + ".priv") : FileUtils.readText(issuerPrivPath);
             issuerName = !StringUtils.isEmpty(issuerName) ? issuerName : FilenameUtils.removeExtension(new File(issuerPrivPath).getName());
             String password = caCli.scanValue("password of the issuer");
             PrivKey issuerPrivKey = KeyGenUtils.decodePrivKeyWithRawPassword(issuerKey, password);
-            PrivateKey issuerPrivateKey = X509Utils.resolvePrivateKey(issuerPrivKey);
-            PubKey crtPubKey = X509Utils.resolvePubKey(originCrt);
+            PrivateKey issuerPrivateKey = CertificateUtils.retrievePrivateKey(issuerPrivKey);
+            PubKey crtPubKey = CertificateUtils.resolvePubKey(originCrt);
             SignatureFunction signatureFunction = Crypto.getSignatureFunction(issuerPrivKey.getAlgorithm());
             byte[] testBytes = UUID.randomUUID().toString().getBytes();
             X509v3CertificateBuilder certificateBuilder;
             if (!signatureFunction.verify(signatureFunction.sign(issuerPrivKey, testBytes), crtPubKey, testBytes)) {
                 String issuerCrt = !StringUtils.isEmpty(issuerName) ? FileUtils.readText(caHome + File.separator + issuerName + ".crt") : FileUtils.readText(issuerCrtPath);
-                X509Certificate signerCrt = X509Utils.resolveCertificate(issuerCrt);
-                X509Utils.checkCertificateRolesAny(signerCrt, CertificateRole.ROOT, CertificateRole.CA);
+                X509Certificate signerCrt = CertificateUtils.parseCertificate(issuerCrt);
+                CertificateUtils.checkCertificateRolesAny(signerCrt, CertificateRole.ROOT, CertificateRole.CA);
                 certificateBuilder = new JcaX509v3CertificateBuilder(
                         signerCrt,
                         BigInteger.valueOf(new Random().nextInt() & 0x7fffffff),
                         new Date(),
                         new Date(System.currentTimeMillis() + days * 1000L * 24L * 60L * 60L),
                         new X500Name(originCrt.getSubjectDN().getName()),
-                        X509Utils.resolvePublicKey(crtPubKey)
+                        CertificateUtils.retrievePublicKey(crtPubKey)
                 );
             } else {
                 // 自签名证书
@@ -444,10 +444,10 @@ class CARenew implements Runnable {
                         new Date(),
                         new Date(System.currentTimeMillis() + days * 1000L * 24L * 60L * 60L),
                         new X500Name(originCrt.getSubjectDN().getName()),
-                        X509Utils.resolvePublicKey(crtPubKey)
+                        CertificateUtils.retrievePublicKey(crtPubKey)
                 );
             }
-            certificateBuilder.addExtension(Extension.basicConstraints, false, new BasicConstraints(X509Utils.checkCertificateRolesAnyNoException(originCrt, CertificateRole.ROOT, CertificateRole.CA)));
+            certificateBuilder.addExtension(Extension.basicConstraints, false, new BasicConstraints(CertificateUtils.checkCertificateRolesAnyNoException(originCrt, CertificateRole.ROOT, CertificateRole.CA)));
 
             String algorithm = Crypto.getAlgorithm(issuerPrivKey.getAlgorithm()).name();
             ContentSigner signer = new JcaContentSignerBuilder(caCli.CA_ALGORITHM_MAP.get(algorithm)).build(issuerPrivateKey);
@@ -456,7 +456,7 @@ class CARenew implements Runnable {
 
             String crtName = !StringUtils.isEmpty(name) ? name : FilenameUtils.removeExtension(new File(crtPath).getName());
             String crtFile = caHome + File.separator + crtName + ".crt";
-            FileUtils.writeText(X509Utils.toPEMString(cert), new File(crtFile));
+            FileUtils.writeText(CertificateUtils.toPEMString(cert), new File(crtFile));
 
             System.out.println("renew [" + crtFile + "] success");
         } catch (Exception e) {
@@ -539,16 +539,16 @@ class CATest implements Runnable {
                 FileUtils.writeText(pubkey, new File(caCli.getCaHome() + File.separator + name + ".pub"));
                 FileUtils.writeText(privkey, new File(caCli.getCaHome() + File.separator + name + ".priv"));
                 FileUtils.writeText(base58pwd, new File(caCli.getCaHome() + File.separator + name + ".pwd"));
-                FileUtils.writeText(X509Utils.toPEMString(algorithm, X509Utils.resolvePrivateKey(keypair.getPrivKey(), keypair.getPubKey())), new File(caCli.getCaHome() + File.separator + name + ".key"));
+                FileUtils.writeText(CertificateUtils.toPEMString(algorithm, CertificateUtils.retrievePrivateKey(keypair.getPrivKey(), keypair.getPubKey())), new File(caCli.getCaHome() + File.separator + name + ".key"));
 
                 if (i == 0) {
                     issuerPrivKey = keypair.getPrivKey();
                 }
-                X509Certificate certificate = genCert(name, ou, X509Utils.resolvePublicKey(keypair.getPubKey()), X509Utils.resolvePrivateKey(issuerPrivKey), issuerCrt);
+                X509Certificate certificate = genCert(name, ou, CertificateUtils.retrievePublicKey(keypair.getPubKey()), CertificateUtils.retrievePrivateKey(issuerPrivKey), issuerCrt);
                 if (i == 0) {
                     issuerCrt = certificate;
                 }
-                FileUtils.writeText(X509Utils.toPEMString(certificate), new File(caCli.getCaHome() + File.separator + name + ".crt"));
+                FileUtils.writeText(CertificateUtils.toPEMString(certificate), new File(caCli.getCaHome() + File.separator + name + ".crt"));
             }
 
             System.out.println("create test certificates in [" + caCli.getCaHome() + "] success");

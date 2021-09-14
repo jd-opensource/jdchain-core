@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.jd.blockchain.ca.CertificateRole;
-import com.jd.blockchain.ca.X509Utils;
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.gateway.service.topology.LedgerPeersTopology;
 import org.apache.commons.io.FileUtils;
@@ -61,7 +61,6 @@ import utils.ArgumentSet.ArgEntry;
 import utils.BaseConstant;
 import utils.ConsoleUtils;
 import utils.StringUtils;
-import utils.codec.Base58Utils;
 import utils.reflection.TypeUtils;
 
 public class GatewayServerBooter {
@@ -154,10 +153,10 @@ public class GatewayServerBooter {
 		if(!StringUtils.isEmpty(config.keys().getDefault().getPubKeyValue())) {
 			pubKey = KeyGenUtils.decodePubKey(config.keys().getDefault().getPubKeyValue());
 		} else {
-			X509Certificate certificate = X509Utils.resolveCertificate(utils.io.FileUtils.readText(config.keys().getDefault().getCaPath()));
-			X509Utils.checkValidity(certificate);
-			X509Utils.checkCertificateRole(certificate, CertificateRole.GW);
-			pubKey = X509Utils.resolvePubKey(certificate);
+			X509Certificate certificate = CertificateUtils.parseCertificate(utils.io.FileUtils.readText(config.keys().getDefault().getCaPath()));
+			CertificateUtils.checkValidity(certificate);
+			CertificateUtils.checkCertificateRole(certificate, CertificateRole.GW);
+			pubKey = CertificateUtils.resolvePubKey(certificate);
 		}
 		String base58Pwd = config.keys().getDefault().getPrivKeyPassword();
 		PrivKey privKey;
@@ -165,7 +164,11 @@ public class GatewayServerBooter {
 		if (StringUtils.isEmpty(privkeyString)) {
 			privkeyString = utils.io.FileUtils.readText(config.keys().getDefault().getPrivKeyPath()).trim();
 			if(privkeyString.startsWith("-----BEGIN") && privkeyString.endsWith("PRIVATE KEY-----")) {
-				privKey = X509Utils.resolvePrivKey(pubKey.getAlgorithm(), privkeyString, base58Pwd);
+				if(StringUtils.isEmpty(base58Pwd)) {
+					privKey = CertificateUtils.parsePrivKey(pubKey.getAlgorithm(), privkeyString);
+				} else {
+					privKey = CertificateUtils.parsePrivKey(pubKey.getAlgorithm(), privkeyString, base58Pwd);
+				}
 			} else {
 				if (StringUtils.isEmpty(base58Pwd)) {
 					base58Pwd = KeyGenUtils.readPasswordString();
