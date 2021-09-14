@@ -435,6 +435,7 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 					"UserEventset total num key already exist! --[key = " + Base58Utils.encode(ledgerKey.concat(USER_EVENT_SET_PREFIX).concat(totalKey).toBytes()) + "]");
 		}
 
+		// keyPrefix = LDG://ledgerhash/tsx/kv/total/height
 		v = baseStorage.set(ledgerKey.concat(TRANSACTION_SET_PREFIX).concat(totalKey), BytesUtils.toBytes(txset.getTotalCount()), -1);
 		if (v < 0) {
 			throw new IllegalStateException(

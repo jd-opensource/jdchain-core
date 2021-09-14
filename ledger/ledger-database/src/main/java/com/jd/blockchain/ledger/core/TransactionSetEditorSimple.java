@@ -40,8 +40,6 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	 */
 	private SimpleDataset<Bytes, byte[]> txDataSet;
 
-	private long preBlockHeight;
-
 	private volatile long txIndex = 0;
 
 	private volatile long origin_txIndex = 0;
@@ -63,7 +61,6 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	 */
 	public TransactionSetEditorSimple(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage merkleTreeStorage,
                                       VersioningKVStorage dataStorage) {
-		this.preBlockHeight = -1;
 		this.rootHash = null;
 		this.origin_rootHash = this.rootHash;
 		this.setting = setting;
@@ -79,7 +76,6 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	 */
 	public TransactionSetEditorSimple(long preBlockHeight, HashDigest txsetHash, CryptoSetting setting, String keyPrefix,
                                       ExPolicyKVStorage merkleTreeStorage, VersioningKVStorage dataStorage, boolean readonly) {
-		this.preBlockHeight = preBlockHeight;
 		this.rootHash = txsetHash;
 		this.origin_rootHash = this.rootHash;
 		this.setting = setting;
@@ -345,9 +341,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		origin_rootHash = rootHash;
 		// 后续可以做默克尔证明；
 		rootHash = computeTxsRootHash(rootHash, transactions);
-		// 存储新区块高度对应的交易总数
-		// keyPrefix = LDG://ledgerhash/tsx/kv/total/height
-//		saveTotalByHeight(preBlockHeight + 1);
+
 		txDataSet.commit();
 	}
 
