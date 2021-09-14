@@ -292,7 +292,7 @@ public class TransactionSetTest {
 
 		MemoryKVStorage testStorage = new MemoryKVStorage();
 
-		BufferedKVStorage bufferStorage = new BufferedKVStorage(testStorage, testStorage, false);
+		BufferedKVStorage bufferStorage = new BufferedKVStorage(null, testStorage, testStorage, false);
 
 		// Create a new TransactionSet, it's empty;
 		TransactionSetEditor txset = new TransactionSetEditor(defCryptoSetting, keyPrefix, bufferStorage, bufferStorage);

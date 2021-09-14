@@ -19,6 +19,8 @@ import utils.DataEntry;
 import utils.SkippingIterator;
 import utils.io.BytesUtils;
 
+import java.util.ArrayList;
+
 /**
  * {@link SimpleDatasetImpl}
  * <br>
@@ -38,6 +40,9 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 //	public static final Bytes SN_PREFIX = Bytes.fromString("SN" + LedgerConsts.KEY_SEPERATOR);
 	public static final Bytes DATA_PREFIX = Bytes.fromString("KV" + LedgerConsts.KEY_SEPERATOR);
 
+	// 根据区块高度查询集合中的数据总数
+	public static final Bytes TOTAL_PREFIX = Bytes.fromString("TOTAL" + LedgerConsts.KEY_SEPERATOR);
+
 	@SuppressWarnings("unchecked")
 
 	private final HashFunction DEFAULT_HASH_FUNCTION;
@@ -47,6 +52,8 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	private BufferedKVStorage valueStorage;
 
 	private HashDigest rootHash;
+
+	private HashDigest originHash;
 
 	private long preBlockHeight;
 
@@ -114,7 +121,7 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 		// 把存储数据值、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
 		this.dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
 		// 缓冲对KV的写入；
-		this.valueStorage = new BufferedKVStorage(exPolicyStorage, versioningStorage, false);
+		this.valueStorage = new BufferedKVStorage(Crypto.getHashFunction(setting.getHashAlgorithm()), exPolicyStorage, versioningStorage, false);
 
 		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
 
@@ -136,27 +143,20 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 
 	@Override
 	public long getDataCount() {
-		// not used in simple anchor type
-		return 0;
+
+		if (preBlockHeight == -1) {
+			return 0;
+		}
+
+		// prefix + KV/Total/height
+		Bytes dataKey = encodeDataKey(TOTAL_PREFIX.concat(Bytes.fromString(String.valueOf(preBlockHeight))));
+
+		byte[] value = valueStorage.get(dataKey, 0);
+		if (value == null) {
+			throw new DataExistException("Expected value does not exist!");
+		}
+		return BytesUtils.toLong(value);
 	}
-
-//	@Override
-//	// 根据Key查找数据总数，分为交易，用户账户，数据账户等
-//	public long getDataCount(Bytes key) {
-//		long latestVersion = valueStorage.getVersion(key);
-//		if (latestVersion != 0) {
-//			// key not exist, or the specified version is out of the latest version indexed
-//			return 0;
-//		}
-//
-//		Bytes dataKey = encodeDataKey(key);
-//		byte[] value = valueStorage.get(dataKey, 0);
-//		if (value == null) {
-//			return 0;
-//		}
-//		return BytesUtils.toLong(value);
-//	}
-
 
 	/**
 	 * Create or update the value associated the specified key if the version
@@ -377,12 +377,25 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 
 	@Override
 	public void commit() {
+		// 保留roothash的中间执行状态，应对取消操作
+		this.originHash = this.rootHash;
+		this.rootHash = computeDataSetRootHash(originHash, valueStorage);
 		valueStorage.commit();
 	}
 
+
 	@Override
 	public void cancel() {
+		this.rootHash = this.originHash;
 		valueStorage.cancel();
+	}
+
+	private HashDigest computeDataSetRootHash(HashDigest originHash, BufferedKVStorage valueStorage) {
+		ArrayList<HashDigest> merkleNodes = new ArrayList<>();
+
+		merkleNodes = valueStorage.getCachedKvList();
+
+		return  new MerkleTreeSimple(this.DEFAULT_HASH_FUNCTION, originHash, merkleNodes).root();
 	}
 
 	// ----------------------------------------------------------

@@ -139,7 +139,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 				previousBlock.getHash());
 
 		// init storage;
-		BufferedKVStorage txStagedStorage = new BufferedKVStorage(ledgerExStorage, ledgerVerStorage, PARALLEL_DB_WRITE);
+		BufferedKVStorage txStagedStorage = new BufferedKVStorage(Crypto.getHashFunction(ledgerSetting.getCryptoSetting().getHashAlgorithm()), ledgerExStorage, ledgerVerStorage, PARALLEL_DB_WRITE);
 
 		TransactionSetEditor txset = LedgerRepositoryImpl.loadTransactionSet(previousBlock.getTransactionSetHash(),
 				ledgerSetting.getCryptoSetting(), ledgerKeyPrefix, txStagedStorage, txStagedStorage, false);
@@ -166,7 +166,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		LedgerBlockData genesisBlock = new LedgerBlockData(0, null, null);
 		StagedSnapshot startingPoint = new GenesisSnapshot(initSetting);
 		// init storage;
-		BufferedKVStorage txStagedStorage = new BufferedKVStorage(ledgerExStorage, ledgerVerStorage, false);
+		BufferedKVStorage txStagedStorage = new BufferedKVStorage(Crypto.getHashFunction(initSetting.getCryptoSetting().getHashAlgorithm()), ledgerExStorage, ledgerVerStorage, false);
 
 		TransactionSetEditor txset = LedgerRepositoryImpl.newTransactionSet(initSetting.getCryptoSetting(), ledgerKeyPrefix,
 				txStagedStorage, txStagedStorage);
@@ -222,7 +222,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 	private LedgerDataSetEditor innerGetDataset() {
 		if (this.latestLedgerDataset == null) {
-			this.datasetStorage = new BufferedKVStorage(baseStorage, baseStorage, false);
+			this.datasetStorage = new BufferedKVStorage(Crypto.getHashFunction(cryptoSetting.getHashAlgorithm()), baseStorage, baseStorage, false);
 			this.latestLedgerDataset = createDatasetFromLastestSnapshot(datasetStorage);
 		}
 		return this.latestLedgerDataset;
@@ -235,7 +235,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 	private LedgerEventSetEditor innerGetEventset() {
 		if (this.latestLedgerEventSet == null) {
-			this.eventsetStorage = new BufferedKVStorage(baseStorage, baseStorage, false);
+			this.eventsetStorage = new BufferedKVStorage(Crypto.getHashFunction(cryptoSetting.getHashAlgorithm()), baseStorage, baseStorage, false);
 			this.latestLedgerEventSet = createEventSetFromLastestSnapshot(eventsetStorage);
 		}
 		return this.latestLedgerEventSet;

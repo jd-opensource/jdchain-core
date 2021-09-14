@@ -1,5 +1,6 @@
 package com.jd.blockchain.ledger.core;
 
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
@@ -89,7 +90,7 @@ public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
 	public MerkleSequenceDataset(CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage versioningStorage) {
 		// 缓冲对KV的写入；
-		this.bufferedStorage = new BufferedKVStorage(exPolicyStorage, versioningStorage, false);
+		this.bufferedStorage = new BufferedKVStorage(Crypto.getHashFunction(setting.getHashAlgorithm()), exPolicyStorage, versioningStorage, false);
 
 		// 把存储数据值、SN、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
 		// this.valueStorage = PrefixAppender.prefix(DATA_PREFIX, (VersioningKVStorage)
@@ -136,7 +137,7 @@ public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
 	public MerkleSequenceDataset(HashDigest merkleRootHash, CryptoSetting setting, Bytes keyPrefix,
 			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
 		// 缓冲对KV的写入；
-		this.bufferedStorage = new BufferedKVStorage(exPolicyStorage, versioningStorage, false);
+		this.bufferedStorage = new BufferedKVStorage(Crypto.getHashFunction(setting.getHashAlgorithm()), exPolicyStorage, versioningStorage, false);
 
 		// 把存储数据值、SN、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
 //		snKeyPrefix = Bytes.fromString(keyPrefix + SN_PREFIX);

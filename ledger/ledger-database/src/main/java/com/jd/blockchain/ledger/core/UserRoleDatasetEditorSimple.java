@@ -30,22 +30,26 @@ public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvabl
 
 	private SimpleDatasetImpl dataset;
 
-	private static final DataEntry<Bytes, byte[]>[] EMPTY_ENTRIES = new DataEntry[0];
+	private final Bytes keyPrefix;
 
-	private static final String USERROLE_PREFIX = "USERROLE" + LedgerConsts.KEY_SEPERATOR;
+	private volatile long userrole_index_in_block = 0;
+
+	private volatile long origin_userrole_index_in_block  = 0;
+
+	private static final Bytes USEERROLR_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
+
+	private static final DataEntry<Bytes, byte[]>[] EMPTY_ENTRIES = new DataEntry[0];
 
 	public UserRoleDatasetEditorSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
                                        VersioningKVStorage verStorage) {
-		Bytes userRolePrefix = Bytes.fromString(prefix + USERROLE_PREFIX);
-		dataset = new SimpleDatasetImpl(cryptoSetting, userRolePrefix, exPolicyStorage, verStorage);
+		this.keyPrefix = Bytes.fromString(prefix);
+		dataset = new SimpleDatasetImpl(cryptoSetting, keyPrefix, exPolicyStorage, verStorage);
 	}
 
 	public UserRoleDatasetEditorSimple(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
                                        ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		Bytes userRolePrefix = Bytes.fromString(prefix + USERROLE_PREFIX);
-		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, cryptoSetting, userRolePrefix, exPolicyStorage, verStorage, readonly);
-
-
+		this.keyPrefix = Bytes.fromString(prefix);
+		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, cryptoSetting, keyPrefix, exPolicyStorage, verStorage, readonly);
 	}
 
 	@Override
@@ -66,16 +70,18 @@ public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvabl
 	@Override
 	public void commit() {
 		dataset.commit();
+		origin_userrole_index_in_block = userrole_index_in_block;
 	}
 
 	@Override
 	public void cancel() {
 		dataset.cancel();
+		userrole_index_in_block = origin_userrole_index_in_block;
 	}
 
 	@Override
 	public long getUserCount() {
-		return dataset.getDataCount();
+		return dataset.getDataCount() + origin_userrole_index_in_block;
 	}
 
 	/**
@@ -112,6 +118,14 @@ public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvabl
 		if (nv < 0) {
 			throw new AuthorizationException("Roles authorization of User[" + userAddress + "] already exists!");
 		}
+
+		nv = dataset.setValue(keyPrefix.concat(USEERROLR_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf(dataset.getDataCount() + userrole_index_in_block))), roleAuth.getUserAddress().toBytes(), -1);
+
+		if (nv < 0) {
+			throw new AuthorizationException("Roles authorization seq of User[" + userAddress + "] already exists!");
+		}
+
+		userrole_index_in_block++;
 	}
 
 	/**

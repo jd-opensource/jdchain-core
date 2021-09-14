@@ -16,6 +16,9 @@ import com.jd.blockchain.storage.service.VersioningKVStorage;
 import utils.Bytes;
 import utils.Transactional;
 import utils.codec.Base58Utils;
+import utils.io.BytesUtils;
+
+import java.util.ArrayList;
 
 public class TransactionSetEditorSimple implements Transactional, TransactionSet {
 
@@ -39,7 +42,17 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 
 	private long preBlockHeight;
 
-	private long txIndex = -1;
+	private volatile long txIndex = 0;
+
+	private volatile long origin_txIndex = 0;
+
+	private HashDigest rootHash;
+
+	private HashDigest origin_rootHash;
+
+	private CryptoSetting setting;
+
+	private ArrayList<HashDigest> transactions = new ArrayList<>();
 
 	/**
 	 * Create a new TransactionSet which can be added transaction;
@@ -51,6 +64,9 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	public TransactionSetEditorSimple(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage merkleTreeStorage,
                                       VersioningKVStorage dataStorage) {
 		this.preBlockHeight = -1;
+		this.rootHash = null;
+		this.origin_rootHash = this.rootHash;
+		this.setting = setting;
 		this.txDataSet = new SimpleDatasetImpl(setting, keyPrefix, merkleTreeStorage, dataStorage);
 	}
 
@@ -64,6 +80,9 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	public TransactionSetEditorSimple(long preBlockHeight, HashDigest txsetHash, CryptoSetting setting, String keyPrefix,
                                       ExPolicyKVStorage merkleTreeStorage, VersioningKVStorage dataStorage, boolean readonly) {
 		this.preBlockHeight = preBlockHeight;
+		this.rootHash = txsetHash;
+		this.origin_rootHash = this.rootHash;
+		this.setting = setting;
 		this.txDataSet = new SimpleDatasetImpl(preBlockHeight, txsetHash, setting, keyPrefix, merkleTreeStorage, dataStorage,
 				readonly);
 	}
@@ -102,7 +121,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 
 	@Override
 	public HashDigest getRootHash() {
-		return txDataSet.getRootHash();
+		return rootHash;
 	}
 
 	@Override
@@ -113,10 +132,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	@Override
 	public long getTotalCount() {
 		// key =  keyprefix + TOTAL/preBlockHeight
-		// 暂时未包括缓存中的交易数
-		Bytes key = encodeTotalNumKey(preBlockHeight);
-
-		return txDataSet.getDataCount();
+		return txDataSet.getDataCount() + origin_txIndex;
 	}
 
 	/**
@@ -128,6 +144,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		saveRequest(txRequest);
 		saveResult(txResult);
 		saveSequence(txRequest);
+		transactions.add(txRequest.getTransactionHash());
 	}
 
 	public LedgerTransaction getTransaction(String base58Hash) {
@@ -217,48 +234,61 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	}
 
 	// 以区块高度为维度记录交易索引号
-	private void saveSequenceByHeight(TransactionRequest txRequest) {
-		txIndex++;
-		Bytes blockHeightPrefix = Bytes.fromString(String.valueOf(preBlockHeight + 1) + LedgerConsts.KEY_SEPERATOR);
-
-		// key =  keyprefix + SEQ/blockheight/txindex
-		Bytes key = encodeSeqKeyByHeight(blockHeightPrefix, txIndex);
-		// 交易序号只有唯一的版本；
-		long v = txDataSet.setValue(key, txRequest.getTransactionHash().toBytes(), -1);
-		if (v < 0) {
-			throw new IllegalTransactionException("Repeated transaction request sequence! --[" + key + "]");
-		}
-
-	}
+//	private void saveSequenceByHeight(TransactionRequest txRequest) {
+//		txIndex++;
+//		Bytes blockHeightPrefix = Bytes.fromString(String.valueOf(preBlockHeight + 1) + LedgerConsts.KEY_SEPERATOR);
+//
+//		// key =  keyprefix + SEQ/blockheight/txindex
+//		Bytes key = encodeSeqKeyByHeight(blockHeightPrefix, txIndex);
+//		// 交易序号只有唯一的版本；
+//		long v = txDataSet.setValue(key, txRequest.getTransactionHash().toBytes(), -1);
+//		if (v < 0) {
+//			throw new IllegalTransactionException("Repeated transaction request sequence! --[" + key + "]");
+//		}
+//
+//	}
 
 	// 以账本为维度记录交易索引号
 	private void saveSequence(TransactionRequest txRequest) {
 		txIndex++;
 		// key = keyprefix + SEQ/txindex
-		Bytes key = encodeSeqKey(getTotalCount() + txIndex);
+		Bytes key = encodeSeqKey(txDataSet.getDataCount() + txIndex - 1);
 		// 交易序号只有唯一的版本；
 		long v = txDataSet.setValue(key, txRequest.getTransactionHash().toBytes(), -1);
+		if (v < 0) {
+			throw new IllegalTransactionException("Repeated transaction request sequence! --[" + key + "]");
+		}
+	}
+
+	// 按照区块高度记录交易总数
+	private void saveTotalByHeight(long blockHeight) {
+
+		// key = keyprefix + TOTAL/blockheight
+		Bytes key = encodeTotalNumKey(blockHeight);
+
+		// 交易序号只有唯一的版本；
+		long v = txDataSet.setValue(key, BytesUtils.toBytes(getTotalCount()), -1);
 		if (v < 0) {
 			throw new IllegalTransactionException("Repeated transaction request sequence! --[" + key + "]");
 		}
 	}
 
 	// 以区块为维度，加载指定交易索引的交易请求hash
-	private HashDigest loadReqHash(long blockHeight, long txIndex) {
-		// transaction sequence has only one version;
-		Bytes blockHeightPrefix = Bytes.fromString(String.valueOf(blockHeight) + LedgerConsts.KEY_SEPERATOR);
-
-		Bytes key = encodeSeqKeyByHeight(blockHeightPrefix, txIndex);
-		byte[] txHashBytes = txDataSet.getValue(key, 0);
-		if (txHashBytes == null) {
-			return null;
-		}
-		return Crypto.resolveAsHashDigest(txHashBytes);
-	}
+//	private HashDigest loadReqHash(long blockHeight, long txIndex) {
+//		// transaction sequence has only one version;
+//		Bytes blockHeightPrefix = Bytes.fromString(String.valueOf(blockHeight) + LedgerConsts.KEY_SEPERATOR);
+//
+//		Bytes key = encodeSeqKeyByHeight(blockHeightPrefix, txIndex);
+//		byte[] txHashBytes = txDataSet.getValue(key, 0);
+//		if (txHashBytes == null) {
+//			return null;
+//		}
+//		return Crypto.resolveAsHashDigest(txHashBytes);
+//	}
 
 	// 以账本为维度，加载指定交易索引的交易请求hash
-	private HashDigest loadReqHash(long txIndex) {
-		Bytes key = encodeSeqKey(txIndex);
+	private HashDigest loadReqHash(long seq) {
+		Bytes key = encodeSeqKey(seq);
 		byte[] txHashBytes = txDataSet.getValue(key, 0);
 		if (txHashBytes == null) {
 			return null;
@@ -288,16 +318,16 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		return TX_REQUEST_KEY_PREFIX.concat(txContentHash);
 	}
 
-	private Bytes encodeSeqKeyByHeight(Bytes blockHeightPrefix, long txIndex) {
-		return TX_SEQUENCE_KEY_PREFIX.concat(blockHeightPrefix).concat(Bytes.fromString(String.valueOf(txIndex)));
+//	private Bytes encodeSeqKeyByHeight(Bytes blockHeightPrefix, long txIndex) {
+//		return TX_SEQUENCE_KEY_PREFIX.concat(blockHeightPrefix).concat(Bytes.fromString(String.valueOf(txIndex)));
+//	}
+
+	private Bytes encodeSeqKey(long seq) {
+		return TX_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(seq)));
 	}
 
-	private Bytes encodeSeqKey(long txIndex) {
-		return TX_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(txIndex)));
-	}
-
-	private Bytes encodeTotalNumKey(long preBlockHeight) {
-		return TX_TOTOAL_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(preBlockHeight)));
+	private Bytes encodeTotalNumKey(long blockHeight) {
+		return TX_TOTOAL_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(blockHeight)));
 	}
 
 	public boolean isReadonly() {
@@ -311,12 +341,29 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 
 	@Override
 	public synchronized void commit() {
+		origin_txIndex = txIndex;
+		origin_rootHash = rootHash;
+		// 后续可以做默克尔证明；
+		rootHash = computeTxsRootHash(rootHash, transactions);
+		// 存储新区块高度对应的交易总数
+		// keyPrefix = LDG://ledgerhash/tsx/kv/total/height
+//		saveTotalByHeight(preBlockHeight + 1);
 		txDataSet.commit();
 	}
+
 
 	@Override
 	public void cancel() {
 		txDataSet.cancel();
+		// 恢复到上次的交易索引
+		txIndex = origin_txIndex;
+		rootHash = origin_rootHash;
+	}
+
+	private HashDigest computeTxsRootHash(HashDigest rootHash, ArrayList<HashDigest> transactions) {
+
+		return new MerkleTreeSimple(Crypto.getHashFunction(setting.getHashAlgorithm()), rootHash, transactions).root();
+
 	}
 
 }

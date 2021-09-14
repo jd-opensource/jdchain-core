@@ -50,6 +50,8 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 	private static final Bytes USER_EVENT_SET_PREFIX = Bytes.fromString("UEVT" + LedgerConsts.KEY_SEPERATOR);
 
+	private static final Bytes ACCOUNT_TOTAL_PREFIX = Bytes.fromString("TOTAL" + LedgerConsts.KEY_SEPERATOR);
+
 	private static final AccountAccessPolicy DEFAULT_ACCESS_POLICY = new OpeningAccessPolicy();
 
 	private HashDigest ledgerHash;
@@ -78,7 +80,8 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 	public LedgerRepositoryImpl(HashDigest ledgerHash, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage versioningStorage, String anchorType) {
-		this.keyPrefix = keyPrefix;
+		// keyPrefix = LDG://ledgerhash/
+		this.keyPrefix = keyPrefix + ledgerHash.toString() + LedgerConsts.KEY_SEPERATOR;
 
 		this.ledgerHash = ledgerHash;
 		this.versioningStorage = versioningStorage;

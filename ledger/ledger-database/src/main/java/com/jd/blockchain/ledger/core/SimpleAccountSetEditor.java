@@ -30,7 +30,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 	/**
 	 * 账户根哈希的数据集；
 	 */
-	private SimpleDataset<Bytes, byte[]> merkleDataset;
+	private SimpleDataset<Bytes, byte[]> simpleDataset;
 
 	/**
 	 * The cache of latest version accounts, including accounts getting by querying
@@ -50,11 +50,17 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 
 	private long preBlockHeight;
 
+	private volatile long account_index_in_block = 0;
+
+	private volatile long origin_account_index_in_block  = 0;
+
 	private AccountAccessPolicy accessPolicy;
 
 	public boolean isReadonly() {
-		return merkleDataset.isReadonly();
+		return simpleDataset.isReadonly();
 	}
+
+	private static final Bytes ACCOUNTSET_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
 
 	public SimpleAccountSetEditor(CryptoSetting cryptoSetting, Bytes keyPrefix, ExPolicyKVStorage exStorage,
                                   VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
@@ -69,7 +75,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 		this.baseExStorage = exStorage;
 		this.baseVerStorage = verStorage;
 		this.preBlockHeight = preBlockHeight;
-		this.merkleDataset = new SimpleDatasetImpl(preBlockHeight, rootHash, cryptoSetting, keyPrefix, this.baseExStorage,
+		this.simpleDataset = new SimpleDatasetImpl(preBlockHeight, rootHash, cryptoSetting, keyPrefix, this.baseExStorage,
 				this.baseVerStorage, readonly);
 
 		this.accessPolicy = accessPolicy;
@@ -77,12 +83,12 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 
 	@Override
 	public HashDigest getRootHash() {
-		return merkleDataset.getRootHash();
+		return simpleDataset.getRootHash();
 	}
 
 	@Override
 	public MerkleProof getProof(Bytes key) {
-		return merkleDataset.getProof(key);
+		return simpleDataset.getProof(key);
 	}
 
 //	@Override
@@ -101,7 +107,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 	@Override
 	public SkippingIterator<BlockchainIdentity> identityIterator() {
 
-		SkippingIterator<BlockchainIdentity> idIterator = merkleDataset.iterator()
+		SkippingIterator<BlockchainIdentity> idIterator = simpleDataset.iterator()
 				.iterateAs(new Mapper<DataEntry<Bytes, byte[]>, BlockchainIdentity>() {
 					@Override
 					public BlockchainIdentity from(DataEntry<Bytes, byte[]> source) {
@@ -126,7 +132,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 	 * @return
 	 */
 	public long getTotal() {
-		return merkleDataset.getDataCount();
+		return simpleDataset.getDataCount() + origin_account_index_in_block;
 	}
 
 	@Override
@@ -160,7 +166,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 			// 无论是新注册未提交的，还是缓存已提交的账户实例，都认为是存在；
 			return true;
 		}
-		long latestVersion = merkleDataset.getVersion(address);
+		long latestVersion = simpleDataset.getVersion(address);
 		return latestVersion > -1;
 	}
 
@@ -181,7 +187,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 			return acc.getVersion();
 		}
 
-		return merkleDataset.getVersion(address);
+		return simpleDataset.getVersion(address);
 	}
 
 	/**
@@ -202,7 +208,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 			return acc;
 		}
 
-		long latestVersion = merkleDataset.getVersion(address);
+		long latestVersion = simpleDataset.getVersion(address);
 		if (latestVersion < 0) {
 			// Not exist;
 			return null;
@@ -274,7 +280,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 			throw new LedgerException("The registering account already exist!",
 					TransactionState.ACCOUNT_REGISTER_CONFLICT);
 		}
-		long version = merkleDataset.getVersion(address);
+		long version = simpleDataset.getVersion(address);
 		if (version >= 0) {
 			throw new LedgerException("The registering account already exist!",
 					TransactionState.ACCOUNT_REGISTER_CONFLICT);
@@ -287,8 +293,11 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 		Bytes prefix = keyPrefix.concat(address);
 		InnerSimpleAccount acc = createInstance(accountId, cryptoSetting, prefix);
 		latestAccountsCache.put(address, acc);
+		// 该设置用来维护注册用户的顺序
+		// keyprefix = LDG://ledgerhash/USRS/KV/SEQ/index
+		simpleDataset.setValue(keyPrefix.concat(ACCOUNTSET_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf(simpleDataset.getDataCount() + account_index_in_block))), address.toBytes(), -1);
 		updated = true;
-
+		account_index_in_block++;
 		return acc;
 	}
 
@@ -312,7 +321,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 	 * @return
 	 */
 	private InnerSimpleAccount loadAccount(Bytes address, boolean readonly, long version) {
-		byte[] accountSnapshotBytes = merkleDataset.getValue(address, version);
+		byte[] accountSnapshotBytes = simpleDataset.getValue(address, version);
 		return resolveAccount(address, accountSnapshotBytes, version, readonly);
 	}
 
@@ -368,7 +377,8 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 					saveAccount(acc);
 				}
 			}
-			merkleDataset.commit();
+			simpleDataset.commit();
+			origin_account_index_in_block = account_index_in_block;
 		} finally {
 			updated = false;
 			latestAccountsCache.clear();
@@ -380,16 +390,23 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 		if (!updated) {
 			return;
 		}
-		Bytes[] addresses = new Bytes[latestAccountsCache.size()];
-		latestAccountsCache.keySet().toArray(addresses);
-		for (Bytes address : addresses) {
-			InnerSimpleAccount acc = latestAccountsCache.remove(address);
-			// cancel;
-			if (acc.isUpdated()) {
-				acc.cancel();
+		try {
+			Bytes[] addresses = new Bytes[latestAccountsCache.size()];
+			latestAccountsCache.keySet().toArray(addresses);
+			for (Bytes address : addresses) {
+				InnerSimpleAccount acc = latestAccountsCache.remove(address);
+				// cancel;
+				if (acc.isUpdated()) {
+					acc.cancel();
+				}
 			}
+			simpleDataset.cancel();
+			account_index_in_block = origin_account_index_in_block;
+		} finally {
+			updated = false;
 		}
-		updated = false;
+
+
 	}
 
 	/**
@@ -425,7 +442,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 			AccountSnapshot accountSnapshot = new AccountHashSnapshot(headerRoot, dataRoot);
 			byte[] snapshotBytes = BinaryProtocol.encode(accountSnapshot, AccountSnapshot.class);
 
-			long newVersion = merkleDataset.setValue(this.getAddress(), snapshotBytes, version);
+			long newVersion = simpleDataset.setValue(this.getAddress(), snapshotBytes, version);
 			if (newVersion < 0) {
 				// Update fail;
 				throw new LedgerException("Account updating fail! --[Address=" + this.getAddress() + "]");

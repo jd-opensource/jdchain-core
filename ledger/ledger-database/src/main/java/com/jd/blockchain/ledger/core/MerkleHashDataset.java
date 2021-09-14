@@ -115,7 +115,7 @@ public class MerkleHashDataset implements MerkleDataset<Bytes, byte[]> {
 		// 把存储数据值、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
 		this.dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
 		// 缓冲对KV的写入；
-		this.valueStorage = new BufferedKVStorage(exPolicyStorage, versioningStorage, false);
+		this.valueStorage = new BufferedKVStorage(Crypto.getHashFunction(setting.getHashAlgorithm()), exPolicyStorage, versioningStorage, false);
 
 		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
 

@@ -23,14 +23,24 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 
 	private SimpleDataset<Bytes, byte[]> dataset;
 
-	public ParticipantDatasetSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
+	private final Bytes keyPrefix;
+
+	private volatile long parti_index_in_block = 0;
+
+	private volatile long origin_parti_index_in_block  = 0;
+
+	private static final Bytes PARTISET_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
+
+	public ParticipantDatasetSimple(CryptoSetting cryptoSetting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
                                     VersioningKVStorage verStorage) {
-		dataset = new SimpleDatasetImpl(cryptoSetting, Bytes.fromString(prefix), exPolicyStorage, verStorage);
+		this.keyPrefix = Bytes.fromString(keyPrefix);
+		dataset = new SimpleDatasetImpl(cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage, verStorage);
 	}
 
-	public ParticipantDatasetSimple(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
+	public ParticipantDatasetSimple(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String keyPrefix,
                                     ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage,
+		this.keyPrefix = Bytes.fromString(keyPrefix);
+		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage,
 				verStorage, readonly);
 	}
 
@@ -52,16 +62,18 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 	@Override
 	public void commit() {
 		dataset.commit();
+		origin_parti_index_in_block = parti_index_in_block;
 	}
 
 	@Override
 	public void cancel() {
 		dataset.cancel();
+		parti_index_in_block = origin_parti_index_in_block;
 	}
 
 	@Override
 	public long getParticipantCount() {
-		return dataset.getDataCount();
+		return dataset.getDataCount() + origin_parti_index_in_block;
 	}
 
 	/**
@@ -77,6 +89,14 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 		if (nv < 0) {
 			throw new LedgerException("Participant already exist! --[id=" + key + "]");
 		}
+
+		nv = dataset.setValue(keyPrefix.concat(PARTISET_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf(dataset.getDataCount() + parti_index_in_block))), key.toBytes(), -1);
+
+		if (nv < 0) {
+			throw new LedgerException("Participant seq already exist! --[id=" + key + "]");
+		}
+
+		parti_index_in_block++;
 	}
 
 	/**
