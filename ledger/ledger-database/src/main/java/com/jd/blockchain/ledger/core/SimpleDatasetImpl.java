@@ -40,9 +40,6 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 //	public static final Bytes SN_PREFIX = Bytes.fromString("SN" + LedgerConsts.KEY_SEPERATOR);
 	public static final Bytes DATA_PREFIX = Bytes.fromString("KV" + LedgerConsts.KEY_SEPERATOR);
 
-	// 根据区块高度查询集合中的数据总数
-	public static final Bytes TOTAL_PREFIX = Bytes.fromString("TOTAL" + LedgerConsts.KEY_SEPERATOR);
-
 	@SuppressWarnings("unchecked")
 
 	private final HashFunction DEFAULT_HASH_FUNCTION;
@@ -58,6 +55,8 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	private long preBlockHeight;
 
 	private boolean readonly;
+
+	private volatile int kvIndex = 0;
 
 	/*
 	 * (non-Javadoc)
@@ -120,10 +119,11 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
                              ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
 		// 把存储数据值、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
 		this.dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
-		// 缓冲对KV的写入；
-		this.valueStorage = new BufferedKVStorage(Crypto.getHashFunction(setting.getHashAlgorithm()), exPolicyStorage, versioningStorage, false);
 
 		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
+
+		// 缓冲对KV的写入；
+		this.valueStorage = new BufferedKVStorage(this.DEFAULT_HASH_FUNCTION, exPolicyStorage, versioningStorage, false);
 
 		this.preBlockHeight = preBlockHeight;
 
@@ -148,12 +148,12 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 			return 0;
 		}
 
-		// prefix + KV/Total/height
-		Bytes dataKey = encodeDataKey(TOTAL_PREFIX.concat(Bytes.fromString(String.valueOf(preBlockHeight))));
+		// prefix + KV/Total
+		Bytes dataKey = encodeDataKey(Bytes.fromString("TOTAL"));
 
-		byte[] value = valueStorage.get(dataKey, 0);
+		byte[] value = valueStorage.get(dataKey, -1);
 		if (value == null) {
-			throw new DataExistException("Expected value does not exist!");
+			return 0;
 		}
 		return BytesUtils.toLong(value);
 	}
@@ -179,7 +179,7 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 *         return -1;
 	 */
 	@Override
-	public long setValue(Bytes key, byte[] value, long version) {
+		public long setValue(Bytes key, byte[] value, long version) {
 		if (readonly) {
 			throw new IllegalArgumentException("This merkle dataset is readonly!");
 		}
@@ -370,6 +370,11 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 
 	}
 
+	// 仅用来提交各个种类的Total更新
+	public void storageCommit() {
+		valueStorage.commit();
+	}
+
 	@Override
 	public boolean isUpdated() {
 		return valueStorage.isUpdated();
@@ -386,7 +391,6 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 
 	@Override
 	public void cancel() {
-		this.rootHash = this.originHash;
 		valueStorage.cancel();
 	}
 

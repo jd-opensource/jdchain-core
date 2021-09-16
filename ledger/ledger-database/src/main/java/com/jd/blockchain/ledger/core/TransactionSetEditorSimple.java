@@ -50,6 +50,8 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 
 	private CryptoSetting setting;
 
+	private long preBlockHeight;
+
 	private ArrayList<HashDigest> transactions = new ArrayList<>();
 
 	/**
@@ -64,6 +66,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		this.rootHash = null;
 		this.origin_rootHash = this.rootHash;
 		this.setting = setting;
+		this.preBlockHeight = -1;
 		this.txDataSet = new SimpleDatasetImpl(setting, keyPrefix, merkleTreeStorage, dataStorage);
 	}
 
@@ -79,6 +82,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		this.rootHash = txsetHash;
 		this.origin_rootHash = this.rootHash;
 		this.setting = setting;
+		this.preBlockHeight = preBlockHeight;
 		this.txDataSet = new SimpleDatasetImpl(preBlockHeight, txsetHash, setting, keyPrefix, merkleTreeStorage, dataStorage,
 				readonly);
 	}
@@ -342,6 +346,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		// 后续可以做默克尔证明；
 		rootHash = computeTxsRootHash(rootHash, transactions);
 
+		saveTotalByHeight(preBlockHeight + 1);
 		txDataSet.commit();
 	}
 
@@ -349,6 +354,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	@Override
 	public void cancel() {
 		txDataSet.cancel();
+
 		// 恢复到上次的交易索引
 		txIndex = origin_txIndex;
 		rootHash = origin_rootHash;

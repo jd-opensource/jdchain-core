@@ -25,6 +25,7 @@ import utils.codec.Base58Utils;
 import utils.io.BytesUtils;
 
 import java.util.List;
+import java.util.Map;
 
 public class LedgerTransactionalEditorSimple implements LedgerEditor {
 
@@ -390,6 +391,7 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 
 		// 生成交易集合根哈希；
 		txset.commit();
+		saveTotal();// 记录参与方，各类账户，以及账户下的KV总数；
 		currentBlock.setTransactionSetHash(txset.getRootHash());
 
 		// do commit when transaction isolation level is BLOCK;
@@ -406,60 +408,6 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 			currentBlock.setTimestamp(timestamp);
 		}
 
-		// storage all kinds of dataset total num by height;
-		Bytes ledgerKey = Bytes.fromString(LedgerManager.LEDGER_PREFIX + ledgerHash.toString() + LedgerConsts.KEY_SEPERATOR);
-
-		Bytes totalKey = DATA_PREFIX.concat(DATASET_TOTAL_PREFIX).concat(Bytes.fromString(String.valueOf(currentBlock.getHeight())));
-
-		long v = baseStorage.set(ledgerKey.concat(USER_SET_PREFIX).concat(totalKey), BytesUtils.toBytes(latestLedgerDataset.getUserAccountSet().getTotal()), -1);
-		if (v < 0) {
-			throw new IllegalStateException(
-					"Userset total num key already exist! --[key = " + Base58Utils.encode(ledgerKey.concat(USER_SET_PREFIX).concat(totalKey).toBytes()) + "]");
-		}
-
-		v = baseStorage.set(ledgerKey.concat(DATA_SET_PREFIX).concat(totalKey), BytesUtils.toBytes(latestLedgerDataset.getDataAccountSet().getTotal()), -1);
-		if (v < 0) {
-			throw new IllegalStateException(
-					"Dataset total num key already exist! --[key = " + Base58Utils.encode(ledgerKey.concat(DATA_SET_PREFIX).concat(totalKey).toBytes()) + "]");
-		}
-
-		v = baseStorage.set(ledgerKey.concat(CONTRACT_SET_PREFIX).concat(totalKey), BytesUtils.toBytes(latestLedgerDataset.getContractAccountSet().getTotal()), -1);
-		if (v < 0) {
-			throw new IllegalStateException(
-					"Contractset total num key already exist! --[key = " + Base58Utils.encode(ledgerKey.concat(CONTRACT_SET_PREFIX).concat(totalKey).toBytes()) + "]");
-		}
-
-		v = baseStorage.set(ledgerKey.concat(USER_EVENT_SET_PREFIX).concat(totalKey), BytesUtils.toBytes(latestLedgerEventSet.getEventAccountSet().getTotal()), -1);
-		if (v < 0) {
-			throw new IllegalStateException(
-					"UserEventset total num key already exist! --[key = " + Base58Utils.encode(ledgerKey.concat(USER_EVENT_SET_PREFIX).concat(totalKey).toBytes()) + "]");
-		}
-
-		// keyPrefix = LDG://ledgerhash/tsx/kv/total/height
-		v = baseStorage.set(ledgerKey.concat(TRANSACTION_SET_PREFIX).concat(totalKey), BytesUtils.toBytes(txset.getTotalCount()), -1);
-		if (v < 0) {
-			throw new IllegalStateException(
-					"Txset total num key already exist! --[key = " + Base58Utils.encode(ledgerKey.concat(TRANSACTION_SET_PREFIX).concat(totalKey).toBytes()) + "]");
-		}
-
-		v = baseStorage.set(ledgerKey.concat(LEDGER_PARTICIPANT_PREFIX).concat(totalKey), BytesUtils.toBytes(latestLedgerDataset.getAdminDataset().getParticipantDataset().getParticipantCount()), -1);
-		if (v < 0) {
-			throw new IllegalStateException(
-					"Partiset total num key already exist! --[key = " + Base58Utils.encode(ledgerKey.concat(LEDGER_PARTICIPANT_PREFIX).concat(totalKey).toBytes()) + "]");
-		}
-
-		v = baseStorage.set(ledgerKey.concat(USER_ROLE_PREFIX).concat(totalKey), BytesUtils.toBytes(latestLedgerDataset.getAdminDataset().getAuthorizations().getUserCount()), -1);
-		if (v < 0) {
-			throw new IllegalStateException(
-					"Userroleset total num key already exist! --[key = " + Base58Utils.encode(ledgerKey.concat(USER_ROLE_PREFIX).concat(totalKey).toBytes()) + "]");
-		}
-
-		v = baseStorage.set(ledgerKey.concat(ROLE_PRIVILEGE_PREFIX).concat(totalKey), BytesUtils.toBytes(latestLedgerDataset.getAdminDataset().getRolePrivileges().getRoleCount()), -1);
-		if (v < 0) {
-			throw new IllegalStateException(
-					"Rolepriset total num key already exist! --[key = " + Base58Utils.encode(ledgerKey.concat(ROLE_PRIVILEGE_PREFIX).concat(totalKey).toBytes()) + "]");
-		}
-
 		// compute block hash;
 		byte[] blockBodyBytes = BinaryProtocol.encode(currentBlock, BlockBody.class);
 		HashDigest blockHash = Crypto.getHashFunction(cryptoSetting.getHashAlgorithm()).hash(blockBodyBytes);
@@ -474,7 +422,7 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 		// only one version per block;
 		byte[] blockBytes = BinaryProtocol.encode(currentBlock, LedgerBlock.class);
 		Bytes blockStorageKey = LedgerRepositoryImpl.encodeBlockStorageKey(currentBlock.getHash());
-		v = baseStorage.set(blockStorageKey, blockBytes, -1);
+		long v = baseStorage.set(blockStorageKey, blockBytes, -1);
 		if (v < 0) {
 			throw new IllegalStateException(
 					"Block already exist! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
@@ -496,6 +444,93 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 
 		prepared = true;
 		return currentBlock;
+	}
+
+	private void saveTotal() {
+
+	    final Bytes DATA_PREFIX = Bytes.fromString("DT/");
+
+		final Bytes KV_PREFIX = Bytes.fromString("KV/");
+
+		final Bytes LEDGER_PARTICIPANT_PREFIX = Bytes.fromString(ledgerKeyPrefix + "PAR/" + KV_PREFIX + "TOTAL");
+
+		final Bytes ROLE_PRIVILEGE_PREFIX = Bytes.fromString(ledgerKeyPrefix + "RPV/" + KV_PREFIX + "TOTAL");
+
+		final Bytes USER_ROLE_PREFIX = Bytes.fromString(ledgerKeyPrefix + "URO/" + KV_PREFIX + "TOTAL");
+
+
+		final Bytes USER_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + "USRS/");
+
+		final Bytes DATA_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + "DATS/");
+
+		final Bytes CONTRACT_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + "CTRS/");
+
+		long nv = 0;
+		if (latestLedgerDataset.getAdminDataset().getParticipantDataset().isAddNew()) {
+			nv = baseStorage.set(LEDGER_PARTICIPANT_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getAdminDataset().getParticipantCount()), datasetStorage.getVersion(LEDGER_PARTICIPANT_PREFIX));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"Participants total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+			}
+		}
+
+		if (nv > -1 && latestLedgerDataset.getAdminDataset().getRolePrivileges().isAddNew()) {
+			nv = baseStorage.set(ROLE_PRIVILEGE_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getAdminDataset().getRolePrivileges().getRoleCount()), datasetStorage.getVersion(ROLE_PRIVILEGE_PREFIX));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"RolePrivis total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+			}
+		}
+
+		if (latestLedgerDataset.getAdminDataset().getAuthorizations().isAddNew()) {
+			nv = baseStorage.set(USER_ROLE_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getAdminDataset().getAuthorizations().getUserCount()), datasetStorage.getVersion(USER_ROLE_PREFIX));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"UserRoles total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+			}
+		}
+
+		if (latestLedgerDataset.getUserAccountSet().isUpdated()) {
+			if (latestLedgerDataset.getUserAccountSet().isAddNew()) {
+				Bytes userTotalPrefix = USER_SET_PREFIX.concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+				nv = baseStorage.set(userTotalPrefix, BytesUtils.toBytes(latestLedgerDataset.getUserAccountSet().getTotal()), baseStorage.getVersion(userTotalPrefix));
+				if (nv < 0) {
+					throw new IllegalStateException(
+							"UserAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+				}
+			}
+		}
+
+		if (latestLedgerDataset.getDataAccountSet().isUpdated()) {
+			if (latestLedgerDataset.getDataAccountSet().isAddNew()) {
+				Bytes dataTotalPrefix = DATA_SET_PREFIX.concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+				nv = baseStorage.set(dataTotalPrefix, BytesUtils.toBytes(latestLedgerDataset.getDataAccountSet().getTotal()), baseStorage.getVersion(dataTotalPrefix));
+				if (nv < 0) {
+					throw new IllegalStateException(
+							"DataAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+				}
+			}
+			Map<Bytes, Long> kvNumCache = latestLedgerDataset.getDataAccountSet().getKvNumCache();
+			for (Bytes address : kvNumCache.keySet()) {
+				Bytes dataKvTotalPrefix = DATA_SET_PREFIX.concat(address).concat(Bytes.fromString("/")).concat(DATA_PREFIX).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+				nv = baseStorage.set(dataKvTotalPrefix, BytesUtils.toBytes(latestLedgerDataset.getDataAccountSet().getAccount(address).getDataset().getDataCount() + kvNumCache.get(address).longValue()), baseStorage.getVersion(dataKvTotalPrefix));
+				if (nv < 0) {
+					throw new IllegalStateException(
+							"DataAccount kv total set exception! --[DataAccount address = " + Base58Utils.encode(address.toBytes()) + "]");
+				}
+			}
+		}
+
+		if (latestLedgerDataset.getContractAccountSet().isUpdated()) {
+			if (latestLedgerDataset.getContractAccountSet().isAddNew()) {
+				Bytes contractTotalPrefix = CONTRACT_SET_PREFIX.concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+				nv = baseStorage.set(contractTotalPrefix, BytesUtils.toBytes(latestLedgerDataset.getContractAccountSet().getTotal()), baseStorage.getVersion(contractTotalPrefix));
+				if (nv < 0) {
+					throw new IllegalStateException(
+							"ContractAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+				}
+			}
+		}
 	}
 
 	@Override

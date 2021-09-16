@@ -98,4 +98,9 @@ public class EventAccountSetEditorSimple implements EventAccountSet, Transaction
         CompositeAccount accBase = accountSet.register(address, pubKey);
         return new DataAccount(accBase);
     }
+
+    public boolean isAddNew() {
+        return accountSet.isAddNew();
+    }
+
 }

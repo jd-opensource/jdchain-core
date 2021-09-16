@@ -111,10 +111,17 @@ public class ComplecatedSimpleAccount implements CompositeAccount, HashProvable,
 //		this.rootDataset = new MerkleHashDataset(rootHash, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
 
 		// 初始化数据修改监听器；
-		DataChangedListener<String, TypedValue> dataChangedListener = new DataChangedListener<String, TypedValue>() {
+		DataChangedListener<String, TypedValue> dataChangedListenerHeader = new DataChangedListener<String, TypedValue>() {
 			@Override
 			public void onChanged(String key, TypedValue value, long expectedVersion, long newVersion) {
-				onUpdated(key, value, expectedVersion, newVersion);
+				onUpdated(key, value, "header", expectedVersion, newVersion);
+			}
+		};
+
+		DataChangedListener<String, TypedValue> dataChangedListenerData = new DataChangedListener<String, TypedValue>() {
+			@Override
+			public void onChanged(String key, TypedValue value, long expectedVersion, long newVersion) {
+				onUpdated(key, value, "data", expectedVersion, newVersion);
 			}
 		};
 
@@ -137,13 +144,13 @@ public class ComplecatedSimpleAccount implements CompositeAccount, HashProvable,
 		Bytes headerPrefix = keyPrefix.concat(HEADER_PREFIX);
 		this.headerDataset = new SimpleDatasetImpl(preblockHeight, headerRoot, cryptoSetting, headerPrefix, exStorage, verStorage,
 				readonly);
-		this.typedHeader = DatasetHelperSimple.listen(DatasetHelperSimple.map(headerDataset, valueMapper), dataChangedListener);
+		this.typedHeader = DatasetHelperSimple.listen(DatasetHelperSimple.map(headerDataset, valueMapper), dataChangedListenerHeader);
 
 		// 加载“主数据集”
 //		HashDigest dataRoot = loadDataRoot();
 		Bytes dataPrefix = keyPrefix.concat(DATA_PREFIX);
 		this.dataDataset = new SimpleDatasetImpl(preblockHeight, dataRoot, cryptoSetting, dataPrefix, exStorage, verStorage, readonly);
-		this.typedData = DatasetHelperSimple.listen(DatasetHelperSimple.map(dataDataset, valueMapper), dataChangedListener);
+		this.typedData = DatasetHelperSimple.listen(DatasetHelperSimple.map(dataDataset, valueMapper), dataChangedListenerData);
 	}
 
 //	private HashDigest loadHeaderRoot() {
@@ -185,6 +192,14 @@ public class ComplecatedSimpleAccount implements CompositeAccount, HashProvable,
 
 	public Dataset<String, TypedValue> getHeaders() {
 		return typedHeader;
+	}
+
+	public SimpleDataset<Bytes, byte[]> getHeaderDataset() {
+		return headerDataset;
+	}
+
+	public SimpleDataset<Bytes, byte[]> getDataDataset() {
+		return dataDataset;
 	}
 
 	@Override
@@ -270,7 +285,7 @@ public class ComplecatedSimpleAccount implements CompositeAccount, HashProvable,
 	 * @param value
 	 * @param newVersion
 	 */
-	protected void onUpdated(String key, TypedValue value, long expectedVersion, long newVersion) {
+	protected void onUpdated(String key, TypedValue value, String type, long expectedVersion, long newVersion) {
 	}
 
 	/**

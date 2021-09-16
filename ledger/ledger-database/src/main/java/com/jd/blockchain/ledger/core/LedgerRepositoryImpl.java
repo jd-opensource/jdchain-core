@@ -50,8 +50,6 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 	private static final Bytes USER_EVENT_SET_PREFIX = Bytes.fromString("UEVT" + LedgerConsts.KEY_SEPERATOR);
 
-	private static final Bytes ACCOUNT_TOTAL_PREFIX = Bytes.fromString("TOTAL" + LedgerConsts.KEY_SEPERATOR);
-
 	private static final AccountAccessPolicy DEFAULT_ACCESS_POLICY = new OpeningAccessPolicy();
 
 	private HashDigest ledgerHash;
@@ -435,7 +433,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	private MerkleEventGroupPublisherSimple createSystemEventSetSimple(LedgerBlock block, CryptoSetting cryptoSetting) {
-		return loadSystemEventSetSimple(block.getSystemEventSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
+		return loadSystemEventSetSimple(block.getHeight(), block.getSystemEventSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
 				versioningStorage, true);
 	}
 
@@ -747,7 +745,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	static LedgerEventSetEditorSimple loadEventSetSimple(long preBlockHeight, LedgerDataSnapshot dataSnapshot, CryptoSetting cryptoSetting, String keyPrefix,
 											 ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, boolean readonly) {
 
-		MerkleEventGroupPublisherSimple systemEventSet = loadSystemEventSetSimple(dataSnapshot.getSystemEventSetHash(), cryptoSetting,
+		MerkleEventGroupPublisherSimple systemEventSet = loadSystemEventSetSimple(preBlockHeight, dataSnapshot.getSystemEventSetHash(), cryptoSetting,
 				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
 		EventAccountSetEditorSimple userEventSet = loadUserEventSetSimple(preBlockHeight, dataSnapshot.getUserEventSetHash(), cryptoSetting,
 				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
@@ -835,10 +833,10 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				ledgerVerStorage, readonly);
 	}
 
-	static MerkleEventGroupPublisherSimple loadSystemEventSetSimple(HashDigest systemEventSetHash, CryptoSetting cryptoSetting,
+	static MerkleEventGroupPublisherSimple loadSystemEventSetSimple(long preBlockHeight, HashDigest systemEventSetHash, CryptoSetting cryptoSetting,
 														String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
 														boolean readonly) {
-		return new MerkleEventGroupPublisherSimple(systemEventSetHash, cryptoSetting, keyPrefix+ SYSTEM_EVENT_SET_PREFIX, ledgerExStorage,
+		return new MerkleEventGroupPublisherSimple(preBlockHeight, systemEventSetHash, cryptoSetting, keyPrefix+ SYSTEM_EVENT_SET_PREFIX, ledgerExStorage,
 				ledgerVerStorage, readonly);
 	}
 

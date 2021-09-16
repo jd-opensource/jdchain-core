@@ -14,6 +14,8 @@ import utils.Bytes;
 import utils.SkippingIterator;
 import utils.Transactional;
 
+import java.util.Map;
+
 public class DataAccountSetEditorSimple implements Transactional, DataAccountSet {
 	private Logger logger = LoggerFactory.getLogger(DataAccountSetEditorSimple.class);
 
@@ -115,5 +117,13 @@ public class DataAccountSetEditorSimple implements Transactional, DataAccountSet
 	@Override
 	public void cancel() {
 		accountSet.cancel();
+	}
+
+	public boolean isAddNew() {
+		return accountSet.isAddNew();
+	}
+
+	public Map<Bytes, Long> getKvNumCache() {
+		return accountSet.getKvNumCache();
 	}
 }

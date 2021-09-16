@@ -12,6 +12,8 @@ import utils.Bytes;
 import utils.SkippingIterator;
 import utils.Transactional;
 
+import java.util.Map;
+
 public class ContractAccountSetEditorSimple implements Transactional, ContractAccountSet {
 
 	private SimpleAccountSetEditor accountSet;
@@ -139,6 +141,14 @@ public class ContractAccountSetEditorSimple implements Transactional, ContractAc
 	@Override
 	public void cancel() {
 		accountSet.cancel();
+	}
+
+	public boolean isAddNew() {
+		return accountSet.isAddNew();
+	}
+
+	public Map<Bytes, Long> getKvNumCache() {
+		return accountSet.getKvNumCache();
 	}
 
 }

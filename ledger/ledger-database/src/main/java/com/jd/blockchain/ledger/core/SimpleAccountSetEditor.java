@@ -19,6 +19,7 @@ import utils.DataEntry;
 import utils.Mapper;
 import utils.SkippingIterator;
 import utils.Transactional;
+import utils.io.BytesUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -53,6 +54,9 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 	private volatile long account_index_in_block = 0;
 
 	private volatile long origin_account_index_in_block  = 0;
+
+	// 账户地址与新建KV数对应关系缓存
+	private Map<Bytes, Long> accountsKvNumCache = new HashMap<>();
 
 	private AccountAccessPolicy accessPolicy;
 
@@ -295,7 +299,11 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 		latestAccountsCache.put(address, acc);
 		// 该设置用来维护注册用户的顺序
 		// keyprefix = LDG://ledgerhash/USRS/KV/SEQ/index
-		simpleDataset.setValue(keyPrefix.concat(ACCOUNTSET_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf(simpleDataset.getDataCount() + account_index_in_block))), address.toBytes(), -1);
+		long nv = simpleDataset.setValue(keyPrefix.concat(ACCOUNTSET_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf(simpleDataset.getDataCount() + account_index_in_block))), address.toBytes(), -1);
+
+		if (nv < 0) {
+			throw new LedgerException("Account Registering sequence already exist!");
+		}
 		updated = true;
 		account_index_in_block++;
 		return acc;
@@ -375,6 +383,15 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 				// updated or new created;
 				if (acc.isUpdated() || acc.getVersion() < 0) {
 					saveAccount(acc);
+					// 如果账户有新建KV产生
+					if (acc.getKeyIndex() > 0)  {
+						if (accountsKvNumCache.containsKey(acc.getAddress())) {
+							long lastTxnewKvNum = accountsKvNumCache.get(acc.getAddress());
+							accountsKvNumCache.put(acc.getAddress(), lastTxnewKvNum + acc.getKeyIndex());
+						} else {
+							accountsKvNumCache.put(acc.getAddress(), new Long(acc.keyIndex));
+						}
+					}
 				}
 			}
 			simpleDataset.commit();
@@ -405,8 +422,6 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 		} finally {
 			updated = false;
 		}
-
-
 	}
 
 	/**
@@ -416,8 +431,8 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 	 *
 	 */
 	private class InnerSimpleAccount extends ComplecatedSimpleAccount {
-
 		private long version;
+		private long keyIndex = 0;
 
 		public InnerSimpleAccount(BlockchainIdentity accountID, CryptoSetting cryptoSetting, Bytes keyPrefix,
 				ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
@@ -433,8 +448,22 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 		}
 
 		@Override
-		protected void onUpdated(String key, TypedValue value, long expectedVersion, long newVersion) {
+		protected void onUpdated(String key, TypedValue value, String type, long expectedVersion, long newVersion) {
 			updated = true;
+			long nv = -1;
+			if (newVersion == 0) {
+				if (type.equals("data")) {
+					// 记录具体账户内的KV序列号与Key的对应关系，用来按照顺序寻找数据账户的KV；
+					long lastKvNum = accountsKvNumCache.containsKey(this.getAddress()) ? accountsKvNumCache.get(this.getAddress()).longValue() : 0;
+					nv = getDataDataset().setValue(ACCOUNTSET_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(getDataDataset().getDataCount() + lastKvNum + keyIndex))), BytesUtils.toBytes(key), -1);
+					if (nv < 0) {
+						throw new LedgerException("Account kv sequence already exist!");
+					}
+					keyIndex++;
+				} else if (type.equals("header")) {
+					// todo
+				}
+			}
 		}
 
 		@Override
@@ -452,6 +481,10 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 
 		public long getVersion() {
 			return version;
+		}
+
+		public long getKeyIndex() {
+			return keyIndex;
 		}
 
 	}
@@ -477,6 +510,14 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 			return dataRoot;
 		}
 
+	}
+
+	public boolean isAddNew() {
+		return account_index_in_block != 0;
+	}
+
+	public Map<Bytes, Long> getKvNumCache() {
+		return accountsKvNumCache;
 	}
 
 }

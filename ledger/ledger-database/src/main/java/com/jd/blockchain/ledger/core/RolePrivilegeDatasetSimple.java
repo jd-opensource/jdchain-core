@@ -25,8 +25,6 @@ public class RolePrivilegeDatasetSimple implements Transactional, MerkleProvable
 
 	private SimpleDataset<Bytes, byte[]> dataset;
 
-	private final Bytes keyPrefix;
-
 	private volatile long rolepri_index_in_block = 0;
 
 	private volatile long origin_rolepri_index_in_block  = 0;
@@ -35,14 +33,12 @@ public class RolePrivilegeDatasetSimple implements Transactional, MerkleProvable
 
 	public RolePrivilegeDatasetSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
                                       VersioningKVStorage verStorage) {
-		this.keyPrefix = Bytes.fromString(prefix);
-		dataset = new SimpleDatasetImpl(cryptoSetting, keyPrefix, exPolicyStorage, verStorage);
+		dataset = new SimpleDatasetImpl(cryptoSetting, prefix, exPolicyStorage, verStorage);
 	}
 
 	public RolePrivilegeDatasetSimple(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
                                       ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		this.keyPrefix = Bytes.fromString(prefix);
-		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, cryptoSetting, keyPrefix, exPolicyStorage,
+		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, cryptoSetting, prefix, exPolicyStorage,
 				verStorage, readonly);
 	}
 
@@ -63,19 +59,25 @@ public class RolePrivilegeDatasetSimple implements Transactional, MerkleProvable
 
 	@Override
 	public void commit() {
+		if (rolepri_index_in_block == 0) {
+			return;
+		}
 		dataset.commit();
 		origin_rolepri_index_in_block = rolepri_index_in_block;
 	}
 
 	@Override
 	public void cancel() {
+		if (rolepri_index_in_block == 0) {
+			return;
+		}
 		dataset.cancel();
 		rolepri_index_in_block = origin_rolepri_index_in_block;
 	}
 
 	@Override
 	public long getRoleCount() {
-		return dataset.getDataCount() + origin_rolepri_index_in_block;
+		return dataset.getDataCount() + rolepri_index_in_block;
 	}
 
 	/**
@@ -107,7 +109,7 @@ public class RolePrivilegeDatasetSimple implements Transactional, MerkleProvable
 			throw new LedgerException("Role[" + roleName + "] already exist!");
 		}
 
-		nv = dataset.setValue(keyPrefix.concat(ROLEPRI_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf(dataset.getDataCount() + rolepri_index_in_block))), Bytes.fromString(roleAuth.getRoleName()).toBytes(), -1);
+		nv = dataset.setValue(ROLEPRI_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(dataset.getDataCount() + rolepri_index_in_block))), Bytes.fromString(roleAuth.getRoleName()).toBytes(), -1);
 
 		if (nv < 0) {
 			throw new LedgerException("Role[" + roleName + "] seq already exist!");
@@ -348,5 +350,9 @@ public class RolePrivilegeDatasetSimple implements Transactional, MerkleProvable
 	public boolean contains(String roleName) {
 		Bytes key = encodeKey(roleName);
 		return dataset.getVersion(key) > -1;
+	}
+
+	public boolean isAddNew() {
+		return rolepri_index_in_block != 0;
 	}
 }

@@ -30,8 +30,6 @@ public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvabl
 
 	private SimpleDatasetImpl dataset;
 
-	private final Bytes keyPrefix;
-
 	private volatile long userrole_index_in_block = 0;
 
 	private volatile long origin_userrole_index_in_block  = 0;
@@ -42,14 +40,12 @@ public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvabl
 
 	public UserRoleDatasetEditorSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
                                        VersioningKVStorage verStorage) {
-		this.keyPrefix = Bytes.fromString(prefix);
-		dataset = new SimpleDatasetImpl(cryptoSetting, keyPrefix, exPolicyStorage, verStorage);
+		dataset = new SimpleDatasetImpl(cryptoSetting, prefix, exPolicyStorage, verStorage);
 	}
 
 	public UserRoleDatasetEditorSimple(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
                                        ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		this.keyPrefix = Bytes.fromString(prefix);
-		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, cryptoSetting, keyPrefix, exPolicyStorage, verStorage, readonly);
+		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, cryptoSetting, prefix, exPolicyStorage, verStorage, readonly);
 	}
 
 	@Override
@@ -69,19 +65,25 @@ public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvabl
 
 	@Override
 	public void commit() {
+		if (userrole_index_in_block == 0) {
+			return;
+		}
 		dataset.commit();
 		origin_userrole_index_in_block = userrole_index_in_block;
 	}
 
 	@Override
 	public void cancel() {
+		if (userrole_index_in_block == 0) {
+			return;
+		}
 		dataset.cancel();
 		userrole_index_in_block = origin_userrole_index_in_block;
 	}
 
 	@Override
 	public long getUserCount() {
-		return dataset.getDataCount() + origin_userrole_index_in_block;
+		return dataset.getDataCount() + userrole_index_in_block;
 	}
 
 	/**
@@ -119,7 +121,7 @@ public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvabl
 			throw new AuthorizationException("Roles authorization of User[" + userAddress + "] already exists!");
 		}
 
-		nv = dataset.setValue(keyPrefix.concat(USEERROLR_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf(dataset.getDataCount() + userrole_index_in_block))), roleAuth.getUserAddress().toBytes(), -1);
+		nv = dataset.setValue(USEERROLR_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(dataset.getDataCount() + userrole_index_in_block))), roleAuth.getUserAddress().toBytes(), -1);
 
 		if (nv < 0) {
 			throw new AuthorizationException("Roles authorization seq of User[" + userAddress + "] already exists!");
@@ -233,6 +235,11 @@ public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvabl
 	@Override
 	public boolean isReadonly() {
 		return dataset.isReadonly();
+	}
+
+
+	public boolean isAddNew() {
+		return userrole_index_in_block != 0;
 	}
 
 }

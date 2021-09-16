@@ -19,15 +19,15 @@ import java.util.List;
 
 public class MerkleEventGroupPublisherSimple implements EventGroup, EventPublisher, Transactional {
 
-    private  MerkleDataset<Bytes, byte[]> events;
+    private  SimpleDataset<Bytes, byte[]> events;
 
     public MerkleEventGroupPublisherSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
-        events = new MerkleHashDataset(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage);
+        events = new SimpleDatasetImpl(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage);
     }
 
-    public MerkleEventGroupPublisherSimple(HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
+    public MerkleEventGroupPublisherSimple(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
                                            ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
-        events = new MerkleHashDataset(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, readonly);
+        events = new SimpleDatasetImpl(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, readonly);
     }
 
     /**

@@ -23,8 +23,6 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 
 	private SimpleDataset<Bytes, byte[]> dataset;
 
-	private final Bytes keyPrefix;
-
 	private volatile long parti_index_in_block = 0;
 
 	private volatile long origin_parti_index_in_block  = 0;
@@ -33,13 +31,11 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 
 	public ParticipantDatasetSimple(CryptoSetting cryptoSetting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
                                     VersioningKVStorage verStorage) {
-		this.keyPrefix = Bytes.fromString(keyPrefix);
 		dataset = new SimpleDatasetImpl(cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage, verStorage);
 	}
 
 	public ParticipantDatasetSimple(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String keyPrefix,
                                     ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		this.keyPrefix = Bytes.fromString(keyPrefix);
 		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage,
 				verStorage, readonly);
 	}
@@ -61,19 +57,25 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 
 	@Override
 	public void commit() {
+		if (parti_index_in_block == 0) {
+			return;
+		}
 		dataset.commit();
 		origin_parti_index_in_block = parti_index_in_block;
 	}
 
 	@Override
 	public void cancel() {
+		if (parti_index_in_block == 0) {
+			return;
+		}
 		dataset.cancel();
 		parti_index_in_block = origin_parti_index_in_block;
 	}
 
 	@Override
 	public long getParticipantCount() {
-		return dataset.getDataCount() + origin_parti_index_in_block;
+		return dataset.getDataCount() + parti_index_in_block;
 	}
 
 	/**
@@ -90,7 +92,7 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 			throw new LedgerException("Participant already exist! --[id=" + key + "]");
 		}
 
-		nv = dataset.setValue(keyPrefix.concat(PARTISET_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf(dataset.getDataCount() + parti_index_in_block))), key.toBytes(), -1);
+		nv = dataset.setValue(PARTISET_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(dataset.getDataCount() + parti_index_in_block))), key.toBytes(), -1);
 
 		if (nv < 0) {
 			throw new LedgerException("Participant seq already exist! --[id=" + key + "]");
@@ -120,6 +122,10 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 
 	private Bytes encodeKey(Bytes address) {
 		return address;
+	}
+
+	public boolean isAddNew() {
+		return parti_index_in_block != 0;
 	}
 
 	@Override
