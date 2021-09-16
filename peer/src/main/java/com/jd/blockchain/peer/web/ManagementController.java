@@ -466,6 +466,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			for (ParticipantNode participantNode : ledgerAdminAccount.getParticipants()) {
 				if (participantNode.getAddress().toString().equals(bindingConfig.getParticipant().getAddress())) {
 					currentNode = participantNode;
+					break;
 				}
 			}
 			if (currentNode == null) {
@@ -473,31 +474,31 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 						+ ledgerHash.toBase58() + "]!");
 			}
 
-			// 处于ACTIVED状态的参与方才会创建共识节点
+			LedgerMetadata_V2 metadata = ledgerRepository.getAdminInfo().getMetadata();
+			ledgerIdMode.put(ledgerHash, null != metadata.getIdentityMode() ? metadata.getIdentityMode() : IdentityMode.KEYPAIR);
+			if(metadata.getIdentityMode() == IdentityMode.CA) {
+				X509Certificate peerCA = CertificateUtils.parseCertificate(ledgerRepository.getUserAccountSet().getAccount(currentNode.getAddress()).getCertificate());
+				X509Certificate[] issuers = CertificateUtils.findIssuers(peerCA, CertificateUtils.parseCertificates(metadata.getLedgerCertificates()));
+				// 校验根证书
+				Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
+				CertificateUtils.checkValidityAny(issuers);
+				// 校验节点证书
+				CertificateUtils.checkCertificateRole(peerCA, CertificateRole.PEER);
+				CertificateUtils.checkValidity(peerCA);
+			}
+			// 处于ACTIVED状态的参与方才会创建共识节点服务
 			if (currentNode.getParticipantNodeState() == ParticipantNodeState.CONSENSUS) {
-				LedgerMetadata_V2 metadata = ledgerRepository.getAdminInfo().getMetadata();
-				ledgerIdMode.put(ledgerHash, null != metadata.getIdentityMode() ? metadata.getIdentityMode() : IdentityMode.KEYPAIR);
-				if(metadata.getIdentityMode() == IdentityMode.CA) {
-					X509Certificate peerCA = CertificateUtils.parseCertificate(ledgerRepository.getUserAccountSet().getAccount(currentNode.getAddress()).getCertificate());
-					X509Certificate[] issuers = CertificateUtils.findIssuers(peerCA, CertificateUtils.parseCertificates(metadata.getLedgerCertificates()));
-					// 校验根证书
-					Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
-					CertificateUtils.checkValidityAny(issuers);
-					// 校验节点证书
-					CertificateUtils.checkCertificateRole(peerCA, CertificateRole.PEER);
-					CertificateUtils.checkValidity(peerCA);
-				}
 				ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(ledgerHash.toBase58(), csSettings, currentNode.getAddress().toBase58());
 				((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
 				Storage consensusRuntimeStorage = getConsensusRuntimeStorage(ledgerHash);
 				server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
 						consensusStateManager, consensusRuntimeStorage);
 				ledgerPeers.put(ledgerHash, server);
-				ledgerQuerys.put(ledgerHash, ledgerRepository);
-				ledgerCurrNodes.put(ledgerHash, currentNode);
-				ledgerCryptoSettings.put(ledgerHash, ledgerAdminAccount.getSettings().getCryptoSetting());
-				ledgerKeypairs.put(ledgerHash, loadIdentity(currentNode, bindingConfig));
 			}
+			ledgerQuerys.put(ledgerHash, ledgerRepository);
+			ledgerCurrNodes.put(ledgerHash, currentNode);
+			ledgerCryptoSettings.put(ledgerHash, ledgerAdminAccount.getSettings().getCryptoSetting());
+			ledgerKeypairs.put(ledgerHash, loadIdentity(currentNode, bindingConfig));
 		} catch (Exception e) {
 			ledgerManager.unregister(ledgerHash);
 			throw e;

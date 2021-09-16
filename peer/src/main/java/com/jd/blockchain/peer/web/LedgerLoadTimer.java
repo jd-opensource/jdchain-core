@@ -102,8 +102,6 @@ public class LedgerLoadTimer implements ApplicationContextAware {
                     if (!newAddHashs.isEmpty()) {
                         // 由线程单独执行
                         ledgerLoadExecutor.execute(new LedgerLoadRunnable(newAddHashs, ledgerBindingConfig));
-                    } else {
-                        LOGGER.debug("All ledgers is newest!!!");
                     }
                 } else {
                     LOGGER.warn("--- Can not get semaphore of load ledger !!!");
