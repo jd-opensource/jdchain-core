@@ -8,6 +8,7 @@ import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BlockchainIdentityData;
 import com.jd.blockchain.ledger.BlockchainKeyGenerator;
@@ -15,15 +16,16 @@ import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.ledger.BytesDataList;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.DigitalSignature;
+import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.PreparedTransaction;
 import com.jd.blockchain.ledger.RolesPolicy;
+import com.jd.blockchain.ledger.SystemEvent;
 import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.ledger.TransactionTemplate;
 import com.jd.blockchain.ledger.TypedValue;
-import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.sdk.client.GatewayBlockchainServiceProxy;
 import com.jd.blockchain.sdk.client.GatewayServiceFactory;
 import com.jd.blockchain.transaction.RolePrivilegeConfigurer;
@@ -43,6 +45,7 @@ import java.io.File;
 import java.lang.reflect.Method;
 import java.security.cert.X509Certificate;
 import java.util.Scanner;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * @description: traction operations
@@ -63,6 +66,7 @@ import java.util.Scanner;
                 TxDataAccountRegister.class,
                 TxKVSet.class,
                 TxEventPublish.class,
+                TxEventSubscribe.class,
                 TxContractDeploy.class,
                 TxContractCall.class,
                 TxContractStateUpdate.class,
@@ -630,6 +634,62 @@ class TxEventPublish implements Runnable {
                     System.err.println("event publish failed!");
                 }
             }
+        }
+    }
+}
+
+@CommandLine.Command(name = "event-listen", mixinStandardHelpOptions = true, header = "Subscribe event.")
+class TxEventSubscribe implements Runnable {
+
+    @CommandLine.Option(names = "--address", description = "Event address", scope = CommandLine.ScopeType.INHERIT)
+    String address;
+
+    @CommandLine.Option(names = "--name", required = true, description = "Event name", scope = CommandLine.ScopeType.INHERIT)
+    String name;
+
+    @CommandLine.Option(names = "--sequence", defaultValue = "0", description = "Sequence of the event", scope = CommandLine.ScopeType.INHERIT)
+    long sequence;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        // 事件监听会创建子线程，为阻止子线程被直接关闭，加入等待
+        CountDownLatch cdl = new CountDownLatch(1);
+        if (StringUtils.isEmpty(address)) {
+            txCommand.getChainService().monitorSystemEvent(txCommand.selectLedger(),
+                    SystemEvent.NEW_BLOCK_CREATED, sequence, (eventMessages, eventContext) -> {
+                        for (Event eventMessage : eventMessages) {
+                            // content中存放的是当前链上最新高度
+                            System.out.println("New block:" + eventMessage.getSequence() + ":" + BytesUtils.toLong(eventMessage.getContent().getBytes().toBytes()));
+                        }
+                    });
+        } else {
+            txCommand.getChainService().monitorUserEvent(txCommand.selectLedger(), address, name, sequence, (eventMessage, eventContext) -> {
+
+                BytesValue content = eventMessage.getContent();
+                switch (content.getType()) {
+                    case TEXT:
+                    case XML:
+                    case JSON:
+                        System.out.println(eventMessage.getName() + ":" + eventMessage.getSequence() + ":" + content.getBytes().toUTF8String());
+                        break;
+                    case INT64:
+                    case TIMESTAMP:
+                        System.out.println(eventMessage.getName() + ":" + eventMessage.getSequence() + ":" + BytesUtils.toLong(content.getBytes().toBytes()));
+                        break;
+                    default: // byte[], Bytes
+                        System.out.println(eventMessage.getName() + ":" + eventMessage.getSequence() + ":" + content.getBytes().toBase58());
+                        break;
+                }
+            });
+        }
+
+        try {
+            cdl.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 }
