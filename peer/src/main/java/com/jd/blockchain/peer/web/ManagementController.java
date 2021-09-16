@@ -27,6 +27,7 @@ import utils.BusinessException;
 import utils.Bytes;
 import utils.PropertiesUtils;
 import utils.Property;
+import utils.StringUtils;
 import utils.codec.Base58Utils;
 import utils.io.ByteArray;
 import utils.io.BytesUtils;
@@ -1408,12 +1409,33 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 		PubKey pubKey = currentNode.getPubKey();
 
-		String privKeyString = bindingConfig.getParticipant().getPk();
-
+		PrivKey privKey = null;
+		String pk = bindingConfig.getParticipant().getPk();
 		String pwd = bindingConfig.getParticipant().getPassword();
-
-		PrivKey privKey = KeyGenUtils.decodePrivKey(privKeyString, pwd);
-
+		String pkPath = bindingConfig.getParticipant().getPkPath();
+		if(!StringUtils.isEmpty(pk) && !StringUtils.isEmpty(pwd)) {
+			try{
+				privKey = KeyGenUtils.decodePrivKey(pk, pwd);
+			} catch (Exception e) {}
+		} else if(!StringUtils.isEmpty(pkPath)) {
+			if(!StringUtils.isEmpty(pwd)) {
+				try{
+					privKey = KeyGenUtils.decodePrivKey(pk, pwd);
+				} catch (Exception e) {}
+				if(null == privKey) {
+					try {
+						privKey = CertificateUtils.parsePrivKey(pubKey.getAlgorithm(), new File(pkPath), pwd);
+					}catch (Exception e) {}
+				}
+			} else {
+				try {
+					privKey = CertificateUtils.parsePrivKey(pubKey.getAlgorithm(), new File(pkPath));
+				}catch (Exception e) {}
+			}
+		}
+		if(null == privKey) {
+			LOGGER.error("Error keypair or certificate configurations in ledger-binding.conf, participant node: {}", currentNode.getAddress());
+		}
 		return new AsymmetricKeypair(pubKey, privKey);
 
 	}
