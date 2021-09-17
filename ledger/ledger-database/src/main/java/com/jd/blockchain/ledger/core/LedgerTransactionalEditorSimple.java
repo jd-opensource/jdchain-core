@@ -28,29 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 public class LedgerTransactionalEditorSimple implements LedgerEditor {
-
 	private static final boolean PARALLEL_DB_WRITE;
-
-	private static final Bytes USER_SET_PREFIX = Bytes.fromString("USRS" + LedgerConsts.KEY_SEPERATOR);
-
-	private static final Bytes DATA_SET_PREFIX = Bytes.fromString("DATS" + LedgerConsts.KEY_SEPERATOR);
-
-	private static final Bytes CONTRACT_SET_PREFIX = Bytes.fromString("CTRS" + LedgerConsts.KEY_SEPERATOR);
-
-	private static final Bytes TRANSACTION_SET_PREFIX = Bytes.fromString("TXS" + LedgerConsts.KEY_SEPERATOR);
-
-	private static final Bytes USER_EVENT_SET_PREFIX = Bytes.fromString("UEVT" + LedgerConsts.KEY_SEPERATOR);
-
-	private static final Bytes LEDGER_PARTICIPANT_PREFIX = Bytes.fromString("PAR" + LedgerConsts.KEY_SEPERATOR);
-
-	private static final Bytes ROLE_PRIVILEGE_PREFIX = Bytes.fromString("RPV" + LedgerConsts.KEY_SEPERATOR);
-
-	private static final Bytes USER_ROLE_PREFIX = Bytes.fromString("URO" + LedgerConsts.KEY_SEPERATOR);
-
-	private static final Bytes DATASET_TOTAL_PREFIX = Bytes.fromString("TOTAL" + LedgerConsts.KEY_SEPERATOR);
-
-	private static final Bytes DATA_PREFIX = Bytes.fromString("KV" + LedgerConsts.KEY_SEPERATOR);
-
 
 	static {
 		PARALLEL_DB_WRITE = Boolean.getBoolean("parallel-dbwrite");

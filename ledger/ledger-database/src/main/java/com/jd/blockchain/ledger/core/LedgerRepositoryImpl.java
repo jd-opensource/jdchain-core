@@ -78,9 +78,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 	public LedgerRepositoryImpl(HashDigest ledgerHash, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage versioningStorage, String anchorType) {
-		// keyPrefix = LDG://ledgerhash/
-		this.keyPrefix = keyPrefix + ledgerHash.toString() + LedgerConsts.KEY_SEPERATOR;
-
+		this.keyPrefix = keyPrefix;
 		this.ledgerHash = ledgerHash;
 		this.versioningStorage = versioningStorage;
 		this.exPolicyStorage = exPolicyStorage;
