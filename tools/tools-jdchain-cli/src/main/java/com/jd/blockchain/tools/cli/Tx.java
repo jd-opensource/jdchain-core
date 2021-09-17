@@ -45,6 +45,7 @@ import java.io.File;
 import java.lang.reflect.Method;
 import java.security.cert.X509Certificate;
 import java.util.Scanner;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -73,6 +74,7 @@ import java.util.concurrent.CountDownLatch;
                 TxEventAccountRegister.class,
                 TxSign.class,
                 TxSend.class,
+                TxTestKV.class,
                 CommandLine.HelpCommand.class
         }
 )
@@ -115,6 +117,10 @@ public class Tx implements Runnable {
 
     TransactionTemplate newTransaction() {
         return getChainService().newTransaction(selectLedger());
+    }
+
+    TransactionTemplate newTransaction(HashDigest ledger) {
+        return getChainService().newTransaction(ledger);
     }
 
     boolean sign(PreparedTransaction ptx) {
@@ -184,6 +190,47 @@ public class Tx implements Runnable {
             }
         }
     }
+
+    BlockchainKeypair signer() {
+        File keysHome = new File(getKeysHome());
+        File[] pubs = keysHome.listFiles((dir, name) -> {
+            if (name.endsWith(".priv")) {
+                return true;
+            }
+            return false;
+        });
+        if (null == pubs || pubs.length == 0) {
+            System.err.printf("no signer in path [%s]%n", keysHome.getAbsolutePath());
+            return null;
+        } else {
+            System.out.printf("select keypair to sign tx: %n%-7s\t%s\t%s%n", "INDEX", "KEY", "ADDRESS");
+            BlockchainKeypair[] keypairs = new BlockchainKeypair[pubs.length];
+            String[] passwords = new String[pubs.length];
+            for (int i = 0; i < pubs.length; i++) {
+                String key = FilenameUtils.removeExtension(pubs[i].getName());
+                String keyPath = FilenameUtils.removeExtension(pubs[i].getAbsolutePath());
+                String privkey = FileUtils.readText(new File(keyPath + ".priv"));
+                String pwd = FileUtils.readText(new File(keyPath + ".pwd"));
+                String pubkey = FileUtils.readText(new File(keyPath + ".pub"));
+                keypairs[i] = new BlockchainKeypair(KeyGenUtils.decodePubKey(pubkey), KeyGenUtils.decodePrivKey(privkey, pwd));
+                passwords[i] = pwd;
+                System.out.printf("%-7s\t%s\t%s%n", i, key, keypairs[i].getAddress());
+            }
+            System.out.print("> ");
+            Scanner scanner = new Scanner(System.in).useDelimiter("\n");
+            int keyIndex = Integer.parseInt(scanner.next().trim());
+            System.out.println("input password of the key: ");
+            System.out.print("> ");
+            String pwd = scanner.next();
+            if (KeyGenUtils.encodePasswordAsBase58(pwd).equals(passwords[keyIndex])) {
+                return keypairs[keyIndex];
+            } else {
+                System.err.println("password wrong");
+                return null;
+            }
+        }
+    }
+
 
     String export(PreparedTransaction ptx) {
         if (null != export) {
@@ -945,6 +992,48 @@ class TxSend implements Runnable {
                 System.err.println("Send transaction failed!");
             }
         } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+@CommandLine.Command(name = "testkv", mixinStandardHelpOptions = true, header = "Send kv set transaction for testing.")
+class TxTestKV implements Runnable {
+
+    @CommandLine.Option(names = "--address", required = true, description = "Data account address", scope = CommandLine.ScopeType.INHERIT)
+    String address;
+
+    @CommandLine.Option(names = "--thread", required = true, description = "Thread number", defaultValue = "1", scope = CommandLine.ScopeType.INHERIT)
+    int thread;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        HashDigest ledger = txCommand.selectLedger();
+        BlockchainKeypair signer = txCommand.signer();
+        CountDownLatch cdl = new CountDownLatch(1);
+        for(int i=0; i<thread; i++) {
+            final int index = i + 1;
+            new Thread(() -> {
+                System.out.println("start thread " + index + " to set kv");
+                while (true) {
+                    TransactionTemplate txTemp = txCommand.newTransaction(ledger);
+                    txTemp.dataAccount(address).setInt64(UUID.randomUUID().toString(), System.currentTimeMillis(), -1);
+                    PreparedTransaction prepare = txTemp.prepare();
+                    prepare.addSignature(SignatureUtils.sign(prepare.getTransactionHash(), signer));
+                    TransactionResponse response = prepare.commit();
+                    if (!response.isSuccess()) {
+                        System.out.println(response.getExecutionState());
+                    }
+                }
+            }).start();
+        }
+
+        try {
+            cdl.await();
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
