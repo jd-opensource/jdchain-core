@@ -274,11 +274,6 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		}
 		View returnView = new View(id, processes, f, addresses);
 
-		for (int i = 0; i < returnView.getProcesses().length; i++) {
-			LOGGER.info("[BftsmartNodeServer.getOuterTopology] PartiNode id = {}, host = {}, port = {}",
-					returnView.getProcesses()[i], returnView.getAddress(returnView.getProcesses()[i]).getHost(),
-					returnView.getAddress(returnView.getProcesses()[i]).getConsensusPort());
-		}
 		this.outerTopology = new BftsmartTopology(returnView);
 
 		return outerTopology;
