@@ -47,6 +47,7 @@ import java.security.cert.X509Certificate;
 import java.util.Scanner;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @description: traction operations
@@ -1014,6 +1015,8 @@ class TxTestKV implements Runnable {
         HashDigest ledger = txCommand.selectLedger();
         BlockchainKeypair signer = txCommand.signer();
         CountDownLatch cdl = new CountDownLatch(1);
+        AtomicLong count = new AtomicLong(0);
+        final long startTime = System.currentTimeMillis();
         for(int i=0; i<thread; i++) {
             final int index = i + 1;
             new Thread(() -> {
@@ -1026,6 +1029,11 @@ class TxTestKV implements Runnable {
                     TransactionResponse response = prepare.commit();
                     if (!response.isSuccess()) {
                         System.out.println(response.getExecutionState());
+                    }
+                    long l = count.incrementAndGet();
+                    if(l % 1000 == 0) {
+                        long t = System.currentTimeMillis() - startTime;
+                        System.out.printf("total txs: %d, time: %d ms, tps: %d \n", l, t, l * 1000 / t);
                     }
                 }
             }).start();
