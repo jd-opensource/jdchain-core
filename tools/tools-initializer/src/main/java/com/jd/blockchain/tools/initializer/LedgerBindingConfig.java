@@ -51,6 +51,7 @@ public class LedgerBindingConfig {
 	// DB Connction Attribute Key;
 	public static final String DB_CONN = DB_PREFIX + "uri";
 	public static final String DB_PASSWORD = DB_PREFIX + "pwd";
+	public static final String DB_ANCHOR = DB_PREFIX + "anchor";
 
 	// 账本名字
 	public static final String LEDGER_NAME = "name";
@@ -144,11 +145,14 @@ public class LedgerBindingConfig {
 		// 数据库存储配置；
 		String dbConnKey = String.join(ATTR_SEPERATOR, ledgerPrefix, DB_CONN);
 		String dbPwdKey = String.join(ATTR_SEPERATOR, ledgerPrefix, DB_PASSWORD);
+		String dbAnchorKey = String.join(ATTR_SEPERATOR, ledgerPrefix, DB_ANCHOR);
 
 		writeLine(builder, "#账本的存储数据库的连接字符串；");
 		writeLine(builder, "%s=%s", dbConnKey, stringOf(binding.getDbConnection().getUri()));
 		writeLine(builder, "#账本的存储数据库的连接口令；");
 		writeLine(builder, "%s=%s", dbPwdKey, stringOf(binding.getDbConnection().getPassword()));
+		writeLine(builder, "#账本的存储数据库的锚定类型；");
+		writeLine(builder, "%s=%s", dbAnchorKey, stringOf(binding.getDbConnection().getAnchor()));
 		writeLine(builder);
 	}
 
@@ -268,9 +272,11 @@ public class LedgerBindingConfig {
 		// 数据库存储配置；
 		String dbConnKey = String.join(ATTR_SEPERATOR, ledgerPrefix, DB_CONN);
 		String dbPwdKey = String.join(ATTR_SEPERATOR, ledgerPrefix, DB_PASSWORD);
+		String dbAnchorKey = String.join(ATTR_SEPERATOR, ledgerPrefix, DB_ANCHOR);
 
 		binding.dbConnection.setConnectionUri(getProperty(props, dbConnKey, true));
 		binding.dbConnection.setPassword(getProperty(props, dbPwdKey, false));
+		binding.dbConnection.setAnchor(getProperty(props, dbAnchorKey, true));
 		if (binding.dbConnection.getUri() == null) {
 			throw new IllegalArgumentException(
 					String.format("No db connection config of participant of ledger binding[%s]!", ledgerHash));

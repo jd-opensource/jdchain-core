@@ -56,7 +56,8 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 
 	private boolean readonly;
 
-	private volatile int kvIndex = 0;
+	private SimpleDatasetType datasetType;
+
 
 	/*
 	 * (non-Javadoc)
@@ -75,9 +76,9 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 * @param exPolicyStorage   默克尔树的存储；
 	 * @param versioningStorage 数据的存储；
 	 */
-	public SimpleDatasetImpl(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
+	public SimpleDatasetImpl(SimpleDatasetType type, CryptoSetting setting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
                              VersioningKVStorage versioningStorage) {
-		this(setting, Bytes.fromString(keyPrefix), exPolicyStorage, versioningStorage);
+		this(type, setting, Bytes.fromString(keyPrefix), exPolicyStorage, versioningStorage);
 	}
 
 	/**
@@ -87,9 +88,9 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 * @param exPolicyStorage   默克尔树的存储；
 	 * @param versioningStorage 数据的存储；
 	 */
-	public SimpleDatasetImpl(CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage exPolicyStorage,
+	public SimpleDatasetImpl(SimpleDatasetType type, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage exPolicyStorage,
                              VersioningKVStorage versioningStorage) {
-		this(-1, null, setting, keyPrefix, exPolicyStorage, versioningStorage, false);
+		this(-1, null, type, setting, keyPrefix, exPolicyStorage, versioningStorage, false);
 	}
 
 	/**
@@ -101,9 +102,9 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 * @param merkleTreeStorage
 	 * @param snGenerator
 	 */
-	public SimpleDatasetImpl(long preBlockHeight, HashDigest prevRootHash, CryptoSetting setting, String keyPrefix,
+	public SimpleDatasetImpl(long preBlockHeight, HashDigest prevRootHash, SimpleDatasetType type, CryptoSetting setting, String keyPrefix,
                              ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
-		this(preBlockHeight, prevRootHash, setting, Bytes.fromString(keyPrefix), exPolicyStorage, versioningStorage, readonly);
+		this(preBlockHeight, prevRootHash, type, setting, Bytes.fromString(keyPrefix), exPolicyStorage, versioningStorage, readonly);
 	}
 
 	/**
@@ -115,7 +116,7 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 * @param merkleTreeStorage
 	 * @param snGenerator
 	 */
-	public SimpleDatasetImpl(long preBlockHeight, HashDigest prevRootHash, CryptoSetting setting, Bytes keyPrefix,
+	public SimpleDatasetImpl(long preBlockHeight, HashDigest prevRootHash, SimpleDatasetType type, CryptoSetting setting, Bytes keyPrefix,
                              ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
 		// 把存储数据值、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
 		this.dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
@@ -128,6 +129,8 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 		this.preBlockHeight = preBlockHeight;
 
 		this.rootHash = prevRootHash;
+
+		this.datasetType = type;
 
 		this.readonly = readonly;
 	}
@@ -143,15 +146,9 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 
 	@Override
 	public long getDataCount() {
-
-		if (preBlockHeight == -1) {
-			return 0;
-		}
-
 		// prefix + KV/Total
-		Bytes dataKey = encodeDataKey(Bytes.fromString("TOTAL"));
-
-		byte[] value = valueStorage.get(dataKey, -1);
+		Bytes totalKey = dataKeyPrefix.concat(Bytes.fromString("TOTAL"));
+		byte[] value = valueStorage.get(totalKey, -1);
 		if (value == null) {
 			return 0;
 		}
@@ -233,13 +230,6 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 */
 	@Override
 	public byte[] getValue(Bytes key, long version) {
-		long latestVersion = getVersion(key);
-		if (latestVersion < 0 || version > latestVersion) {
-			// key not exist, or the specified version is out of the latest version indexed
-			// by the current merkletree;
-			return null;
-		}
-		version = version < 0 ? latestVersion : version;
 		Bytes dataKey = encodeDataKey(key);
 		byte[] value = valueStorage.get(dataKey, version);
 		if (value == null) {
@@ -268,7 +258,9 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 */
 	@Override
 	public long getVersion(Bytes key) {
-		return valueStorage.getVersion(key);
+		// encdoe data key
+		Bytes dataKey = encodeDataKey(key);
+		return valueStorage.getVersion(dataKey);
 	}
 
 	/**
@@ -370,11 +362,6 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 
 	}
 
-	// 仅用来提交各个种类的Total更新
-	public void storageCommit() {
-		valueStorage.commit();
-	}
-
 	@Override
 	public boolean isUpdated() {
 		return valueStorage.isUpdated();
@@ -395,53 +382,9 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	}
 
 	private HashDigest computeDataSetRootHash(HashDigest originHash, BufferedKVStorage valueStorage) {
-		ArrayList<HashDigest> merkleNodes = new ArrayList<>();
 
-		merkleNodes = valueStorage.getCachedKvList();
+        ArrayList<HashDigest> merkleNodes = valueStorage.getCachedKvList();
 
 		return  new MerkleTreeSimple(this.DEFAULT_HASH_FUNCTION, originHash, merkleNodes).root();
 	}
-
-	// ----------------------------------------------------------
-
-//	private class AscDataInterator extends AbstractSkippingIterator<DataEntry<Bytes, byte[]>> {
-//
-//		private final long total;
-//
-//		@Override
-//		public long getTotalCount() {
-//			return total;
-//		}
-//
-//		public AscDataInterator(long total) {
-//			this.total = total;
-//		}
-//
-//		@Override
-//		protected DataEntry<Bytes, byte[]> get(long cursor) {
-//			return getDataEntryAt(cursor);
-//		}
-//
-//	}
-
-//	private class DescDataInterator extends AbstractSkippingIterator<DataEntry<Bytes, byte[]>> {
-//
-//		private final long total;
-//
-//		public DescDataInterator(long total) {
-//			this.total = total;
-//		}
-//
-//		@Override
-//		public long getTotalCount() {
-//			return total;
-//		}
-//
-//		@Override
-//		protected DataEntry<Bytes, byte[]> get(long cursor) {
-//			// 倒序的迭代器从后往前返回；
-//			return getDataEntryAt(total - cursor - 1);
-//		}
-//	}
-
 }

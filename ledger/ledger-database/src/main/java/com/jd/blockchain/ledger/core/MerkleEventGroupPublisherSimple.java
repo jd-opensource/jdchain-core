@@ -22,12 +22,12 @@ public class MerkleEventGroupPublisherSimple implements EventGroup, EventPublish
     private  SimpleDataset<Bytes, byte[]> events;
 
     public MerkleEventGroupPublisherSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
-        events = new SimpleDatasetImpl(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage);
+        events = new SimpleDatasetImpl(SimpleDatasetType.NONE, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage);
     }
 
     public MerkleEventGroupPublisherSimple(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
                                            ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
-        events = new SimpleDatasetImpl(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, readonly);
+        events = new SimpleDatasetImpl(preBlockHeight, dataRootHash, SimpleDatasetType.NONE, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, readonly);
     }
 
     /**

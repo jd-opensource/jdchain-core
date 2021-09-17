@@ -67,7 +67,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		this.origin_rootHash = this.rootHash;
 		this.setting = setting;
 		this.preBlockHeight = -1;
-		this.txDataSet = new SimpleDatasetImpl(setting, keyPrefix, merkleTreeStorage, dataStorage);
+		this.txDataSet = new SimpleDatasetImpl(SimpleDatasetType.TX, setting, keyPrefix, merkleTreeStorage, dataStorage);
 	}
 
 	/**
@@ -83,7 +83,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		this.origin_rootHash = this.rootHash;
 		this.setting = setting;
 		this.preBlockHeight = preBlockHeight;
-		this.txDataSet = new SimpleDatasetImpl(preBlockHeight, txsetHash, setting, keyPrefix, merkleTreeStorage, dataStorage,
+		this.txDataSet = new SimpleDatasetImpl(preBlockHeight, txsetHash, SimpleDatasetType.TX, setting, keyPrefix, merkleTreeStorage, dataStorage,
 				readonly);
 	}
 

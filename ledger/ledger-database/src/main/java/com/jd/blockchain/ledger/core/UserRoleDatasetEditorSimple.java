@@ -40,12 +40,12 @@ public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvabl
 
 	public UserRoleDatasetEditorSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
                                        VersioningKVStorage verStorage) {
-		dataset = new SimpleDatasetImpl(cryptoSetting, prefix, exPolicyStorage, verStorage);
+		dataset = new SimpleDatasetImpl(SimpleDatasetType.NONE, cryptoSetting, prefix, exPolicyStorage, verStorage);
 	}
 
 	public UserRoleDatasetEditorSimple(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
                                        ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, cryptoSetting, prefix, exPolicyStorage, verStorage, readonly);
+		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, SimpleDatasetType.NONE, cryptoSetting, prefix, exPolicyStorage, verStorage, readonly);
 	}
 
 	@Override

@@ -5,6 +5,8 @@ public class DBConnectionConfig {
 	private String connectionUri;
 
 	private String password;
+
+	private String anchor;
 	
 	public DBConnectionConfig() {
 	}
@@ -28,4 +30,11 @@ public class DBConnectionConfig {
 		this.password = password;
 	}
 
+	public String getAnchor() {
+		return anchor;
+	}
+
+	public void setAnchor(String anchor) {
+		this.anchor = anchor;
+	}
 }

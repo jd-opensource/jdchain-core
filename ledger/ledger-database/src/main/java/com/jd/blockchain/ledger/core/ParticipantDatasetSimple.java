@@ -31,12 +31,12 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 
 	public ParticipantDatasetSimple(CryptoSetting cryptoSetting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
                                     VersioningKVStorage verStorage) {
-		dataset = new SimpleDatasetImpl(cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage, verStorage);
+		dataset = new SimpleDatasetImpl(SimpleDatasetType.PARTIS, cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage, verStorage);
 	}
 
 	public ParticipantDatasetSimple(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String keyPrefix,
                                     ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage,
+		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, SimpleDatasetType.PARTIS, cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage,
 				verStorage, readonly);
 	}
 
@@ -157,23 +157,23 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 	@Deprecated
 	@Override
 	public ParticipantNode[] getParticipants() {
-		SkippingIterator<ParticipantNode> nodesIterator = getAllParticipants();
-		ParticipantNode[] nodes = new ParticipantNode[(int) nodesIterator.getCount()];
-		nodesIterator.next(nodes);
+
+		int total = (int) dataset.getDataCount();
+		ParticipantNode[] nodes = new ParticipantNode[total];
+
+		for (int index = 0; index < total; index++) {
+			byte[] indexKey = dataset.getValue(PARTISET_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf((long)index))));
+			byte[] parti = dataset.getValue(new Bytes(indexKey));
+			nodes[index] = BinaryProtocol.decode(parti);
+		}
 
 		return nodes;
 	}
 
 	@Override
 	public SkippingIterator<ParticipantNode> getAllParticipants() {
-		SkippingIterator<DataEntry<Bytes, byte[]>> dataIterator = dataset.iterator();
-		return dataIterator.iterateAs(new Mapper<DataEntry<Bytes, byte[]>, ParticipantNode>() {
-
-			@Override
-			public ParticipantNode from(DataEntry<Bytes, byte[]> source) {
-				return source == null ? null : BinaryProtocol.decode(source.getValue());
-			}
-		});
+		// not used in simple ledger database
+		return null;
 	}
 
 }

@@ -87,14 +87,11 @@ public class ComplecatedSimpleAccount implements CompositeAccount, HashProvable,
 	 */
 	public ComplecatedSimpleAccount(long preblockHeight, Bytes address, HashDigest headerRoot, HashDigest dataRoot, CryptoSetting cryptoSetting,
                                     Bytes keyPrefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
-		if (headerRoot == null) {
+		if (headerRoot == null && dataRoot == null) {
 			throw new IllegalArgumentException(
-					"Specified a null header-root hash for account[" + address.toBase58() + "]!");
+					"Specified a null header-root hash and data-root hash for account[" + address.toBase58() + "]!");
 		}
-		if (dataRoot == null) {
-			throw new IllegalArgumentException(
-					"Specified a null data-root hash for account[" + address.toBase58() + "]!");
-		}
+
 		this.preblockHeight = preblockHeight;
 
 		// 初始化数据集；
@@ -142,14 +139,14 @@ public class ComplecatedSimpleAccount implements CompositeAccount, HashProvable,
 		// 加载“头数据集”；
 //		HashDigest headerRoot = loadHeaderRoot();
 		Bytes headerPrefix = keyPrefix.concat(HEADER_PREFIX);
-		this.headerDataset = new SimpleDatasetImpl(preblockHeight, headerRoot, cryptoSetting, headerPrefix, exStorage, verStorage,
+		this.headerDataset = new SimpleDatasetImpl(preblockHeight, headerRoot, SimpleDatasetType.NONE, cryptoSetting, headerPrefix, exStorage, verStorage,
 				readonly);
 		this.typedHeader = DatasetHelperSimple.listen(DatasetHelperSimple.map(headerDataset, valueMapper), dataChangedListenerHeader);
 
 		// 加载“主数据集”
 //		HashDigest dataRoot = loadDataRoot();
 		Bytes dataPrefix = keyPrefix.concat(DATA_PREFIX);
-		this.dataDataset = new SimpleDatasetImpl(preblockHeight, dataRoot, cryptoSetting, dataPrefix, exStorage, verStorage, readonly);
+		this.dataDataset = new SimpleDatasetImpl(preblockHeight, dataRoot, SimpleDatasetType.NONE, cryptoSetting, dataPrefix, exStorage, verStorage, readonly);
 		this.typedData = DatasetHelperSimple.listen(DatasetHelperSimple.map(dataDataset, valueMapper), dataChangedListenerData);
 	}
 

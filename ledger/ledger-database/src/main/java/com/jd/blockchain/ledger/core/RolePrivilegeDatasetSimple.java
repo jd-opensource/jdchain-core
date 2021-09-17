@@ -33,12 +33,12 @@ public class RolePrivilegeDatasetSimple implements Transactional, MerkleProvable
 
 	public RolePrivilegeDatasetSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
                                       VersioningKVStorage verStorage) {
-		dataset = new SimpleDatasetImpl(cryptoSetting, prefix, exPolicyStorage, verStorage);
+		dataset = new SimpleDatasetImpl(SimpleDatasetType.NONE, cryptoSetting, prefix, exPolicyStorage, verStorage);
 	}
 
 	public RolePrivilegeDatasetSimple(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
                                       ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, cryptoSetting, prefix, exPolicyStorage,
+		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, SimpleDatasetType.NONE, cryptoSetting, prefix, exPolicyStorage,
 				verStorage, readonly);
 	}
 

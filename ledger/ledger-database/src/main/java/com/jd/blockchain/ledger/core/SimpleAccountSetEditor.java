@@ -79,7 +79,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 		this.baseExStorage = exStorage;
 		this.baseVerStorage = verStorage;
 		this.preBlockHeight = preBlockHeight;
-		this.simpleDataset = new SimpleDatasetImpl(preBlockHeight, rootHash, cryptoSetting, keyPrefix, this.baseExStorage,
+		this.simpleDataset = new SimpleDatasetImpl(preBlockHeight, rootHash, SimpleDatasetType.NONE, cryptoSetting, keyPrefix, this.baseExStorage,
 				this.baseVerStorage, readonly);
 
 		this.accessPolicy = accessPolicy;

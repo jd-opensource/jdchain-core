@@ -430,7 +430,7 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 
 		final Bytes KV_PREFIX = Bytes.fromString("KV/");
 
-		final Bytes LEDGER_PARTICIPANT_PREFIX = Bytes.fromString(ledgerKeyPrefix + "PAR/" + KV_PREFIX + "TOTAL");
+		final Bytes LEDGER_PARTICIPANT_PREFIX = Bytes.fromString(ledgerKeyPrefix + "PAR/").concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
 
 		final Bytes ROLE_PRIVILEGE_PREFIX = Bytes.fromString(ledgerKeyPrefix + "RPV/" + KV_PREFIX + "TOTAL");
 
