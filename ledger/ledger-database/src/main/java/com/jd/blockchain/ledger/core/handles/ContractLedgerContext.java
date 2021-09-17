@@ -11,9 +11,11 @@ import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BlockchainIdentityData;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.BytesValueList;
+import com.jd.blockchain.ledger.ContractCodeDeployOperation;
 import com.jd.blockchain.ledger.ContractCrossEventSendOperation;
 import com.jd.blockchain.ledger.ContractEventSendOperation;
 import com.jd.blockchain.ledger.ContractInfo;
+import com.jd.blockchain.ledger.ContractStateUpdateOperation;
 import com.jd.blockchain.ledger.DataAccountInfo;
 import com.jd.blockchain.ledger.DataAccountKVSetOperation;
 import com.jd.blockchain.ledger.DataAccountRegisterOperation;
@@ -40,11 +42,16 @@ import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.ledger.UserStateUpdateOperation;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
+import com.jd.blockchain.transaction.BlockchainOperationFactory;
 import com.jd.blockchain.transaction.BlockchainQueryService;
+import com.jd.blockchain.transaction.ContractCodeDeployOpTemplate;
+import com.jd.blockchain.transaction.ContractCodeDeployOperationBuilder;
 import com.jd.blockchain.transaction.ContractCrossEventSendOpTemplate;
 import com.jd.blockchain.transaction.ContractEventSendOpTemplate;
 import com.jd.blockchain.transaction.ContractEventSendOperationBuilder;
 import com.jd.blockchain.transaction.ContractInvocationProxyBuilder;
+import com.jd.blockchain.transaction.ContractStateUpdateOpTemplate;
+import com.jd.blockchain.transaction.ContractUpdateOperationBuilder;
 import com.jd.blockchain.transaction.DataAccountKVSetOperationBuilder;
 import com.jd.blockchain.transaction.DataAccountRegisterOperationBuilder;
 import com.jd.blockchain.transaction.DataAccountRegisterOperationBuilderImpl;
@@ -63,6 +70,7 @@ import com.jd.blockchain.transaction.UserRegisterOperationBuilderImpl;
 import com.jd.blockchain.transaction.UserStateUpdateOpTemplate;
 import com.jd.blockchain.transaction.UserUpdateOperationBuilder;
 import utils.Bytes;
+import utils.codec.Base58Utils;
 
 /**
  * 合约内账本上下文
@@ -306,6 +314,75 @@ public class ContractLedgerContext implements LedgerContext {
 	@Override
 	public MetaInfoUpdateOperationBuilder metaInfo() {
 		return new MetaInfoUpdateOperationBuilder1();
+	}
+
+	@Override
+	public ContractCodeDeployOperationBuilder contracts() {
+		return new ContractCodeDeployOperationBuilder1();
+	}
+
+	@Override
+	public ContractUpdateOperationBuilder contract(String address) {
+		return new ContractUpdateOperationBuilder1(Bytes.fromBase58(address));
+	}
+
+	@Override
+	public ContractUpdateOperationBuilder contract(Bytes address) {
+		return new ContractUpdateOperationBuilder1(address);
+	}
+
+	private class ContractCodeDeployOperationBuilder1 implements ContractCodeDeployOperationBuilder {
+
+		@Override
+		public ContractCodeDeployOperation deploy(BlockchainIdentity id, byte[] chainCode) {
+			ContractCodeDeployOperation op = new ContractCodeDeployOpTemplate(id, chainCode);
+			opHandleContext.handle(op);
+			return op;
+		}
+
+		@Override
+		public ContractCodeDeployOperation deploy(BlockchainIdentity id, byte[] chainCode, long version) {
+			ContractCodeDeployOperation op = new ContractCodeDeployOpTemplate(id, chainCode, version);
+			opHandleContext.handle(op);
+			return op;
+		}
+	}
+
+	private class  ContractUpdateOperationBuilder1 implements ContractUpdateOperationBuilder {
+
+		private Bytes address;
+
+		ContractUpdateOperationBuilder1(Bytes address) {
+			this.address = address;
+		}
+
+		@Override
+		public ContractStateUpdateOperation revoke() {
+			ContractStateUpdateOperation op = new ContractStateUpdateOpTemplate(address, AccountState.REVOKE);
+			opHandleContext.handle(op);
+			return op;
+		}
+
+		@Override
+		public ContractStateUpdateOperation freeze() {
+			ContractStateUpdateOperation op = new ContractStateUpdateOpTemplate(address, AccountState.FREEZE);
+			opHandleContext.handle(op);
+			return op;
+		}
+
+		@Override
+		public ContractStateUpdateOperation restore() {
+			ContractStateUpdateOperation op = new ContractStateUpdateOpTemplate(address, AccountState.NORMAL);
+			opHandleContext.handle(op);
+			return op;
+		}
+
+		@Override
+		public ContractStateUpdateOperation state(AccountState state) {
+			ContractStateUpdateOperation op = new ContractStateUpdateOpTemplate(address, state);
+			opHandleContext.handle(op);
+			return op;
+		}
 	}
 
 	@Override
