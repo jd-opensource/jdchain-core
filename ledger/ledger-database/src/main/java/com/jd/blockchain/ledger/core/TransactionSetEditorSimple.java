@@ -96,8 +96,8 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		int txCount = (int) Math.min(getTotalCount(), (long) count);
 		LedgerTransaction[] ledgerTransactions = new LedgerTransaction[txCount];
 
-		for (int i = fromIndex; i < fromIndex + txCount; i++) {
-			HashDigest txHash = loadReqHash(i);
+		for (int i = 0; i < txCount; i++) {
+			HashDigest txHash = loadReqHash(fromIndex + i);
 			ledgerTransactions[i] = getTransaction(txHash);
 		}
 		return ledgerTransactions;
@@ -112,8 +112,8 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		int txCount = (int) Math.min(getTotalCount(), (long) count);
 		TransactionResult[] ledgerTransactions = new TransactionResult[txCount];
 
-		for (int i = fromIndex; i < fromIndex + txCount; i++) {
-			HashDigest txHash = loadReqHash(i);
+		for (int i = 0; i < txCount; i++) {
+			HashDigest txHash = loadReqHash(fromIndex + i);
 			ledgerTransactions[i] = loadResult(txHash);
 		}
 		return ledgerTransactions;
@@ -250,14 +250,14 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 
 	// 以账本为维度记录交易索引号
 	private void saveSequence(TransactionRequest txRequest) {
-		txIndex++;
 		// key = keyprefix + SEQ/txindex
-		Bytes key = encodeSeqKey(txDataSet.getDataCount() + txIndex - 1);
+		Bytes key = encodeSeqKey(txDataSet.getDataCount() + txIndex);
 		// 交易序号只有唯一的版本；
 		long v = txDataSet.setValue(key, txRequest.getTransactionHash().toBytes(), -1);
 		if (v < 0) {
 			throw new IllegalTransactionException("Repeated transaction request sequence! --[" + key + "]");
 		}
+		txIndex++;
 	}
 
 	// 按照区块高度记录交易总数

@@ -123,8 +123,9 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 		int userCount = (int) Math.min(getTotal(), (long) count);
 		BlockchainIdentity[] userAccounts = new BlockchainIdentity[userCount];
 
-		for (int index = fromIndex; index < fromIndex + userCount; index++) {
-			byte[] indexKey = simpleDataset.getValue(keyPrefix.concat(ACCOUNTSET_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf((long) index))));
+		for (int index = 0; index < userCount; index++) {
+			byte[] indexKey = simpleDataset.getValue(keyPrefix.concat(ACCOUNTSET_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf((long)(fromIndex + index)))));
+
 			BlockchainIdentity identity = BinaryProtocol.decode(indexKey, BlockchainIdentity.class);
 			userAccounts[index] = new BlockchainIdentityData(identity.getAddress(), identity.getPubKey());
 		}
