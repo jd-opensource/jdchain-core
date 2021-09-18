@@ -110,24 +110,25 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 
 	@Override
 	public SkippingIterator<BlockchainIdentity> identityIterator() {
+		// not used in simple ledger database
+		return null;
+	}
 
-		SkippingIterator<BlockchainIdentity> idIterator = simpleDataset.iterator()
-				.iterateAs(new Mapper<DataEntry<Bytes, byte[]>, BlockchainIdentity>() {
-					@Override
-					public BlockchainIdentity from(DataEntry<Bytes, byte[]> source) {
-						if (source == null) {
-							return null;
-						}
+	public BlockchainIdentity[] getUserAccounts(int fromIndex, int count) {
 
-						InnerSimpleAccount account = resolveAccount(source.getKey(), source.getValue(),
-								source.getVersion(), true);
-//						InnerSimpleAccount account = createAccount(source.getKey(),
-//								Crypto.resolveAsHashDigest(source.getValue()), source.getVersion(), true);
-						return account.getID();
-					}
-				});
+		if (count > LedgerConsts.MAX_LIST_COUNT) {
+			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
+		}
 
-		return idIterator;
+		int userCount = (int) Math.min(getTotal(), (long) count);
+		BlockchainIdentity[] userAccounts = new BlockchainIdentity[userCount];
+
+		for (int index = fromIndex; index < fromIndex + userCount; index++) {
+			byte[] indexKey = simpleDataset.getValue(keyPrefix.concat(ACCOUNTSET_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf((long) index))));
+			BlockchainIdentity identity = BinaryProtocol.decode(indexKey, BlockchainIdentity.class);
+			userAccounts[index] = new BlockchainIdentityData(identity.getAddress(), identity.getPubKey());
+		}
+		return userAccounts;
 	}
 
 	/**
@@ -136,7 +137,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 	 * @return
 	 */
 	public long getTotal() {
-		return simpleDataset.getDataCount() + origin_account_index_in_block;
+		return simpleDataset.getDataCount() + account_index_in_block;
 	}
 
 	@Override
@@ -299,7 +300,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 		latestAccountsCache.put(address, acc);
 		// 该设置用来维护注册用户的顺序
 		// keyprefix = LDG://ledgerhash/USRS/KV/SEQ/index
-		long nv = simpleDataset.setValue(keyPrefix.concat(ACCOUNTSET_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf(simpleDataset.getDataCount() + account_index_in_block))), address.toBytes(), -1);
+		long nv = simpleDataset.setValue(keyPrefix.concat(ACCOUNTSET_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf(simpleDataset.getDataCount() + account_index_in_block))), BinaryProtocol.encode(accountId, BlockchainIdentity.class), -1);
 
 		if (nv < 0) {
 			throw new LedgerException("Account Registering sequence already exist!");
@@ -518,6 +519,10 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 
 	public Map<Bytes, Long> getKvNumCache() {
 		return accountsKvNumCache;
+	}
+
+	public void clearCachedIndex() {
+		account_index_in_block = 0;
 	}
 
 }

@@ -151,4 +151,8 @@ public class ContractAccountSetEditorSimple implements Transactional, ContractAc
 		return accountSet.getKvNumCache();
 	}
 
+	public void clearCachedIndex() {
+		accountSet.clearCachedIndex();
+	}
+
 }

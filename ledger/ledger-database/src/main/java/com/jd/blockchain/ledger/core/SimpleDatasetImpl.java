@@ -58,7 +58,6 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 
 	private SimpleDatasetType datasetType;
 
-
 	/*
 	 * (non-Javadoc)
 	 *
@@ -147,7 +146,13 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	@Override
 	public long getDataCount() {
 		// prefix + KV/Total
-		Bytes totalKey = dataKeyPrefix.concat(Bytes.fromString("TOTAL"));
+		Bytes totalKey;
+
+		if (datasetType == SimpleDatasetType.TX) {
+			totalKey = dataKeyPrefix.concat(Bytes.fromString("TOTAL/").concat(Bytes.fromString(String.valueOf(preBlockHeight))));
+		} else {
+			totalKey = dataKeyPrefix.concat(Bytes.fromString("TOTAL"));
+		}
 		byte[] value = valueStorage.get(totalKey, -1);
 		if (value == null) {
 			return 0;
@@ -185,7 +190,29 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 					"The size of value is great than the max size[" + MAX_SIZE_OF_VALUE + "]!");
 		}
 		Bytes dataKey = encodeDataKey(key);
-		long latestVersion = valueStorage.getVersion(dataKey);
+
+		long newVersion;
+		if (datasetType == SimpleDatasetType.TX) {
+			newVersion = setTxTypeValue(dataKey, value, version);
+		} else {
+			newVersion = setNoneTypeValue(dataKey, value, version);
+		}
+
+		return newVersion;
+	}
+
+	// 对于交易，只有一个版本，不再做多余的查询
+	private long setTxTypeValue(Bytes key, byte[] value, long version) {
+		long newVersion = valueStorage.set(key, value, -1);
+		if (newVersion < 0) {
+			return -1;
+		}
+		return newVersion;
+	}
+
+
+	private long setNoneTypeValue(Bytes key, byte[] value, long version) {
+		long latestVersion = valueStorage.getVersion(key);
 		if (version != latestVersion) {
 			return -1;
 		}
@@ -195,18 +222,17 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 		long newVersion;
 		if (version < 0) {
 			// creating ;
-			newVersion = valueStorage.set(dataKey, value, -1);
+			newVersion = valueStorage.set(key, value, -1);
 			if (newVersion < 0) {
 				return -1;
 			}
 		} else {
-			newVersion = valueStorage.set(dataKey, value, version);
+			newVersion = valueStorage.set(key, value, version);
 			if (newVersion < 0) {
 				return -1;
 			}
 
 		}
-
 		return newVersion;
 	}
 

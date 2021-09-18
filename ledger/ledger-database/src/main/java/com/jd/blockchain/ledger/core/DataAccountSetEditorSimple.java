@@ -126,4 +126,8 @@ public class DataAccountSetEditorSimple implements Transactional, DataAccountSet
 	public Map<Bytes, Long> getKvNumCache() {
 		return accountSet.getKvNumCache();
 	}
+
+	public void clearCachedIndex() {
+		accountSet.clearCachedIndex();
+	}
 }

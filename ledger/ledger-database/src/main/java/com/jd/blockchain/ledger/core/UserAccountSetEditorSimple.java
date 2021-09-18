@@ -1,11 +1,14 @@
 package com.jd.blockchain.ledger.core;
 
+import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
+import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import utils.Bytes;
@@ -41,6 +44,10 @@ public class UserAccountSetEditorSimple implements Transactional, UserAccountSet
 		return accountSet.identityIterator();
 	}
 
+	public BlockchainIdentity[] getUserAccounts(int fromIndex, int count) {
+
+		return accountSet.getUserAccounts(fromIndex, count);
+	}
 	/**
 	 * 返回用户总数；
 	 * 
@@ -131,6 +138,10 @@ public class UserAccountSetEditorSimple implements Transactional, UserAccountSet
 
 	public Map<Bytes, Long> getKvNumCache() {
 		return accountSet.getKvNumCache();
+	}
+
+	public void clearCachedIndex() {
+		accountSet.clearCachedIndex();
 	}
 
 }

@@ -176,4 +176,8 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 		return null;
 	}
 
+	public void clearCachedIndex() {
+		parti_index_in_block = 0;
+	}
+
 }

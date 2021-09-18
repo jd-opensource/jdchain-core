@@ -242,4 +242,7 @@ public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvabl
 		return userrole_index_in_block != 0;
 	}
 
+	public void clearCachedIndex() {
+		userrole_index_in_block = 0;
+	}
 }

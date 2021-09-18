@@ -55,6 +55,10 @@ public class LedgerEventSetEditorSimple implements LedgerEventSet, Transactional
 		return readonly;
 	}
 
+	public void clearCachedIndex() {
+
+	}
+
 //	void setReadonly() {
 //		this.readonly = true;
 //		this.systemEventSet.setReadonly();

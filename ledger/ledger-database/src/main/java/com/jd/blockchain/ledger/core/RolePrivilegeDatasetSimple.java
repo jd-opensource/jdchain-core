@@ -355,4 +355,8 @@ public class RolePrivilegeDatasetSimple implements Transactional, MerkleProvable
 	public boolean isAddNew() {
 		return rolepri_index_in_block != 0;
 	}
+
+	public void clearCachedIndex() {
+		rolepri_index_in_block = 0;
+	}
 }

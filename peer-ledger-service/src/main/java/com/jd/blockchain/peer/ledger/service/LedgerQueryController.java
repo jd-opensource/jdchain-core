@@ -6,6 +6,8 @@ import java.util.List;
 import com.jd.blockchain.ledger.core.IteratorDataset;
 import com.jd.blockchain.ledger.core.MerkleDataset;
 import com.jd.blockchain.ledger.core.SimpleDataset;
+import com.jd.blockchain.ledger.core.UserAccountSetEditorSimple;
+import com.jd.blockchain.ledger.core.UserRoleDatasetEditorSimple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -826,9 +828,13 @@ public class LedgerQueryController implements BlockchainQueryService {
 		UserAccountSet userAccountSet = ledger.getUserAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) userAccountSet.getTotal());
 
-		SkippingIterator<BlockchainIdentity> it = userAccountSet.identityIterator();
-		it.skip(queryArgs.getFrom());
-		return it.next(queryArgs.getCount(), BlockchainIdentity.class);
+		if (ledger.getAnchorType().equals("default")) {
+			SkippingIterator<BlockchainIdentity> it = userAccountSet.identityIterator();
+			it.skip(queryArgs.getFrom());
+			return it.next(queryArgs.getCount(), BlockchainIdentity.class);
+		} else {
+			return ((UserAccountSetEditorSimple)userAccountSet).getUserAccounts(queryArgs.getFrom(), queryArgs.getCount());
+		}
 	}
 
 	/**

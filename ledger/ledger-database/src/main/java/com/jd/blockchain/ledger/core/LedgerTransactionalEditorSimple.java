@@ -432,16 +432,15 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 
 		final Bytes LEDGER_PARTICIPANT_PREFIX = Bytes.fromString(ledgerKeyPrefix + "PAR/").concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
 
-		final Bytes ROLE_PRIVILEGE_PREFIX = Bytes.fromString(ledgerKeyPrefix + "RPV/" + KV_PREFIX + "TOTAL");
+		final Bytes ROLE_PRIVILEGE_PREFIX = Bytes.fromString(ledgerKeyPrefix + "RPV/").concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
 
-		final Bytes USER_ROLE_PREFIX = Bytes.fromString(ledgerKeyPrefix + "URO/" + KV_PREFIX + "TOTAL");
+		final Bytes USER_ROLE_PREFIX = Bytes.fromString(ledgerKeyPrefix + "URO/").concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
 
+		final Bytes USER_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("USRS/")).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
 
-		final Bytes USER_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + "USRS/");
+		final Bytes DATA_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("DATS/")).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
 
-		final Bytes DATA_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + "DATS/");
-
-		final Bytes CONTRACT_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + "CTRS/");
+		final Bytes CONTRACT_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("CTRS/")).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
 
 		long nv = 0;
 		if (latestLedgerDataset.getAdminDataset().getParticipantDataset().isAddNew()) {
@@ -468,14 +467,11 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 			}
 		}
 
-		if (latestLedgerDataset.getUserAccountSet().isUpdated()) {
-			if (latestLedgerDataset.getUserAccountSet().isAddNew()) {
-				Bytes userTotalPrefix = USER_SET_PREFIX.concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
-				nv = baseStorage.set(userTotalPrefix, BytesUtils.toBytes(latestLedgerDataset.getUserAccountSet().getTotal()), baseStorage.getVersion(userTotalPrefix));
-				if (nv < 0) {
-					throw new IllegalStateException(
-							"UserAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
-				}
+		if (latestLedgerDataset.getUserAccountSet().isAddNew()) {
+			nv = baseStorage.set(USER_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getUserAccountSet().getTotal()), baseStorage.getVersion(USER_SET_PREFIX));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"UserAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
 			}
 		}
 
@@ -499,16 +495,15 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 			}
 		}
 
-		if (latestLedgerDataset.getContractAccountSet().isUpdated()) {
-			if (latestLedgerDataset.getContractAccountSet().isAddNew()) {
-				Bytes contractTotalPrefix = CONTRACT_SET_PREFIX.concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
-				nv = baseStorage.set(contractTotalPrefix, BytesUtils.toBytes(latestLedgerDataset.getContractAccountSet().getTotal()), baseStorage.getVersion(contractTotalPrefix));
-				if (nv < 0) {
-					throw new IllegalStateException(
-							"ContractAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
-				}
+		if (latestLedgerDataset.getContractAccountSet().isAddNew()) {
+			Bytes contractTotalPrefix = CONTRACT_SET_PREFIX.concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+			nv = baseStorage.set(contractTotalPrefix, BytesUtils.toBytes(latestLedgerDataset.getContractAccountSet().getTotal()), baseStorage.getVersion(contractTotalPrefix));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"ContractAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
 			}
 		}
+
 	}
 
 	@Override
@@ -530,7 +525,15 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 			throw new BlockRollbackException(e.getMessage(), e);
 		}
 
+		clearCachedIndex(latestLedgerDataset, latestLedgerEventSet);
+
 		committed = true;
+	}
+
+	private void clearCachedIndex(LedgerDataSetEditorSimple latestLedgerDataset, LedgerEventSetEditorSimple latestLedgerEventSet) {
+		latestLedgerDataset.clearCachedIndex();
+		// 注意此处的实现
+		latestLedgerEventSet.clearCachedIndex();
 	}
 
 	@Override
