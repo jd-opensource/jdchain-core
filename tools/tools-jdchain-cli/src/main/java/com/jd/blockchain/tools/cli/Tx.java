@@ -155,10 +155,7 @@ public class Tx implements Runnable {
     DigitalSignature sign(HashDigest txHash) {
         File keysHome = new File(getKeysHome());
         File[] pubs = keysHome.listFiles((dir, name) -> {
-            if (name.endsWith(".priv")) {
-                return true;
-            }
-            return false;
+            return name.endsWith(".priv");
         });
         if (null == pubs || pubs.length == 0) {
             System.err.printf("no signer in path [%s]%n", keysHome.getAbsolutePath());
@@ -195,10 +192,7 @@ public class Tx implements Runnable {
     BlockchainKeypair signer() {
         File keysHome = new File(getKeysHome());
         File[] pubs = keysHome.listFiles((dir, name) -> {
-            if (name.endsWith(".priv")) {
-                return true;
-            }
-            return false;
+            return name.endsWith(".priv");
         });
         if (null == pubs || pubs.length == 0) {
             System.err.printf("no signer in path [%s]%n", keysHome.getAbsolutePath());
@@ -335,10 +329,7 @@ class TxUserRegister implements Runnable {
             File[] pubs;
             if (caMode) {
                 pubs = keysHome.listFiles((dir, name) -> {
-                    if (name.endsWith(this.name + ".crt")) {
-                        return true;
-                    }
-                    return false;
+                    return name.endsWith(this.name + ".crt");
                 });
                 if (pubs.length != 1) {
                     System.err.printf("no [%s.crt] in path [%s]%n", name, keysHome.getAbsolutePath());
@@ -347,10 +338,7 @@ class TxUserRegister implements Runnable {
                 certificate = CertificateUtils.parseCertificate(FileUtils.readText(pubs[0]));
             } else {
                 pubs = keysHome.listFiles((dir, name) -> {
-                    if (name.endsWith(this.name + ".pub")) {
-                        return true;
-                    }
-                    return false;
+                    return name.endsWith(this.name + ".pub");
                 });
                 if (pubs.length != 1) {
                     System.err.printf("no [%s.pub] in path [%s]%n", name, keysHome.getAbsolutePath());
@@ -410,10 +398,7 @@ class TxUserCAUpdate implements Runnable {
         if (StringUtils.isEmpty(caPath)) {
             File keysHome = new File(txCommand.getKeysHome());
             File[] pubs = keysHome.listFiles((dir, name) -> {
-                if (name.endsWith(".crt")) {
-                    return true;
-                }
-                return false;
+                return name.endsWith(".crt");
             });
             if (pubs.length == 0) {
                 System.err.printf("no certificate in path [%s]%n", keysHome.getAbsolutePath());
@@ -1007,6 +992,9 @@ class TxTestKV implements Runnable {
     @CommandLine.Option(names = "--thread", required = true, description = "Thread number", defaultValue = "1", scope = CommandLine.ScopeType.INHERIT)
     int thread;
 
+    @CommandLine.Option(names = "--interval", required = true, description = "Interval millisecond per single thread", defaultValue = "0", scope = CommandLine.ScopeType.INHERIT)
+    int interval;
+
     @CommandLine.ParentCommand
     private Tx txCommand;
 
@@ -1017,7 +1005,7 @@ class TxTestKV implements Runnable {
         CountDownLatch cdl = new CountDownLatch(1);
         AtomicLong count = new AtomicLong(0);
         final long startTime = System.currentTimeMillis();
-        for(int i=0; i<thread; i++) {
+        for (int i = 0; i < thread; i++) {
             final int index = i + 1;
             new Thread(() -> {
                 System.out.println("start thread " + index + " to set kv");
@@ -1026,15 +1014,23 @@ class TxTestKV implements Runnable {
                     txTemp.dataAccount(address).setInt64(UUID.randomUUID().toString(), System.currentTimeMillis(), -1);
                     PreparedTransaction prepare = txTemp.prepare();
                     prepare.addSignature(SignatureUtils.sign(prepare.getTransactionHash(), signer));
-                    TransactionResponse response = prepare.commit();
-                    if (!response.isSuccess()) {
-                        System.out.println(response.getExecutionState());
-                    }
-                    long l = count.incrementAndGet();
-                    if(l % 1000 == 0) {
-                        long t = System.currentTimeMillis() - startTime;
-                        System.out.printf("total txs: %d, time: %d ms, tps: %d \n", l, t, l * 1000 / t);
-                    }
+                    try {
+                        TransactionResponse response = prepare.commit();
+                        if (!response.isSuccess()) {
+                            System.out.println(response.getExecutionState());
+                        }
+                        long l = count.incrementAndGet();
+                        if (l % 1000 == 0) {
+                            long t = System.currentTimeMillis() - startTime;
+                            System.out.printf("total txs: %d, time: %d ms, tps: %d \n", l, t, l * 1000 / t);
+                        }
+                        if (interval > 0) {
+                            try {
+                                Thread.sleep(interval);
+                            } catch (InterruptedException e) {
+                            }
+                        }
+                    } catch (Exception e) {}
                 }
             }).start();
         }
