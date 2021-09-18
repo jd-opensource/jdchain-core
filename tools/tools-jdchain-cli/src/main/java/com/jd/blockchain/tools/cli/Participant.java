@@ -318,12 +318,6 @@ class ParticipantInactive implements Runnable {
     @CommandLine.Option(names = "--port", required = true, description = "Set the participant service port.", scope = CommandLine.ScopeType.INHERIT)
     int port;
 
-    @CommandLine.Option(names = "--syn-host", required = true, description = "Set synchronization participant host.", scope = CommandLine.ScopeType.INHERIT)
-    String synHost;
-
-    @CommandLine.Option(names = "--syn-port", required = true, description = "Set synchronization participant port.", scope = CommandLine.ScopeType.INHERIT)
-    int synPort;
-
     @Override
     public void run() {
         // TODO valid params
@@ -333,8 +327,6 @@ class ParticipantInactive implements Runnable {
             List<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
             params.add(new BasicNameValuePair("ledgerHash", ledger));
             params.add(new BasicNameValuePair("participantAddress", address));
-            params.add(new BasicNameValuePair("remoteManageHost", synHost));
-            params.add(new BasicNameValuePair("remoteManagePort", synPort + ""));
             httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
             HttpClient httpClient = HttpClients.createDefault();
             HttpResponse response = httpClient.execute(httpPost);

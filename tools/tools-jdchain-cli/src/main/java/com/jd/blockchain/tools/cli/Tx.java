@@ -995,6 +995,9 @@ class TxTestKV implements Runnable {
     @CommandLine.Option(names = "--interval", required = true, description = "Interval millisecond per single thread", defaultValue = "0", scope = CommandLine.ScopeType.INHERIT)
     int interval;
 
+    @CommandLine.Option(names = "--silence", required = true, description = "Do not log tx detail", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
+    boolean silence;
+
     @CommandLine.ParentCommand
     private Tx txCommand;
 
@@ -1016,8 +1019,8 @@ class TxTestKV implements Runnable {
                     prepare.addSignature(SignatureUtils.sign(prepare.getTransactionHash(), signer));
                     try {
                         TransactionResponse response = prepare.commit();
-                        if (!response.isSuccess()) {
-                            System.out.println(response.getExecutionState());
+                        if(!silence) {
+                            System.out.println(prepare.getTransactionHash() + ": " + response.getExecutionState());
                         }
                         long l = count.incrementAndGet();
                         if (l % 1000 == 0) {
@@ -1030,7 +1033,11 @@ class TxTestKV implements Runnable {
                             } catch (InterruptedException e) {
                             }
                         }
-                    } catch (Exception e) {}
+                    } catch (Exception e) {
+                        if(!silence) {
+                            System.out.println(prepare.getTransactionHash() + ": " + e.getMessage());
+                        }
+                    }
                 }
             }).start();
         }
