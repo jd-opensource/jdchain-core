@@ -269,6 +269,8 @@ class CACsr implements Runnable {
                 PubKey pubKey = KeyGenUtils.decodePubKey(pub);
                 PrivateKey privateKey = CertificateUtils.retrievePrivateKey(privKey);
                 String algorithm = Crypto.getAlgorithm(privKey.getAlgorithm()).name();
+                String keyFile = caHome + File.separator + name + ".key";
+                FileUtils.writeText(CertificateUtils.toPEMString(algorithm, privateKey), new File(keyFile));
                 ContentSigner signGen = new JcaContentSignerBuilder(caCli.CA_ALGORITHM_MAP.get(algorithm)).build(privateKey);
                 PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(subject, CertificateUtils.retrievePublicKey(pubKey));
                 PKCS10CertificationRequest csr = p10Builder.build(signGen);
