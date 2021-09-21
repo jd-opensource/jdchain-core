@@ -105,18 +105,6 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 
 			TransactionRequestExtension reqExt = new TransactionRequestExtensionImpl(request);
 
-			// 初始化交易的用户安全策略；
-			SecurityPolicy securityPolicy;
-			if(identityMode != IdentityMode.CA) {
-				securityPolicy = securityManager.getSecurityPolicy(reqExt.getEndpointAddresses(), reqExt.getNodeAddresses());
-			} else {
-				securityPolicy = securityManager.getSecurityPolicy(reqExt.getEndpointAddresses(), reqExt.getNodeAddresses(), ledgerCAs);
-			}
-			SecurityContext.setContextUsersPolicy(securityPolicy);
-
-			// 安全校验；
-			checkSecurity(securityPolicy);
-
 			// 验证交易请求；
 			checkRequest(reqExt);
 			LOGGER.debug("after checkRequest... --[BlockHeight={}][RequestHash={}]",
@@ -266,6 +254,18 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 		List<OperationResult> operationResults = new ArrayList<>();
 		try {
 			eventManager = new EventManager(request, txCtx);
+
+			// 初始化交易的用户安全策略；
+			SecurityPolicy securityPolicy;
+			if(identityMode != IdentityMode.CA) {
+				securityPolicy = securityManager.getSecurityPolicy(request.getEndpointAddresses(), request.getNodeAddresses());
+			} else {
+				securityPolicy = securityManager.getSecurityPolicy(request.getEndpointAddresses(), request.getNodeAddresses(), ledgerCAs);
+			}
+			SecurityContext.setContextUsersPolicy(securityPolicy);
+
+			// 安全校验；
+			checkSecurity(securityPolicy);
 
 			// 执行操作；
 			Operation[] ops = request.getTransactionContent().getOperations();
@@ -433,6 +433,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 
 	private void commitSuccess() {
 		newBlockEditor.commit();
+		LOGGER.info("New block committed - ledger: {}, height: {}, hash: {}", block.getLedgerHash(), block.getHeight(), block.getHash());
 		onCommitted();
 	}
 
