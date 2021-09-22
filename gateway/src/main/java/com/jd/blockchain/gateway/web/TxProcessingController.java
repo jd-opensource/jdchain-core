@@ -98,6 +98,7 @@ public class TxProcessingController implements TransactionService {
 			peerConnector.reset(ledgerHash);
 			return new ErrorTransactionResponse(txRequest.getTransactionHash(), TransactionState.SYSTEM_ERROR);
 		} catch (Exception e) {
+			LOGGER.error("[contentHash="+ txRequest.getTransactionHash() +"] process error", e);
 			return new ErrorTransactionResponse(txRequest.getTransactionHash(), TransactionState.SYSTEM_ERROR);
 		}
 	}

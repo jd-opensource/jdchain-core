@@ -97,61 +97,81 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
     }
 
     public BlockchainQueryService getQueryService() {
-        connectionsLock.readLock().lock();
-        try {
-            long highestHeight = -1;
-            Map<Long, Set<NetworkAddress>> connectionGroupByHeight = new HashMap<>();
-            for (Map.Entry<NetworkAddress, LedgerPeerConnectionManager> entry : connections.entrySet()) {
-                long height = entry.getValue().getLatestHeight();
-                if (height > highestHeight) {
-                    highestHeight = height;
+        int retryTimes = 10;
+        while (retryTimes > 0) {
+            connectionsLock.readLock().lock();
+            try {
+                long highestHeight = -1;
+                Map<Long, Set<NetworkAddress>> connectionGroupByHeight = new HashMap<>();
+                for (Map.Entry<NetworkAddress, LedgerPeerConnectionManager> entry : connections.entrySet()) {
+                    long height = entry.getValue().getLatestHeight();
+                    if (height > highestHeight) {
+                        highestHeight = height;
+                    }
+                    if (!connectionGroupByHeight.containsKey(height)) {
+                        connectionGroupByHeight.put(height, new HashSet<>());
+                    }
+                    connectionGroupByHeight.get(height).add(entry.getKey());
                 }
-                if (!connectionGroupByHeight.containsKey(height)) {
-                    connectionGroupByHeight.put(height, new HashSet<>());
+
+                if (highestHeight > -1) {
+                    Set<NetworkAddress> selectedConnections = connectionGroupByHeight.get(highestHeight);
+                    return connections.get(new ArrayList(selectedConnections).get(new Random().nextInt(selectedConnections.size()))).getQueryService();
                 }
-                connectionGroupByHeight.get(height).add(entry.getKey());
+
+            } finally {
+                connectionsLock.readLock().unlock();
             }
 
-            if (highestHeight > -1) {
-                Set<NetworkAddress> selectedConnections = connectionGroupByHeight.get(highestHeight);
-                return connections.get(new ArrayList(selectedConnections).get(new Random().nextInt(selectedConnections.size()))).getQueryService();
+            retryTimes--;
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
             }
-
-            throw new IllegalStateException("No available query service for ledger: " + ledger);
-        } finally {
-            connectionsLock.readLock().unlock();
+            logger.warn("No available query service for ledger: {}, retry times remain: {}", ledger, retryTimes);
         }
+
+        throw new IllegalStateException("No available query service for ledger: " + ledger);
     }
 
     public TransactionService getTransactionService() {
-        connectionsLock.readLock().lock();
-        try {
-            long highestHeight = -1;
-            Map<Long, Set<NetworkAddress>> connectionGroupByHeight = new HashMap<>();
-            for (Map.Entry<NetworkAddress, LedgerPeerConnectionManager> entry : connections.entrySet()) {
-                // 去除未认证连接
-                if (!entry.getValue().isAuthorized()) {
-                    continue;
+        int retryTimes = 10;
+        while (retryTimes > 0) {
+            connectionsLock.readLock().lock();
+            try {
+                long highestHeight = -1;
+                Map<Long, Set<NetworkAddress>> connectionGroupByHeight = new HashMap<>();
+                for (Map.Entry<NetworkAddress, LedgerPeerConnectionManager> entry : connections.entrySet()) {
+                    // 去除未认证连接
+                    if (!entry.getValue().isAuthorized()) {
+                        continue;
+                    }
+                    long height = entry.getValue().getLatestHeight();
+                    if (height > highestHeight) {
+                        highestHeight = height;
+                    }
+                    if (!connectionGroupByHeight.containsKey(height)) {
+                        connectionGroupByHeight.put(height, new HashSet<>());
+                    }
+                    connectionGroupByHeight.get(height).add(entry.getKey());
                 }
-                long height = entry.getValue().getLatestHeight();
-                if (height > highestHeight) {
-                    highestHeight = height;
-                }
-                if (!connectionGroupByHeight.containsKey(height)) {
-                    connectionGroupByHeight.put(height, new HashSet<>());
-                }
-                connectionGroupByHeight.get(height).add(entry.getKey());
-            }
 
-            if (highestHeight > -1) {
-                Set<NetworkAddress> selectedConnections = connectionGroupByHeight.get(highestHeight);
-                return connections.get(new ArrayList(selectedConnections).get(new Random().nextInt(selectedConnections.size()))).getTransactionService();
+                if (highestHeight > -1) {
+                    Set<NetworkAddress> selectedConnections = connectionGroupByHeight.get(highestHeight);
+                    return connections.get(new ArrayList(selectedConnections).get(new Random().nextInt(selectedConnections.size()))).getTransactionService();
+                }
+            } finally {
+                connectionsLock.readLock().unlock();
             }
-
-            throw new IllegalStateException("No available tx service for ledger: " + ledger);
-        } finally {
-            connectionsLock.readLock().unlock();
+            retryTimes--;
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+            }
+            logger.warn("No available tx service for ledger: {}, retry times remain: {}", ledger, retryTimes);
         }
+
+        throw new IllegalStateException("No available tx service for ledger: " + ledger);
     }
 
     /**
@@ -185,7 +205,7 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
             manager.startTimerTask();
         }
 
-        if(topologyAware) {
+        if (topologyAware) {
             // 启动定期拓扑感知
             executorService.scheduleWithFixedDelay(() -> updateTopologyTask(), 5000, UPDATE_TOPOLOGY_INTERVAL, TimeUnit.MILLISECONDS);
         } else {
