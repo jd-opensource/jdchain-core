@@ -25,6 +25,7 @@ Commands:
   data-account-register   Register new data account.
   kv                      Set key-value.
   event                   Publish event.
+  event-listen            Subscribe event.
   contract-deploy         Deploy or update contract.
   contract                Call contract method.
   contract-state-update   Update contract state.
@@ -51,6 +52,7 @@ Commands:
 - `kv`，[KV设值](#KV设值)
 - `event-account-register`，[注册事件账户](#注册事件账户)
 - `event`，[发布事件](#发布事件)
+- `event-listen`，[监听事件](#监听事件)
 - `contract-deploy`，[部署合约](#部署合约)
 - `contract`，[合约调用](#合约调用)
 - `contract-state-update`，[更新合约状态](#更新合约状态)
@@ -213,7 +215,7 @@ Usage: jdchain-cli tx user-state-update [-hV] [--pretty] --address=<address>
 
 如冻结用户`LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W`：
 ```bash
-:bin$ $ ./jdchain-cli.sh tx user-revoke --address LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W  --state FREEZE
+:bin$ $ ./jdchain-cli.sh tx user-state-update --address LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W  --state FREEZE
 select ledger, input the index:
 INDEX   LEDGER
 0       j5pFrMigE47t6TobQJXsztnoeA29H31v1vHHF1wqCp4rzi
@@ -500,6 +502,42 @@ input password of the key:
 event publish success
 ```
 
+#### 监听事件
+```bash
+:bin$ ./jdchain-cli.sh tx event-listen -h
+Subscribe event.
+Usage: jdchain-cli tx event-listen [-hV] [--pretty] [--address=<address>]
+                                   [--export=<export>] [--gw-host=<gwHost>]
+                                   [--gw-port=<gwPort>] [--home=<path>]
+                                   --name=<name> [--sequence=<sequence>]
+      --address=<address>   Event address
+      --export=<export>     Transaction export directory
+      --gw-host=<gwHost>    Set the gateway host. Default: 127.0.0.1
+      --gw-port=<gwPort>    Set the gateway port. Default: 8080
+  -h, --help                Show this help message and exit.
+      --home=<path>         Set the home directory.
+      --name=<name>         Event name
+      --pretty              Pretty json print
+      --sequence=<sequence> Sequence of the event
+  -V, --version             Print version information and exit.
+```
+- `address`，事件账户地址，不传则表示监听系统事件
+- `name`，事件名，系统事件目前仅支持：`new_block_created`
+- `sequence`，起始监听序号
+
+如监听系统新区块事件：
+```bash
+:bin$ ./jdchain-cli.sh tx event-listen --name new_block_created --sequence 0
+select ledger, input the index:
+INDEX   LEDGER
+0       j5mXXoNsmh6qadnWLjxFMXobyNGsXT1PmTNzXiHyiYMxoP
+> 0
+# 会打印新区块事件：区块高度：最新区块高度
+New block:0:12
+New block:1:12
+New block:2:12
+```
+
 #### 部署合约
 
 ```bash
@@ -608,7 +646,7 @@ Usage: jdchain-cli tx contract-state-update [-hV] [--pretty]
 
 如冻结合约`LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W`：
 ```bash
-:bin$ $ ./jdchain-cli.sh tx contract-revoke --address LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W  --state FREEZE
+:bin$ $ ./jdchain-cli.sh tx contract-state-update --address LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W  --state FREEZE
 select ledger, input the index:
 INDEX   LEDGER
 0       j5pFrMigE47t6TobQJXsztnoeA29H31v1vHHF1wqCp4rzi
@@ -631,7 +669,7 @@ contract: [LdeNpEmyh5DMwbAwamxNaiJgMVGn6aTtQDA5W] revoked
 
 1. 离线交易
 
-执行以上所有交易时，若`export`参数不为空，则会执行交易写入本地操作，而非签名并发送交易，离线交易可以
+执行以上所有交易时，若`export`参数不为空，则会执行交易写入本地操作，而非签名并发送交易
 
 如构造合约调用操作交易并保存到本地：
 ```bash
@@ -642,7 +680,7 @@ INDEX  LEDGER
 > 0
 export transaction success: /txs/j5xR8ty8YbujTYKNRshmbfMYsL4jfe3yRUtMparmeHppd3
 ```
-交易内容会被序列化报存在`/txs/j5xR8ty8YbujTYKNRshmbfMYsL4jfe3yRUtMparmeHppd3`中，其中`j5xR8ty8YbujTYKNRshmbfMYsL4jfe3yRUtMparmeHppd3`是该交易哈希。
+交易内容会被序列化保存在`/txs/j5xR8ty8YbujTYKNRshmbfMYsL4jfe3yRUtMparmeHppd3`中，其中`j5xR8ty8YbujTYKNRshmbfMYsL4jfe3yRUtMparmeHppd3`是该交易哈希。
 
 2. 离线签名
 
@@ -661,7 +699,7 @@ Usage: jdchain-cli tx sign [-hV] [--pretty] [--export=<export>]
       --pretty             Pretty json print
   -V, --version            Print version information and exit.
 ```
-- `import`，离线交易路径
+- `tx`，离线交易路径
 
 如对步骤1中创建的离线交易添加终端用户（此用户需是链上存在的且有相关权限的用户）签名：
 ```bash
@@ -694,7 +732,7 @@ Usage: jdchain-cli tx send [-hV] [--pretty] [--export=<export>]
       --pretty             Pretty json print
   -V, --version            Print version information and exit.
 ```
-- `import`，离线交易路径
+- `tx`，离线交易路径
 
 如发送`/txs/j5xR8ty8YbujTYKNRshmbfMYsL4jfe3yRUtMparmeHppd3`中包含的交易数据：
 ```bash
