@@ -44,6 +44,8 @@ import utils.io.FileUtils;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Scanner;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -1008,6 +1010,8 @@ class TxTestKV implements Runnable {
         CountDownLatch cdl = new CountDownLatch(1);
         AtomicLong count = new AtomicLong(0);
         final long startTime = System.currentTimeMillis();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date date = new Date(startTime);
         for (int i = 0; i < thread; i++) {
             final int index = i + 1;
             new Thread(() -> {
@@ -1024,8 +1028,10 @@ class TxTestKV implements Runnable {
                         }
                         long l = count.incrementAndGet();
                         if (l % 1000 == 0) {
-                            long t = System.currentTimeMillis() - startTime;
-                            System.out.printf("total txs: %d, time: %d ms, tps: %d \n", l, t, l * 1000 / t);
+                            long t = System.currentTimeMillis();
+                            date.setTime(t);
+                            t -= startTime;
+                            System.out.printf("current time: %s, total txs: %d, time: %d ms, tps: %d \n", sdf.format(date), l, t, l * 1000 / t);
                         }
                         if (interval > 0) {
                             try {
