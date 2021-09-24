@@ -442,6 +442,10 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 
 		final Bytes CONTRACT_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("CTRS/")).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
 
+		final Bytes SYSEVENT_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("SEVT/")).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+
+		final Bytes USEREVENT_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("UEVT/")).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+
 		long nv = 0;
 		if (latestLedgerDataset.getAdminDataset().getParticipantDataset().isAddNew()) {
 			nv = baseStorage.set(LEDGER_PARTICIPANT_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getAdminDataset().getParticipantCount()), datasetStorage.getVersion(LEDGER_PARTICIPANT_PREFIX));
@@ -475,35 +479,57 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 			}
 		}
 
-		if (latestLedgerDataset.getDataAccountSet().isUpdated()) {
-			if (latestLedgerDataset.getDataAccountSet().isAddNew()) {
-				Bytes dataTotalPrefix = DATA_SET_PREFIX.concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
-				nv = baseStorage.set(dataTotalPrefix, BytesUtils.toBytes(latestLedgerDataset.getDataAccountSet().getTotal()), baseStorage.getVersion(dataTotalPrefix));
-				if (nv < 0) {
-					throw new IllegalStateException(
-							"DataAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
-				}
-			}
-			Map<Bytes, Long> kvNumCache = latestLedgerDataset.getDataAccountSet().getKvNumCache();
-			for (Bytes address : kvNumCache.keySet()) {
-				Bytes dataKvTotalPrefix = DATA_SET_PREFIX.concat(address).concat(Bytes.fromString("/")).concat(DATA_PREFIX).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
-				nv = baseStorage.set(dataKvTotalPrefix, BytesUtils.toBytes(latestLedgerDataset.getDataAccountSet().getAccount(address).getDataset().getDataCount() + kvNumCache.get(address).longValue()), baseStorage.getVersion(dataKvTotalPrefix));
-				if (nv < 0) {
-					throw new IllegalStateException(
-							"DataAccount kv total set exception! --[DataAccount address = " + Base58Utils.encode(address.toBytes()) + "]");
-				}
-			}
-		}
+        if (latestLedgerDataset.getDataAccountSet().isAddNew()) {
+            nv = baseStorage.set(DATA_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getDataAccountSet().getTotal()), baseStorage.getVersion(DATA_SET_PREFIX));
+            if (nv < 0) {
+                throw new IllegalStateException(
+                        "DataAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+            }
+        }
+
+        Map<Bytes, Long> kvNumCache = latestLedgerDataset.getDataAccountSet().getKvNumCache();
+        for (Bytes address : kvNumCache.keySet()) {
+            Bytes dataKvTotalPrefix = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("DATS/")).concat(address).concat(DATA_PREFIX).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+            nv = baseStorage.set(dataKvTotalPrefix, BytesUtils.toBytes(latestLedgerDataset.getDataAccountSet().getAccount(address).getDataset().getDataCount() + kvNumCache.get(address).longValue()), baseStorage.getVersion(dataKvTotalPrefix));
+            if (nv < 0) {
+                throw new IllegalStateException(
+                        "DataAccount kv total set exception! --[DataAccount address = " + Base58Utils.encode(address.toBytes()) + "]");
+            }
+        }
 
 		if (latestLedgerDataset.getContractAccountSet().isAddNew()) {
-			Bytes contractTotalPrefix = CONTRACT_SET_PREFIX.concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
-			nv = baseStorage.set(contractTotalPrefix, BytesUtils.toBytes(latestLedgerDataset.getContractAccountSet().getTotal()), baseStorage.getVersion(contractTotalPrefix));
+			nv = baseStorage.set(CONTRACT_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getContractAccountSet().getTotal()), baseStorage.getVersion(CONTRACT_SET_PREFIX));
 			if (nv < 0) {
 				throw new IllegalStateException(
 						"ContractAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
 			}
 		}
 
+		if (latestLedgerEventSet.getSystemEventGroup().isAddNew()) {
+			nv = baseStorage.set(SYSEVENT_SET_PREFIX, BytesUtils.toBytes(latestLedgerEventSet.getSystemEventGroup().totalEventNames()), baseStorage.getVersion(SYSEVENT_SET_PREFIX));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"SystemEvent name total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+			}
+		}
+
+		if (latestLedgerEventSet.getEventAccountSet().isAddNew()) {
+			nv = baseStorage.set(USEREVENT_SET_PREFIX, BytesUtils.toBytes(latestLedgerEventSet.getEventAccountSet().getTotal()), baseStorage.getVersion(USEREVENT_SET_PREFIX));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"UserEvent user total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+			}
+		}
+
+		Map<Bytes, Long> kvNumCacheEvent = latestLedgerEventSet.getEventAccountSet().getKvNumCache();
+		for (Bytes address : kvNumCacheEvent.keySet()) {
+			Bytes eventNameTotalPrefix = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("UEVT/")).concat(address).concat(DATA_PREFIX).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+			nv = baseStorage.set(eventNameTotalPrefix, BytesUtils.toBytes(latestLedgerEventSet.getEventAccountSet().getAccount(address).totalEventNames() + kvNumCacheEvent.get(address).longValue()), baseStorage.getVersion(eventNameTotalPrefix));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"EventAccount name total set exception! --[EventAccount address = " + Base58Utils.encode(address.toBytes()) + "]");
+			}
+		}
 	}
 
 	@Override

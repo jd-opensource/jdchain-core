@@ -57,18 +57,12 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 
 	@Override
 	public void commit() {
-		if (parti_index_in_block == 0) {
-			return;
-		}
 		dataset.commit();
 		origin_parti_index_in_block = parti_index_in_block;
 	}
 
 	@Override
 	public void cancel() {
-		if (parti_index_in_block == 0) {
-			return;
-		}
 		dataset.cancel();
 		parti_index_in_block = origin_parti_index_in_block;
 	}
@@ -124,10 +118,6 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 		return address;
 	}
 
-	public boolean isAddNew() {
-		return parti_index_in_block != 0;
-	}
-
 	@Override
 	public boolean contains(Bytes address) {
 		Bytes key = encodeKey(address);
@@ -174,6 +164,10 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 	public SkippingIterator<ParticipantNode> getAllParticipants() {
 		// not used in simple ledger database
 		return null;
+	}
+
+	public boolean isAddNew() {
+		return parti_index_in_block != 0;
 	}
 
 	public void clearCachedIndex() {

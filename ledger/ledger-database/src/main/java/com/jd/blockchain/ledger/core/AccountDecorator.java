@@ -51,4 +51,8 @@ public class AccountDecorator implements Account, HashProvable, AccountSnapshot{
 		return mklAccount.getDataRootHash();
 	}
 
+	public CompositeAccount getMklAccount() {
+		return mklAccount;
+	}
+
 }

@@ -114,7 +114,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 		return null;
 	}
 
-	public BlockchainIdentity[] getUserAccounts(int fromIndex, int count) {
+	public BlockchainIdentity[] getAccounts(int fromIndex, int count) {
 
 		if (count > LedgerConsts.MAX_LIST_COUNT) {
 			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");

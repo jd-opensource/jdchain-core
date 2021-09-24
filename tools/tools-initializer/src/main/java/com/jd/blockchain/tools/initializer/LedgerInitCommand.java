@@ -201,6 +201,7 @@ public class LedgerInitCommand {
 
 		bindingConf.getDbConnection().setConnectionUri(dbConnConfig.getUri());
 		bindingConf.getDbConnection().setPassword(dbConnConfig.getPassword());
+		bindingConf.getDbConnection().setAnchor(ledgerInitProperties.getAnchorType());
 
 		// confirm continue；
 		prompter.info("\r\n\r\n This is participant [%s], the ledger initialization is ready to start!\r\n", currId);

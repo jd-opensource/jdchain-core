@@ -422,7 +422,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 
 		LedgerAdminSettings adminAccount = getAdminSettings(block);
-		return createSystemEventSet(block, adminAccount.getSettings().getCryptoSetting());
+		return anchorType.equals("default") ? createSystemEventSet(block, adminAccount.getSettings().getCryptoSetting()) : createSystemEventSetSimple(block, adminAccount.getSettings().getCryptoSetting());
 	}
 
 	private MerkleEventGroupPublisher createSystemEventSet(LedgerBlock block, CryptoSetting cryptoSetting) {
@@ -443,7 +443,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 
 		LedgerAdminSettings adminAccount = getAdminSettings(block);
-		return createUserEventSet(block, adminAccount.getSettings().getCryptoSetting());
+		return anchorType.equals("default") ? createUserEventSet(block, adminAccount.getSettings().getCryptoSetting()) : createUserEventSetSimple(block, adminAccount.getSettings().getCryptoSetting());
 	}
 
 	private EventAccountSetEditor createUserEventSet(LedgerBlock block, CryptoSetting cryptoSetting) {

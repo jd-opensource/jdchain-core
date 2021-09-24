@@ -104,6 +104,11 @@ public class DataAccountSetEditorSimple implements Transactional, DataAccountSet
 		return new DataAccount(accBase);
 	}
 
+	public BlockchainIdentity[] getDataAccounts(int fromIndex, int count) {
+
+		return accountSet.getAccounts(fromIndex, count);
+	}
+
 	@Override
 	public boolean isUpdated() {
 		return accountSet.isUpdated();

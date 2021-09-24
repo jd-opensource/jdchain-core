@@ -38,7 +38,10 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	public static final int MAX_SIZE_OF_VALUE = 8 * 1024 * 1024;
 
 //	public static final Bytes SN_PREFIX = Bytes.fromString("SN" + LedgerConsts.KEY_SEPERATOR);
-	public static final Bytes DATA_PREFIX = Bytes.fromString("KV" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes DATA_PREFIX = Bytes.fromString("KV" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes ACCOUNTSET_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
+
+	private static final DataEntry<Bytes, byte[]>[] EMPTY_ENTRIES = new DataEntry[0];
 
 	@SuppressWarnings("unchecked")
 
@@ -256,6 +259,13 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 */
 	@Override
 	public byte[] getValue(Bytes key, long version) {
+		long latestVersion = getVersion(key);
+		if (latestVersion < 0 || version > latestVersion) {
+			// key not exist, or the specified version is out of the latest version indexed
+			// by the current merkletree;
+			return null;
+		}
+		version = version < 0 ? latestVersion : version;
 		Bytes dataKey = encodeDataKey(key);
 		byte[] value = valueStorage.get(dataKey, version);
 		if (value == null) {
@@ -264,6 +274,20 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 		return value;
 	}
 
+	// 根据索引编号找到存储数据对应的key,通过这个方法可以保证查询存储数据的顺序；
+	public byte[] getKeyByIndex(long index) {
+		Bytes key = ACCOUNTSET_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(index)));
+		long latestVersion = getVersion(key);
+		if (latestVersion != 0 ) {
+			throw new DataExistException("Expected value version not exist!");
+		}
+		Bytes dataKey = encodeDataKey(ACCOUNTSET_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(index))));
+		byte[] value = valueStorage.get(dataKey, 0);
+		if (value == null) {
+			throw new DataExistException("Expected value does not exist!");
+		}
+		return value;
+	}
 	/**
 	 * Return the latest version's value;
 	 *
@@ -314,6 +338,28 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 			throw new DataExistException("Expected value does not exist!");
 		}
 		return new VersioningKVData<Bytes, byte[]>(key, version, value);
+	}
+
+	public DataEntry<Bytes, byte[]>[] getDataEntries(long fromIndex, int count) {
+		if (count > LedgerConsts.MAX_LIST_COUNT) {
+			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
+		}
+		if (fromIndex < 0 || (fromIndex + count) > getDataCount()) {
+			throw new IllegalArgumentException("Index out of bound!");
+		}
+		if (count == 0) {
+			return EMPTY_ENTRIES;
+		}
+		@SuppressWarnings("unchecked")
+		DataEntry<Bytes, byte[]>[] values = new DataEntry[count];
+		byte[] bytesValue;
+
+		for (int i = 0; i < count; i++) {
+			byte[] key = getKeyByIndex(fromIndex + i);
+			DataEntry<Bytes, byte[]> entry = getDataEntry(new Bytes(key));
+			values[i] = entry;
+		}
+		return values;
 	}
 
 	// not used in simple anchor type, can get by order directly

@@ -16,10 +16,13 @@ import utils.DataEntry;
 import utils.Dataset;
 import utils.Mapper;
 import utils.SkippingIterator;
+import utils.io.BytesUtils;
 
 public class EventPublishingAccount implements EventAccount, EventPublisher {
 
     private CompositeAccount account;
+
+    private static final Bytes ACCOUNTSET_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
 
     public EventPublishingAccount(CompositeAccount account) {
         this.account = account;
@@ -49,15 +52,13 @@ public class EventPublishingAccount implements EventAccount, EventPublisher {
 
     @Override
     public String[] getEventNames(long fromIndex, int count) {
-        SkippingIterator<DataEntry<String, TypedValue>> iterator = ((IteratorDataset)account.getDataset()).iterator();
-        iterator.skip(fromIndex);
-        
-        String[] eventNames = iterator.next(count, String.class, new Mapper<DataEntry<String,TypedValue>, String>() {
-			@Override
-			public String from(DataEntry<String, TypedValue> source) {
-				return source.getKey();
-			}
-		});
+
+        String[] eventNames = new String[count];
+
+        for (int index = 0; index < count; index++) {
+            byte[] indexKey = ((SimpleDatasetImpl)((ComplecatedSimpleAccount)account).getDataDataset()).getKeyByIndex(fromIndex + index);
+            eventNames[index] = BytesUtils.toString(indexKey);
+        }
 
         return eventNames;
     }

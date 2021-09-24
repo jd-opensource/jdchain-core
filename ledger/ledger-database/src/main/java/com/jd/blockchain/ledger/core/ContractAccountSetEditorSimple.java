@@ -88,6 +88,11 @@ public class ContractAccountSetEditorSimple implements Transactional, ContractAc
 		return new ContractAccount(accBase);
 	}
 
+	public BlockchainIdentity[] getContractAccounts(int fromIndex, int count) {
+
+		return accountSet.getAccounts(fromIndex, count);
+	}
+
 	/**
 	 * 部署一项新的合约链码；
 	 * 

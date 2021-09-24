@@ -14,6 +14,8 @@ import utils.Bytes;
 import utils.SkippingIterator;
 import utils.Transactional;
 
+import java.util.Map;
+
 public class EventAccountSetEditorSimple implements EventAccountSet, Transactional {
     static {
         DataContractRegistry.register(Event.class);
@@ -93,14 +95,27 @@ public class EventAccountSetEditorSimple implements EventAccountSet, Transaction
         accountSet.cancel();
     }
 
-    public DataAccount register(Bytes address, PubKey pubKey, DigitalSignature addressSignature) {
+    public BlockchainIdentity[] getEventAccounts(int fromIndex, int count) {
+
+        return accountSet.getAccounts(fromIndex, count);
+    }
+
+    public EventPublishingAccount register(Bytes address, PubKey pubKey, DigitalSignature addressSignature) {
         // TODO: 未实现对地址签名的校验和记录；
         CompositeAccount accBase = accountSet.register(address, pubKey);
-        return new DataAccount(accBase);
+        return new EventPublishingAccount(accBase);
     }
 
     public boolean isAddNew() {
         return accountSet.isAddNew();
+    }
+
+    public Map<Bytes, Long> getKvNumCache() {
+        return accountSet.getKvNumCache();
+    }
+
+    public void clearCachedIndex() {
+        accountSet.clearCachedIndex();
     }
 
 }

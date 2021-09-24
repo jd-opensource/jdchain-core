@@ -94,9 +94,9 @@ public class EventAccountSetEditor implements EventAccountSet, Transactional {
         accountSet.cancel();
     }
 
-    public DataAccount register(Bytes address, PubKey pubKey, DigitalSignature addressSignature) {
+    public EventPublishingAccount register(Bytes address, PubKey pubKey, DigitalSignature addressSignature) {
         // TODO: 未实现对地址签名的校验和记录；
         CompositeAccount accBase = accountSet.register(address, pubKey);
-        return new DataAccount(accBase);
+        return new EventPublishingAccount(accBase);
     }
 }

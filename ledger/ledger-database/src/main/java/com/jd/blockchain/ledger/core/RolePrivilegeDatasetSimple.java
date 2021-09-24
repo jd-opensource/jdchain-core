@@ -20,6 +20,7 @@ import utils.DataEntry;
 import utils.Mapper;
 import utils.SkippingIterator;
 import utils.Transactional;
+import utils.io.BytesUtils;
 
 public class RolePrivilegeDatasetSimple implements Transactional, MerkleProvable<Bytes>, RolePrivilegeSettings {
 
@@ -59,18 +60,12 @@ public class RolePrivilegeDatasetSimple implements Transactional, MerkleProvable
 
 	@Override
 	public void commit() {
-		if (rolepri_index_in_block == 0) {
-			return;
-		}
 		dataset.commit();
 		origin_rolepri_index_in_block = rolepri_index_in_block;
 	}
 
 	@Override
 	public void cancel() {
-		if (rolepri_index_in_block == 0) {
-			return;
-		}
 		dataset.cancel();
 		rolepri_index_in_block = origin_rolepri_index_in_block;
 	}
@@ -109,7 +104,7 @@ public class RolePrivilegeDatasetSimple implements Transactional, MerkleProvable
 			throw new LedgerException("Role[" + roleName + "] already exist!");
 		}
 
-		nv = dataset.setValue(ROLEPRI_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(dataset.getDataCount() + rolepri_index_in_block))), Bytes.fromString(roleAuth.getRoleName()).toBytes(), -1);
+		nv = dataset.setValue(ROLEPRI_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(dataset.getDataCount() + rolepri_index_in_block))), Bytes.fromString(roleName).toBytes(), -1);
 
 		if (nv < 0) {
 			throw new LedgerException("Role[" + roleName + "] seq already exist!");
@@ -308,37 +303,20 @@ public class RolePrivilegeDatasetSimple implements Transactional, MerkleProvable
 		return new RolePrivileges(roleName, kv.getVersion(), privilege);
 	}
 
-//	@Override
-//	public RolePrivileges[] getRolePrivileges(int index, int count) {
-//		DataEntry<Bytes, byte[]>[] kvEntries = dataset.getDataEntries(index, count);
-//		RolePrivileges[] pns = new RolePrivileges[kvEntries.length];
-//		PrivilegeSet privilege;
-//		for (int i = 0; i < pns.length; i++) {
-//			privilege = BinaryProtocol.decode(kvEntries[i].getValue());
-//			pns[i] = new RolePrivileges(kvEntries[i].getKey().toUTF8String(), kvEntries[i].getVersion(), privilege);
-//		}
-//		return pns;
-//	}
-//
-//	@Override
-//	public RolePrivileges[] getRolePrivileges() {
-//		return getRolePrivileges(0, (int) getRoleCount());
-//	}
+	public RolePrivileges[] getRolePrivileges() {
+		DataEntry<Bytes, byte[]>[] kvEntries = ((SimpleDatasetImpl)dataset).getDataEntries(0, (int) dataset.getDataCount());
+		RolePrivileges[] pns = new RolePrivileges[kvEntries.length];
+		PrivilegeSet privilege;
+		for (int i = 0; i < pns.length; i++) {
+			privilege = BinaryProtocol.decode(kvEntries[i].getValue());
+			pns[i] = new RolePrivileges(kvEntries[i].getKey().toUTF8String(), kvEntries[i].getVersion(), privilege);
+		}
+		return pns;
+	}
 
 	@Override
 	public SkippingIterator<RolePrivileges> rolePrivilegesIterator() {
-		SkippingIterator<DataEntry<Bytes, byte[]>> entriesIterator = dataset.iterator();
-		return entriesIterator.iterateAs(new Mapper<DataEntry<Bytes,byte[]>, RolePrivileges>() {
-
-			@Override
-			public RolePrivileges from(DataEntry<Bytes, byte[]> source) {
-				if (source == null) {
-					return null;
-				}
-				PrivilegeSet privilege = BinaryProtocol.decode(source.getValue());
-				return new RolePrivileges(source.getKey().toUTF8String(), source.getVersion(), privilege);
-			}
-		});
+		return null;
 	}
 	
 	@Override

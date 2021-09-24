@@ -17,6 +17,7 @@ import com.jd.blockchain.storage.service.utils.VersioningKVData;
 import utils.Bytes;
 import utils.DataEntry;
 import utils.Transactional;
+import utils.io.BytesUtils;
 
 import java.util.Collection;
 
@@ -35,8 +36,6 @@ public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvabl
 	private volatile long origin_userrole_index_in_block  = 0;
 
 	private static final Bytes USEERROLR_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
-
-	private static final DataEntry<Bytes, byte[]>[] EMPTY_ENTRIES = new DataEntry[0];
 
 	public UserRoleDatasetEditorSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
                                        VersioningKVStorage verStorage) {
@@ -65,18 +64,12 @@ public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvabl
 
 	@Override
 	public void commit() {
-		if (userrole_index_in_block == 0) {
-			return;
-		}
 		dataset.commit();
 		origin_userrole_index_in_block = userrole_index_in_block;
 	}
 
 	@Override
 	public void cancel() {
-		if (userrole_index_in_block == 0) {
-			return;
-		}
 		dataset.cancel();
 		userrole_index_in_block = origin_userrole_index_in_block;
 	}
@@ -121,7 +114,7 @@ public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvabl
 			throw new AuthorizationException("Roles authorization of User[" + userAddress + "] already exists!");
 		}
 
-		nv = dataset.setValue(USEERROLR_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(dataset.getDataCount() + userrole_index_in_block))), roleAuth.getUserAddress().toBytes(), -1);
+		nv = dataset.setValue(USEERROLR_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(dataset.getDataCount() + userrole_index_in_block))), userAddress.toBytes(), -1);
 
 		if (nv < 0) {
 			throw new AuthorizationException("Roles authorization seq of User[" + userAddress + "] already exists!");
@@ -178,28 +171,6 @@ public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvabl
 		return setUserRolesAuthorization(userRoles);
 	}
 
-	public DataEntry<Bytes, byte[]>[] getDataEntries(int fromIndex, int count) {
-		if (count > LedgerConsts.MAX_LIST_COUNT) {
-			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
-		}
-		if (fromIndex < 0 || (fromIndex + count) > dataset.getDataCount()) {
-			throw new IllegalArgumentException("Index out of bound!");
-		}
-		if (count == 0) {
-			return EMPTY_ENTRIES;
-		}
-		@SuppressWarnings("unchecked")
-		DataEntry<Bytes, byte[]>[] values = new DataEntry[count];
-		byte[] bytesValue;
-		for (int i = fromIndex; i < fromIndex + count; i++) {
-//			KVEntry dataNode = loadUserHash(i);
-//					Bytes dataKey = encodeDataKey(dataNode.getKey());
-//			bytesValue = valueStorage.get(dataKey, dataNode.getVersion());
-//			values[i] = new VersioningKVData<Bytes, byte[]>(dataNode.getKey(), dataNode.getVersion(), bytesValue);
-		}
-		return values;
-	}
-
 	/**
 	 * 查询角色授权；
 	 * 
@@ -222,7 +193,7 @@ public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvabl
 
 	@Override
 	public UserRoles[] getUserRoles() {
-		DataEntry<Bytes, byte[]>[] kvEntries = getDataEntries(0, (int) dataset.getDataCount());
+		DataEntry<Bytes, byte[]>[] kvEntries = dataset.getDataEntries(0, (int) dataset.getDataCount());
 		UserRoles[] pns = new UserRoles[kvEntries.length];
 		RoleSet roleset;
 		for (int i = 0; i < pns.length; i++) {

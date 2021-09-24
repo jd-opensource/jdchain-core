@@ -6,6 +6,7 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.EventInfo;
 import com.jd.blockchain.ledger.LedgerException;
+import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import utils.Bytes;
@@ -20,6 +21,13 @@ import java.util.List;
 public class MerkleEventGroupPublisherSimple implements EventGroup, EventPublisher, Transactional {
 
     private  SimpleDataset<Bytes, byte[]> events;
+
+    private volatile long event_index_in_block = 0;
+
+    private volatile long origin_event_index_in_block  = 0;
+
+    private static final Bytes SYSTEMEVENT_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
+
 
     public MerkleEventGroupPublisherSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
         events = new SimpleDatasetImpl(SimpleDatasetType.NONE, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage);
@@ -43,6 +51,16 @@ public class MerkleEventGroupPublisherSimple implements EventGroup, EventPublish
 
         if (newSequence < 0) {
             throw new LedgerException("Event sequence conflict! --[" + key + "]");
+        }
+
+        // 属于新发布的事件名
+        if (newSequence == 0) {
+            long nv = events.setValue(SYSTEMEVENT_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(events.getDataCount() + event_index_in_block))), key.toBytes(), -1);
+
+            if (nv < 0) {
+                throw new LedgerException("Event seq already exist! --[id=" + key + "]");
+            }
+            event_index_in_block++;
         }
 
         return newSequence;
@@ -87,11 +105,14 @@ public class MerkleEventGroupPublisherSimple implements EventGroup, EventPublish
             return;
         }
         events.commit();
+
+        origin_event_index_in_block = event_index_in_block;
     }
 
     @Override
     public void cancel() {
         events.cancel();
+        event_index_in_block = origin_event_index_in_block;
     }
 
     public boolean isReadonly() {
@@ -100,22 +121,20 @@ public class MerkleEventGroupPublisherSimple implements EventGroup, EventPublish
 
     @Override
     public String[] getEventNames(long fromIndex, int count) {
-        SkippingIterator<DataEntry<Bytes, byte[]>> iterator = events.iterator();
-        iterator.skip(fromIndex);
-        
-        String[] events = iterator.next(count, String.class, new Mapper<DataEntry<Bytes,byte[]>, String>() {
-			@Override
-			public String from(DataEntry<Bytes, byte[]> source) {
-				return decodeKey(source.getKey());
-			}
-		});
-        
-        return events;
+
+        String[] eventNames = new String[count];
+
+        for (int index = 0; index < count; index++) {
+            byte[] indexKey = events.getValue(SYSTEMEVENT_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf((long)(fromIndex + index)))));
+            eventNames[index] = decodeKey(new Bytes(indexKey));
+        }
+
+        return eventNames;
     }
 
     @Override
     public long totalEventNames() {
-        return events.getDataCount();
+        return events.getDataCount() + event_index_in_block;
     }
 
     @Override
@@ -130,5 +149,13 @@ public class MerkleEventGroupPublisherSimple implements EventGroup, EventPublish
             return null;
         }
         return new EventInfo(BinaryProtocol.decode(bs));
+    }
+
+    public boolean isAddNew() {
+        return event_index_in_block != 0;
+    }
+
+    public void clearCachedIndex() {
+        event_index_in_block = 0;
     }
 }
