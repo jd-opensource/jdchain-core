@@ -1,7 +1,9 @@
 package com.jd.blockchain.ledger.core;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import com.jd.blockchain.ledger.Operation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -627,13 +629,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 		private TransactionRequest txRequest;
 
-//		private LedgerDataset dataset;
-//
-//		private LedgerEventSet eventSet;
-//
-//		private BufferedKVStorage dataStorage;
-//
-//		private BufferedKVStorage eventStorage;
+		private List<Operation> derivedOperations = new ArrayList<>();
 
 		private boolean committed = false;
 
@@ -641,11 +637,6 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 		private LedgerTransactionContextImpl(TransactionRequest txRequest, LedgerTransactionalEditor editor) {
 			this.txRequest = txRequest;
-//			this.dataset = dataset;
-//			this.dataStorage = dataStorage;
-//			this.eventSet = eventSet;
-//			this.eventStorage = eventStorage;
-
 			this.ledgerEditor = editor;
 		}
 
@@ -669,6 +660,18 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		@Override
 		public TransactionSet getTransactionSet() {
 			return ledgerEditor.getTransactionSet();
+		}
+
+		@Override
+		public Operation[] getDerivedOperations() {
+			return derivedOperations.toArray(new Operation[derivedOperations.size()]);
+		}
+
+		@Override
+		public void addDerivedOperations(Operation... operations) {
+			for(Operation operation : operations) {
+				derivedOperations.add(operation);
+			}
 		}
 
 		@Override
@@ -708,7 +711,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			TransactionResult txResult;
 			try {
 				txResult = new TransactionResultData(txRequest.getTransactionHash(), ledgerEditor.getBlockHeight(), txExecState, txDataSnapshot,
-						operationResultArray(operationResults));
+						operationResultArray(operationResults), getDerivedOperations());
 
 				logger.debug("before txset.add(),[contentHash={}]", this.getTransactionRequest().getTransactionHash());
 
@@ -763,7 +766,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			TransactionResult txResult;
 			try {
 				txResult = new TransactionResultData(txRequest.getTransactionHash(), ledgerEditor.getBlockHeight(), txExecState, txDataSnapshot,
-						operationResultArray(operationResults));
+						operationResultArray(operationResults), getDerivedOperations());
 
 				ledgerEditor.txset.addTransaction(txRequest, txResult);
 

@@ -116,7 +116,11 @@ public abstract class AbtractContractEventSendOperationHandle implements Operati
 		ContractCode contractCode = loadContractCode(contract);
 
 		// 处理合约事件；
-		return contractCode.processEvent(localContractEventContext);
+		BytesValue result = contractCode.processEvent(localContractEventContext);
+		// 交易上下文添加衍生操作
+		transactionContext.addDerivedOperations(ledgerContext.getDerivedOperations());
+
+		return result;
 	}
 
 	protected abstract ContractCode loadContractCode(ContractAccount contract);

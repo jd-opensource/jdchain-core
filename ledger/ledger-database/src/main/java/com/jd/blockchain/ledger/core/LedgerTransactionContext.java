@@ -90,4 +90,18 @@ public interface LedgerTransactionContext {
 	 * @return
 	 */
 	TransactionSet getTransactionSet();
+
+	/**
+	 * 交易操作执行过程中衍生的操作列表
+	 *
+	 * @return
+	 */
+	Operation[] getDerivedOperations();
+
+	/**
+	 * 添加交易操作执行过程中衍生的操作列表
+	 *
+	 * @return
+	 */
+	void addDerivedOperations(Operation... operations);
 }

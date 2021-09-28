@@ -51,6 +51,7 @@ import com.jd.blockchain.transaction.AccountPermissionSetOperationBuilder;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.transaction.ContractCodeDeployOpTemplate;
 import com.jd.blockchain.transaction.ContractCodeDeployOperationBuilder;
+import com.jd.blockchain.transaction.ContractCrossEventSendOpTemplate;
 import com.jd.blockchain.transaction.ContractEventSendOpTemplate;
 import com.jd.blockchain.transaction.ContractOperationBuilder;
 import com.jd.blockchain.transaction.ContractStateUpdateOpTemplate;
@@ -92,7 +93,7 @@ public class ContractLedgerContext implements LedgerContext {
 
     private OperationHandleContext opHandleContext;
 
-    private List<Operation> generatedOpList = new ArrayList<>();
+    private List<Operation> derivedOperations = new ArrayList<>();
 
     public ContractLedgerContext(OperationHandleContext opHandleContext, LedgerQueryService innerQueryService, BlockchainQueryService multiLedgerQueryService) {
         this.opHandleContext = opHandleContext;
@@ -659,11 +660,17 @@ public class ContractLedgerContext implements LedgerContext {
         return new SecurityOperationBuilder1();
     }
 
+    @Override
+    public Operation[] getDerivedOperations() {
+        return derivedOperations.toArray(new Operation[derivedOperations.size()]);
+    }
+
     private class ContractCodeDeployOperationBuilder1 implements ContractCodeDeployOperationBuilder {
 
         @Override
         public ContractCodeDeployOperation deploy(BlockchainIdentity id, byte[] chainCode) {
             ContractCodeDeployOperation op = new ContractCodeDeployOpTemplate(id, chainCode);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return op;
         }
@@ -671,6 +678,7 @@ public class ContractLedgerContext implements LedgerContext {
         @Override
         public ContractCodeDeployOperation deploy(BlockchainIdentity id, byte[] chainCode, long version) {
             ContractCodeDeployOperation op = new ContractCodeDeployOpTemplate(id, chainCode, version);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return op;
         }
@@ -687,6 +695,7 @@ public class ContractLedgerContext implements LedgerContext {
         @Override
         public ContractStateUpdateOperation revoke() {
             ContractStateUpdateOperation op = new ContractStateUpdateOpTemplate(address, AccountState.REVOKE);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return op;
         }
@@ -694,6 +703,7 @@ public class ContractLedgerContext implements LedgerContext {
         @Override
         public ContractStateUpdateOperation freeze() {
             ContractStateUpdateOperation op = new ContractStateUpdateOpTemplate(address, AccountState.FREEZE);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return op;
         }
@@ -701,6 +711,7 @@ public class ContractLedgerContext implements LedgerContext {
         @Override
         public ContractStateUpdateOperation restore() {
             ContractStateUpdateOperation op = new ContractStateUpdateOpTemplate(address, AccountState.NORMAL);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return op;
         }
@@ -708,6 +719,7 @@ public class ContractLedgerContext implements LedgerContext {
         @Override
         public ContractStateUpdateOperation state(AccountState state) {
             ContractStateUpdateOperation op = new ContractStateUpdateOpTemplate(address, state);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return op;
         }
@@ -721,8 +733,8 @@ public class ContractLedgerContext implements LedgerContext {
         @Override
         public ContractEventSendOperation invoke(String event, BytesValueList args) {
             ContractEventSendOperation op = new ContractEventSendOpTemplate(address, event, args);
-            opHandleContext.handle(op);
-            return op;
+            derivedOperations.add(op);
+            return new ContractCrossEventSendOpTemplate(op, opHandleContext.handle(op));
         }
     }
 
@@ -746,6 +758,7 @@ public class ContractLedgerContext implements LedgerContext {
         public AccountPermissionSetOperationBuilder mode(int mode) {
             op = new AccountPermissionSetOpTemplate(address, accountType);
             op.setMode(mode);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return this;
         }
@@ -754,6 +767,7 @@ public class ContractLedgerContext implements LedgerContext {
         public AccountPermissionSetOperationBuilder role(String role) {
             op = new AccountPermissionSetOpTemplate(address, accountType);
             op.setRole(role);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return this;
         }
@@ -773,6 +787,7 @@ public class ContractLedgerContext implements LedgerContext {
         public RootCAUpdateOperationBuilder add(String certificate) {
             RootCAUpdateOpTemplate op = new RootCAUpdateOpTemplate();
             op.addCertificate(certificate);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return this;
         }
@@ -781,6 +796,7 @@ public class ContractLedgerContext implements LedgerContext {
         public RootCAUpdateOperationBuilder add(X509Certificate certificate) {
             RootCAUpdateOpTemplate op = new RootCAUpdateOpTemplate();
             op.addCertificate(CertificateUtils.toPEMString(certificate));
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return this;
         }
@@ -789,6 +805,7 @@ public class ContractLedgerContext implements LedgerContext {
         public RootCAUpdateOperationBuilder update(String certificate) {
             RootCAUpdateOpTemplate op = new RootCAUpdateOpTemplate();
             op.updateCertificate(certificate);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return this;
         }
@@ -797,6 +814,7 @@ public class ContractLedgerContext implements LedgerContext {
         public RootCAUpdateOperationBuilder update(X509Certificate certificate) {
             RootCAUpdateOpTemplate op = new RootCAUpdateOpTemplate();
             op.updateCertificate(CertificateUtils.toPEMString(certificate));
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return this;
         }
@@ -805,6 +823,7 @@ public class ContractLedgerContext implements LedgerContext {
         public RootCAUpdateOperationBuilder remove(String certificate) {
             RootCAUpdateOpTemplate op = new RootCAUpdateOpTemplate();
             op.removeCertificate(certificate);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return this;
         }
@@ -813,6 +832,7 @@ public class ContractLedgerContext implements LedgerContext {
         public RootCAUpdateOperationBuilder remove(X509Certificate certificate) {
             RootCAUpdateOpTemplate op = new RootCAUpdateOpTemplate();
             op.removeCertificate(CertificateUtils.toPEMString(certificate));
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return this;
         }
@@ -823,7 +843,7 @@ public class ContractLedgerContext implements LedgerContext {
         public DataAccountRegisterOperation register(BlockchainIdentity accountID) {
             final DataAccountRegisterOperationBuilderImpl DATA_ACC_REG_OP_BUILDER = new DataAccountRegisterOperationBuilderImpl();
             DataAccountRegisterOperation op = DATA_ACC_REG_OP_BUILDER.register(accountID);
-            generatedOpList.add(op);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return op;
         }
@@ -835,7 +855,7 @@ public class ContractLedgerContext implements LedgerContext {
         @Override
         public UserRegisterOperation register(BlockchainIdentity userID) {
             UserRegisterOperation op = USER_REG_OP_BUILDER.register(userID);
-            generatedOpList.add(op);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return op;
         }
@@ -857,7 +877,7 @@ public class ContractLedgerContext implements LedgerContext {
         @Override
         public UserStateUpdateOperation revoke() {
             UserStateUpdateOperation op = new UserStateUpdateOpTemplate(address, AccountState.REVOKE);
-            generatedOpList.add(op);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return op;
         }
@@ -865,7 +885,7 @@ public class ContractLedgerContext implements LedgerContext {
         @Override
         public UserStateUpdateOperation freeze() {
             UserStateUpdateOperation op = new UserStateUpdateOpTemplate(address, AccountState.FREEZE);
-            generatedOpList.add(op);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return op;
         }
@@ -873,7 +893,7 @@ public class ContractLedgerContext implements LedgerContext {
         @Override
         public UserStateUpdateOperation restore() {
             UserStateUpdateOperation op = new UserStateUpdateOpTemplate(address, AccountState.NORMAL);
-            generatedOpList.add(op);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return op;
         }
@@ -881,7 +901,7 @@ public class ContractLedgerContext implements LedgerContext {
         @Override
         public UserStateUpdateOperation state(AccountState state) {
             UserStateUpdateOperation op = new UserStateUpdateOpTemplate(address, state);
-            generatedOpList.add(op);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return op;
         }
@@ -889,7 +909,7 @@ public class ContractLedgerContext implements LedgerContext {
         @Override
         public UserCAUpdateOperation ca(X509Certificate cert) {
             UserCAUpdateOperation op = new UserCAUpdateOpTemplate(address, cert);
-            generatedOpList.add(op);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return op;
         }
@@ -900,7 +920,7 @@ public class ContractLedgerContext implements LedgerContext {
         public EventAccountRegisterOperation register(BlockchainIdentity accountID) {
             final EventAccountRegisterOperationBuilderImpl EVENT_ACC_REG_OP_BUILDER = new EventAccountRegisterOperationBuilderImpl();
             EventAccountRegisterOperation op = EVENT_ACC_REG_OP_BUILDER.register(accountID);
-            generatedOpList.add(op);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
             return op;
         }
@@ -993,7 +1013,7 @@ public class ContractLedgerContext implements LedgerContext {
         }
 
         private void handle(Operation op) {
-            generatedOpList.add(op);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
         }
 
@@ -1039,7 +1059,7 @@ public class ContractLedgerContext implements LedgerContext {
         }
 
         private void handle(Operation op) {
-            generatedOpList.add(op);
+            derivedOperations.add(op);
             opHandleContext.handle(op);
         }
 
@@ -1199,7 +1219,7 @@ public class ContractLedgerContext implements LedgerContext {
             @Override
             public void configure(LedgerPermission[] enableLedgerPermissions, TransactionPermission[] enableTransactionPermissions, LedgerPermission[] disableLedgerPermissions, TransactionPermission[] disableTransactionPermissions) {
                 this.config = new RolePrivilegeConfig(role, enableLedgerPermissions, enableTransactionPermissions, disableLedgerPermissions, disableTransactionPermissions);
-                generatedOpList.add(this);
+                derivedOperations.add(this);
                 opHandleContext.handle(this);
             }
 
@@ -1269,21 +1289,21 @@ public class ContractLedgerContext implements LedgerContext {
             @Override
             public void authorize(String... roles) {
                 authorizationDataEntry = new AuthorizationDataEntry(user, roles, null, RolesPolicy.UNION);
-                generatedOpList.add(this);
+                derivedOperations.add(this);
                 opHandleContext.handle(this);
             }
 
             @Override
             public void setPolicy(RolesPolicy rolePolicy) {
                 authorizationDataEntry = new AuthorizationDataEntry(user, null, null, rolePolicy);
-                generatedOpList.add(this);
+                derivedOperations.add(this);
                 opHandleContext.handle(this);
             }
 
             @Override
             public void unauthorize(String... roles) {
                 authorizationDataEntry = new AuthorizationDataEntry(user, null, roles, RolesPolicy.UNION);
-                generatedOpList.add(this);
+                derivedOperations.add(this);
                 opHandleContext.handle(this);
             }
 
