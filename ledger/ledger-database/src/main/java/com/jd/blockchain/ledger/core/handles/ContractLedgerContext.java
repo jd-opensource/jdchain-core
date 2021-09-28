@@ -26,15 +26,20 @@ import com.jd.blockchain.ledger.LedgerAdminInfo;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerInfo;
 import com.jd.blockchain.ledger.LedgerMetadata;
+import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerQueryService;
 import com.jd.blockchain.ledger.LedgerTransaction;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.PrivilegeSet;
+import com.jd.blockchain.ledger.RolesConfigureOperation;
+import com.jd.blockchain.ledger.RolesPolicy;
 import com.jd.blockchain.ledger.RootCAUpdateOperationBuilder;
+import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
+import com.jd.blockchain.ledger.UserAuthorizeOperation;
 import com.jd.blockchain.ledger.UserCAUpdateOperation;
 import com.jd.blockchain.ledger.UserInfo;
 import com.jd.blockchain.ledger.UserPrivilegeSet;
@@ -47,7 +52,6 @@ import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.transaction.ContractCodeDeployOpTemplate;
 import com.jd.blockchain.transaction.ContractCodeDeployOperationBuilder;
 import com.jd.blockchain.transaction.ContractEventSendOpTemplate;
-import com.jd.blockchain.transaction.ContractInvocationProxyBuilder;
 import com.jd.blockchain.transaction.ContractOperationBuilder;
 import com.jd.blockchain.transaction.ContractStateUpdateOpTemplate;
 import com.jd.blockchain.transaction.DataAccountKVSetOperationBuilder;
@@ -62,16 +66,21 @@ import com.jd.blockchain.transaction.EventPublishOperationBuilder;
 import com.jd.blockchain.transaction.KVData;
 import com.jd.blockchain.transaction.MetaInfoUpdateOperationBuilder;
 import com.jd.blockchain.transaction.RootCAUpdateOpTemplate;
+import com.jd.blockchain.transaction.SimpleSecurityOperationBuilder;
 import com.jd.blockchain.transaction.UserCAUpdateOpTemplate;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilder;
 import com.jd.blockchain.transaction.UserRegisterOperationBuilderImpl;
 import com.jd.blockchain.transaction.UserStateUpdateOpTemplate;
 import com.jd.blockchain.transaction.UserUpdateOperationBuilder;
+import utils.ArrayUtils;
 import utils.Bytes;
 
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 合约内账本上下文
@@ -319,16 +328,6 @@ public class ContractLedgerContext implements LedgerContext {
     @Override
     public ContractCodeDeployOperationBuilder contracts() {
         return new ContractCodeDeployOperationBuilder1();
-    }
-
-    @Override
-    public <T> T contract(String address, Class<T> contractIntf) {
-        return new ContractInvocationProxyBuilder().create(address, -1L, contractIntf, contract(address));
-    }
-
-    @Override
-    public <T> T contract(Bytes address, Class<T> contractIntf) {
-        return new ContractInvocationProxyBuilder().create(address, -1L, contractIntf, contract(address));
     }
 
     @Override
@@ -653,6 +652,11 @@ public class ContractLedgerContext implements LedgerContext {
     @Deprecated
     public UserPrivilegeSet getUserPrivileges(HashDigest ledgerHash, String userAddress) {
         return multiLedgerQueryService.getUserPrivileges(ledgerHash, userAddress);
+    }
+
+    @Override
+    public SimpleSecurityOperationBuilder security() {
+        return new SecurityOperationBuilder1();
     }
 
     private class ContractCodeDeployOperationBuilder1 implements ContractCodeDeployOperationBuilder {
@@ -1132,6 +1136,202 @@ public class ContractLedgerContext implements LedgerContext {
             @Override
             public EventEntry[] getEvents() {
                 return writeset;
+            }
+        }
+    }
+
+    private class SecurityOperationBuilder1 implements SimpleSecurityOperationBuilder {
+
+        @Override
+        public SimpleRoleConfigurer role(String role) {
+            return new RolesConfigureOpTemplate(role);
+        }
+
+        @Override
+        public SimpleUserAuthorizer authorziation(Bytes user) {
+            return new UserAuthorizeOpTemplate(user);
+        }
+
+        private class RolesConfigureOpTemplate implements SimpleRoleConfigurer, RolesConfigureOperation {
+
+            private String role;
+            private RolePrivilegeConfig config;
+
+            public RolesConfigureOpTemplate(String role) {
+                this.role = role;
+            }
+
+            @Override
+            public RolePrivilegeEntry[] getRoles() {
+                return new RolePrivilegeEntry[]{config};
+            }
+
+            @Override
+            public void enable(LedgerPermission... enableLedgerPermissions) {
+                configure(enableLedgerPermissions, null, null, null);
+            }
+
+            @Override
+            public void enable(TransactionPermission... enableTransactionPermissions) {
+                configure(null, enableTransactionPermissions, null, null);
+            }
+
+            @Override
+            public void enable(LedgerPermission[] enableLedgerPermissions, TransactionPermission[] enableTransactionPermissions) {
+                configure(enableLedgerPermissions, enableTransactionPermissions, null, null);
+            }
+
+            @Override
+            public void disable(LedgerPermission... disableLedgerPermissions) {
+                configure(null, null, disableLedgerPermissions, null);
+            }
+
+            @Override
+            public void disable(TransactionPermission... disableTransactionPermissions) {
+                configure(null, null, null, disableTransactionPermissions);
+            }
+
+            @Override
+            public void disable(LedgerPermission[] disableLedgerPermissions, TransactionPermission[] disableTransactionPermissions) {
+                configure(null, null, disableLedgerPermissions, disableTransactionPermissions);
+            }
+
+            @Override
+            public void configure(LedgerPermission[] enableLedgerPermissions, TransactionPermission[] enableTransactionPermissions, LedgerPermission[] disableLedgerPermissions, TransactionPermission[] disableTransactionPermissions) {
+                this.config = new RolePrivilegeConfig(role, enableLedgerPermissions, enableTransactionPermissions, disableLedgerPermissions, disableTransactionPermissions);
+                generatedOpList.add(this);
+                opHandleContext.handle(this);
+            }
+
+            private class RolePrivilegeConfig implements RolePrivilegeEntry {
+
+                private String roleName;
+
+                private Set<LedgerPermission> enableLedgerPermissions = new LinkedHashSet<>();
+                private Set<LedgerPermission> disableLedgerPermissions = new LinkedHashSet<>();
+
+                private Set<TransactionPermission> enableTxPermissions = new LinkedHashSet<>();
+                private Set<TransactionPermission> disableTxPermissions = new LinkedHashSet<>();
+
+                public RolePrivilegeConfig(String role, LedgerPermission[] enableLedgerPermissions, TransactionPermission[] enableTransactionPermissions, LedgerPermission[] disableLedgerPermissions, TransactionPermission[] disableTransactionPermissions) {
+                    this.roleName = role;
+                    if (null != enableLedgerPermissions) {
+                        Arrays.stream(enableLedgerPermissions).forEach(permission -> this.enableLedgerPermissions.add(permission));
+                    }
+                    if (null != enableTransactionPermissions) {
+                        Arrays.stream(enableTransactionPermissions).forEach(permission -> this.enableTxPermissions.add(permission));
+                    }
+                    if (null != disableLedgerPermissions) {
+                        Arrays.stream(disableLedgerPermissions).forEach(permission -> this.disableLedgerPermissions.add(permission));
+                    }
+                    if (null != disableTransactionPermissions) {
+                        Arrays.stream(disableTransactionPermissions).forEach(permission -> this.disableTxPermissions.add(permission));
+                    }
+                }
+
+                @Override
+                public String getRoleName() {
+                    return roleName;
+                }
+
+                @Override
+                public LedgerPermission[] getEnableLedgerPermissions() {
+                    return ArrayUtils.toArray(enableLedgerPermissions, LedgerPermission.class);
+                }
+
+                @Override
+                public LedgerPermission[] getDisableLedgerPermissions() {
+                    return ArrayUtils.toArray(disableLedgerPermissions, LedgerPermission.class);
+                }
+
+                @Override
+                public TransactionPermission[] getEnableTransactionPermissions() {
+                    return ArrayUtils.toArray(enableTxPermissions, TransactionPermission.class);
+                }
+
+                @Override
+                public TransactionPermission[] getDisableTransactionPermissions() {
+                    return ArrayUtils.toArray(disableTxPermissions, TransactionPermission.class);
+                }
+
+            }
+        }
+
+        private class UserAuthorizeOpTemplate implements SimpleUserAuthorizer, UserAuthorizeOperation {
+
+            private Bytes user;
+            private AuthorizationDataEntry authorizationDataEntry;
+
+            public UserAuthorizeOpTemplate(Bytes user) {
+                this.user = user;
+            }
+
+            @Override
+            public void authorize(String... roles) {
+                authorizationDataEntry = new AuthorizationDataEntry(user, roles, null, RolesPolicy.UNION);
+                generatedOpList.add(this);
+                opHandleContext.handle(this);
+            }
+
+            @Override
+            public void setPolicy(RolesPolicy rolePolicy) {
+                authorizationDataEntry = new AuthorizationDataEntry(user, null, null, rolePolicy);
+                generatedOpList.add(this);
+                opHandleContext.handle(this);
+            }
+
+            @Override
+            public void unauthorize(String... roles) {
+                authorizationDataEntry = new AuthorizationDataEntry(user, null, roles, RolesPolicy.UNION);
+                generatedOpList.add(this);
+                opHandleContext.handle(this);
+            }
+
+            @Override
+            public AuthorizationDataEntry[] getUserRolesAuthorizations() {
+                return new AuthorizationDataEntry[]{authorizationDataEntry};
+            }
+
+            private class AuthorizationDataEntry implements UserRolesEntry {
+
+                private Bytes[] userAddress;
+                private RolesPolicy policy = RolesPolicy.UNION;
+
+                private Set<String> authRoles = new LinkedHashSet<String>();
+                private Set<String> unauthRoles = new LinkedHashSet<String>();
+
+                public AuthorizationDataEntry(Bytes user, String[] authRoles, String[] unauthRoles, RolesPolicy policy) {
+                    this.userAddress = new Bytes[]{user};
+                    if (null != authRoles) {
+                        Arrays.stream(authRoles).forEach(role -> this.authRoles.add(role));
+                    }
+                    if (null != unauthRoles) {
+                        Arrays.stream(unauthRoles).forEach(role -> this.unauthRoles.add(role));
+                    }
+                    if (null != policy) {
+                        this.policy = policy;
+                    }
+                }
+
+                @Override
+                public Bytes[] getUserAddresses() {
+                    return userAddress;
+                }
+
+                @Override
+                public RolesPolicy getPolicy() {
+                    return policy;
+                }
+
+                @Override
+                public String[] getAuthorizedRoles() {
+                    return ArrayUtils.toArray(authRoles, String.class);
+                }
+
+                @Override
+                public String[] getUnauthorizedRoles() {
+                    return ArrayUtils.toArray(unauthRoles, String.class);
+                }
             }
         }
     }
