@@ -14,6 +14,7 @@ import com.jd.blockchain.ledger.PermissionAccount;
 import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
+import utils.StringUtils;
 
 public class AccountPermissionOperationHandle extends AbstractLedgerOperationHandle<AccountPermissionSetOperation> {
 
@@ -48,7 +49,7 @@ public class AccountPermissionOperationHandle extends AbstractLedgerOperationHan
         // 更新权限信息
         DataPermission originPermission = account.getPermission();
         AccountModeBits modeBits = op.getMode() > -1 ? new AccountModeBits(op.getAccountType(), op.getMode()) : originPermission.getModeBits();
-        String rols = null != op.getRole() ? op.getRole().toUpperCase() : originPermission.getRole();
+        String rols = !StringUtils.isEmpty(op.getRole()) ? op.getRole().toUpperCase() : originPermission.getRole();
         account.setPermission(new AccountDataPermission(modeBits, originPermission.getOwners(), rols));
     }
 }

@@ -413,13 +413,14 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 			}
 
 			for(Bytes address : permission.getOwners()) {
-				if(endpointPrivilegeMap.containsKey(address)) {
+				if (endpointPrivilegeMap.containsKey(address)) {
 					// check owner permission
-					if(modeBits.get(AccountModeBits.BitGroup.OWNERS, permissionType.CODE)) {
+					if (modeBits.get(AccountModeBits.BitGroup.OWNERS, permissionType.CODE)) {
 						return;
 					}
 				}
-
+			}
+			for(Bytes address : endpointPrivilegeMap.keySet()) {
 				UserRoles userRoles = userRolesCache.get(address);
 				if (userRoles == null) {
 					userRoles = userRolesSettings.getUserRoles(address);
