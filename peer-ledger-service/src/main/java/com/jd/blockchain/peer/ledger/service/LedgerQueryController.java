@@ -6,6 +6,7 @@ import java.util.List;
 import com.jd.blockchain.ledger.core.ComplecatedSimpleAccount;
 import com.jd.blockchain.ledger.core.ContractAccountSetEditorSimple;
 import com.jd.blockchain.ledger.core.DataAccountSetEditorSimple;
+import com.jd.blockchain.ledger.core.EventAccountSetEditorSimple;
 import com.jd.blockchain.ledger.core.IteratorDataset;
 import com.jd.blockchain.ledger.core.MerkleDataset;
 import com.jd.blockchain.ledger.core.SimpleDataset;
@@ -716,9 +717,13 @@ public class LedgerQueryController implements BlockchainQueryService {
 		EventAccountSet eventAccountSet = ledger.getEventAccountSet(ledger.getLatestBlock());
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) eventAccountSet.getTotal());
 
-		SkippingIterator<BlockchainIdentity> it = eventAccountSet.identityIterator();
-		it.skip(queryArgs.getFrom());
-		return it.next(queryArgs.getCount(), BlockchainIdentity.class);
+		if (ledger.getAnchorType().equals("default")) {
+			SkippingIterator<BlockchainIdentity> it = eventAccountSet.identityIterator();
+			it.skip(queryArgs.getFrom());
+			return it.next(queryArgs.getCount(), BlockchainIdentity.class);
+		} else {
+			return ((EventAccountSetEditorSimple)eventAccountSet).getEventAccounts(queryArgs.getFrom(), queryArgs.getCount());
+		}
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = GET_EVENT_ACCOUNT)

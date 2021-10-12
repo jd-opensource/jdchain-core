@@ -22,8 +22,6 @@ public class EventPublishingAccount implements EventAccount, EventPublisher {
 
     private CompositeAccount account;
 
-    private static final Bytes ACCOUNTSET_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
-
     public EventPublishingAccount(CompositeAccount account) {
         this.account = account;
     }
