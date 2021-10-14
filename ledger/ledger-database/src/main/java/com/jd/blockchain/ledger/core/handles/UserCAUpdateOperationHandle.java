@@ -12,6 +12,8 @@ import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
+import com.jd.blockchain.ledger.core.UserAccountSetEditor;
+import com.jd.blockchain.ledger.core.UserAccountSetEditorSimple;
 
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -33,13 +35,17 @@ public class UserCAUpdateOperationHandle extends AbstractLedgerOperationHandle<U
         X509Certificate cert = CertificateUtils.parseCertificate(op.getCertificate());
         CertificateUtils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
         CertificateUtils.checkValidity(cert);
-        X509Certificate[] ledgerCAs = CertificateUtils.parseCertificates(transactionContext.getDataset().getAdminDataset().getMetadata().getLedgerCertificates());
+        X509Certificate[] ledgerCAs = CertificateUtils.parseCertificates(transactionContext.getDataset().getAdminDataset().getAdminSettings().getMetadata().getLedgerCertificates());
         X509Certificate[] issuers = CertificateUtils.findIssuers(cert, ledgerCAs);
         Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
         CertificateUtils.checkValidityAny(issuers);
 
         // 操作账本；
-        transactionContext.getDataset().getUserAccountSet().setCertificate(op.getUserAddress(), op.getCertificate());
+        if (ledger.getAnchorType().equals("default")) {
+            ((UserAccountSetEditor)(transactionContext.getDataset().getUserAccountSet())).setCertificate(op.getUserAddress(), op.getCertificate());
+        } else {
+            ((UserAccountSetEditorSimple)(transactionContext.getDataset().getUserAccountSet())).setCertificate(op.getUserAddress(), op.getCertificate());
+        }
     }
 
 }

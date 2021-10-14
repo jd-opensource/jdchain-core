@@ -24,7 +24,7 @@ public interface EventOperationHandle {
      * @param identity
      * @return
      */
-    DataAccount registerAccount(BlockchainIdentity identity);
+    EventAccount registerAccount(BlockchainIdentity identity);
 
     /**
      * 发布用户自定义事件

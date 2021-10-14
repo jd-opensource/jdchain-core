@@ -2,6 +2,7 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.DigitalSignature;
@@ -158,6 +159,10 @@ public class ContractAccountSetEditorSimple implements Transactional, ContractAc
 
 	public void clearCachedIndex() {
 		accountSet.clearCachedIndex();
+	}
+
+	public void setState(Bytes address, AccountState state) {
+		getAccount(address).setState(state);
 	}
 
 }

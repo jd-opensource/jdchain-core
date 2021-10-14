@@ -7,7 +7,9 @@ import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.RootCAUpdateOperation;
 import com.jd.blockchain.ledger.core.EventManager;
+import com.jd.blockchain.ledger.core.LedgerAdminDataSet;
 import com.jd.blockchain.ledger.core.LedgerAdminDataSetEditor;
+import com.jd.blockchain.ledger.core.LedgerAdminDataSetEditorSimple;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
@@ -34,9 +36,9 @@ public class RootCAUpdateOperationHandle extends AbstractLedgerOperationHandle<R
         SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
         securityPolicy.checkEndpointPermission(LedgerPermission.UPDATE_ROOT_CA, MultiIDsPolicy.AT_LEAST_ONE);
 
-        LedgerAdminDataSetEditor adminDataset = transactionContext.getDataset().getAdminDataset();
-        if (adminDataset.getMetadata().getIdentityMode() == IdentityMode.CA) {
-            String[] ledgerCAs = adminDataset.getMetadata().getLedgerCertificates();
+        LedgerAdminDataSet adminDataset = transactionContext.getDataset().getAdminDataset();
+        if (adminDataset.getAdminSettings().getMetadata().getIdentityMode() == IdentityMode.CA) {
+            String[] ledgerCAs = adminDataset.getAdminSettings().getMetadata().getLedgerCertificates();
             Map<PublicKey, String> ledgerCAMap = new HashMap<>();
             for (int i = 0; i < ledgerCAs.length; i++) {
                 X509Certificate cert = CertificateUtils.parseCertificate(ledgerCAs[i]);
@@ -76,7 +78,12 @@ public class RootCAUpdateOperationHandle extends AbstractLedgerOperationHandle<R
                 }
             }
 
-            adminDataset.updateLedgerCA(ledgerCAMap.values().toArray(new String[0]));
+            if (ledger.getAnchorType().equals("default")) {
+                ((LedgerAdminDataSetEditor)adminDataset).updateLedgerCA(ledgerCAMap.values().toArray(new String[0]));
+            } else {
+                ((LedgerAdminDataSetEditorSimple)adminDataset).updateLedgerCA(ledgerCAMap.values().toArray(new String[0]));
+            }
+
         } else {
             throw new LedgerException("Not in CA identity mode!");
         }

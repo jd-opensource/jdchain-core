@@ -31,7 +31,7 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
 		securityPolicy.checkEndpointPermission(LedgerPermission.REGISTER_PARTICIPANT, MultiIDsPolicy.AT_LEAST_ONE);
 
 		// 证书模式下必须传递证书
-		if (transactionContext.getDataset().getAdminDataset().getMetadata().getIdentityMode() == IdentityMode.CA) {
+		if (transactionContext.getDataset().getAdminDataset().getAdminSettings().getMetadata().getIdentityMode() == IdentityMode.CA) {
 			if (StringUtils.isEmpty(op.getCertificate())) {
 				throw new IllegalTransactionException("Participant ca is empty!");
 			}
@@ -39,7 +39,7 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
 			X509Certificate cert = CertificateUtils.parseCertificate(op.getCertificate());
 			CertificateUtils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW);
 			CertificateUtils.checkValidity(cert);
-			X509Certificate[] ledgerCAs = CertificateUtils.parseCertificates(transactionContext.getDataset().getAdminDataset().getMetadata().getLedgerCertificates());
+			X509Certificate[] ledgerCAs = CertificateUtils.parseCertificates(transactionContext.getDataset().getAdminDataset().getAdminSettings().getMetadata().getLedgerCertificates());
 			X509Certificate[] issuers = CertificateUtils.findIssuers(cert, ledgerCAs);
 			Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
 			CertificateUtils.checkValidityAny(issuers);
@@ -49,14 +49,14 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
 
 		if (previousBlockDataset.getAnchorType().equals("default")) {
 			ParticipantNode participantNode = new PartNode((int) (((LedgerAdminDataSetEditor)adminAccountDataSet).getParticipantCount()),
-					participantRegOp.getParticipantName(), participantRegOp.getParticipantID().getPubKey(),
+					op.getParticipantName(), op.getParticipantID().getPubKey(),
 					ParticipantRegisterOperation.DEFAULT_STATE);
 
 			// add new participant
 			((LedgerAdminDataSetEditor)adminAccountDataSet).addParticipant(participantNode);
 		} else {
 			ParticipantNode participantNode = new PartNode((int) (((LedgerAdminDataSetEditorSimple)adminAccountDataSet).getParticipantCount()),
-					participantRegOp.getParticipantName(), participantRegOp.getParticipantID().getPubKey(),
+					op.getParticipantName(), op.getParticipantID().getPubKey(),
 					ParticipantRegisterOperation.DEFAULT_STATE);
 
 			// add new participant

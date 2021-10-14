@@ -5,6 +5,9 @@ import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
+import com.jd.blockchain.ledger.GenesisUser;
+import com.jd.blockchain.ledger.GenesisUserConfig;
+import com.jd.blockchain.ledger.IdentityMode;
 import com.jd.blockchain.ledger.LedgerAdminSettings;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.LedgerInitSetting;
@@ -404,11 +407,20 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 		metadata =origMetadata == null ? new LedgerMetadataInfo() :  new LedgerMetadataInfo(origMetadata);
 	}
 
+	public void updateLedgerCA(String[] certs) {
+		metadata.setLedgerCertificates(certs);
+		updated = true;
+	}
+
 	public static class LedgerMetadataInfo implements LedgerMetadata_V2 {
 
 		private byte[] seed;
 
 //		private LedgerSetting setting;
+
+		private IdentityMode identityMode = IdentityMode.KEYPAIR;
+
+		private String[] ledgerCertificates;
 
 		private HashDigest participantsHash;
 
@@ -420,6 +432,8 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 
 		private long ledgerStructureVersion = -1L;
 
+		private GenesisUser[] genesisUsers;
+
 		public LedgerMetadataInfo() {
 		}
 
@@ -430,11 +444,50 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 			this.rolePrivilegesHash = metadata.getRolePrivilegesHash();
 			this.userRolesHash = metadata.getUserRolesHash();
 			this.ledgerStructureVersion = metadata.getLedgerStructureVersion();
+
+			if(null != metadata.getIdentityMode()) {
+				this.identityMode = metadata.getIdentityMode();
+			}
+			this.ledgerCertificates = metadata.getLedgerCertificates();
+			if(null != metadata.getGenesisUsers()) {
+				GenesisUser[] users = metadata.getGenesisUsers();
+				this.genesisUsers = new GenesisUserConfig[users.length];
+				for (int i = 0; i < users.length; i++) {
+					this.genesisUsers[i] = new GenesisUserConfig(users[i]);
+				}
+			}
 		}
 
 		@Override
 		public byte[] getSeed() {
 			return seed;
+		}
+
+		@Override
+		public IdentityMode getIdentityMode() {
+			return identityMode;
+		}
+
+		public void setIdentityMode(IdentityMode identityMode) {
+			this.identityMode = identityMode;
+		}
+
+		@Override
+		public String[] getLedgerCertificates() {
+			return ledgerCertificates;
+		}
+
+		public void setGenesisUsers(GenesisUser[] genesisUsers) {
+			this.genesisUsers = genesisUsers;
+		}
+
+		@Override
+		public GenesisUser[] getGenesisUsers() {
+			return genesisUsers;
+		}
+
+		public void setLedgerCertificates(String[] ledgerCertificates) {
+			this.ledgerCertificates = ledgerCertificates;
 		}
 
 		@Override

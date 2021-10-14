@@ -37,7 +37,7 @@ public class UserRegisterOperationHandle extends AbstractLedgerOperationHandle<U
 		securityPolicy.checkEndpointPermission(LedgerPermission.REGISTER_USER, MultiIDsPolicy.AT_LEAST_ONE);
 
         // 证书模式下必须传递证书
-        if (transactionContext.getDataset().getAdminDataset().getMetadata().getIdentityMode() == IdentityMode.CA) {
+        if (transactionContext.getDataset().getAdminDataset().getAdminSettings().getMetadata().getIdentityMode() == IdentityMode.CA) {
             if (StringUtils.isEmpty(op.getCertificate())) {
                 throw new IllegalTransactionException("User ca is empty!");
             }
@@ -45,7 +45,7 @@ public class UserRegisterOperationHandle extends AbstractLedgerOperationHandle<U
             X509Certificate cert = CertificateUtils.parseCertificate(op.getCertificate());
             CertificateUtils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
             CertificateUtils.checkValidity(cert);
-            X509Certificate[] ledgerCAs = CertificateUtils.parseCertificates(transactionContext.getDataset().getAdminDataset().getMetadata().getLedgerCertificates());
+            X509Certificate[] ledgerCAs = CertificateUtils.parseCertificates(transactionContext.getDataset().getAdminDataset().getAdminSettings().getMetadata().getLedgerCertificates());
             X509Certificate[] issuers = CertificateUtils.findIssuers(cert, ledgerCAs);
             Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
             CertificateUtils.checkValidityAny(issuers);

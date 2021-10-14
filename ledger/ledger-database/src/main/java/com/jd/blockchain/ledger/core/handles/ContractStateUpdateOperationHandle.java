@@ -6,6 +6,8 @@ import com.jd.blockchain.ledger.IllegalTransactionException;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.UserStateUpdateOperation;
 import com.jd.blockchain.ledger.core.ContractAccount;
+import com.jd.blockchain.ledger.core.ContractAccountSetEditor;
+import com.jd.blockchain.ledger.core.ContractAccountSetEditorSimple;
 import com.jd.blockchain.ledger.core.EventManager;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
@@ -36,7 +38,11 @@ public class ContractStateUpdateOperationHandle extends AbstractLedgerOperationH
         }
 
         // 操作账本；
-        transactionContext.getDataset().getContractAccountSet().setState(op.getContractAddress(), op.getState());
+        if (ledger.getAnchorType().equals("default")) {
+            ((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).setState(op.getContractAddress(), op.getState());
+        } else {
+            ((ContractAccountSetEditorSimple)(transactionContext.getDataset().getContractAccountSet())).setState(op.getContractAddress(), op.getState());
+        }
     }
 
 }

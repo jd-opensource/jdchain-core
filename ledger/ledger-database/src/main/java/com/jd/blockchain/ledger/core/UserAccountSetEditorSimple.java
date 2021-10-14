@@ -2,6 +2,7 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
@@ -10,6 +11,7 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import utils.Bytes;
 import utils.SkippingIterator;
+import utils.StringUtils;
 import utils.Transactional;
 
 import java.util.Map;
@@ -109,9 +111,13 @@ public class UserAccountSetEditorSimple implements Transactional, UserAccountSet
 	 * @param pubKey  公钥；
 	 * @return 注册成功的用户对象；
 	 */
-	public UserAccount register(Bytes address, PubKey pubKey) {
+	public UserAccount register(Bytes address, PubKey pubKey, String ca) {
 		CompositeAccount baseAccount = accountSet.register(address, pubKey);
-		return new UserAccount(baseAccount);
+		UserAccount userAccount = new UserAccount(baseAccount);
+		if(!StringUtils.isEmpty(ca)) {
+			userAccount.setCertificate(ca);
+		}
+		return userAccount;
 	}
 
 	@Override
@@ -139,6 +145,14 @@ public class UserAccountSetEditorSimple implements Transactional, UserAccountSet
 
 	public void clearCachedIndex() {
 		accountSet.clearCachedIndex();
+	}
+
+	public void setState(Bytes address, AccountState state) {
+		getAccount(address).setState(state);
+	}
+
+	public void setCertificate(Bytes address, String certificate) {
+		getAccount(address).setCertificate(certificate);
 	}
 
 }

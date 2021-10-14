@@ -11,6 +11,7 @@ import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerDataSnapshot;
 import com.jd.blockchain.ledger.LedgerInitSetting;
 import com.jd.blockchain.ledger.LedgerSettings;
+import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.OperationResult;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionResult;
@@ -24,6 +25,7 @@ import utils.Bytes;
 import utils.codec.Base58Utils;
 import utils.io.BytesUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -683,11 +685,14 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 	 *
 	 */
 	private static class LedgerTransactionContextImpl implements LedgerTransactionContext {
+
 		private Logger logger = LoggerFactory.getLogger(LedgerTransactionalEditorSimple.class);
 
 		private LedgerTransactionalEditorSimple ledgerEditor;
 
 		private TransactionRequest txRequest;
+
+		private List<Operation> derivedOperations = new ArrayList<>();
 
 //		private LedgerDataset dataset;
 //
@@ -731,6 +736,18 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 		@Override
 		public TransactionSet getTransactionSet() {
 			return ledgerEditor.getTransactionSet();
+		}
+
+		@Override
+		public Operation[] getDerivedOperations() {
+			return derivedOperations.toArray(new Operation[derivedOperations.size()]);
+		}
+
+		@Override
+		public void addDerivedOperations(Operation... operations) {
+			for(Operation operation : operations) {
+				derivedOperations.add(operation);
+			}
 		}
 
 		@Override

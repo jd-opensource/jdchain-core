@@ -13,6 +13,8 @@ import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
 import com.jd.blockchain.ledger.core.UserAccount;
+import com.jd.blockchain.ledger.core.UserAccountSetEditor;
+import com.jd.blockchain.ledger.core.UserAccountSetEditorSimple;
 
 public class UserStateUpdateOperationHandle extends AbstractLedgerOperationHandle<UserStateUpdateOperation> {
 
@@ -34,7 +36,11 @@ public class UserStateUpdateOperationHandle extends AbstractLedgerOperationHandl
         }
 
         // 操作账本；
-        transactionContext.getDataset().getUserAccountSet().setState(op.getUserAddress(), op.getState());
+        if (ledger.getAnchorType().equals("default")) {
+            ((UserAccountSetEditor)(transactionContext.getDataset().getUserAccountSet())).setState(op.getUserAddress(), op.getState());
+        } else {
+            ((UserAccountSetEditorSimple)(transactionContext.getDataset().getUserAccountSet())).setState(op.getUserAddress(), op.getState());
+        }
     }
 
 }
