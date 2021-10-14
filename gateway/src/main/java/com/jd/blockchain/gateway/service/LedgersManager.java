@@ -4,6 +4,7 @@ import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
+import com.jd.blockchain.gateway.GatewayConfigProperties;
 import com.jd.blockchain.gateway.event.EventListener;
 import com.jd.blockchain.gateway.event.EventListenerService;
 import com.jd.blockchain.gateway.event.PullEventListener;
@@ -50,18 +51,34 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
 
     private ReadWriteLock ledgersLock = new ReentrantReadWriteLock();
 
+    // 是否存储拓扑信息
+    private boolean storeTopology = false;
+    // 是否动态感知拓扑信息
+    private boolean awareTopology = true;
+
     public LedgersManager() {
     }
 
-    public void init(NetworkAddress address, AsymmetricKeypair keyPair, boolean storageOpen) {
-        if (storageOpen) {
+    public void init(AsymmetricKeypair keyPair, GatewayConfigProperties config) {
+        this.storeTopology = config.isStoreTopology();
+        this.awareTopology = config.isAwareTopology();
+        init(config.masterPeerAddress(), keyPair);
+    }
+
+    public void init(NetworkAddress address, AsymmetricKeypair keyPair, boolean storeTopology) {
+        this.storeTopology = storeTopology;
+        init(address, keyPair);
+    }
+
+    private void init(NetworkAddress address, AsymmetricKeypair keyPair) {
+        if (storeTopology) {
             this.topologyStorage = newLedgerPeersTopologyStorage();
         }
 
         ledgersLock.writeLock().lock();
         try {
             // 是否开启拓扑存储
-            if (!storageOpen) {
+            if (!storeTopology) {
                 // 未开启拓扑存储，使用配置文件初始化
                 init(address, keyPair, -1);
             } else {
@@ -221,7 +238,7 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
     }
 
     public HashDigest[] getLedgers(AsymmetricKeypair keyPair, NetworkAddress peerAddress) {
-        try(PeerBlockchainServiceFactory factory = PeerBlockchainServiceFactory.connect(keyPair, peerAddress, credentialProvider, clientManager);) {
+        try (PeerBlockchainServiceFactory factory = PeerBlockchainServiceFactory.connect(keyPair, peerAddress, credentialProvider, clientManager)) {
             return factory.getLedgerHashs();
         } catch (Exception e) {
             logger.error("Get ledgers from {} error", peerAddress, e);
@@ -340,7 +357,7 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
         for (int i = 0; i < peerAddresses.length; i++) {
             peerConnectionServices[i] = new LedgerPeerConnectionManager(ledger, peerAddresses[i], keyPair, credentialProvider, clientManager, this);
         }
-        return new LedgerPeersManager(ledger, peerConnectionServices, keyPair, credentialProvider, clientManager, this, topologyStorage);
+        return new LedgerPeersManager(ledger, peerConnectionServices, keyPair, credentialProvider, clientManager, this, topologyStorage, awareTopology);
     }
 
     @Override

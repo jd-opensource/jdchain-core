@@ -1,5 +1,7 @@
 package com.jd.blockchain.ledger.core;
 
+import java.security.cert.X509Certificate;
+import java.util.Map;
 import java.util.Set;
 
 import utils.Bytes;
@@ -22,6 +24,8 @@ public interface LedgerSecurityManager {
 	 * @return 一项安全策略；
 	 */
 	SecurityPolicy getSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes);
+
+	SecurityPolicy getSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes, X509Certificate[] ledgerCAs);
 
 	/**
 	 * 返回指定用户的角色权限；

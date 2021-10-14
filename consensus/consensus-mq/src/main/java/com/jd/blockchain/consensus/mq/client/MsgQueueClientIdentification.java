@@ -29,6 +29,8 @@ public class MsgQueueClientIdentification implements ClientCredential {
 
     private SignatureDigest signature;
 
+    private String certificate;
+
     public MsgQueueClientIdentification() {
     }
 
@@ -71,5 +73,15 @@ public class MsgQueueClientIdentification implements ClientCredential {
     @Override
     public String getProviderName() {
         return MsgQueueConsensusProvider.NAME;
+    }
+
+    @Override
+    public String getCertificate() {
+        return certificate;
+    }
+
+    public MsgQueueClientIdentification setCertificate(String certificate) {
+        this.certificate = certificate;
+        return this;
     }
 }

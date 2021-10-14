@@ -2,9 +2,12 @@ package com.jd.blockchain.gateway;
 
 import java.io.File;
 import java.io.InputStream;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jd.blockchain.ca.CertificateRole;
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.gateway.service.topology.LedgerPeersTopology;
 import org.apache.commons.io.FileUtils;
@@ -57,7 +60,7 @@ import utils.ArgumentSet;
 import utils.ArgumentSet.ArgEntry;
 import utils.BaseConstant;
 import utils.ConsoleUtils;
-import utils.net.NetworkAddress;
+import utils.StringUtils;
 import utils.reflection.TypeUtils;
 
 public class GatewayServerBooter {
@@ -132,7 +135,7 @@ public class GatewayServerBooter {
 			GatewayServerBooter booter = new GatewayServerBooter(configProps, springConfigLocation);
 			booter.start();
 		} catch (Exception e) {
-			ConsoleUtils.error("Starting web server......", e);
+			e.printStackTrace();
 		}
 	}
 
@@ -145,21 +148,38 @@ public class GatewayServerBooter {
 		this.config = config;
 		this.springConfigLocation = springConfigLocation;
 
-		String base58Pwd = config.keys().getDefault().getPrivKeyPassword();
-		if (base58Pwd == null || base58Pwd.length() == 0) {
-			base58Pwd = KeyGenUtils.readPasswordString();
-		}
-
 		// 加载密钥；
-		PubKey pubKey = KeyGenUtils.decodePubKey(config.keys().getDefault().getPubKeyValue());
-
-		PrivKey privKey = null;
-		String base58PrivKey = config.keys().getDefault().getPrivKeyValue();
-		if (base58PrivKey == null) {
-			// 注：GatewayConfigProperties 确保了 PrivKeyValue 和 PrivKeyPath 必有其一；
-			privKey = KeyGenUtils.readPrivKey(config.keys().getDefault().getPrivKeyPath(), base58Pwd);
+		PubKey pubKey;
+		if(!StringUtils.isEmpty(config.keys().getDefault().getPubKeyValue())) {
+			pubKey = KeyGenUtils.decodePubKey(config.keys().getDefault().getPubKeyValue());
 		} else {
-			privKey = KeyGenUtils.decodePrivKey(base58PrivKey, base58Pwd);
+			X509Certificate certificate = CertificateUtils.parseCertificate(utils.io.FileUtils.readText(config.keys().getDefault().getCaPath()));
+			CertificateUtils.checkValidity(certificate);
+			CertificateUtils.checkCertificateRole(certificate, CertificateRole.GW);
+			pubKey = CertificateUtils.resolvePubKey(certificate);
+		}
+		String base58Pwd = config.keys().getDefault().getPrivKeyPassword();
+		PrivKey privKey;
+		String privkeyString = config.keys().getDefault().getPrivKeyValue();
+		if (StringUtils.isEmpty(privkeyString)) {
+			privkeyString = utils.io.FileUtils.readText(config.keys().getDefault().getPrivKeyPath()).trim();
+			if(privkeyString.startsWith("-----BEGIN") && privkeyString.endsWith("PRIVATE KEY-----")) {
+				if(StringUtils.isEmpty(base58Pwd)) {
+					privKey = CertificateUtils.parsePrivKey(pubKey.getAlgorithm(), privkeyString);
+				} else {
+					privKey = CertificateUtils.parsePrivKey(pubKey.getAlgorithm(), privkeyString, base58Pwd);
+				}
+			} else {
+				if (StringUtils.isEmpty(base58Pwd)) {
+					base58Pwd = KeyGenUtils.readPasswordString();
+				}
+				privKey = KeyGenUtils.decodePrivKey(privkeyString, base58Pwd);
+			}
+		} else {
+			if (StringUtils.isEmpty(base58Pwd)) {
+				base58Pwd = KeyGenUtils.readPasswordString();
+			}
+			privKey = KeyGenUtils.decodePrivKey(privkeyString, base58Pwd);
 		}
 		defaultKeyPair = new AsymmetricKeypair(pubKey, privKey);
 	}
@@ -177,10 +197,9 @@ public class GatewayServerBooter {
 		dataSearchController.setSchemaRetrievalUrl(config.getSchemaRetrievalUrl());
 		LedgersManager peerConnector = appCtx.getBean(LedgersManager.class);
 
-		NetworkAddress peerAddress = config.masterPeerAddress();
-		peerConnector.init(peerAddress, defaultKeyPair, config.isStoreTopology());
+		peerConnector.init(defaultKeyPair, config);
 
-		ConsoleUtils.info("Peer[%s] is connected success!", peerAddress.toString());
+		ConsoleUtils.info("Peer[%s] is connected success!", config.masterPeerAddress().toString());
 	}
 
 	public synchronized void close() {

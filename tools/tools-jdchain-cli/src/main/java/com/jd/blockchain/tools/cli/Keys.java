@@ -1,11 +1,13 @@
 package com.jd.blockchain.tools.cli;
 
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.KeyGenUtils;
 import com.jd.blockchain.crypto.PrivKey;
 import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.ledger.BlockchainKeypair;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 import utils.StringUtils;
@@ -14,6 +16,7 @@ import utils.crypto.classic.SHA256Utils;
 import utils.io.FileUtils;
 
 import java.io.File;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Scanner;
 
@@ -32,6 +35,7 @@ import java.util.Scanner;
                 KeysAdd.class,
                 KeysUpdate.class,
                 KeysDelete.class,
+                KeysImport.class,
                 CommandLine.HelpCommand.class
         }
 )
@@ -45,6 +49,14 @@ public class Keys implements Runnable {
 
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;
+
+    protected String getKeysHome() {
+        try {
+            return jdChainCli.path.getCanonicalPath() + File.separator + KEYS_HOME;
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
 
     @Override
     public void run() {
@@ -60,7 +72,7 @@ class KeysList implements Runnable {
 
     @Override
     public void run() {
-        File keysHome = new File(keys.jdChainCli.path.getAbsolutePath() + File.separator + Keys.KEYS_HOME);
+        File keysHome = new File(keys.getKeysHome());
         if (!keysHome.exists()) {
             keysHome.mkdirs();
         }
@@ -93,12 +105,12 @@ class KeysShow implements Runnable {
 
     @Override
     public void run() {
-        File keysHome = new File(keys.jdChainCli.path.getAbsolutePath() + File.separator + Keys.KEYS_HOME);
+        File keysHome = new File(keys.getKeysHome());
         if (!keysHome.exists()) {
             keysHome.mkdirs();
         }
         File[] pubs = keysHome.listFiles((dir, name) -> {
-            if (name.equals(this.name + ".pub")) {
+            if (FilenameUtils.removeExtension(name).equals(this.name)) {
                 return true;
             }
             return false;
@@ -133,17 +145,23 @@ class KeysAdd implements Runnable {
     @CommandLine.Option(names = {"-a", "--algorithm"}, description = "Crypto algorithm")
     String algorithm;
 
+    @CommandLine.Option(names = {"-p", "--password"}, description = "Password of the key")
+    String password;
+
+    @CommandLine.Option(names = "--seed", description = "Seed of the key, length must gte 32")
+    String seed;
+
     @CommandLine.ParentCommand
     private Keys keys;
 
     @Override
     public void run() {
-        File keysHome = new File(keys.jdChainCli.path.getAbsolutePath() + File.separator + Keys.KEYS_HOME);
+        File keysHome = new File(keys.getKeysHome());
         if (!keysHome.exists()) {
             keysHome.mkdirs();
         }
         String[] names = keysHome.list((dir, fileName) -> {
-            if (FilenameUtils.removeExtension(fileName).contains(name)) {
+            if (FilenameUtils.removeExtension(fileName).equals(name)) {
                 return true;
             }
             return false;
@@ -152,11 +170,18 @@ class KeysAdd implements Runnable {
             System.err.println("[" + name + "] already exists");
         } else {
             algorithm = null != algorithm ? algorithm.toUpperCase() : "ED25519";
-            AsymmetricKeypair keypair = Crypto.getSignatureFunction(algorithm.toUpperCase()).generateKeypair();
-            System.out.println("please input password: ");
-            System.out.print("> ");
-            Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-            String password = scanner.next();
+            AsymmetricKeypair keypair;
+            if (StringUtils.isEmpty(seed)) {
+                keypair = Crypto.getSignatureFunction(algorithm.toUpperCase()).generateKeypair();
+            } else {
+                keypair = Crypto.getSignatureFunction(algorithm.toUpperCase()).generateKeypair(seed.getBytes());
+            }
+            if (StringUtils.isEmpty(password)) {
+                System.out.println("please input password: ");
+                System.out.print("> ");
+                Scanner scanner = new Scanner(System.in).useDelimiter("\n");
+                password = scanner.next();
+            }
             if (!StringUtils.isEmpty(password)) {
                 String pubkey = KeyGenUtils.encodePubKey(keypair.getPubKey());
                 String base58pwd = KeyGenUtils.encodePasswordAsBase58(password);
@@ -184,12 +209,12 @@ class KeysUpdate implements Runnable {
 
     @Override
     public void run() {
-        File keysHome = new File(keys.jdChainCli.path.getAbsolutePath() + File.separator + Keys.KEYS_HOME);
+        File keysHome = new File(keys.getKeysHome());
         if (!keysHome.exists()) {
             keysHome.mkdirs();
         }
         String[] names = keysHome.list((dir, fileName) -> {
-            if (FilenameUtils.removeExtension(fileName).contains(name)) {
+            if (FilenameUtils.removeExtension(fileName).equals(name)) {
                 return true;
             }
             return false;
@@ -235,12 +260,12 @@ class KeysDelete implements Runnable {
 
     @Override
     public void run() {
-        File keysHome = new File(keys.jdChainCli.path.getAbsolutePath() + File.separator + Keys.KEYS_HOME);
+        File keysHome = new File(keys.getKeysHome());
         if (!keysHome.exists()) {
             keysHome.mkdirs();
         }
         String[] names = keysHome.list((dir, fileName) -> {
-            if (FilenameUtils.removeExtension(fileName).contains(name)) {
+            if (FilenameUtils.removeExtension(fileName).equals(name)) {
                 return true;
             }
             return false;
@@ -260,6 +285,61 @@ class KeysDelete implements Runnable {
                 System.out.println("[" + name + "] deleted");
             } else {
                 System.err.print("password wrong");
+            }
+        }
+    }
+}
+
+@CommandLine.Command(name = "import", mixinStandardHelpOptions = true, header = "Import keypair from key and cert files.")
+class KeysImport implements Runnable {
+
+    @CommandLine.Option(required = true, names = {"-n", "--name"}, description = "Name of the key")
+    String name;
+
+    @CommandLine.Option(required = true, names = {"--crt"}, description = "File of the X509 certificate")
+    String caPath;
+
+    @CommandLine.Option(required = true, names = {"--key"}, description = "File of the PEM private key")
+    String keyPath;
+
+    @CommandLine.ParentCommand
+    private Keys keys;
+
+    @Override
+    public void run() {
+        File keysHome = new File(keys.getKeysHome());
+        if (!keysHome.exists()) {
+            keysHome.mkdirs();
+        }
+        String[] names = keysHome.list((dir, fileName) -> {
+            if (FilenameUtils.removeExtension(fileName).equals(name)) {
+                return true;
+            }
+            return false;
+        });
+        if (names.length != 0) {
+            System.err.println("[" + name + "] already exists");
+        } else {
+            X509Certificate certificate = CertificateUtils.parseCertificate(new File(caPath));
+            PubKey pubKey = CertificateUtils.resolvePubKey(certificate);
+            PrivKey privKey = CertificateUtils.parsePrivKey(pubKey.getAlgorithm(), new File(keyPath));
+            AsymmetricKeypair keypair = new BlockchainKeypair(pubKey, privKey);
+            System.out.println("please input password: ");
+            System.out.print("> ");
+            Scanner scanner = new Scanner(System.in).useDelimiter("\n");
+            String password = scanner.next();
+            if (!StringUtils.isEmpty(password)) {
+                String pubkey = KeyGenUtils.encodePubKey(keypair.getPubKey());
+                String base58pwd = KeyGenUtils.encodePasswordAsBase58(password);
+                String privkey = KeyGenUtils.encodePrivKey(keypair.getPrivKey(), base58pwd);
+                FileUtils.writeText(pubkey, new File(keysHome + File.separator + name + ".pub"));
+                FileUtils.writeText(privkey, new File(keysHome + File.separator + name + ".priv"));
+                FileUtils.writeText(base58pwd, new File(keysHome + File.separator + name + ".pwd"));
+                FileUtils.writeText(CertificateUtils.toPEMString(certificate), new File(keysHome + File.separator + name + ".crt"));
+                System.out.printf(Keys.KEYS_PRINT_FORMAT, "NAME", "ALGORITHM", "ADDRESS", "PUBKEY");
+                System.out.printf(Keys.KEYS_PRINT_FORMAT, name, Crypto.getAlgorithm(privKey.getAlgorithm()).name(), AddressEncoding.generateAddress(keypair.getPubKey()), keypair.getPubKey());
+            } else {
+                System.err.println("invalid password");
             }
         }
     }

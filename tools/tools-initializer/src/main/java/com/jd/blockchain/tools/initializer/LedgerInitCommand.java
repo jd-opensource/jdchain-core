@@ -1,7 +1,11 @@
 package com.jd.blockchain.tools.initializer;
 
 import java.io.File;
+import java.security.cert.X509Certificate;
+import java.util.UUID;
 
+import com.jd.blockchain.ca.CertificateUtils;
+import com.jd.blockchain.ledger.IdentityMode;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -25,6 +29,7 @@ import utils.ConsoleUtils;
 import utils.StringUtils;
 import utils.ArgumentSet.ArgEntry;
 import utils.ArgumentSet.Setting;
+import utils.codec.Base58Utils;
 import utils.io.FileUtils;
 import utils.net.NetworkAddress;
 
@@ -49,9 +54,6 @@ public class LedgerInitCommand {
 	// 账本的初始化配置文件的路径(ledger.init)；
 	private static final String INI_ARG = "-i";
 
-	// 是否输出调试信息；
-	private static final String DEBUG_OPT = "-debug";
-
 	private static final String MONITOR_OPT = "-monitor";
 
 	private static final Prompter DEFAULT_PROMPTER = new ConsolePrompter();
@@ -68,7 +70,7 @@ public class LedgerInitCommand {
 	public static void main(String[] args) {
 		Prompter prompter = DEFAULT_PROMPTER;
 
-		Setting argSetting = ArgumentSet.setting().prefix(LOCAL_ARG, INI_ARG).option(DEBUG_OPT).option(MONITOR_OPT);
+		Setting argSetting = ArgumentSet.setting().prefix(LOCAL_ARG, INI_ARG).option(MONITOR_OPT);
 		ArgumentSet argSet = ArgumentSet.resolve(args, argSetting);
 
 		try {
@@ -91,8 +93,29 @@ public class LedgerInitCommand {
 
 			// load ledger init setting;
 			LedgerInitProperties ledgerInitProperties = LedgerInitProperties.resolve(iniArg.getValue());
-			String localNodePubKeyString = localConf.getLocal().getPubKeyString();
-			PubKey localNodePubKey = KeyGenUtils.decodePubKey(localNodePubKeyString);
+			// 加载当前节点的私钥；
+			// 根据 identity-mode 验证 local.conf 参数的正确性
+			String base58Pwd = localConf.getLocal().getPassword();
+			PubKey localNodePubKey;
+			PrivKey privKey;
+			if(ledgerInitProperties.getIdentityMode() == IdentityMode.CA) {
+				X509Certificate certificate = CertificateUtils.parseCertificate(FileUtils.readText(localConf.getLocal().getCaPath()));
+				localNodePubKey = CertificateUtils.resolvePubKey(certificate);
+				if(StringUtils.isEmpty(base58Pwd)) {
+					privKey = CertificateUtils.parsePrivKey(localNodePubKey.getAlgorithm(), FileUtils.readText(localConf.getLocal().getPrivKeyPath()));
+				} else {
+					privKey = CertificateUtils.parsePrivKey(localNodePubKey.getAlgorithm(), FileUtils.readText(localConf.getLocal().getPrivKeyPath()), base58Pwd);
+				}
+				if (!StringUtils.isEmpty(base58Pwd)) {
+					base58Pwd = Base58Utils.encode(base58Pwd.getBytes());
+				}
+			} else {
+				if (StringUtils.isEmpty(base58Pwd)) {
+					base58Pwd = KeyGenUtils.readPasswordString();
+				}
+				localNodePubKey = KeyGenUtils.decodePubKey(localConf.getLocal().getPubKeyString());
+				privKey = KeyGenUtils.decodePrivKey(localConf.getLocal().getPrivKeyString(), base58Pwd);
+			}
 			// 地址根据公钥生成
 			String localNodeAddress = AddressEncoding.generateAddress(localNodePubKey).toBase58();
 
@@ -100,29 +123,13 @@ public class LedgerInitCommand {
 			int currId = -1;
 			for (int i = 0; i < ledgerInitProperties.getConsensusParticipantCount(); i++) {
 				ParticipantProperties partiConf = ledgerInitProperties.getConsensusParticipant(i);
-//				String partiAddress = partiConf.getAddress();
-//				if (partiAddress == null) {
-//					if (partiConf.getPubKeyPath() != null) {
-//						PubKey pubKey = KeyGenUtils.readPubKey(partiConf.getPubKeyPath());
-//						partiConf.setPubKey(pubKey);
-//						partiAddress = partiConf.getAddress();
-//					}
-//				}
 				if (localNodeAddress.equals(partiConf.getAddress().toBase58())) {
 					currId = i;
 				}
 			}
 			if (currId == -1) {
-				throw new IllegalStateException(
-						"The current node specified in local.conf is not found in ledger.init!");
+				throw new IllegalStateException("The current node specified in local.conf is not found in ledger.init!");
 			}
-
-			// 加载当前节点的私钥；
-			String base58Pwd = localConf.getLocal().getPassword();
-			if (base58Pwd == null) {
-				base58Pwd = KeyGenUtils.readPasswordString();
-			}
-			PrivKey privKey = KeyGenUtils.decodePrivKey(localConf.getLocal().getPrivKeyString(), base58Pwd);
 
 			// Output ledger binding config of peer;
 			if (!FileUtils.existDirectory(localConf.getBindingOutDir())) {
@@ -139,7 +146,7 @@ public class LedgerInitCommand {
 			// 启动初始化；
 			LedgerInitCommand initCommand = new LedgerInitCommand();
 			HashDigest newLedgerHash = initCommand.startInit(currId, privKey, base58Pwd, ledgerInitProperties,
-					localConf.getStoragedDb(), prompter, conf);
+					localConf, prompter, conf);
 
 			if (newLedgerHash != null) {
 				// success;
@@ -150,10 +157,7 @@ public class LedgerInitCommand {
 			}
 
 		} catch (Exception e) {
-			prompter.error("\r\nError!! -- %s\r\n", e.getMessage());
-			if (argSet.hasOption(DEBUG_OPT)) {
-				e.printStackTrace();
-			}
+			e.printStackTrace();
 
 			prompter.error("\r\n Ledger init process has been broken by error!");
 		}
@@ -177,6 +181,10 @@ public class LedgerInitCommand {
 	public HashDigest startInit(int currId, PrivKey privKey, String base58Pwd,
 			LedgerInitProperties ledgerInitProperties, DBConnectionConfig dbConnConfig, Prompter prompter,
 			LedgerBindingConfig conf, Object... extBeans) {
+		if(StringUtils.isEmpty(base58Pwd)) {
+			base58Pwd = Base58Utils.encode(UUID.randomUUID().toString().getBytes());
+			prompter.info("Your base58 encode private key password : [%s]!!!", base58Pwd);
+		}
 		if (currId < 0 || currId >= ledgerInitProperties.getConsensusParticipantCount()) {
 			prompter.info(
 					"Your participant id is illegal which is less than 1 or great than the total participants count[%s]!!!",
@@ -207,6 +215,108 @@ public class LedgerInitCommand {
 		prompter.info("\r\n\r\n This is participant [%s], the ledger initialization is ready to start!\r\n", currId);
 //		ConsoleUtils.confirm("Press any key to continue... ");
 //		prompter.confirm("Press any key to continue... ");
+
+		// start the web controller of Ledger Initializer;
+		NetworkAddress serverAddress = ledgerInitProperties.getConsensusParticipant(currId).getInitializerAddress();
+
+		//for dockers binding the 0.0.0.0;
+		//if ledger-init.sh set up the -DhostPort=xxx -DhostIp=xxx, then get it;
+		String preHostPort = System.getProperty("hostPort");
+		if(!StringUtils.isEmpty(preHostPort)){
+			int port = NumberUtils.parseNumber(preHostPort, Integer.class);
+			serverAddress.setPort(port);
+			ConsoleUtils.info("###ledger-init.sh###,set up the -DhostPort="+port);
+		}
+		String preHostIp = System.getProperty("hostIp");
+		if(!StringUtils.isEmpty(preHostIp)){
+			serverAddress.setHost(preHostIp);
+			ConsoleUtils.info("###ledger-init.sh###,set up the -DhostIp="+preHostIp);
+		}
+
+		String argServerAddress = String.format("--server.address=%s", serverAddress.getHost());
+		String argServerPort = String.format("--server.port=%s", serverAddress.getPort());
+		String[] innerArgs = { argServerAddress, argServerPort };
+
+		SpringApplication app = new SpringApplication(LedgerInitCommand.class);
+		if (extBeans != null && extBeans.length > 0) {
+			app.addInitializers((ApplicationContextInitializer<ConfigurableApplicationContext>) applicationContext -> {
+				ConfigurableListableBeanFactory beanFactory = applicationContext.getBeanFactory();
+				for (Object bean : extBeans) {
+					beanFactory.registerSingleton(bean.toString(), bean);
+				}
+			});
+		}
+		ConfigurableApplicationContext ctx = app.run(innerArgs);
+		this.ledgerManager = ctx.getBean(LedgerManager.class);
+
+		prompter.info("\r\n------ Web controller of Ledger Initializer[%s:%s] was started. ------\r\n",
+				serverAddress.getHost(), serverAddress.getPort());
+
+		try {
+			LedgerInitProcess initProc = ctx.getBean(LedgerInitProcess.class);
+			HashDigest ledgerHash = initProc.initialize(currId, privKey, ledgerInitProperties,
+					bindingConf.getDbConnection(), prompter);
+
+			if (ledgerHash == null) {
+				// ledger init fail;
+				prompter.error("\r\n------ Ledger initialize fail! ------\r\n");
+				return null;
+			} else {
+				prompter.info("\r\n------ Ledger initialize success! ------");
+				prompter.info("New Ledger Hash is :[%s]", ledgerHash.toBase58());
+
+				if (conf == null) {
+					conf = new LedgerBindingConfig();
+				}
+				conf.addLedgerBinding(ledgerHash, bindingConf);
+
+				return ledgerHash;
+
+			}
+		} finally {
+			ctx.close();
+			prompter.info("\r\n------ Web listener[%s:%s] was closed. ------\r\n", serverAddress.getHost(),
+					serverAddress.getPort());
+		}
+	}
+
+	public HashDigest startInit(int currId, PrivKey privKey, String base58Pwd,
+			LedgerInitProperties ledgerInitProperties, LocalConfig localConfig, Prompter prompter,
+			LedgerBindingConfig conf, Object... extBeans) {
+		if (currId < 0 || currId >= ledgerInitProperties.getConsensusParticipantCount()) {
+			prompter.info(
+					"Your participant id is illegal which is less than 1 or great than the total participants count[%s]!!!",
+					ledgerInitProperties.getConsensusParticipantCount());
+			return null;
+		}
+
+		// generate binding config;
+		BindingConfig bindingConf = new BindingConfig();
+
+		// 设置账本名称
+		bindingConf.setLedgerName(ledgerInitProperties.getLedgerName());
+
+		bindingConf.getParticipant()
+				.setAddress(ledgerInitProperties.getConsensusParticipant(currId).getAddress().toBase58());
+		// 设置参与方名称
+		bindingConf.getParticipant().setName(ledgerInitProperties.getConsensusParticipant(currId).getName());
+
+		// 证书模式下私钥处理
+		if(ledgerInitProperties.getIdentityMode() == IdentityMode.CA) {
+			bindingConf.getParticipant().setPkPath(localConfig.getLocal().getPrivKeyPath());
+		} else {
+			String encodedPrivKey = KeyGenUtils.encodePrivKey(privKey, base58Pwd);
+			bindingConf.getParticipant().setPk(encodedPrivKey);
+		}
+		if(!StringUtils.isEmpty(base58Pwd)) {
+			bindingConf.getParticipant().setPassword(base58Pwd);
+		}
+
+		bindingConf.getDbConnection().setConnectionUri(localConfig.getStoragedDb().getUri());
+		bindingConf.getDbConnection().setPassword(localConfig.getStoragedDb().getPassword());
+
+		// confirm continue；
+		prompter.info("\r\n\r\n This is participant [%s], the ledger initialization is ready to start!\r\n", currId);
 
 		// start the web controller of Ledger Initializer;
 		NetworkAddress serverAddress = ledgerInitProperties.getConsensusParticipant(currId).getInitializerAddress();

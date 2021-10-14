@@ -1,8 +1,14 @@
 package com.jd.blockchain.tools.cli;
 
 import com.jd.binaryproto.BinaryProtocol;
+import com.jd.blockchain.ca.CertificateRole;
+import com.jd.blockchain.ca.CertificateUtils;
+import com.jd.blockchain.crypto.AddressEncoding;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
+import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BlockchainIdentityData;
 import com.jd.blockchain.ledger.BlockchainKeyGenerator;
@@ -10,9 +16,11 @@ import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.ledger.BytesDataList;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.DigitalSignature;
+import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.PreparedTransaction;
 import com.jd.blockchain.ledger.RolesPolicy;
+import com.jd.blockchain.ledger.SystemEvent;
 import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionResponse;
@@ -28,12 +36,20 @@ import com.jd.blockchain.transaction.UserRolesAuthorizer;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 import utils.Bytes;
+import utils.StringUtils;
+import utils.codec.Base58Utils;
 import utils.io.BytesUtils;
 import utils.io.FileUtils;
 
 import java.io.File;
 import java.lang.reflect.Method;
+import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Scanner;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @description: traction operations
@@ -45,17 +61,23 @@ import java.util.Scanner;
         showDefaultValues = true,
         description = "Build, sign or send transaction.",
         subcommands = {
+                TxLedgerCAUpdate.class,
                 TxUserRegister.class,
+                TxUserCAUpdate.class,
+                TxUserStateUpdate.class,
                 TxRoleConfig.class,
                 TxAuthorziationConfig.class,
                 TxDataAccountRegister.class,
                 TxKVSet.class,
                 TxEventPublish.class,
+                TxEventSubscribe.class,
                 TxContractDeploy.class,
                 TxContractCall.class,
+                TxContractStateUpdate.class,
                 TxEventAccountRegister.class,
                 TxSign.class,
                 TxSend.class,
+                TxTestKV.class,
                 CommandLine.HelpCommand.class
         }
 )
@@ -100,6 +122,10 @@ public class Tx implements Runnable {
         return getChainService().newTransaction(selectLedger());
     }
 
+    TransactionTemplate newTransaction(HashDigest ledger) {
+        return getChainService().newTransaction(ledger);
+    }
+
     boolean sign(PreparedTransaction ptx) {
         DigitalSignature signature = sign(ptx.getTransactionHash());
         if (null != signature) {
@@ -120,13 +146,18 @@ public class Tx implements Runnable {
         }
     }
 
+    protected String getKeysHome() {
+        try {
+            return jdChainCli.path.getCanonicalPath() + File.separator + Keys.KEYS_HOME;
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
     DigitalSignature sign(HashDigest txHash) {
-        File keysHome = new File(jdChainCli.getHomePath() + File.separator + Keys.KEYS_HOME);
+        File keysHome = new File(getKeysHome());
         File[] pubs = keysHome.listFiles((dir, name) -> {
-            if (name.endsWith(".priv")) {
-                return true;
-            }
-            return false;
+            return name.endsWith(".priv");
         });
         if (null == pubs || pubs.length == 0) {
             System.err.printf("no signer in path [%s]%n", keysHome.getAbsolutePath());
@@ -160,47 +191,16 @@ public class Tx implements Runnable {
         }
     }
 
-    String export(PreparedTransaction ptx) {
-        if (null != export) {
-            File txPath = new File(export);
-            txPath.mkdirs();
-            File txFile = new File(txPath.getAbsolutePath() + File.separator + ptx.getTransactionHash());
-            TxRequestMessage tx = new TxRequestMessage(ptx.getTransactionHash(), ptx.getTransactionContent());
-            FileUtils.writeBytes(BinaryProtocol.encode(tx, TransactionRequest.class), txFile);
-            return txFile.getAbsolutePath();
-        } else {
-            return null;
-        }
-    }
-
-    @Override
-    public void run() {
-        spec.commandLine().usage(System.err);
-    }
-}
-
-@CommandLine.Command(name = "user-register", mixinStandardHelpOptions = true, header = "Register new user.")
-class TxUserRegister implements Runnable {
-
-    @CommandLine.ParentCommand
-    private Tx txCommand;
-
-    @Override
-    public void run() {
-        TransactionTemplate txTemp = txCommand.newTransaction();
-        BlockchainKeypair keypair;
-        File keysHome = new File(txCommand.jdChainCli.getHomePath() + File.separator + Keys.KEYS_HOME);
+    BlockchainKeypair signer() {
+        File keysHome = new File(getKeysHome());
         File[] pubs = keysHome.listFiles((dir, name) -> {
-            if (name.endsWith(".priv")) {
-                return true;
-            }
-            return false;
+            return name.endsWith(".priv");
         });
-        if (pubs.length == 0) {
-            System.err.printf("no keypair in path [%s]%n", keysHome.getAbsolutePath());
-            return;
+        if (null == pubs || pubs.length == 0) {
+            System.err.printf("no signer in path [%s]%n", keysHome.getAbsolutePath());
+            return null;
         } else {
-            System.out.printf("select keypair to register: %n%-7s\t%s\t%s%n", "INDEX", "KEY", "ADDRESS");
+            System.out.printf("select keypair to sign tx: %n%-7s\t%s\t%s%n", "INDEX", "KEY", "ADDRESS");
             BlockchainKeypair[] keypairs = new BlockchainKeypair[pubs.length];
             String[] passwords = new String[pubs.length];
             for (int i = 0; i < pubs.length; i++) {
@@ -220,14 +220,152 @@ class TxUserRegister implements Runnable {
             System.out.print("> ");
             String pwd = scanner.next();
             if (KeyGenUtils.encodePasswordAsBase58(pwd).equals(passwords[keyIndex])) {
-                keypair = keypairs[keyIndex];
+                return keypairs[keyIndex];
             } else {
                 System.err.println("password wrong");
-                return;
+                return null;
             }
         }
+    }
 
-        txTemp.users().register(keypair.getIdentity());
+
+    String export(PreparedTransaction ptx) {
+        if (null != export) {
+            File txPath = new File(export);
+            txPath.mkdirs();
+            File txFile = new File(txPath.getAbsolutePath() + File.separator + ptx.getTransactionHash());
+            TxRequestMessage tx = new TxRequestMessage(ptx.getTransactionHash(), ptx.getTransactionContent());
+            FileUtils.writeBytes(BinaryProtocol.encode(tx, TransactionRequest.class), txFile);
+            return txFile.getAbsolutePath();
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public void run() {
+        spec.commandLine().usage(System.err);
+    }
+}
+
+@CommandLine.Command(name = "ledger-ca-update", mixinStandardHelpOptions = true, header = "Update ledger certificates.")
+class TxLedgerCAUpdate implements Runnable {
+
+    @CommandLine.Option(names = {"-n", "--name"}, description = "Name of the certificate")
+    String name;
+
+    @CommandLine.Option(names = "--crt", description = "File of the X509 certificate", scope = CommandLine.ScopeType.INHERIT)
+    String caPath;
+
+    @CommandLine.Option(names = "--operation", required = true, description = "Operation for this certificate. Optional values: ADD,UPDATE,REMOVE", scope = CommandLine.ScopeType.INHERIT)
+    Operation operation;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        if (StringUtils.isEmpty(name) && StringUtils.isEmpty(caPath)) {
+            System.err.println("crt name and crt path cannot be empty at the same time");
+            return;
+        }
+        TransactionTemplate txTemp = txCommand.newTransaction();
+        X509Certificate certificate = CertificateUtils.parseCertificate(!StringUtils.isEmpty(name) ? FileUtils.readText(txCommand.getKeysHome() + File.separator + name + ".crt") : FileUtils.readText(caPath));
+        CertificateUtils.checkCertificateRolesAny(certificate, CertificateRole.ROOT, CertificateRole.CA);
+        CertificateUtils.checkValidity(certificate);
+        if (operation == Operation.ADD) {
+            txTemp.metaInfo().ca().add(certificate);
+        } else if (operation == Operation.UPDATE) {
+            txTemp.metaInfo().ca().update(certificate);
+        } else {
+            txTemp.metaInfo().ca().remove(certificate);
+        }
+        PreparedTransaction ptx = txTemp.prepare();
+        String txFile = txCommand.export(ptx);
+        if (null != txFile) {
+            System.out.println("export transaction success: " + txFile);
+        } else {
+            if (txCommand.sign(ptx)) {
+                TransactionResponse response = ptx.commit();
+                String pubkey = KeyGenUtils.encodePubKey(CertificateUtils.resolvePubKey(certificate));
+                if (response.isSuccess()) {
+                    System.out.printf("ledger ca: [%s](pubkey) updated%n", pubkey);
+                } else {
+                    System.err.printf("update ledger ca: [%s](pubkey) failed!%n", pubkey);
+                }
+            }
+        }
+    }
+
+    private enum Operation {
+        ADD,
+        UPDATE,
+        REMOVE
+    }
+}
+
+@CommandLine.Command(name = "user-register", mixinStandardHelpOptions = true, header = "Register new user.")
+class TxUserRegister implements Runnable {
+
+    @CommandLine.Option(names = {"-n", "--name"}, description = "Name of the key")
+    String name;
+
+    @CommandLine.Option(names = "--pubkey", description = "Pubkey of the user", scope = CommandLine.ScopeType.INHERIT)
+    String pubkey;
+
+    @CommandLine.Option(names = "--crt", description = "File of the X509 certificate", scope = CommandLine.ScopeType.INHERIT)
+    String caPath;
+
+    @CommandLine.Option(names = "--ca-mode", description = "Register with CA", scope = CommandLine.ScopeType.INHERIT)
+    boolean caMode;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        File keysHome = new File(txCommand.getKeysHome());
+        PubKey pubKey = null;
+        X509Certificate certificate = null;
+        if (!StringUtils.isEmpty(name)) {
+            File[] pubs;
+            if (caMode) {
+                pubs = keysHome.listFiles((dir, name) -> {
+                    return name.endsWith(this.name + ".crt");
+                });
+                if (pubs.length != 1) {
+                    System.err.printf("no [%s.crt] in path [%s]%n", name, keysHome.getAbsolutePath());
+                    return;
+                }
+                certificate = CertificateUtils.parseCertificate(FileUtils.readText(pubs[0]));
+            } else {
+                pubs = keysHome.listFiles((dir, name) -> {
+                    return name.endsWith(this.name + ".pub");
+                });
+                if (pubs.length != 1) {
+                    System.err.printf("no [%s.pub] in path [%s]%n", name, keysHome.getAbsolutePath());
+                    return;
+                }
+                pubKey = Crypto.resolveAsPubKey(Base58Utils.decode(FileUtils.readText(pubs[0])));
+            }
+        } else if (!StringUtils.isEmpty(caPath)) {
+            certificate = CertificateUtils.parseCertificate(FileUtils.readText(caPath));
+        } else if (!StringUtils.isEmpty(pubkey) && !caMode) {
+            pubKey = Crypto.resolveAsPubKey(Base58Utils.decode(pubkey));
+        } else {
+            System.err.println("key name, public key and certificate file can not be empty at the same time");
+            return;
+        }
+
+        TransactionTemplate txTemp = txCommand.newTransaction();
+        if (null != certificate) {
+            CertificateUtils.checkCertificateRolesAny(certificate, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
+            CertificateUtils.checkValidity(certificate);
+            pubKey = CertificateUtils.resolvePubKey(certificate);
+            txTemp.users().register(certificate);
+        } else {
+            txTemp.users().register(new BlockchainIdentityData(pubKey));
+        }
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);
         if (null != txFile) {
@@ -236,9 +374,110 @@ class TxUserRegister implements Runnable {
             if (txCommand.sign(ptx)) {
                 TransactionResponse response = ptx.commit();
                 if (response.isSuccess()) {
-                    System.out.printf("register user: [%s]%n", keypair.getAddress());
+                    System.out.printf("register user: [%s]%n", AddressEncoding.generateAddress(pubKey));
                 } else {
                     System.err.println("register user failed!");
+                }
+            }
+        }
+    }
+}
+
+@CommandLine.Command(name = "user-ca-update", mixinStandardHelpOptions = true, header = "Update user certificate.")
+class TxUserCAUpdate implements Runnable {
+
+    @CommandLine.Option(names = "--crt", description = "File of the X509 certificate", scope = CommandLine.ScopeType.INHERIT)
+    String caPath;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        TransactionTemplate txTemp = txCommand.newTransaction();
+        X509Certificate certificate;
+        Bytes address;
+        if (StringUtils.isEmpty(caPath)) {
+            File keysHome = new File(txCommand.getKeysHome());
+            File[] pubs = keysHome.listFiles((dir, name) -> {
+                return name.endsWith(".crt");
+            });
+            if (pubs.length == 0) {
+                System.err.printf("no certificate in path [%s]%n", keysHome.getAbsolutePath());
+                return;
+            } else {
+                System.out.printf("select user to update: %n%-7s\t%s\t%s%n", "INDEX", "KEY", "ADDRESS");
+                Bytes[] addresses = new Bytes[pubs.length];
+                String[] certs = new String[pubs.length];
+                for (int i = 0; i < pubs.length; i++) {
+                    String key = FilenameUtils.removeExtension(pubs[i].getName());
+                    String keyPath = FilenameUtils.removeExtension(pubs[i].getAbsolutePath());
+                    String pubkey = FileUtils.readText(new File(keyPath + ".pub"));
+                    certs[i] = keyPath + ".crt";
+                    addresses[i] = AddressEncoding.generateAddress(KeyGenUtils.decodePubKey(pubkey));
+                    System.out.printf("%-7s\t%s\t%s%n", i, key, addresses[i]);
+                }
+                System.out.print("> ");
+                Scanner scanner = new Scanner(System.in).useDelimiter("\n");
+                int keyIndex = Integer.parseInt(scanner.next().trim());
+                address = addresses[keyIndex];
+                certificate = CertificateUtils.parseCertificate(FileUtils.readText(new File(certs[keyIndex])));
+                if (!address.equals(address)) {
+                    System.err.println("the key pair does not match the certificate");
+                    return;
+                }
+            }
+        } else {
+            certificate = CertificateUtils.parseCertificate(new File(caPath));
+            address = AddressEncoding.generateAddress(CertificateUtils.resolvePubKey(certificate));
+        }
+        CertificateUtils.checkCertificateRolesAny(certificate, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
+        CertificateUtils.checkValidity(certificate);
+        txTemp.user(address).ca(certificate);
+        PreparedTransaction ptx = txTemp.prepare();
+        String txFile = txCommand.export(ptx);
+        if (null != txFile) {
+            System.out.println("export transaction success: " + txFile);
+        } else {
+            if (txCommand.sign(ptx)) {
+                TransactionResponse response = ptx.commit();
+                if (response.isSuccess()) {
+                    System.out.printf("user: [%s] ca updated%n", address);
+                } else {
+                    System.err.println("update user ca failed!");
+                }
+            }
+        }
+    }
+}
+
+@CommandLine.Command(name = "user-state-update", mixinStandardHelpOptions = true, header = "Update user(certificate) state.")
+class TxUserStateUpdate implements Runnable {
+
+    @CommandLine.Option(names = "--address", required = true, description = "User address", scope = CommandLine.ScopeType.INHERIT)
+    String address;
+
+    @CommandLine.Option(names = "--state", required = true, description = "User state，Optional values: FREEZE,NORMAL,REVOKE", scope = CommandLine.ScopeType.INHERIT)
+    AccountState state;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        TransactionTemplate txTemp = txCommand.newTransaction();
+        txTemp.user(address).state(state);
+        PreparedTransaction ptx = txTemp.prepare();
+        String txFile = txCommand.export(ptx);
+        if (null != txFile) {
+            System.out.println("export transaction success: " + txFile);
+        } else {
+            if (txCommand.sign(ptx)) {
+                TransactionResponse response = ptx.commit();
+                if (response.isSuccess()) {
+                    System.out.printf("change user: [%s] state to:[%s]%n", address, state);
+                } else {
+                    System.err.println("change user state failed!");
                 }
             }
         }
@@ -434,6 +673,62 @@ class TxEventPublish implements Runnable {
     }
 }
 
+@CommandLine.Command(name = "event-listen", mixinStandardHelpOptions = true, header = "Subscribe event.")
+class TxEventSubscribe implements Runnable {
+
+    @CommandLine.Option(names = "--address", description = "Event address", scope = CommandLine.ScopeType.INHERIT)
+    String address;
+
+    @CommandLine.Option(names = "--name", required = true, description = "Event name", scope = CommandLine.ScopeType.INHERIT)
+    String name;
+
+    @CommandLine.Option(names = "--sequence", defaultValue = "0", description = "Sequence of the event", scope = CommandLine.ScopeType.INHERIT)
+    long sequence;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        // 事件监听会创建子线程，为阻止子线程被直接关闭，加入等待
+        CountDownLatch cdl = new CountDownLatch(1);
+        if (StringUtils.isEmpty(address)) {
+            txCommand.getChainService().monitorSystemEvent(txCommand.selectLedger(),
+                    SystemEvent.NEW_BLOCK_CREATED, sequence, (eventMessages, eventContext) -> {
+                        for (Event eventMessage : eventMessages) {
+                            // content中存放的是当前链上最新高度
+                            System.out.println("New block:" + eventMessage.getSequence() + ":" + BytesUtils.toLong(eventMessage.getContent().getBytes().toBytes()));
+                        }
+                    });
+        } else {
+            txCommand.getChainService().monitorUserEvent(txCommand.selectLedger(), address, name, sequence, (eventMessage, eventContext) -> {
+
+                BytesValue content = eventMessage.getContent();
+                switch (content.getType()) {
+                    case TEXT:
+                    case XML:
+                    case JSON:
+                        System.out.println(eventMessage.getName() + ":" + eventMessage.getSequence() + ":" + content.getBytes().toUTF8String());
+                        break;
+                    case INT64:
+                    case TIMESTAMP:
+                        System.out.println(eventMessage.getName() + ":" + eventMessage.getSequence() + ":" + BytesUtils.toLong(content.getBytes().toBytes()));
+                        break;
+                    default: // byte[], Bytes
+                        System.out.println(eventMessage.getName() + ":" + eventMessage.getSequence() + ":" + content.getBytes().toBase58());
+                        break;
+                }
+            });
+        }
+
+        try {
+            cdl.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
 @CommandLine.Command(name = "contract", mixinStandardHelpOptions = true, header = "Call contract method.")
 class TxContractCall implements Runnable {
 
@@ -462,7 +757,7 @@ class TxContractCall implements Runnable {
             tvs = new TypedValue[]{};
         }
 
-        txTemp.contract().send(Bytes.fromBase58(address), method, new BytesDataList(tvs));
+        txTemp.contract(Bytes.fromBase58(address)).invoke(method, new BytesDataList(tvs));
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);
         if (null != txFile) {
@@ -491,6 +786,39 @@ class TxContractCall implements Runnable {
                     }
                 } else {
                     System.err.println("call contract failed!");
+                }
+            }
+        }
+    }
+}
+
+@CommandLine.Command(name = "contract-state-update", mixinStandardHelpOptions = true, header = "Update contract state.")
+class TxContractStateUpdate implements Runnable {
+
+    @CommandLine.Option(names = "--address", required = true, description = "Contract address", scope = CommandLine.ScopeType.INHERIT)
+    String address;
+
+    @CommandLine.Option(names = "--state", required = true, description = "Contract state，Optional values: FREEZE,NORMAL,REVOKE", scope = CommandLine.ScopeType.INHERIT)
+    AccountState state;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        TransactionTemplate txTemp = txCommand.newTransaction();
+        txTemp.contract(address).state(state);
+        PreparedTransaction ptx = txTemp.prepare();
+        String txFile = txCommand.export(ptx);
+        if (null != txFile) {
+            System.out.println("export transaction success: " + txFile);
+        } else {
+            if (txCommand.sign(ptx)) {
+                TransactionResponse response = ptx.commit();
+                if (response.isSuccess()) {
+                    System.out.printf("change contract: [%s] state to:[%s]%n", address, state);
+                } else {
+                    System.err.println("change contract state failed!");
                 }
             }
         }
@@ -652,6 +980,77 @@ class TxSend implements Runnable {
                 System.err.println("Send transaction failed!");
             }
         } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+@CommandLine.Command(name = "testkv", mixinStandardHelpOptions = true, header = "Send kv set transaction for testing.")
+class TxTestKV implements Runnable {
+
+    @CommandLine.Option(names = "--address", required = true, description = "Data account address", scope = CommandLine.ScopeType.INHERIT)
+    String address;
+
+    @CommandLine.Option(names = "--thread", required = true, description = "Thread number", defaultValue = "1", scope = CommandLine.ScopeType.INHERIT)
+    int thread;
+
+    @CommandLine.Option(names = "--interval", required = true, description = "Interval millisecond per single thread", defaultValue = "0", scope = CommandLine.ScopeType.INHERIT)
+    int interval;
+
+    @CommandLine.Option(names = "--silence", required = true, description = "Do not log tx detail", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
+    boolean silence;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        HashDigest ledger = txCommand.selectLedger();
+        BlockchainKeypair signer = txCommand.signer();
+        CountDownLatch cdl = new CountDownLatch(1);
+        AtomicLong count = new AtomicLong(0);
+        final long startTime = System.currentTimeMillis();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date date = new Date(startTime);
+        for (int i = 0; i < thread; i++) {
+            final int index = i + 1;
+            new Thread(() -> {
+                System.out.println("start thread " + index + " to set kv");
+                while (true) {
+                    TransactionTemplate txTemp = txCommand.newTransaction(ledger);
+                    txTemp.dataAccount(address).setInt64(UUID.randomUUID().toString(), System.currentTimeMillis(), -1);
+                    PreparedTransaction prepare = txTemp.prepare();
+                    prepare.addSignature(SignatureUtils.sign(prepare.getTransactionHash(), signer));
+                    try {
+                        TransactionResponse response = prepare.commit();
+                        if(!silence) {
+                            System.out.println(prepare.getTransactionHash() + ": " + response.getExecutionState());
+                        }
+                        long l = count.incrementAndGet();
+                        if (l % 1000 == 0) {
+                            long t = System.currentTimeMillis();
+                            date.setTime(t);
+                            t -= startTime;
+                            System.out.printf("current time: %s, total txs: %d, time: %d ms, tps: %d \n", sdf.format(date), l, t, l * 1000 / t);
+                        }
+                        if (interval > 0) {
+                            try {
+                                Thread.sleep(interval);
+                            } catch (InterruptedException e) {
+                            }
+                        }
+                    } catch (Exception e) {
+                        if(!silence) {
+                            System.out.println(prepare.getTransactionHash() + ": " + e.getMessage());
+                        }
+                    }
+                }
+            }).start();
+        }
+
+        try {
+            cdl.await();
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }

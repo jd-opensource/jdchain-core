@@ -3,10 +3,15 @@ package com.jd.blockchain.ledger.core.handles;
 import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
+import com.jd.blockchain.ledger.AccountState;
+import com.jd.blockchain.ledger.AccountDataPermission;
+import com.jd.blockchain.ledger.AccountType;
 import com.jd.blockchain.ledger.ContractCodeDeployOperation;
 import com.jd.blockchain.ledger.ContractVersionConflictException;
+import com.jd.blockchain.ledger.IllegalTransactionException;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.core.*;
+import utils.Bytes;
 
 
 public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHandle<ContractCodeDeployOperation> {
@@ -34,55 +39,57 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 		SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
 		securityPolicy.checkEndpointPermission(LedgerPermission.UPGRADE_CONTRACT, MultiIDsPolicy.AT_LEAST_ONE);
 
-		// 操作账本；
-		ContractCodeDeployOperation contractOP = op;
-
 		// 校验合约内容
-		byte[] chainCode = contractOP.getChainCode();
+		byte[] chainCode = op.getChainCode();
 
 		if (chainCode == null || chainCode.length == 0) {
-			throw new ContractException(String.format("Contract[%s] content is empty !!!",
-					contractOP.getContractID().getAddress().toBase58()));
+			throw new ContractException(String.format("Contract[%s] content is empty !!!", op.getContractID().getAddress().toBase58()));
 		}
 		if (chainCode.length > MAX_SIZE_OF_CONTRACT) {
-			throw new ContractException(String.format("Contract[%s] content is great than the max size[%s]!",
-					contractOP.getContractID().getAddress().toBase58(), MAX_SIZE_OF_CONTRACT));
+			throw new ContractException(String.format("Contract[%s] content is great than the max size[%s]!", op.getContractID().getAddress().toBase58(), MAX_SIZE_OF_CONTRACT));
 		}
 
 		// 校验合约代码，不通过会抛出异常
 		try {
 			if (!CONTRACT_PROCESSOR.verify(chainCode)) {
-				throw new ContractException(String.format("Contract[%s] verify fail !!!",
-						contractOP.getContractID().getAddress().toBase58()));
+				throw new ContractException(String.format("Contract[%s] verify fail !!!", op.getContractID().getAddress().toBase58()));
 			}
 		} catch (Exception e) {
-			throw new ContractException(String.format("Contract[%s] verify fail !!!",
-					contractOP.getContractID().getAddress().toBase58()));
+			throw new ContractException(String.format("Contract[%s] verify fail !!!", op.getContractID().getAddress().toBase58()));
+		}
+
+		// 校验合约状态
+		ContractAccount contract = transactionContext.getDataset().getContractAccountSet().getAccount(op.getContractID().getAddress());
+		if (null != contract && contract.getState() != AccountState.NORMAL) {
+			throw new IllegalTransactionException("Can not change contract[" + contract.getAddress() + "] in "+ contract.getState() +" state.");
 		}
 
 		// chainCodeVersion != null? then use it;
-		long contractVersion = contractOP.getChainCodeVersion();
+		long contractVersion = op.getChainCodeVersion();
 		if(contractVersion != -1L){
 			long rst = 0;
 			if (ledger.getAnchorType().equals("default")) {
-				rst = ((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).update(contractOP.getContractID().getAddress(),
-						contractOP.getChainCode(), contractVersion);
+				rst = ((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).update(op.getContractID().getAddress(),
+						op.getChainCode(), contractVersion);
 			} else {
-				rst = ((ContractAccountSetEditorSimple)(transactionContext.getDataset().getContractAccountSet())).update(contractOP.getContractID().getAddress(),
-						contractOP.getChainCode(), contractVersion);
+				rst = ((ContractAccountSetEditorSimple)(transactionContext.getDataset().getContractAccountSet())).update(op.getContractID().getAddress(),
+						op.getChainCode(), contractVersion);
 			}
+
 			if(rst < 0 ){
 				throw new ContractVersionConflictException();
 			}
 		} else {
+			ContractAccount account;
 			if (ledger.getAnchorType().equals("default")) {
-				((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).deploy(contractOP.getContractID().getAddress(),
-					contractOP.getContractID().getPubKey(), contractOP.getAddressSignature(), contractOP.getChainCode());
+				account = ((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).deploy(op.getContractID().getAddress(),
+					op.getContractID().getPubKey(), op.getAddressSignature(), op.getChainCode());
 			} else {
-				((ContractAccountSetEditorSimple)(transactionContext.getDataset().getContractAccountSet())).deploy(contractOP.getContractID().getAddress(),
-						contractOP.getContractID().getPubKey(), contractOP.getAddressSignature(), contractOP.getChainCode());
+				account = ((ContractAccountSetEditorSimple)(transactionContext.getDataset().getContractAccountSet())).deploy(op.getContractID().getAddress(),
+						op.getContractID().getPubKey(), op.getAddressSignature(), op.getChainCode());
 			}
 
+			account.setPermission(new AccountDataPermission(AccountType.CONTRACT, requestContext.getEndpointAddresses().toArray(new Bytes[0])));
 		}
 	}
 

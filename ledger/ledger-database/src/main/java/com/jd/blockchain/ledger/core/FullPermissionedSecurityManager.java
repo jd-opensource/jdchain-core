@@ -1,7 +1,11 @@
 package com.jd.blockchain.ledger.core;
 
+import java.security.cert.X509Certificate;
+import java.util.Map;
 import java.util.Set;
 
+import com.jd.blockchain.ledger.DataPermission;
+import com.jd.blockchain.ledger.DataPermissionType;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerSecurityException;
 import com.jd.blockchain.ledger.TransactionPermission;
@@ -18,6 +22,11 @@ class FullPermissionedSecurityManager implements LedgerSecurityManager {
 	}
 
 	@Override
+	public SecurityPolicy getSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes, X509Certificate[] ledgerCAs) {
+		return new FullPermissionedPolicy(endpoints, nodes, ledgerCAs);
+	}
+
+	@Override
 	public UserRolesPrivileges getUserRolesPrivilegs(Bytes userAddress) {
 		// TODO Auto-generated method stub
 		return null;
@@ -27,10 +36,17 @@ class FullPermissionedSecurityManager implements LedgerSecurityManager {
 
 		private Set<Bytes> endpoints;
 		private Set<Bytes> nodes;
+		private X509Certificate[] ledgerCAs;
 
 		public FullPermissionedPolicy(Set<Bytes> endpoints, Set<Bytes> nodes) {
 			this.endpoints = endpoints;
 			this.nodes = nodes;
+		}
+
+		public FullPermissionedPolicy(Set<Bytes> endpoints, Set<Bytes> nodes, X509Certificate[] ledgerCAs) {
+			this.endpoints = endpoints;
+			this.nodes = nodes;
+			this.ledgerCAs = ledgerCAs;
 		}
 
 		@Override
@@ -80,6 +96,22 @@ class FullPermissionedSecurityManager implements LedgerSecurityManager {
 		@Override
 		public void checkNodePermission(TransactionPermission permission, MultiIDsPolicy midPolicy)
 				throws LedgerSecurityException {
+		}
+
+		@Override
+		public void checkEndpointCA(MultiIDsPolicy midPolicy) throws LedgerSecurityException {
+
+		}
+
+		@Override
+		public void checkNodeCA(MultiIDsPolicy midPolicy) throws LedgerSecurityException {
+		}
+
+		public void checkDataPermission(DataPermission permission, DataPermissionType permissionType) throws LedgerSecurityException {
+		}
+
+		@Override
+		public void checkDataOwners(DataPermission permission, MultiIDsPolicy midPolicy) throws LedgerSecurityException {
 		}
 
 		@Override

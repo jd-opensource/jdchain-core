@@ -3,7 +3,7 @@
   <parent>
 		<groupId>com.jd.blockchain</groupId>
 		<artifactId>jdchain-core</artifactId>
-		<version>1.5.0.RELEASE</version>
+		<version>1.6.0-SNAPSHOT</version>
   </parent>
   <artifactId>storage-core</artifactId>
   <packaging>pom</packaging>

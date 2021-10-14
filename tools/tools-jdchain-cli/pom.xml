@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.jd.blockchain</groupId>
         <artifactId>tools-core</artifactId>
-        <version>1.5.0.RELEASE</version>
+        <version>1.6.0-SNAPSHOT</version>
     </parent>
     <artifactId>jdchain-cli</artifactId>
 
@@ -33,6 +33,11 @@
         <dependency>
             <groupId>com.jd.blockchain</groupId>
             <artifactId>crypto-sm</artifactId>
+            <version>${framework.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.jd.blockchain</groupId>
+            <artifactId>crypto-ca</artifactId>
             <version>${framework.version}</version>
         </dependency>
         <dependency>

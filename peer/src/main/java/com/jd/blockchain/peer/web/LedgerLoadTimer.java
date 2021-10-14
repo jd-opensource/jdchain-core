@@ -102,8 +102,6 @@ public class LedgerLoadTimer implements ApplicationContextAware {
                     if (!newAddHashs.isEmpty()) {
                         // 由线程单独执行
                         ledgerLoadExecutor.execute(new LedgerLoadRunnable(newAddHashs, ledgerBindingConfig));
-                    } else {
-                        LOGGER.debug("All ledgers is newest!!!");
                     }
                 } else {
                     LOGGER.warn("--- Can not get semaphore of load ledger !!!");
@@ -199,7 +197,7 @@ public class LedgerLoadTimer implements ApplicationContextAware {
                         nodeServers.add(aware.setConfig(ledgerBindingConfig.getLedger(ledgerHash), ledgerHash));
                     }
                 } catch (Exception e) {
-                    LOGGER.error("--- New ledger [{}] setConfig exception!", ledgerHash.toBase58());
+                    LOGGER.error(String.format("--- New ledger [%s] setConfig exception!", ledgerHash.toBase58()), e);
                     continue;
                 }
             }

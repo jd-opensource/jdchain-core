@@ -17,6 +17,7 @@ import java.io.File;
         footer = "%nSee 'jdchain-cli help <command>' to read about a specific subcommand or concept.",
         subcommands = {
                 Keys.class,
+                CA.class,
                 Tx.class,
                 Query.class,
                 Participant.class,

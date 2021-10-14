@@ -1,41 +1,36 @@
 package com.jd.blockchain.ledger.core;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.ledger.AccountType;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.EventInfo;
 import com.jd.blockchain.ledger.TypedValue;
-
 import utils.Bytes;
-import utils.DataEntry;
 import utils.Dataset;
-import utils.Mapper;
-import utils.SkippingIterator;
 import utils.io.BytesUtils;
 
-public class EventPublishingAccount implements EventAccount, EventPublisher {
+import java.util.ArrayList;
+import java.util.List;
 
-    private CompositeAccount account;
+public class EventPublishingAccount extends PermissionAccountDecorator implements EventAccount, EventPublisher {
 
     public EventPublishingAccount(CompositeAccount account) {
-        this.account = account;
+        super(AccountType.EVENT, account);
     }
 
     @Override
     public long publish(Event event) {
-        return account.getDataset().setValue(event.getName(), TypedValue.fromBytes(BinaryProtocol.encode(event, Event.class)), event.getSequence() - 1);
+        return mklAccount.getDataset().setValue(event.getName(), TypedValue.fromBytes(BinaryProtocol.encode(event, Event.class)), event.getSequence() - 1);
     }
 
     @Override
     public Event[] getEvents(String eventName, long fromSequence, int count) {
         List<Event> events = new ArrayList<>();
-        Dataset<String, TypedValue> ds = account.getDataset();
-        long maxVersion = account.getDataset().getVersion(eventName) + 1;
+        Dataset<String, TypedValue> ds = mklAccount.getDataset();
+        long maxVersion = mklAccount.getDataset().getVersion(eventName) + 1;
         for (int i = 0; i < count && i <= maxVersion; i++) {
             TypedValue tv = ds.getValue(eventName, fromSequence + i);
             if (null == tv || tv.isNil()) {
@@ -54,7 +49,7 @@ public class EventPublishingAccount implements EventAccount, EventPublisher {
         String[] eventNames = new String[count];
 
         for (int index = 0; index < count; index++) {
-            byte[] indexKey = ((SimpleDatasetImpl)((ComplecatedSimpleAccount)account).getDataDataset()).getKeyByIndex(fromIndex + index);
+            byte[] indexKey = ((SimpleDatasetImpl)((ComplecatedSimpleAccount)mklAccount).getDataDataset()).getKeyByIndex(fromIndex + index);
             eventNames[index] = BytesUtils.toString(indexKey);
         }
 
@@ -63,17 +58,17 @@ public class EventPublishingAccount implements EventAccount, EventPublisher {
 
     @Override
     public long totalEventNames() {
-        return account.getDataset().getDataCount();
+        return mklAccount.getDataset().getDataCount();
     }
 
     @Override
     public long totalEvents(String eventName) {
-        return account.getDataset().getVersion(eventName) + 1;
+        return mklAccount.getDataset().getVersion(eventName) + 1;
     }
 
     @Override
     public Event getLatest(String eventName) {
-        TypedValue tv = account.getDataset().getValue(eventName);
+        TypedValue tv = mklAccount.getDataset().getValue(eventName);
         if (null == tv || tv.isNil()) {
             return null;
         }
@@ -83,30 +78,27 @@ public class EventPublishingAccount implements EventAccount, EventPublisher {
 
     @Override
     public BlockchainIdentity getID() {
-        return account.getID();
+        return mklAccount.getID();
     }
-    
-    
+
     @Override
     public Bytes getAddress() {
-    	return account.getID().getAddress();
+        return mklAccount.getID().getAddress();
     }
-    
+
     @Override
     public HashDigest getDataRootHash() {
-    	return account.getDataRootHash();
+        return mklAccount.getDataRootHash();
     }
-    
+
     @Override
     public HashDigest getHeaderRootHash() {
-    	return account.getHeaderRootHash();
+        return mklAccount.getHeaderRootHash();
     }
-    
+
     @Override
     public PubKey getPubKey() {
-    	return account.getID().getPubKey();
+        return mklAccount.getID().getPubKey();
     }
-    
-    
 
 }

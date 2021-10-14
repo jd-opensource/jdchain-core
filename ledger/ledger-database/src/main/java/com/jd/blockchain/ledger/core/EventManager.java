@@ -26,11 +26,19 @@ public class EventManager implements EventOperationHandle {
     }
 
     @Override
-    public void registerAccount(BlockchainIdentity identity) {
+    public DataAccount registerAccount(BlockchainIdentity identity) {
         if (ledger.getAnchorType().equals("default")) {
-            ((EventAccountSetEditor)(txCtx.getEventSet().getEventAccountSet())).register(identity.getAddress(), identity.getPubKey(), null);
+            return ((EventAccountSetEditor) (txCtx.getEventSet().getEventAccountSet())).register(identity.getAddress(), identity.getPubKey(), null);
         } else {
-            ((EventAccountSetEditorSimple)(txCtx.getEventSet().getEventAccountSet())).register(identity.getAddress(), identity.getPubKey(), null);
+            return ((EventAccountSetEditorSimple) (txCtx.getEventSet().getEventAccountSet())).register(identity.getAddress(), identity.getPubKey(), null);
+        }
+    }
+
+    public EventAccount getAccount(Bytes address) {
+        if (ledger.getAnchorType().equals("default")) {
+            return ((EventAccountSetEditor) (txCtx.getEventSet().getEventAccountSet())).getAccount(address);
+        } else {
+            return ((EventAccountSetEditorSimple) (txCtx.getEventSet().getEventAccountSet())).getAccount(address);
         }
     }
 

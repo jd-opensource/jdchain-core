@@ -29,15 +29,17 @@ public class TransactionDecorator implements LedgerTransaction {
 	private TransactionResult result;
 
 	public TransactionDecorator(LedgerTransaction ledgerTransaction) {
+        TransactionRequest request = ledgerTransaction.getRequest();
+        TransactionResult result = ledgerTransaction.getResult();
+        TransactionContent transactionContent = initTxContent(request.getTransactionContent());
+        LedgerDataSnapshot ledgerDataSnapshot = initTransactionStagedSnapshot(result.getDataSnapshot());
+        OperationResult[] operationResults = initOperationResults(result.getOperationResults());
 
-	    TransactionContent transactionContent = initTxContent(ledgerTransaction.getRequest().getTransactionContent());
-        LedgerDataSnapshot ledgerDataSnapshot = initTransactionStagedSnapshot(ledgerTransaction.getResult().getDataSnapshot());
-        OperationResult[] operationResults = initOperationResults(ledgerTransaction.getResult().getOperationResults());
-
-		this.request = new TxRequestMessage(ledgerTransaction.getRequest().getTransactionHash(), transactionContent);
-		this.result = new TransactionResultData(ledgerTransaction.getRequest().getTransactionHash(), ledgerTransaction.getResult().getBlockHeight(), ledgerTransaction.getResult().getExecutionState(), ledgerDataSnapshot, operationResults);
-        ((TxRequestMessage)this.request).setNodeSignatures(initNodeSignatures(ledgerTransaction.getRequest().getNodeSignatures()));
-        ((TxRequestMessage)this.request).setEndpointSignatures(initEndpointSignatures(ledgerTransaction.getRequest().getEndpointSignatures()));
+		this.request = new TxRequestMessage(request.getTransactionHash(), transactionContent);
+		this.result = new TransactionResultData(request.getTransactionHash(), result.getBlockHeight(), result.getExecutionState(),
+                ledgerDataSnapshot, operationResults, initDerivedOperations(result.getDerivedOperations()));
+        ((TxRequestMessage)this.request).setNodeSignatures(initNodeSignatures(request.getNodeSignatures()));
+        ((TxRequestMessage)this.request).setEndpointSignatures(initEndpointSignatures(request.getEndpointSignatures()));
 	}
 
 	private OperationResult[] initOperationResults(OperationResult[] opResults) {
@@ -67,6 +69,21 @@ public class TransactionDecorator implements LedgerTransaction {
             }
         }
         return txContentBlob;
+    }
+
+    private Operation[] initDerivedOperations(Operation[] operations) {
+	    if(null == operations || operations.length == 0) {
+            return null;
+        }
+        Operation[] ops = new Operation[operations.length];
+        for (int i=0; i<operations.length; i++) {
+            Operation opDecorator = initOperation(operations[i]);
+            if (opDecorator != null) {
+                ops[i] = opDecorator;
+            }
+        }
+
+        return ops;
     }
 
     private DigitalSignature[] initNodeSignatures(DigitalSignature[] nodeSigns) {

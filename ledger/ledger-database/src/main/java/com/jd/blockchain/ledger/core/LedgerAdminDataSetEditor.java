@@ -1,5 +1,8 @@
 package com.jd.blockchain.ledger.core;
 
+import com.jd.blockchain.ledger.GenesisUser;
+import com.jd.blockchain.ledger.GenesisUserConfig;
+import com.jd.blockchain.ledger.IdentityMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,7 +142,10 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 		// 初始化元数据；
 		this.metadata = new LedgerMetadataInfo();
 		this.metadata.setSeed(initSetting.getLedgerSeed());
+		this.metadata.setIdentityMode(initSetting.getIdentityMode());
+		this.metadata.setLedgerCertificates(initSetting.getLedgerCertificates());
 		this.metadata.setLedgerStructureVersion(initSetting.getLedgerStructureVersion());
+		this.metadata.setGenesisUsers(initSetting.getGenesisUsers());
 		// 新配置；
 		this.settings = new LedgerConfiguration(initSetting.getConsensusProvider(), initSetting.getConsensusSettings(),
 				initSetting.getCryptoSetting());
@@ -250,18 +256,6 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 	public LedgerMetadata_V2 getMetadata() {
 		return metadata;
 	}
-
-//	/**
-//	 * 返回原来的账本配置；
-//	 * 
-//	 * <br>
-//	 * 此方法总是返回从上一个区块加载的账本配置，即时调用 {@link #setLedgerSetting(LedgerSettings)} 做出了新的更改；
-//	 * 
-//	 * @return
-//	 */
-//	public LedgerSettings getPreviousSetting() {
-//		return previousSettings;
-//	}
 
 	/**
 	 * 返回当前设置的账本配置；
@@ -406,11 +400,18 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 		metadata =origMetadata == null ? new LedgerMetadataInfo() :  new LedgerMetadataInfo(origMetadata);
 	}
 
+	public void updateLedgerCA(String[] certs) {
+		metadata.setLedgerCertificates(certs);
+		updated = true;
+	}
+
 	public static class LedgerMetadataInfo implements LedgerMetadata_V2 {
 
 		private byte[] seed;
 
-//		private LedgerSetting setting;
+		private IdentityMode identityMode = IdentityMode.KEYPAIR;
+
+		private String[] ledgerCertificates;
 
 		private HashDigest participantsHash;
 
@@ -422,6 +423,8 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 
 		private long ledgerStructureVersion = -1L;
 
+		private GenesisUser[] genesisUsers;
+
 		public LedgerMetadataInfo() {
 		}
 
@@ -432,11 +435,49 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 			this.rolePrivilegesHash = metadata.getRolePrivilegesHash();
 			this.userRolesHash = metadata.getUserRolesHash();
 			this.ledgerStructureVersion = metadata.getLedgerStructureVersion();
+			if(null != metadata.getIdentityMode()) {
+				this.identityMode = metadata.getIdentityMode();
+			}
+			this.ledgerCertificates = metadata.getLedgerCertificates();
+			if(null != metadata.getGenesisUsers()) {
+				GenesisUser[] users = metadata.getGenesisUsers();
+				this.genesisUsers = new GenesisUserConfig[users.length];
+				for (int i = 0; i < users.length; i++) {
+					this.genesisUsers[i] = new GenesisUserConfig(users[i]);
+				}
+			}
 		}
 
 		@Override
 		public byte[] getSeed() {
 			return seed;
+		}
+
+		@Override
+		public IdentityMode getIdentityMode() {
+			return identityMode;
+		}
+
+		public void setIdentityMode(IdentityMode identityMode) {
+			this.identityMode = identityMode;
+		}
+
+		@Override
+		public String[] getLedgerCertificates() {
+			return ledgerCertificates;
+		}
+
+		public void setGenesisUsers(GenesisUser[] genesisUsers) {
+			this.genesisUsers = genesisUsers;
+		}
+
+		@Override
+		public GenesisUser[] getGenesisUsers() {
+			return genesisUsers;
+		}
+
+		public void setLedgerCertificates(String[] ledgerCertificates) {
+			this.ledgerCertificates = ledgerCertificates;
 		}
 
 		@Override

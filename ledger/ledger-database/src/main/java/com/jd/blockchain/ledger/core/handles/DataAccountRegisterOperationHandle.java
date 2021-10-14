@@ -1,10 +1,13 @@
 package com.jd.blockchain.ledger.core.handles;
 
+import com.jd.blockchain.ledger.AccountDataPermission;
+import com.jd.blockchain.ledger.AccountType;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.DataAccountRegisterOperation;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.core.DataAccountSetEditor;
 import com.jd.blockchain.ledger.core.DataAccountSetEditorSimple;
+import com.jd.blockchain.ledger.core.DataAccount;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
@@ -15,6 +18,7 @@ import com.jd.blockchain.ledger.core.TransactionRequestExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.jd.blockchain.ledger.core.EventManager;
+import utils.Bytes;
 
 public class DataAccountRegisterOperationHandle extends AbstractLedgerOperationHandle<DataAccountRegisterOperation> {
 	private Logger logger = LoggerFactory.getLogger(DataAccountRegisterOperationHandle.class);
@@ -37,11 +41,15 @@ public class DataAccountRegisterOperationHandle extends AbstractLedgerOperationH
 		BlockchainIdentity bid = dataAccountRegOp.getAccountID();
 		logger.debug("before register.[dataAddress={}]",bid.getAddress());
 
+		DataAccount account;
+
 		if (ledger.getAnchorType().equals("default")) {
-			((DataAccountSetEditor)(transactionContext.getDataset().getDataAccountSet())).register(bid.getAddress(), bid.getPubKey(), null);
+			account = ((DataAccountSetEditor)(transactionContext.getDataset().getDataAccountSet())).register(bid.getAddress(), bid.getPubKey(), null);
 		} else {
-			((DataAccountSetEditorSimple)(transactionContext.getDataset().getDataAccountSet())).register(bid.getAddress(), bid.getPubKey(), null);
+			account = ((DataAccountSetEditorSimple)(transactionContext.getDataset().getDataAccountSet())).register(bid.getAddress(), bid.getPubKey(), null);
 		}
+
+		account.setPermission(new AccountDataPermission(AccountType.DATA, requestContext.getEndpointAddresses().toArray(new Bytes[0])));
 
 		logger.debug("after register.[dataAddress={}]",bid.getAddress());
 	}

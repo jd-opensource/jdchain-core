@@ -1,10 +1,12 @@
 package com.jd.blockchain.ledger.core;
 
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.ledger.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +41,9 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 
 	private TransactionBatchResult batchResult;
 
+	private IdentityMode identityMode;
+	private X509Certificate[] ledgerCAs;
+
 	/**
 	 * @param newBlockEditor 新区块的数据编辑器；
 	 * @param newBlockEditor  账本查询器，只包含新区块的前一个区块的数据集；即未提交新区块之前的经过共识的账本最新数据集；
@@ -50,33 +55,24 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 		this.newBlockEditor = newBlockEditor;
 		this.ledger = ledger;
 		this.handlesRegisteration = opHandles;
+		if(null != ledger && null != ledger.getAdminInfo()) {
+			this.identityMode = ledger.getAdminInfo().getMetadata().getIdentityMode();
+			if (identityMode == IdentityMode.CA) {
+				this.ledgerCAs = CertificateUtils.parseCertificates(ledger.getAdminInfo().getMetadata().getLedgerCertificates());
+			}
+		}
 	}
 
 	public TransactionBatchProcessor(LedgerRepository ledgerRepo, OperationHandleRegisteration handlesRegisteration) {
 		this.ledger = ledgerRepo;
 		this.handlesRegisteration = handlesRegisteration;
-		
 		this.securityManager = ledgerRepo.getSecurityManager();
-		
 		this.newBlockEditor = ledgerRepo.createNextBlock();
+		this.identityMode = ledger.getAdminInfo().getMetadata().getIdentityMode();
+		if(identityMode == IdentityMode.CA) {
+			this.ledgerCAs = CertificateUtils.parseCertificates(ledger.getAdminInfo().getMetadata().getLedgerCertificates());
+		}
 	}
-
-//	public static TransactionBatchProcess create(LedgerRepository ledgerRepo,
-//			OperationHandleRegisteration handlesRegisteration) {
-//		LedgerBlock ledgerBlock = ledgerRepo.getLatestBlock();
-//		LedgerEditor newBlockEditor = ledgerRepo.createNextBlock();
-//		LedgerDataQuery previousBlockDataset = ledgerRepo.getLedgerData(ledgerBlock);
-//
-//		LedgerAdminDataQuery previousAdminDataset = previousBlockDataset.getAdminDataset();
-//		LedgerSecurityManager securityManager = new LedgerSecurityManagerImpl(
-//				previousAdminDataset.getAdminInfo().getRolePrivileges(),
-//				previousAdminDataset.getAdminInfo().getAuthorizations(), previousAdminDataset.getParticipantDataset(),
-//				previousBlockDataset.getUserAccountSet());
-//
-//		TransactionBatchProcessor processor = new TransactionBatchProcessor(securityManager, newBlockEditor, ledgerRepo,
-//				handlesRegisteration);
-//		return processor;
-//	}
 
 	@Override
 	public HashDigest getLedgerHash() {
@@ -109,14 +105,6 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 
 			TransactionRequestExtension reqExt = new TransactionRequestExtensionImpl(request);
 
-			// 初始化交易的用户安全策略；
-			SecurityPolicy securityPolicy = securityManager.getSecurityPolicy(reqExt.getEndpointAddresses(),
-					reqExt.getNodeAddresses());
-			SecurityContext.setContextUsersPolicy(securityPolicy);
-
-			// 安全校验；
-			checkSecurity(securityPolicy);
-
 			// 验证交易请求；
 			checkRequest(reqExt);
 			LOGGER.debug("after checkRequest... --[BlockHeight={}][RequestHash={}]",
@@ -148,10 +136,17 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 			resp = discard(request, e.getState());
 			LOGGER.error(String.format(
 					"Ignore transaction caused by BlockRollbackException! --[BlockHeight=%s][TxHash=%s] --%s",
-					newBlockEditor.getBlockHeight(), request.getTransactionHash(), 
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(),
 					e.getMessage()), e);
 			throw e;
-		}catch (LedgerException e) {
+		}  catch (LedgerSecurityException e) {
+			// 安全验证错误
+			resp = discard(request, TransactionState.REJECTED_BY_SECURITY_POLICY);
+			LOGGER.error(String.format(
+					"Ignore transaction caused by LedgerSecurityException! --[BlockHeight=%s][TxHash=%s] --%s",
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(),
+					e.getMessage()), e);
+		} catch (LedgerException e) {
 			// 发生账本级别的非回滚处理异常，只记录错误，不回滚；
 			resp = discard(request, e.getState());
 			LOGGER.error(String.format(
@@ -186,6 +181,13 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 
 		// 验证参与方节点是否具有核准交易的权限；
 		securityPolicy.checkNodePermission(LedgerPermission.APPROVE_TX, MultiIDsPolicy.AT_LEAST_ONE);
+
+		if(identityMode == IdentityMode.CA) {
+			// 验证节点证书
+			securityPolicy.checkNodeCA(MultiIDsPolicy.AT_LEAST_ONE);
+			// 验证终端用户证书
+			securityPolicy.checkEndpointCA(MultiIDsPolicy.AT_LEAST_ONE);
+		}
 	}
 
 	private void checkRequest(TransactionRequestExtension reqExt) {
@@ -253,15 +255,27 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 		try {
 			eventManager = new EventManager(request, txCtx, ledger);
 
+			// 初始化交易的用户安全策略；
+			SecurityPolicy securityPolicy;
+			if(identityMode != IdentityMode.CA) {
+				securityPolicy = securityManager.getSecurityPolicy(request.getEndpointAddresses(), request.getNodeAddresses());
+			} else {
+				securityPolicy = securityManager.getSecurityPolicy(request.getEndpointAddresses(), request.getNodeAddresses(), ledgerCAs);
+			}
+			SecurityContext.setContextUsersPolicy(securityPolicy);
+
+			// 安全校验；
+			checkSecurity(securityPolicy);
+
 			// 执行操作；
 			Operation[] ops = request.getTransactionContent().getOperations();
 			OperationHandleContext handleContext = new OperationHandleContext() {
 				@Override
-				public void handle(Operation operation) {
+				public BytesValue handle(Operation operation) {
 					// assert; Instance of operation are one of User related operations or
 					// DataAccount related operations;
 					OperationHandle hdl = handlesRegisteration.getHandle(operation.getClass());
-					hdl.process(operation, txCtx, request, ledger, this, eventManager);
+					return hdl.process(operation, txCtx, request, ledger, this, eventManager);
 				}
 			};
 			OperationHandle opHandle;
@@ -419,6 +433,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 
 	private void commitSuccess() {
 		newBlockEditor.commit();
+		LOGGER.info("New block committed - ledger: {}, height: {}, hash: {}", block.getLedgerHash(), block.getHeight(), block.getHash());
 		onCommitted();
 	}
 

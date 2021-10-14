@@ -41,6 +41,16 @@ public class OperationDecoratorFactory {
             return decorateEventAccountRegisterOperation((EventAccountRegisterOperation) op);
         } else if (op instanceof EventPublishOperation) {
             return decorateEventPublishOperation((EventPublishOperation) op);
+        } else if (op instanceof UserCAUpdateOperation) {
+            return decorateUserCAUpdateOperation((UserCAUpdateOperation) op);
+        } else if (op instanceof UserStateUpdateOperation) {
+            return decorateUserRevokeOperation((UserStateUpdateOperation) op);
+        } else if (op instanceof RootCAUpdateOperation) {
+            return decorateRootCAUpdateOperation((RootCAUpdateOperation) op);
+        } else if (op instanceof ContractStateUpdateOperation) {
+            return decorateContractStateUpdateOperation((ContractStateUpdateOperation) op);
+        } else if (op instanceof AccountPermissionSetOperation) {
+            return decorateAccountPermissionSetOperation((AccountPermissionSetOperation) op);
         }
 
         return null;
@@ -112,9 +122,12 @@ public class OperationDecoratorFactory {
         ledgerInitData.setConsensusSettings(op.getInitSetting().getConsensusSettings());
         ledgerInitData.setCryptoSetting(new CryptoConfigInfo(op.getInitSetting().getCryptoSetting()));
         ledgerInitData.setLedgerSeed(op.getInitSetting().getLedgerSeed());
+        ledgerInitData.setIdentityMode(op.getInitSetting().getIdentityMode());
+        if(op.getInitSetting().getIdentityMode() == IdentityMode.CA) {
+            ledgerInitData.setLedgerCertificates(op.getInitSetting().getLedgerCertificates());
+        }
         ledgerInitData.setConsensusProvider(op.getInitSetting().getConsensusProvider());
         ledgerInitData.setCreatedTime(op.getInitSetting().getCreatedTime());
-
         ParticipantNode[] participantNodes = op.getInitSetting().getConsensusParticipants();
         if (participantNodes != null && participantNodes.length > 0) {
             ParticipantNode[] participants = new ParticipantNode[participantNodes.length];
@@ -128,6 +141,19 @@ public class OperationDecoratorFactory {
                 participant.setParticipantState(participantNode.getParticipantNodeState());
                 participants[i] = participant;
             }
+
+            GenesisUser[] gus = op.getInitSetting().getGenesisUsers();
+            if(null == gus || gus.length == 0) {
+                gus = new GenesisUserConfig[participantNodes.length];
+                for (int i = 0; i < participantNodes.length; i++) {
+                    gus[i] = new GenesisUserConfig(participantNodes[i].getPubKey(), null, null, null);
+                }
+            }
+            GenesisUser[] genesisUsers = new GenesisUserConfig[gus.length];
+            for(int i=0; i<gus.length; i++) {
+                genesisUsers[i] = new GenesisUserConfig(gus[i]);
+            }
+            ledgerInitData.setGenesisUsers(genesisUsers);
 
             ledgerInitData.setConsensusParticipants(participants);
         }
@@ -143,7 +169,7 @@ public class OperationDecoratorFactory {
      */
     public static Operation decorateParticipantRegisterOperation(ParticipantRegisterOperation op) {
         BlockchainIdentity partId = decorateBlockchainIdentity(op.getParticipantID());
-        return new ParticipantRegisterOpTemplate(op.getParticipantName(), partId);
+        return new ParticipantRegisterOpTemplate(op.getParticipantName(), partId, op.getCertificate());
     }
 
     /**
@@ -209,7 +235,7 @@ public class OperationDecoratorFactory {
      */
     public static Operation decorateUserRegisterOperation(UserRegisterOperation op) {
         BlockchainIdentity identity = decorateBlockchainIdentity(op.getUserID());
-        return new UserRegisterOpTemplate(identity);
+        return new UserRegisterOpTemplate(identity, op.getCertificate());
     }
 
     /**
@@ -276,6 +302,34 @@ public class OperationDecoratorFactory {
             return typeValues;
         }
         return bytesValues;
+    }
+
+    public static Operation decorateUserCAUpdateOperation(UserCAUpdateOperation op) {
+        return new UserCAUpdateOpTemplate(op.getUserAddress(), op.getCertificate());
+    }
+
+    public static Operation decorateUserRevokeOperation(UserStateUpdateOperation op) {
+        return new UserStateUpdateOpTemplate(op.getUserAddress(), op.getState());
+    }
+
+    public static Operation decorateRootCAUpdateOperation(RootCAUpdateOperation op) {
+        return new RootCAUpdateOpTemplate(op);
+    }
+
+    public static Operation decorateContractStateUpdateOperation(ContractStateUpdateOperation op) {
+        return new ContractStateUpdateOpTemplate(op.getContractAddress(), op.getState());
+    }
+    /**
+     * decorate AccountPermissionSetOperation object
+     *
+     * @param op
+     * @return
+     */
+    public static Operation decorateAccountPermissionSetOperation(AccountPermissionSetOperation op) {
+        AccountPermissionSetOpTemplate opTemplate = new AccountPermissionSetOpTemplate(op.getAddress(), op.getAccountType());
+        opTemplate.setMode(op.getMode());
+        opTemplate.setRole(op.getRole());
+        return opTemplate;
     }
 
 }

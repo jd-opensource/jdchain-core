@@ -3,7 +3,6 @@ package com.jd.blockchain.ledger.core;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.EventPublishOperation;
-
 import utils.Bytes;
 
 /**
@@ -12,12 +11,20 @@ import utils.Bytes;
 public interface EventOperationHandle {
 
     /**
+     * 获取事件账户
+     *
+     * @param address
+     * @return
+     */
+    EventAccount getAccount(Bytes address);
+
+    /**
      * 注册事件账户
      *
      * @param identity
      * @return
      */
-    void registerAccount(BlockchainIdentity identity);
+    DataAccount registerAccount(BlockchainIdentity identity);
 
     /**
      * 发布用户自定义事件

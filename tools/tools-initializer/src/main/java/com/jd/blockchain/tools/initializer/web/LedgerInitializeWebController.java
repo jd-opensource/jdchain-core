@@ -8,6 +8,7 @@ import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import com.jd.blockchain.ledger.ParticipantNodeState;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -200,10 +201,14 @@ public class LedgerInitializeWebController implements LedgerInitProcess, LedgerI
 
 			// 生成签名决定；
 			this.localDecision = makeDecision(currentId, initializer.getLedgerHash(), privKey);
-			this.decisions = new DecisionResultHandle[ledgerInitConfig.getParticipantCount()];
+			ParticipantProperties[] participants = ledgerInitConfig.getParticipants();
+			this.decisions = new DecisionResultHandle[participants.length];
 			for (int i = 0; i < decisions.length; i++) {
 				// 参与者的 id 是依次递增的；
 				this.decisions[i] = new DecisionResultHandle(i);
+				if(participants[i].getParticipantNodeState() != ParticipantNodeState.CONSENSUS) {
+					this.decisions[i].setValue(localDecision);
+				}
 			}
 			// 预置当前参与方的“决定”到列表，避免向自己发起请求；
 			this.decisions[currentId].setValue(localDecision);
@@ -217,14 +222,17 @@ public class LedgerInitializeWebController implements LedgerInitProcess, LedgerI
 
 	private DigitalSignature[] getNodesSignatures() {
 		ParticipantNode[] parties = this.ledgerInitConfig.getParticipants();
-		DigitalSignature[] signatures = new DigitalSignature[parties.length];
+		List<DigitalSignature> signatures = new ArrayList<>();
 		for (int i = 0; i < parties.length; i++) {
+			if(parties[i].getParticipantNodeState() != ParticipantNodeState.CONSENSUS) {
+				continue;
+			}
 			PubKey pubKey = parties[i].getPubKey();
 			SignatureDigest signDigest = this.permissions[i].getTransactionSignature();
-			signatures[i] = new DigitalSignatureBlob(pubKey, signDigest);
+			signatures.add(new DigitalSignatureBlob(pubKey, signDigest));
 		}
 
-		return signatures;
+		return signatures.toArray(new DigitalSignature[signatures.size()]);
 	}
 
 	private void initLedgerStructureVersion(LedgerInitConfiguration initConfig) {
@@ -346,7 +354,7 @@ public class LedgerInitializeWebController implements LedgerInitProcess, LedgerI
 		LedgerInitProposalData permission = new LedgerInitProposalData(currentId, permissionSign);
 
 		this.currentId = currentId;
-		this.permissions = new LedgerInitProposal[ledgerInitConfig.getParticipantCount()];
+		this.permissions = new LedgerInitProposal[participants.length];
 		this.permissions[currentId] = permission;
 		this.localPermission = permission;
 
@@ -388,6 +396,10 @@ public class LedgerInitializeWebController implements LedgerInitProcess, LedgerI
 		// 发起请求；
 		CountDownLatch latch = new CountDownLatch(unpermittedCount);
 		for (int i = 0; i < participants.length; i++) {
+			if(participants[i].getParticipantNodeState() != ParticipantNodeState.CONSENSUS) {
+				latch.countDown();
+				continue;
+			}
 			if (this.permissions[i] == null) {
 				results[i] = doRequestPermission(participants[i].getId(), reqAuthSign, latch);
 			}
@@ -554,6 +566,7 @@ public class LedgerInitializeWebController implements LedgerInitProcess, LedgerI
 			for (int i = 0; i < randDecHdls.length; i++) {
 				if (randDecHdls[i].getValue() != null) {
 					// 忽略当前参与方自己(在初始化“决定”时已经置为非空)，以及已经收到主动提交“决定”的参与方;
+					// 忽略非共识状态的节点
 					continue;
 				}
 				boolean decided = doSynchronizeDecision(randDecHdls[i].PARTICIPANT_ID, privKey, randDecHdls[i],

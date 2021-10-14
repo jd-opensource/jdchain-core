@@ -1,24 +1,26 @@
 package com.jd.blockchain.ledger.core;
 
+import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PrivKey;
 import com.jd.blockchain.crypto.SignatureDigest;
-import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BlockchainIdentityData;
 import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.DigitalSignature;
+import com.jd.blockchain.ledger.GenesisUser;
+import com.jd.blockchain.ledger.IdentityMode;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerInitException;
 import com.jd.blockchain.ledger.LedgerInitOperation;
 import com.jd.blockchain.ledger.LedgerInitSetting;
-import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.ledger.RoleInitSettings;
 import com.jd.blockchain.ledger.RolesConfigureOperation;
 import com.jd.blockchain.ledger.SecurityInitSettings;
 import com.jd.blockchain.ledger.TransactionBuilder;
 import com.jd.blockchain.ledger.TransactionContent;
 import com.jd.blockchain.ledger.TransactionRequest;
+import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.ledger.UserAuthInitSettings;
 import com.jd.blockchain.ledger.UserAuthorizeOperation;
 import com.jd.blockchain.ledger.UserRegisterOperation;
@@ -27,6 +29,8 @@ import com.jd.blockchain.storage.service.KVStorageService;
 import com.jd.blockchain.transaction.SignatureUtils;
 import com.jd.blockchain.transaction.TxBuilder;
 import com.jd.blockchain.transaction.TxRequestBuilder;
+
+import java.security.cert.X509Certificate;
 
 /**
  * 账本初始化器；
@@ -92,7 +96,6 @@ public class LedgerInitializer {
 	}
 
 	public static LedgerInitializer create(LedgerInitSetting initSetting, SecurityInitSettings securityInitSettings) {
-		// 生成创世交易；
 		TransactionContent initTxContent = buildGenesisTransaction(initSetting, securityInitSettings);
 
 		return new LedgerInitializer(initSetting, initTxContent);
@@ -123,11 +126,14 @@ public class LedgerInitializer {
 
 		// TODO: 注册参与方; 目前由 LedgerInitSetting 定义，在 LedgerAdminDataset 中解释执行；
 
-		//  注册用户；
-		for (ParticipantNode p : initSetting.getConsensusParticipants()) {
-			// TODO：暂时只支持注册用户的初始化操作；
-			BlockchainIdentity superUserId = new BlockchainIdentityData(p.getPubKey());
-			initTxBuilder.users().register(superUserId);
+		// 注册用户
+		for (GenesisUser u : initSetting.getGenesisUsers()) {
+			if(initSetting.getIdentityMode() == IdentityMode.CA) {
+				X509Certificate cert = CertificateUtils.parseCertificate(u.getCertificate());
+				initTxBuilder.users().register(cert);
+			} else {
+				initTxBuilder.users().register(new BlockchainIdentityData(u.getPubKey()));
+			}
 		}
 
 		// 配置角色；
@@ -233,7 +239,10 @@ public class LedgerInitializer {
 					ledgerEditor, EMPTY_LEDGER_SIMPLE, DEFAULT_OP_HANDLE_REG);
 		}
 		LedgerEditor.TIMESTAMP_HOLDER.set(initSetting.getCreatedTime());
-		txProcessor.schedule(txRequest);
+		TransactionResponse response = txProcessor.schedule(txRequest);
+		if(!response.isSuccess()) {
+			throw new LedgerInitException("Transaction execution failed in genesis block!");
+		}
 		txResultsHandle = txProcessor.prepare();
 		LedgerEditor.TIMESTAMP_HOLDER.remove();
 		return txResultsHandle.getBlock();

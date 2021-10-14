@@ -10,6 +10,7 @@ import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
 import com.jd.blockchain.ledger.DataAccountInfo;
 import com.jd.blockchain.ledger.Event;
+import com.jd.blockchain.ledger.EventAccountInfo;
 import com.jd.blockchain.ledger.KVDataVO;
 import com.jd.blockchain.ledger.KVInfoVO;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
@@ -516,7 +517,7 @@ public class MultiLedgerQueryService implements BlockchainQueryService {
 	}
 
 	@Override
-	public BlockchainIdentity getUserEventAccount(HashDigest ledgerHash, String address) {
+	public EventAccountInfo getUserEventAccount(HashDigest ledgerHash, String address) {
 		checkLedgerHash(ledgerHash);
 		LedgerBlock block = ledger.getLatestBlock();
 		EventAccountSet eventAccountSet = ledger.getEventAccountSet(block);

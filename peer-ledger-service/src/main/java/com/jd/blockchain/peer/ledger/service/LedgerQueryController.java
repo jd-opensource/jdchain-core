@@ -728,15 +728,11 @@ public class LedgerQueryController implements BlockchainQueryService {
 
 	@RequestMapping(method = RequestMethod.GET, path = GET_EVENT_ACCOUNT)
 	@Override
-	public BlockchainIdentity getUserEventAccount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+	public EventPublishingAccount getUserEventAccount(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 			@PathVariable(name = "address") String address) {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		EventAccountSet eventAccountSet = ledger.getEventAccountSet(ledger.getLatestBlock());
-		EventPublishingAccount account = eventAccountSet.getAccount(address);
-		if (null == account) {
-			return null;
-		}
-		return account.getID();
+		return eventAccountSet.getAccount(address);
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = GET_TOTAL_EVENT_ACCOUNT_COUNT)

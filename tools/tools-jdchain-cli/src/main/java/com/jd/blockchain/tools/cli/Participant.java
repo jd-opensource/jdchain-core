@@ -1,7 +1,13 @@
 package com.jd.blockchain.tools.cli;
 
+import com.jd.blockchain.ca.CertificateRole;
+import com.jd.blockchain.ca.CertificateUtils;
+import com.jd.blockchain.crypto.AddressEncoding;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.KeyGenUtils;
+import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.ledger.BlockchainIdentityData;
 import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.ledger.PreparedTransaction;
 import com.jd.blockchain.ledger.TransactionResponse;
@@ -18,9 +24,12 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import picocli.CommandLine;
+import utils.StringUtils;
+import utils.codec.Base58Utils;
 import utils.io.FileUtils;
 
 import java.io.File;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -65,8 +74,21 @@ class ParticipantRegister implements Runnable {
     @CommandLine.Option(names = "--gw-port", defaultValue = "8080", description = "Set the gateway port. Default: 8080", scope = CommandLine.ScopeType.INHERIT)
     int gwPort;
 
-    @CommandLine.Option(required = true, names = "--name", description = "Name of the participant")
+    @CommandLine.Option(names = {"-n", "--name"}, description = "Name of the key")
     String name;
+
+    @CommandLine.Option(names = "--pubkey", description = "Pubkey of the user", scope = CommandLine.ScopeType.INHERIT)
+    String pubkey;
+
+    @CommandLine.Option(names = "--crt", description = "File of the X509 certificate", scope = CommandLine.ScopeType.INHERIT)
+    String caPath;
+
+    @CommandLine.Option(names = "--ca-mode", description = "Register with CA", scope = CommandLine.ScopeType.INHERIT)
+    boolean caMode;
+
+    @CommandLine.Option(required = true, names = "--participant-name", description = "Name of the participant")
+    String participantName;
+
     BlockchainService blockchainService;
     @CommandLine.ParentCommand
     private Participant participant;
@@ -96,7 +118,7 @@ class ParticipantRegister implements Runnable {
 
     boolean sign(PreparedTransaction ptx) {
         boolean ok = true;
-        File keysHome = new File(participant.jdChainCli.path.getAbsolutePath() + File.separator + Keys.KEYS_HOME);
+        File keysHome = new File(getKeysHome());
         File[] pubs = keysHome.listFiles((dir, name) -> {
             if (name.endsWith(".priv")) {
                 return true;
@@ -136,56 +158,71 @@ class ParticipantRegister implements Runnable {
         return ok;
     }
 
+    protected String getKeysHome() {
+        try {
+            return participant.jdChainCli.path.getCanonicalPath() + File.separator + Keys.KEYS_HOME;
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
     @Override
     public void run() {
-        TransactionTemplate txTemp = newTransaction();
-        BlockchainKeypair keypair;
-        File keysHome = new File(participant.jdChainCli.path.getAbsolutePath() + File.separator + Keys.KEYS_HOME);
-        File[] pubs = keysHome.listFiles((dir, name) -> {
-            if (name.endsWith(".priv")) {
-                return true;
-            }
-            return false;
-        });
-        if (pubs.length == 0) {
-            System.err.printf("no keypair in path [%s]%n", keysHome.getAbsolutePath());
-            return;
-        } else {
-            System.out.println("select keypair to register, input the index: ");
-            BlockchainKeypair[] keypairs = new BlockchainKeypair[pubs.length];
-            String[] passwords = new String[pubs.length];
-            for (int i = 0; i < pubs.length; i++) {
-                String key = FilenameUtils.removeExtension(pubs[i].getName());
-                String keyPath = FilenameUtils.removeExtension(pubs[i].getAbsolutePath());
-                String privkey = FileUtils.readText(new File(keyPath + ".priv"));
-                String pwd = FileUtils.readText(new File(keyPath + ".pwd"));
-                String pubkey = FileUtils.readText(new File(keyPath + ".pub"));
-                keypairs[i] = new BlockchainKeypair(KeyGenUtils.decodePubKey(pubkey), KeyGenUtils.decodePrivKey(privkey, pwd));
-                passwords[i] = pwd;
-                System.out.printf("%-3s\t%s\t%s%n", i, key, keypairs[i].getAddress());
-            }
-            Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-            int keyIndex = Integer.parseInt(scanner.next().trim());
-            System.out.println("input password of the key: ");
-            System.out.print("> ");
-            String pwd = scanner.next();
-            if (KeyGenUtils.encodePasswordAsBase58(pwd).equals(passwords[keyIndex])) {
-                // new participant keypair
-                keypair = keypairs[keyIndex];
-
-                txTemp.participants().register(name, keypair.getIdentity());
-                PreparedTransaction ptx = txTemp.prepare();
-                if (sign(ptx)) {
-                    TransactionResponse response = ptx.commit();
-                    if (response.isSuccess()) {
-                        System.out.printf("register participant: [%s]%n", keypair.getAddress());
-                    } else {
-                        System.err.println("register participant failed!");
+        File keysHome = new File(getKeysHome());
+        PubKey pubKey = null;
+        X509Certificate certificate = null;
+        if (!StringUtils.isEmpty(name)) {
+            File[] pubs;
+            if (caMode) {
+                pubs = keysHome.listFiles((dir, name) -> {
+                    if (name.endsWith(this.name + ".crt")) {
+                        return true;
                     }
+                    return false;
+                });
+                if (pubs.length != 1) {
+                    System.err.printf("no [%s.crt] in path [%s]%n", name, keysHome.getAbsolutePath());
+                    return;
                 }
+                certificate = CertificateUtils.parseCertificate(FileUtils.readText(pubs[0]));
             } else {
-                System.err.println("password wrong");
-                return;
+                pubs = keysHome.listFiles((dir, name) -> {
+                    if (name.endsWith(this.name + ".pub")) {
+                        return true;
+                    }
+                    return false;
+                });
+                if (pubs.length != 1) {
+                    System.err.printf("no [%s.pub] in path [%s]%n", name, keysHome.getAbsolutePath());
+                    return;
+                }
+                pubKey = Crypto.resolveAsPubKey(Base58Utils.decode(FileUtils.readText(pubs[0])));
+            }
+        } else if (!StringUtils.isEmpty(caPath)) {
+            certificate = CertificateUtils.parseCertificate(caPath);
+        } else if (!StringUtils.isEmpty(pubkey) && !caMode) {
+            pubKey = Crypto.resolveAsPubKey(Base58Utils.decode(pubkey));
+        } else {
+            System.err.println("key name, public key and certificate file can not be empty at the same time");
+            return;
+        }
+
+        TransactionTemplate txTemp = newTransaction();
+        if (null != certificate) {
+            CertificateUtils.checkCertificateRolesAny(certificate, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
+            CertificateUtils.checkValidity(certificate);
+            pubKey = CertificateUtils.resolvePubKey(certificate);
+            txTemp.participants().register(participantName, certificate);
+        } else {
+            txTemp.participants().register(participantName, new BlockchainIdentityData(pubKey));
+        }
+        PreparedTransaction ptx = txTemp.prepare();
+        if (sign(ptx)) {
+            TransactionResponse response = ptx.commit();
+            if (response.isSuccess()) {
+                System.out.printf("register participant: [%s]%n", AddressEncoding.generateAddress(pubKey));
+            } else {
+                System.err.println("register participant failed!");
             }
         }
     }
@@ -281,12 +318,6 @@ class ParticipantInactive implements Runnable {
     @CommandLine.Option(names = "--port", required = true, description = "Set the participant service port.", scope = CommandLine.ScopeType.INHERIT)
     int port;
 
-    @CommandLine.Option(names = "--syn-host", required = true, description = "Set synchronization participant host.", scope = CommandLine.ScopeType.INHERIT)
-    String synHost;
-
-    @CommandLine.Option(names = "--syn-port", required = true, description = "Set synchronization participant port.", scope = CommandLine.ScopeType.INHERIT)
-    int synPort;
-
     @Override
     public void run() {
         // TODO valid params
@@ -296,8 +327,6 @@ class ParticipantInactive implements Runnable {
             List<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
             params.add(new BasicNameValuePair("ledgerHash", ledger));
             params.add(new BasicNameValuePair("participantAddress", address));
-            params.add(new BasicNameValuePair("remoteManageHost", synHost));
-            params.add(new BasicNameValuePair("remoteManagePort", synPort + ""));
             httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
             HttpClient httpClient = HttpClients.createDefault();
             HttpResponse response = httpClient.execute(httpPost);

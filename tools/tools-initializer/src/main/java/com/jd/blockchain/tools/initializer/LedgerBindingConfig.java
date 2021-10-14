@@ -131,9 +131,9 @@ public class LedgerBindingConfig {
 		writeLine(builder, "%s=%s", partiAddressKey, stringOf(binding.getParticipant().getAddress()));
 		writeLine(builder, "#账本的当前共识参与方的节点名称 NodeName；");
 		writeLine(builder, "%s=%s", partiNameKey, stringOf(binding.getParticipant().getName()));
-		writeLine(builder, "#账本的当前共识参与方的私钥文件的保存路径；");
+		writeLine(builder, "#账本的当前共识参与方的私钥文件的保存路径；CA模式此属性必填，忽略 pk 属性");
 		writeLine(builder, "%s=%s", partiPkPathKey, stringOf(binding.getParticipant().getPkPath()));
-		writeLine(builder, "#账本的当前共识参与方的私钥内容（Base58编码）；如果指定了，优先选用此属性，其次是 pk-path 属性；");
+		writeLine(builder, "#账本的当前共识参与方的私钥内容；如果指定了，优先选用此属性，其次是 pk-path 属性；");
 		writeLine(builder, "%s=%s", partiPKKey, stringOf(binding.getParticipant().getPk()));
 		writeLine(builder, "#账本的当前共识参与方的私钥文件的读取口令；可为空；如果为空时，节点的启动过程中需要手动从控制台输入；");
 		writeLine(builder, "%s=%s", partiPwdKey, stringOf(binding.getParticipant().getPassword()));

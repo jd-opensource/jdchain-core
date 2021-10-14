@@ -7,7 +7,9 @@ import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
 
+import com.jd.blockchain.ledger.AccountState;
 import utils.Bytes;
+import utils.io.BytesUtils;
 
 /**
  * 用户账户；
@@ -20,13 +22,16 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 	private static final String USER_INFO_PREFIX = "PROP" + LedgerConsts.KEY_SEPERATOR;
 
 	private static final String DATA_PUB_KEY = "DATA-PUBKEY";
+	private static final String DATA_CA = "DATA-CA";
+	private static final String DATA_STATE = "DATA-STATE";
 
 	public UserAccount(CompositeAccount baseAccount) {
 		super(baseAccount);
 	}
 
 	private PubKey dataPubKey;
-	
+	private String certificate;
+	private AccountState state;
 
 	@Override
 	public Bytes getAddress() {
@@ -63,6 +68,41 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 		} else {
 			throw new LedgerException("Data public key was updated failed!");
 		}
+	}
+
+	@Override
+	public AccountState getState() {
+		if(state == null) {
+			BytesValue rbs = getHeaders().getValue(DATA_STATE);
+			if (rbs == null) {
+				state = AccountState.NORMAL;
+			} else {
+				state = AccountState.valueOf(BytesUtils.toString(rbs.getBytes().toBytes()));
+			}
+		}
+		return state;
+	}
+
+	public void setState(AccountState state) {
+		long version = getHeaders().getVersion(DATA_STATE);
+		getHeaders().setValue(DATA_STATE, TypedValue.fromText(state.name()), version);
+		this.state = state;
+	}
+
+	@Override
+	public String getCertificate() {
+		if(certificate == null) {
+			BytesValue crt = getHeaders().getValue(DATA_CA);
+			if (crt != null) {
+				certificate = BytesUtils.toString(crt.getBytes().toBytes());
+			}
+		}
+		return certificate;
+	}
+
+	public void setCertificate(String certificate) {
+		long version = getHeaders().getVersion(DATA_CA);
+		getHeaders().setValue(DATA_CA, TypedValue.fromText(certificate), version);
 	}
 
 	public long setProperty(String key, String value, long version) {

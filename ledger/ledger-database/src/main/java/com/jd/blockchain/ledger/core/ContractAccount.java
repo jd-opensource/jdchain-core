@@ -1,20 +1,26 @@
 package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.ledger.AccountState;
+import com.jd.blockchain.ledger.AccountType;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
 import com.jd.blockchain.ledger.TypedValue;
 
 import utils.Bytes;
+import utils.io.BytesUtils;
 
-public class ContractAccount extends AccountDecorator implements ContractInfo {
+public class ContractAccount extends PermissionAccountDecorator implements ContractInfo {
 
 	private static final String CONTRACT_INFO_PREFIX = "INFO" + LedgerConsts.KEY_SEPERATOR;
 
 	private static final String CHAIN_CODE_KEY = "CHAIN-CODE";
+	private static final String DATA_STATE = "DATA-STATE";
+
+	private AccountState state;
 
 	public ContractAccount(CompositeAccount mklAccount) {
-		super(mklAccount);
+		super(AccountType.CONTRACT, mklAccount);
 	}
 
 	@Override
@@ -50,6 +56,25 @@ public class ContractAccount extends AccountDecorator implements ContractInfo {
 
 	public long getChainCodeVersion() {
 		return getHeaders().getVersion(CHAIN_CODE_KEY);
+	}
+
+	public void setState(AccountState state) {
+		long version = getHeaders().getVersion(DATA_STATE);
+		getHeaders().setValue(DATA_STATE, TypedValue.fromText(state.name()), version);
+		this.state = state;
+	}
+
+	@Override
+	public AccountState getState() {
+		if(state == null) {
+			BytesValue rbs = getHeaders().getValue(DATA_STATE);
+			if (rbs == null) {
+				state = AccountState.NORMAL;
+			} else {
+				state = AccountState.valueOf(BytesUtils.toString(rbs.getBytes().toBytes()));
+			}
+		}
+		return state;
 	}
 
 	public long setProperty(String key, String value, long version) {

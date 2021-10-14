@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.*;
 
+import utils.StringUtils;
 import utils.io.FileUtils;
 import utils.net.NetworkAddress;
 
@@ -31,6 +32,8 @@ public class GatewayConfigProperties {
 
 	// 账本配置拓扑信息落盘，默认false
 	public static final String TOPOLOGY_STORE = "topology.store";
+	// 开启动态感知，默认true 1.5.0版本新增
+	public static final String TOPOLOGY_AWARE = "topology.aware";
 
 	// 数据检索服务URL地址
 	public static final String DATA_RETRIEVAL_URL="data.retrieval.url";
@@ -42,6 +45,8 @@ public class GatewayConfigProperties {
 	public static final String DEFAULT_KEYS_PREFIX = KEYS_PREFIX + "default.";
 	// 默认私钥的内容；
 	public static final String DEFAULT_PUBKEY = DEFAULT_KEYS_PREFIX + "pubkey";
+	// 默认证书路径；
+	public static final String DEFAULT_CA_PATH = DEFAULT_KEYS_PREFIX + "ca-path";
 	// 默认私钥的文件存储路径；
 	public static final String DEFAULT_PRIVKEY_PATH = DEFAULT_KEYS_PREFIX + "privkey-path";
 	// 默认私钥的内容；
@@ -56,6 +61,7 @@ public class GatewayConfigProperties {
 
 	private NetworkAddress masterPeerAddress = null;
 	private boolean storeTopology;
+	private boolean awareTopology;
 
 	private String dataRetrievalUrl;
 	private String schemaRetrievalUrl;
@@ -131,6 +137,7 @@ public class GatewayConfigProperties {
 		configProps.setMasterPeerAddress(new NetworkAddress(peerHost, peerPort, peerSecure));
 
 		configProps.setStoreTopology(getBoolean(props, TOPOLOGY_STORE, false));
+		configProps.setAwareTopology(getBoolean(props, TOPOLOGY_AWARE, false, true));
 
 		String dataRetrievalUrl = getProperty(props, DATA_RETRIEVAL_URL, false);
 		configProps.dataRetrievalUrl = dataRetrievalUrl;
@@ -147,13 +154,19 @@ public class GatewayConfigProperties {
 			configProps.providerConfig.add(provider);
 		}
 
-		configProps.keys.defaultPK.pubKeyValue = getProperty(props, DEFAULT_PUBKEY, true);
+		String pubkeyString = getProperty(props, DEFAULT_PUBKEY, false);
+		String capath = getProperty(props, DEFAULT_CA_PATH, false);
+		if(StringUtils.isEmpty(pubkeyString) && StringUtils.isEmpty(capath)) {
+			throw new IllegalArgumentException("Miss both of pubkey and certificate!");
+		}
+		configProps.keys.defaultPK.pubKeyValue = pubkeyString;
+		configProps.keys.defaultPK.caPath = capath;
 		configProps.keys.defaultPK.privKeyPath = getProperty(props, DEFAULT_PRIVKEY_PATH, false);
 		configProps.keys.defaultPK.privKeyValue = getProperty(props, DEFAULT_PRIVKEY, false);
 		if (configProps.keys.defaultPK.privKeyPath == null && configProps.keys.defaultPK.privKeyValue == null) {
 			throw new IllegalArgumentException("Miss both of pk-path and pk content!");
 		}
-		configProps.keys.defaultPK.privKeyPassword = getProperty(props, DEFAULT_PK_PWD, true);
+		configProps.keys.defaultPK.privKeyPassword = getProperty(props, DEFAULT_PK_PWD, false);
 
 		return configProps;
 	}
@@ -180,6 +193,14 @@ public class GatewayConfigProperties {
 		return Boolean.parseBoolean(strBool);
 	}
 
+	private static boolean getBoolean(Properties props, String key, boolean required, boolean defaultValue) {
+		String strBool = getProperty(props, key, required);
+		if (strBool == null) {
+			return defaultValue;
+		}
+		return Boolean.parseBoolean(strBool);
+	}
+
 	private static int getInt(Properties props, String key, boolean required) {
 		String strInt = getProperty(props, key, required);
 		if (strInt == null) {
@@ -200,7 +221,14 @@ public class GatewayConfigProperties {
 		this.storeTopology = storeTopology;
 	}
 
-	// ------------------------------------------------------------
+	public boolean isAwareTopology() {
+		return awareTopology;
+	}
+
+	public void setAwareTopology(boolean awareTopology) {
+		this.awareTopology = awareTopology;
+	}
+// ------------------------------------------------------------
 
 	public static class ProviderConfig {
 		List<String> providers = new ArrayList<>();
@@ -269,6 +297,8 @@ public class GatewayConfigProperties {
 
 		private String pubKeyValue;
 
+		private String caPath;
+
 		private String privKeyPath;
 
 		private String privKeyValue;
@@ -307,6 +337,13 @@ public class GatewayConfigProperties {
 			this.privKeyPassword = privKeyPassword;
 		}
 
+		public String getCaPath() {
+			return caPath;
+		}
+
+		public void setCaPath(String caPath) {
+			this.caPath = caPath;
+		}
 	}
 
 }

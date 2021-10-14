@@ -1,5 +1,6 @@
 package com.jd.blockchain.tools.initializer.web;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -10,17 +11,18 @@ import java.util.Set;
 import com.jd.blockchain.consensus.ConsensusProvider;
 import com.jd.blockchain.consensus.ConsensusProviders;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
+import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.CryptoProvider;
-import com.jd.blockchain.crypto.service.classic.ClassicCryptoService;
-import com.jd.blockchain.crypto.service.sm.SMCryptoService;
 import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.GenesisUser;
 import com.jd.blockchain.ledger.LedgerInitException;
 import com.jd.blockchain.ledger.LedgerInitProperties;
 import com.jd.blockchain.ledger.LedgerInitProperties.CryptoProperties;
 import com.jd.blockchain.ledger.LedgerInitProperties.ParticipantProperties;
 import com.jd.blockchain.ledger.LedgerPermission;
+import com.jd.blockchain.ledger.ParticipantNodeState;
 import com.jd.blockchain.ledger.SecurityInitData;
 import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.core.CryptoConfig;
@@ -52,6 +54,16 @@ public class LedgerInitConfiguration {
 		return participants;
 	}
 
+	public ParticipantProperties[] getConsensusParticipants() {
+		List<ParticipantProperties> participants = new ArrayList<>();
+		for(ParticipantProperties properties : getParticipants()) {
+			if(properties.getParticipantNodeState() == ParticipantNodeState.CONSENSUS) {
+				participants.add(properties);
+			}
+		}
+		return participants.toArray(new ParticipantProperties[participants.size()]);
+	}
+
 	public int getParticipantCount() {
 		return participants.length;
 	}
@@ -61,8 +73,13 @@ public class LedgerInitConfiguration {
 	 * @return
 	 */
 	public ParticipantProperties getParticipant(int id) {
-		// 注：解析的过程确保了参与方列表是升序排列，且列表中第一个参与方的 id 为 0， id 以 1 递增；
-		return participants[id];
+		for(ParticipantProperties properties : participants) {
+			if(properties.getId() == id) {
+				return properties;
+			}
+		}
+
+		return null;
 	}
 
 	public ConsensusConfig getConsensusConfiguration() {
@@ -111,7 +128,7 @@ public class LedgerInitConfiguration {
 		ledgerSettings.setCreatedTime(ledgerInitProps.getCreatedTime());
 		ledgerConfig.ledgerSettings = ledgerSettings;
 
-		SecurityInitData securitySettings = createSecurityInitSettings(ledgerInitProps, participants);
+		SecurityInitData securitySettings = createSecurityInitSettings(ledgerInitProps);
 		ledgerConfig.securitySettings = securitySettings;
 
 		return ledgerConfig;
@@ -157,8 +174,7 @@ public class LedgerInitConfiguration {
 		return cryptoConfig;
 	}
 
-	private static SecurityInitData createSecurityInitSettings(LedgerInitProperties ledgerInitProps,
-			ParticipantProperties[] participants) {
+	private static SecurityInitData createSecurityInitSettings(LedgerInitProperties ledgerInitProps) {
 		// 设置角色；
 		SecurityInitData securityInitData = new SecurityInitData();
 		securityInitData.setRoles(ledgerInitProps.getRoles());
@@ -172,18 +188,17 @@ public class LedgerInitConfiguration {
 		}
 
 		// 设置授权；
-		for (ParticipantProperties partiProps : participants) {
-			String[] roles = partiProps.getRoles();
+		for (GenesisUser u : ledgerInitProps.getGenesisUsers()) {
+			String[] roles = u.getRoles();
 			for (String role : roles) {
 				if (!securityInitData.containsRole(role)) {
 					throw new LedgerInitException(
-							String.format("The role[%s] authenticated to participant[%s-%s] is not defined!", role,
-									partiProps.getId(), partiProps.getName()));
+							String.format("The role[%s] authenticated to user[%s] is not defined!", role, AddressEncoding.generateAddress(u.getPubKey())));
 				}
 			}
 			// 去掉对默认角色的授权；
 
-			securityInitData.addUserAuthencation(partiProps.getAddress(), roles, partiProps.getRolesPolicy());
+			securityInitData.addUserAuthencation(AddressEncoding.generateAddress(u.getPubKey()), roles, u.getRolesPolicy());
 		}
 
 		return securityInitData;
@@ -194,10 +209,11 @@ public class LedgerInitConfiguration {
 		// 创建初始化配置；
 		LedgerInitData initSetting = new LedgerInitData();
 		initSetting.setLedgerSeed(ledgerProps.getLedgerSeed());
+		initSetting.setIdentityMode(ledgerProps.getIdentityMode());
+		initSetting.setLedgerCertificates(ledgerProps.getLedgerCertificates());
+		initSetting.setGenesisUsers(ledgerProps.getGenesisUsers());
 		initSetting.setCryptoSetting(cryptoSetting);
-
 		initSetting.setConsensusParticipants(participants);
-
 		initSetting.setCreatedTime(ledgerProps.getCreatedTime());
 
 		initSetting.setAnchorType(ledgerProps.getAnchorType());
@@ -222,7 +238,7 @@ public class LedgerInitConfiguration {
 
 	/**
 	 * 解析参与方列表；
-	 * 
+	 *
 	 * @param ledgerInitProps
 	 * @return
 	 */
@@ -237,7 +253,7 @@ public class LedgerInitConfiguration {
 
 	/**
 	 * 对参与者列表按照 id 进行升序排列，并校验id是否从 1 开始且没有跳跃；
-	 * 
+	 *
 	 * @param parties
 	 * @return
 	 */

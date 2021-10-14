@@ -68,8 +68,7 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 	}
 
 	private DecompliedContractInfo contractSettings(ContractInfo contractInfo) {
-		DecompliedContractInfo contractSettings = new DecompliedContractInfo(contractInfo.getAddress(), contractInfo.getPubKey(),
-				contractInfo.getHeaderRootHash(), contractInfo.getDataRootHash());
+		DecompliedContractInfo contractSettings = new DecompliedContractInfo(contractInfo);
 		byte[] chainCodeBytes = contractInfo.getChainCode();
 
 		try {
@@ -110,6 +109,12 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 		ledgerBaseSettings.setConsensusProtocol(ledgerAdminInfo.getSettings().getConsensusProvider());
 		// 设置账本结构版本号
 		ledgerBaseSettings.setLedgerStructureVersion(ledgerMetadata.getLedgerStructureVersion());
+		// 设置什么认证模式
+		ledgerBaseSettings.setIdentityMode(ledgerMetadata.getIdentityMode());
+		// 设置账本证书
+		ledgerBaseSettings.setLedgerCertificates(ledgerMetadata.getLedgerCertificates());
+		// 设置创世用户
+		ledgerBaseSettings.setGenesisUsers(ledgerMetadata.getGenesisUsers());
 		return ledgerBaseSettings;
 	}
 
