@@ -13,8 +13,10 @@ import java.util.Properties;
 
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
 
+import utils.StringUtils;
 import utils.codec.Base58Utils;
 import utils.io.FileUtils;
 import utils.io.RuntimeIOException;
@@ -51,10 +53,10 @@ public class LedgerBindingConfig {
 	// DB Connction Attribute Key;
 	public static final String DB_CONN = DB_PREFIX + "uri";
 	public static final String DB_PASSWORD = DB_PREFIX + "pwd";
-	public static final String DB_ANCHOR = DB_PREFIX + "anchor";
 
 	// 账本名字
 	public static final String LEDGER_NAME = "name";
+	public static final String LEDGER_DATA_STRUCTURE = "data.structure";
 
 	// ------------------------------
 
@@ -145,14 +147,11 @@ public class LedgerBindingConfig {
 		// 数据库存储配置；
 		String dbConnKey = String.join(ATTR_SEPERATOR, ledgerPrefix, DB_CONN);
 		String dbPwdKey = String.join(ATTR_SEPERATOR, ledgerPrefix, DB_PASSWORD);
-		String dbAnchorKey = String.join(ATTR_SEPERATOR, ledgerPrefix, DB_ANCHOR);
 
 		writeLine(builder, "#账本的存储数据库的连接字符串；");
 		writeLine(builder, "%s=%s", dbConnKey, stringOf(binding.getDbConnection().getUri()));
 		writeLine(builder, "#账本的存储数据库的连接口令；");
 		writeLine(builder, "%s=%s", dbPwdKey, stringOf(binding.getDbConnection().getPassword()));
-		writeLine(builder, "#账本的存储数据库的锚定类型；");
-		writeLine(builder, "%s=%s", dbAnchorKey, stringOf(binding.getDbConnection().getAnchor()));
 		writeLine(builder);
 	}
 
@@ -160,9 +159,11 @@ public class LedgerBindingConfig {
 		String ledgerPrefix = String.join(ATTR_SEPERATOR, BINDING_PREFIX, ledgerHash.toBase58());
 		// 账本相关信息配置；
 		String ledgerNameKey = String.join(ATTR_SEPERATOR, ledgerPrefix, LEDGER_NAME);
-
+		String ledgerDataStructure = String.join(ATTR_SEPERATOR, ledgerPrefix, LEDGER_DATA_STRUCTURE);
 		writeLine(builder, "#账本的名称；");
 		writeLine(builder, "%s=%s", ledgerNameKey, stringOf(binding.getLedgerName()));
+		writeLine(builder, "#账本的存储数据库的锚定类型；");
+		writeLine(builder, "%s=%s", ledgerDataStructure, stringOf(binding.getDataStructure()));
 		writeLine(builder);
 	}
 
@@ -272,11 +273,9 @@ public class LedgerBindingConfig {
 		// 数据库存储配置；
 		String dbConnKey = String.join(ATTR_SEPERATOR, ledgerPrefix, DB_CONN);
 		String dbPwdKey = String.join(ATTR_SEPERATOR, ledgerPrefix, DB_PASSWORD);
-		String dbAnchorKey = String.join(ATTR_SEPERATOR, ledgerPrefix, DB_ANCHOR);
 
 		binding.dbConnection.setConnectionUri(getProperty(props, dbConnKey, true));
 		binding.dbConnection.setPassword(getProperty(props, dbPwdKey, false));
-		binding.dbConnection.setAnchor(getProperty(props, dbAnchorKey, true));
 		if (binding.dbConnection.getUri() == null) {
 			throw new IllegalArgumentException(
 					String.format("No db connection config of participant of ledger binding[%s]!", ledgerHash));
@@ -285,6 +284,9 @@ public class LedgerBindingConfig {
 		// 设置账本名称
 		String ledgerNameKey = String.join(ATTR_SEPERATOR, ledgerPrefix, LEDGER_NAME);
 		binding.ledgerName = getProperty(props, ledgerNameKey, true);
+		String ledgerDataStructure = String.join(ATTR_SEPERATOR, ledgerPrefix, LEDGER_DATA_STRUCTURE);
+		String structure = getProperty(props, ledgerDataStructure, false);
+		binding.dataStructure = StringUtils.isEmpty(structure) ? LedgerDataStructure.MERKLE_TREE : LedgerDataStructure.valueOf(structure);
 
 		return binding;
 	}
@@ -337,6 +339,8 @@ public class LedgerBindingConfig {
 
 		private String ledgerName;
 
+		private LedgerDataStructure dataStructure = LedgerDataStructure.MERKLE_TREE;
+
 		// 账本名字
 		private ParticipantBindingConfig participant = new ParticipantBindingConfig();
 
@@ -356,6 +360,14 @@ public class LedgerBindingConfig {
 
 		public String getLedgerName() {
 			return ledgerName;
+		}
+
+		public LedgerDataStructure getDataStructure() {
+			return dataStructure;
+		}
+
+		public void setDataStructure(LedgerDataStructure dataStructure) {
+			this.dataStructure = dataStructure;
 		}
 	}
 

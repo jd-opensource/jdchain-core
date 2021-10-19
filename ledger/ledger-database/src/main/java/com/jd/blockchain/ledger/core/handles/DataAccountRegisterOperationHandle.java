@@ -4,6 +4,7 @@ import com.jd.blockchain.ledger.AccountDataPermission;
 import com.jd.blockchain.ledger.AccountType;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.DataAccountRegisterOperation;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.core.DataAccountSetEditor;
 import com.jd.blockchain.ledger.core.DataAccountSetEditorSimple;
@@ -43,7 +44,7 @@ public class DataAccountRegisterOperationHandle extends AbstractLedgerOperationH
 
 		DataAccount account;
 
-		if (ledger.getAnchorType().equals("default")) {
+		if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 			account = ((DataAccountSetEditor)(transactionContext.getDataset().getDataAccountSet())).register(bid.getAddress(), bid.getPubKey(), null);
 		} else {
 			account = ((DataAccountSetEditorSimple)(transactionContext.getDataset().getDataAccountSet())).register(bid.getAddress(), bid.getPubKey(), null);

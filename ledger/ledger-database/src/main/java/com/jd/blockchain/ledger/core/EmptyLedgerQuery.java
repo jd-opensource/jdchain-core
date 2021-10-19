@@ -4,6 +4,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
 import com.jd.blockchain.ledger.LedgerAdminSettings;
 import com.jd.blockchain.ledger.LedgerBlock;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 
 class EmptyLedgerQuery implements LedgerQuery {
 
@@ -126,8 +127,8 @@ class EmptyLedgerQuery implements LedgerQuery {
 		}
 
 		@Override
-	    public String getAnchorType() {
-			return "default";
+	    public LedgerDataStructure getLedgerDataStructure() {
+			return LedgerDataStructure.MERKLE_TREE;
 		}
 
 	}

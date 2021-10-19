@@ -11,6 +11,7 @@ import com.jd.blockchain.ledger.DigitalSignature;
 import com.jd.blockchain.ledger.GenesisUser;
 import com.jd.blockchain.ledger.IdentityMode;
 import com.jd.blockchain.ledger.LedgerBlock;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerInitException;
 import com.jd.blockchain.ledger.LedgerInitOperation;
 import com.jd.blockchain.ledger.LedgerInitSetting;
@@ -202,7 +203,7 @@ public class LedgerInitializer {
 	public static LedgerEditor createLedgerEditor(LedgerInitSetting initSetting, KVStorageService storageService) {
 		LedgerEditor genesisBlockEditor;
 
-		if (initSetting.getAnchorType().equals("default")) {
+		if (initSetting.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 			genesisBlockEditor = LedgerTransactionalEditor.createEditor(initSetting,
 				LedgerManage.LEDGER_PREFIX, storageService.getExPolicyKVStorage(),
 				storageService.getVersioningKVStorage());
@@ -231,7 +232,7 @@ public class LedgerInitializer {
 
 		TransactionBatchProcessor txProcessor = null;
 
-		if (initSetting.getAnchorType().equals("default")) {
+		if (initSetting.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 			txProcessor = new TransactionBatchProcessor(FULL_PERMISSION_SECURITY_MANAGER,
 				ledgerEditor, EMPTY_LEDGER, DEFAULT_OP_HANDLE_REG);
 		} else {

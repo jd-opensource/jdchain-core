@@ -2,6 +2,7 @@ package com.jd.blockchain.ledger.core.handles;
 
 import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUtils;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.UserCAUpdateOperation;
 import com.jd.blockchain.ledger.core.EventManager;
@@ -41,7 +42,7 @@ public class UserCAUpdateOperationHandle extends AbstractLedgerOperationHandle<U
         CertificateUtils.checkValidityAny(issuers);
 
         // 操作账本；
-        if (ledger.getAnchorType().equals("default")) {
+        if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
             ((UserAccountSetEditor)(transactionContext.getDataset().getUserAccountSet())).setCertificate(op.getUserAddress(), op.getCertificate());
         } else {
             ((UserAccountSetEditorSimple)(transactionContext.getDataset().getUserAccountSet())).setCertificate(op.getUserAddress(), op.getCertificate());

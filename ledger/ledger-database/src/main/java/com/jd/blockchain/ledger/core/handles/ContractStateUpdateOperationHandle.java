@@ -3,8 +3,8 @@ package com.jd.blockchain.ledger.core.handles;
 import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.ledger.ContractStateUpdateOperation;
 import com.jd.blockchain.ledger.IllegalTransactionException;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerPermission;
-import com.jd.blockchain.ledger.UserStateUpdateOperation;
 import com.jd.blockchain.ledger.core.ContractAccount;
 import com.jd.blockchain.ledger.core.ContractAccountSetEditor;
 import com.jd.blockchain.ledger.core.ContractAccountSetEditorSimple;
@@ -16,7 +16,6 @@ import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
-import com.jd.blockchain.ledger.core.UserAccount;
 
 public class ContractStateUpdateOperationHandle extends AbstractLedgerOperationHandle<ContractStateUpdateOperation> {
 
@@ -38,7 +37,7 @@ public class ContractStateUpdateOperationHandle extends AbstractLedgerOperationH
         }
 
         // 操作账本；
-        if (ledger.getAnchorType().equals("default")) {
+        if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
             ((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).setState(op.getContractAddress(), op.getState());
         } else {
             ((ContractAccountSetEditorSimple)(transactionContext.getDataset().getContractAccountSet())).setState(op.getContractAddress(), op.getState());

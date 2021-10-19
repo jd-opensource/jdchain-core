@@ -10,6 +10,7 @@ import com.jd.blockchain.ledger.LedgerAdminInfo;
 import com.jd.blockchain.ledger.LedgerAdminSettings;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerDataSnapshot;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerInitSetting;
 import com.jd.blockchain.ledger.LedgerSettings;
 import com.jd.blockchain.ledger.TransactionRequest;
@@ -66,7 +67,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 	private volatile LedgerEditor nextBlockEditor;
 
-	private String anchorType;
+	private LedgerDataStructure dataStructure;
 
 	/**
 	 * 账本结构版本号
@@ -77,13 +78,13 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	private volatile boolean closed = false;
 
 	public LedgerRepositoryImpl(HashDigest ledgerHash, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
-			VersioningKVStorage versioningStorage, String anchorType) {
+			VersioningKVStorage versioningStorage, LedgerDataStructure dataStructure) {
 		this.keyPrefix = keyPrefix;
 		this.ledgerHash = ledgerHash;
 		this.versioningStorage = versioningStorage;
 		this.exPolicyStorage = exPolicyStorage;
 		this.ledgerIndexKey = encodeLedgerIndexKey(ledgerHash);
-		this.anchorType = anchorType;
+		this.dataStructure = dataStructure;
 
 		if (getLatestBlockHeight() < 0) {
 			throw new RuntimeException("Ledger doesn't exist!");
@@ -129,8 +130,8 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	@Override
-	public String getAnchorType() {
-		return anchorType;
+	public LedgerDataStructure getLedgerDataStructure() {
+		return dataStructure;
 	}
 	/**
 	 * 重新检索加载最新的状态；
@@ -143,7 +144,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		TransactionSet txSet;
 		LedgerEventSet ledgerEventset;
 
-		if (anchorType.equals("default")) {
+		if (LedgerDataStructure.MERKLE_TREE == dataStructure) {
 			ledgerDataset = innerGetLedgerDataset(latestBlock);
 			txSet = loadTransactionSet(latestBlock.getTransactionSetHash(),
 					((LedgerAdminDataSetEditor)(ledgerDataset.getAdminDataset())).getSettings().getCryptoSetting(), keyPrefix, exPolicyStorage,
@@ -306,7 +307,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 		LedgerAdminInfo adminAccount = getAdminInfo(block);
 		// All of existing block is readonly;
-		return anchorType.equals("default")? loadTransactionSet(block.getTransactionSetHash(), adminAccount.getSettings().getCryptoSetting(),
+		return LedgerDataStructure.MERKLE_TREE == dataStructure ? loadTransactionSet(block.getTransactionSetHash(), adminAccount.getSettings().getCryptoSetting(),
 				keyPrefix, exPolicyStorage, versioningStorage, true) : loadTransactionSetSimple(block.getHeight(), block.getTransactionSetHash(), adminAccount.getSettings().getCryptoSetting(),
 				keyPrefix, exPolicyStorage, versioningStorage, true);
 	}
@@ -328,7 +329,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 			return (LedgerAdminSettings) latestState.getAdminDataset();
 		}
 
-		return anchorType.equals("default") ? createAdminDataset(block) : createAdminDatasetSimple(block);
+		return LedgerDataStructure.MERKLE_TREE == dataStructure ? createAdminDataset(block) : createAdminDatasetSimple(block);
 	}
 	
 	@Override
@@ -345,7 +346,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	 * @return
 	 */
 	private LedgerAdminInfoData createAdminData(LedgerBlock block) {
-		return new LedgerAdminInfoData(anchorType.equals("default") ? createAdminDataset(block) : createAdminDatasetSimple(block));
+		return new LedgerAdminInfoData(LedgerDataStructure.MERKLE_TREE == dataStructure ? createAdminDataset(block) : createAdminDatasetSimple(block));
 	}
 
 	/**
@@ -369,7 +370,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 			return latestState.getUserAccountSet();
 		}
 		LedgerAdminSettings adminAccount = getAdminSettings(block);
-		return anchorType.equals("default") ? createUserAccountSet(block, adminAccount.getSettings().getCryptoSetting()) : createUserAccountSetSimple(block, adminAccount.getSettings().getCryptoSetting());
+		return LedgerDataStructure.MERKLE_TREE == dataStructure ? createUserAccountSet(block, adminAccount.getSettings().getCryptoSetting()) : createUserAccountSetSimple(block, adminAccount.getSettings().getCryptoSetting());
 	}
 
 	private UserAccountSetEditor createUserAccountSet(LedgerBlock block, CryptoSetting cryptoSetting) {
@@ -390,7 +391,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 
 		LedgerAdminSettings adminAccount = getAdminSettings(block);
-		return anchorType.equals("default") ? createDataAccountSet(block, adminAccount.getSettings().getCryptoSetting()) : createDataAccountSetSimple(block, adminAccount.getSettings().getCryptoSetting());
+		return LedgerDataStructure.MERKLE_TREE == dataStructure ? createDataAccountSet(block, adminAccount.getSettings().getCryptoSetting()) : createDataAccountSetSimple(block, adminAccount.getSettings().getCryptoSetting());
 	}
 
 	private DataAccountSetEditor createDataAccountSet(LedgerBlock block, CryptoSetting setting) {
@@ -411,7 +412,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 
 		LedgerAdminSettings adminAccount = getAdminSettings(block);
-		return anchorType.equals("default") ? createContractAccountSet(block, adminAccount.getSettings().getCryptoSetting()) : createContractAccountSetSimple(block, adminAccount.getSettings().getCryptoSetting());
+		return LedgerDataStructure.MERKLE_TREE == dataStructure ? createContractAccountSet(block, adminAccount.getSettings().getCryptoSetting()) : createContractAccountSetSimple(block, adminAccount.getSettings().getCryptoSetting());
 	}
 
 	@Override
@@ -422,7 +423,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 
 		LedgerAdminSettings adminAccount = getAdminSettings(block);
-		return anchorType.equals("default") ? createSystemEventSet(block, adminAccount.getSettings().getCryptoSetting()) : createSystemEventSetSimple(block, adminAccount.getSettings().getCryptoSetting());
+		return LedgerDataStructure.MERKLE_TREE == dataStructure ? createSystemEventSet(block, adminAccount.getSettings().getCryptoSetting()) : createSystemEventSetSimple(block, adminAccount.getSettings().getCryptoSetting());
 	}
 
 	private MerkleEventGroupPublisher createSystemEventSet(LedgerBlock block, CryptoSetting cryptoSetting) {
@@ -443,7 +444,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 
 		LedgerAdminSettings adminAccount = getAdminSettings(block);
-		return anchorType.equals("default") ? createUserEventSet(block, adminAccount.getSettings().getCryptoSetting()) : createUserEventSetSimple(block, adminAccount.getSettings().getCryptoSetting());
+		return LedgerDataStructure.MERKLE_TREE == dataStructure ? createUserEventSet(block, adminAccount.getSettings().getCryptoSetting()) : createUserEventSetSimple(block, adminAccount.getSettings().getCryptoSetting());
 	}
 
 	private EventAccountSetEditor createUserEventSet(LedgerBlock block, CryptoSetting cryptoSetting) {
@@ -474,7 +475,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 
 		// All of existing block is readonly;
-		return anchorType.equals("default") ? innerGetLedgerDataset(block) : innerGetLedgerDatasetSimple(block);
+		return LedgerDataStructure.MERKLE_TREE == dataStructure ? innerGetLedgerDataset(block) : innerGetLedgerDatasetSimple(block);
 	}
 
 	@Override
@@ -543,7 +544,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		}
 		LedgerBlock previousBlock = getLatestBlock();
 
-		if (anchorType.equals("default")) {//default simple
+		if (LedgerDataStructure.MERKLE_TREE == dataStructure) {//default simple
             editor = LedgerTransactionalEditor.createEditor(previousBlock, getLatestSettings(),
                     keyPrefix, exPolicyStorage, versioningStorage);
 		} else {

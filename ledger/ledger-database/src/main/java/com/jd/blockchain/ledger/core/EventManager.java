@@ -6,6 +6,7 @@ import com.jd.blockchain.ledger.DataVersionConflictException;
 import com.jd.blockchain.ledger.EventInfo;
 import com.jd.blockchain.ledger.EventPublishOperation;
 
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import utils.Bytes;
 
 /**
@@ -27,7 +28,7 @@ public class EventManager implements EventOperationHandle {
 
     @Override
     public EventAccount registerAccount(BlockchainIdentity identity) {
-        if (ledger.getAnchorType().equals("default")) {
+        if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
             return ((EventAccountSetEditor) (txCtx.getEventSet().getEventAccountSet())).register(identity.getAddress(), identity.getPubKey(), null);
         } else {
             return ((EventAccountSetEditorSimple) (txCtx.getEventSet().getEventAccountSet())).register(identity.getAddress(), identity.getPubKey(), null);
@@ -35,11 +36,7 @@ public class EventManager implements EventOperationHandle {
     }
 
     public EventAccount getAccount(Bytes address) {
-        if (ledger.getAnchorType().equals("default")) {
-            return ((EventAccountSetEditor)(txCtx.getEventSet().getEventAccountSet())).getAccount(address);
-        } else {
-            return ((EventAccountSetEditorSimple)(txCtx.getEventSet().getEventAccountSet())).getAccount(address);
-        }
+        return txCtx.getEventSet().getEventAccountSet().getAccount(address);
     }
 
     @Override
@@ -57,7 +54,7 @@ public class EventManager implements EventOperationHandle {
     public long publish(String eventName, BytesValue content, long latestSequence) {
         long v = 0;
 
-        if (ledger.getAnchorType().equals("default")) {
+        if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
             v = ((MerkleEventGroupPublisher)(txCtx.getEventSet().getSystemEventGroup())).publish(new EventInfo(eventName, latestSequence+1, content, request.getTransactionHash(), txCtx.getBlockHeight()));
         } else {
             v = ((MerkleEventGroupPublisherSimple)(txCtx.getEventSet().getSystemEventGroup())).publish(new EventInfo(eventName, latestSequence+1, content, request.getTransactionHash(), txCtx.getBlockHeight()));

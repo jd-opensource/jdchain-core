@@ -362,13 +362,13 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 		return values;
 	}
 
-	// not used in simple anchor type, can get by order directly
+	// not used in kv data structure type, can get by order directly
 	@Override
 	public SkippingIterator<DataEntry<Bytes, byte[]>> iterator() {
 		return null;
 	}
 
-	// not used in simple anchor type, can get by order directly
+	// not used in kv data structure type, can get by order directly
 	@Override
 	public SkippingIterator<DataEntry<Bytes, byte[]>> iteratorDesc() {
 		return null;

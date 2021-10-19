@@ -8,6 +8,7 @@ import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.CryptoProvider;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.KVStorageService;
@@ -47,7 +48,7 @@ public class LedgerManager implements LedgerManage {
 	}
 
 	@Override
-	public LedgerRepository register(HashDigest ledgerHash, KVStorageService storageService, String anchorType) {
+	public LedgerRepository register(HashDigest ledgerHash, KVStorageService storageService, LedgerDataStructure dataStructure) {
 		if (ledgers.containsKey(ledgerHash)) {
 			LedgerRepositoryContext ledgerCtx = ledgers.get(ledgerHash);
 			return ledgerCtx.ledgerRepo;
@@ -57,7 +58,7 @@ public class LedgerManager implements LedgerManage {
 		ExPolicyKVStorage ledgerExPolicyStorage = storageService.getExPolicyKVStorage();
 
 		// 数据锚定merkle tree的方式
-		LedgerRepository ledgerRepo = new LedgerRepositoryImpl(ledgerHash, LEDGER_PREFIX, ledgerExPolicyStorage, ledgerVersioningStorage, anchorType);
+		LedgerRepository ledgerRepo = new LedgerRepositoryImpl(ledgerHash, LEDGER_PREFIX, ledgerExPolicyStorage, ledgerVersioningStorage, dataStructure);
 
 		// 校验 crypto service provider ；
 		CryptoSetting cryptoSetting = ledgerRepo.getAdminInfo().getSettings().getCryptoSetting();

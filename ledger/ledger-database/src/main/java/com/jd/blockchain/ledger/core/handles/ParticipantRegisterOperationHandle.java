@@ -47,7 +47,7 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
 
 		LedgerAdminDataSet adminAccountDataSet = transactionContext.getDataset().getAdminDataset();
 
-		if (previousBlockDataset.getAnchorType().equals("default")) {
+		if (previousBlockDataset.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 			ParticipantNode participantNode = new PartNode((int) (((LedgerAdminDataSetEditor)adminAccountDataSet).getParticipantCount()),
 					op.getParticipantName(), op.getParticipantID().getPubKey(),
 					ParticipantRegisterOperation.DEFAULT_STATE);

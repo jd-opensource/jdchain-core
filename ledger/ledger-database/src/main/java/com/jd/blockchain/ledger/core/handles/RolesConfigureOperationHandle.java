@@ -1,5 +1,6 @@
 package com.jd.blockchain.ledger.core.handles;
 
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.RolePrivilegeSettings;
 import com.jd.blockchain.ledger.RolePrivileges;
@@ -38,7 +39,7 @@ public class RolesConfigureOperationHandle extends AbstractLedgerOperationHandle
 			for (RolePrivilegeEntry rpcfg : rpcfgs) {
 				RolePrivileges rp = rpSettings.getRolePrivilege(rpcfg.getRoleName());
 				if (rp == null) {
-					if (ledger.getAnchorType().equals("default")) {
+					if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 						((RolePrivilegeDataset)rpSettings).addRolePrivilege(rpcfg.getRoleName(), rpcfg.getEnableLedgerPermissions(),
 								rpcfg.getEnableTransactionPermissions());
 					} else {
@@ -51,7 +52,7 @@ public class RolesConfigureOperationHandle extends AbstractLedgerOperationHandle
 
 					rp.disable(rpcfg.getDisableLedgerPermissions());
 					rp.disable(rpcfg.getDisableTransactionPermissions());
-					if (ledger.getAnchorType().equals("default")) {
+					if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 						((RolePrivilegeDataset)rpSettings).updateRolePrivilege(rp);
 					} else {
 						((RolePrivilegeDatasetSimple)rpSettings).updateRolePrivilege(rp);

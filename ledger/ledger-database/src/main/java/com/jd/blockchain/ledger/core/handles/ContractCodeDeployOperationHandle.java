@@ -9,6 +9,7 @@ import com.jd.blockchain.ledger.AccountType;
 import com.jd.blockchain.ledger.ContractCodeDeployOperation;
 import com.jd.blockchain.ledger.ContractVersionConflictException;
 import com.jd.blockchain.ledger.IllegalTransactionException;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.core.*;
 import utils.Bytes;
@@ -68,7 +69,7 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 		long contractVersion = op.getChainCodeVersion();
 		if(contractVersion != -1L){
 			long rst = 0;
-			if (ledger.getAnchorType().equals("default")) {
+			if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 				rst = ((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).update(op.getContractID().getAddress(),
 						op.getChainCode(), contractVersion);
 			} else {
@@ -81,7 +82,7 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 			}
 		} else {
 			ContractAccount account;
-			if (ledger.getAnchorType().equals("default")) {
+			if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 				account = ((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).deploy(op.getContractID().getAddress(),
 					op.getContractID().getPubKey(), op.getAddressSignature(), op.getChainCode());
 			} else {

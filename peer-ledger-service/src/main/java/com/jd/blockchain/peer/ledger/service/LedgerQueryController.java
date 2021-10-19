@@ -3,16 +3,14 @@ package com.jd.blockchain.peer.ledger.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.core.ComplecatedSimpleAccount;
 import com.jd.blockchain.ledger.core.ContractAccountSetEditorSimple;
 import com.jd.blockchain.ledger.core.DataAccountSetEditorSimple;
 import com.jd.blockchain.ledger.core.EventAccountSetEditorSimple;
 import com.jd.blockchain.ledger.core.IteratorDataset;
-import com.jd.blockchain.ledger.core.MerkleDataset;
-import com.jd.blockchain.ledger.core.SimpleDataset;
 import com.jd.blockchain.ledger.core.SimpleDatasetImpl;
 import com.jd.blockchain.ledger.core.UserAccountSetEditorSimple;
-import com.jd.blockchain.ledger.core.UserRoleDatasetEditorSimple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -605,7 +603,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		fromIndex = queryArgs.getFrom();
 		count = queryArgs.getCount();
 
-        if (ledger.getAnchorType().equals("default")) {
+        if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
             SkippingIterator<DataEntry<String, TypedValue>> iterator = ((IteratorDataset) dataAccount.getDataset()).iterator();
             iterator.skip(fromIndex);
             TypedKVEntry[] typedKVEntries = iterator.next(count, TypedKVEntry.class,
@@ -717,7 +715,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		EventAccountSet eventAccountSet = ledger.getEventAccountSet(ledger.getLatestBlock());
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) eventAccountSet.getTotal());
 
-		if (ledger.getAnchorType().equals("default")) {
+		if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 			SkippingIterator<BlockchainIdentity> it = eventAccountSet.identityIterator();
 			it.skip(queryArgs.getFrom());
 			return it.next(queryArgs.getCount(), BlockchainIdentity.class);
@@ -845,7 +843,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		UserAccountSet userAccountSet = ledger.getUserAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) userAccountSet.getTotal());
 
-		if (ledger.getAnchorType().equals("default")) {
+		if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 			SkippingIterator<BlockchainIdentity> it = userAccountSet.identityIterator();
 			it.skip(queryArgs.getFrom());
 			return it.next(queryArgs.getCount(), BlockchainIdentity.class);
@@ -872,7 +870,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		DataAccountSet dataAccountSet = ledger.getDataAccountSet(block);
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count, (int) dataAccountSet.getTotal());
 
-		if (ledger.getAnchorType().equals("default")) {
+		if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 			SkippingIterator<BlockchainIdentity> it = dataAccountSet.identityIterator();
 			it.skip(queryArgs.getFrom());
 			return it.next(queryArgs.getCount(), BlockchainIdentity.class);
@@ -892,7 +890,7 @@ public class LedgerQueryController implements BlockchainQueryService {
 		QueryArgs queryArgs = QueryUtils.calFromIndexAndCountDescend(fromIndex, count,
 				(int) contractAccountSet.getTotal());
 
-		if (ledger.getAnchorType().equals("default")) {
+		if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 			SkippingIterator<BlockchainIdentity> it = contractAccountSet.identityIterator();
 			it.skip(queryArgs.getFrom());
 			return it.next(queryArgs.getCount(), BlockchainIdentity.class);

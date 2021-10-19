@@ -216,7 +216,7 @@ public class LedgerInitConfiguration {
 		initSetting.setConsensusParticipants(participants);
 		initSetting.setCreatedTime(ledgerProps.getCreatedTime());
 
-		initSetting.setAnchorType(ledgerProps.getAnchorType());
+		initSetting.setLedgerDataStructure(ledgerProps.getLedgerDataStructure());
 
 		// 创建共识配置；
 		try {

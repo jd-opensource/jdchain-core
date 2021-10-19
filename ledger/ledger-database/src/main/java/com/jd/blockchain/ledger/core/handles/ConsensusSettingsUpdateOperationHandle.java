@@ -29,7 +29,7 @@ public class ConsensusSettingsUpdateOperationHandle extends AbstractLedgerOperat
         ConsensusProvider provider = null;
         ConsensusViewSettings consensusSettings = null;
 
-        if (previousBlockDataset.getAnchorType().equals("default")) {
+        if (previousBlockDataset.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
             provider = ConsensusProviders.getProvider(((LedgerAdminDataSetEditor)adminAccountDataSet).getSettings().getConsensusProvider());
             consensusSettings = provider.getSettingsFactory().getConsensusSettingsEncoder().decode(((LedgerAdminDataSetEditor)adminAccountDataSet).getSettings().getConsensusSetting().toBytes());
         } else {
@@ -39,7 +39,7 @@ public class ConsensusSettingsUpdateOperationHandle extends AbstractLedgerOperat
         //update consensus settings according to properties config
         ConsensusViewSettings newConsensusSettings = provider.getSettingsFactory().getConsensusSettingsBuilder().updateSettings(consensusSettings, PropertiesUtils.createProperties(op.getProperties()));
 
-        if (previousBlockDataset.getAnchorType().equals("default")) {
+        if (previousBlockDataset.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
             LedgerSettings ledgerSetting = new LedgerConfiguration(((LedgerAdminDataSetEditor)adminAccountDataSet).getSettings().getConsensusProvider(),
                     new Bytes(provider.getSettingsFactory().getConsensusSettingsEncoder().encode(newConsensusSettings)), ((LedgerAdminDataSetEditor)adminAccountDataSet).getPreviousSetting().getCryptoSetting());
 

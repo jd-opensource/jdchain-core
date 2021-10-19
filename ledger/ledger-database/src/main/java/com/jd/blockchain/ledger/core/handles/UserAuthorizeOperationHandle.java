@@ -3,6 +3,7 @@ package com.jd.blockchain.ledger.core.handles;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.RolePrivilegeSettings;
 import com.jd.blockchain.ledger.RolesPolicy;
@@ -62,7 +63,7 @@ public class UserAuthorizeOperationHandle extends AbstractLedgerOperationHandle<
 						if (policy == null) {
 							policy = RolesPolicy.UNION;
 						}
-						if (ledger.getAnchorType().equals("default")) {
+						if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 							((UserRoleDatasetEditor)userRoleDataset).addUserRoles(address, policy, validRoles);
 						} else {
 							((UserRoleDatasetEditorSimple)userRoleDataset).addUserRoles(address, policy, validRoles);
@@ -77,7 +78,7 @@ public class UserAuthorizeOperationHandle extends AbstractLedgerOperationHandle<
 						if (policy != null) {
 							ur.setPolicy(policy);
 						}
-						if (ledger.getAnchorType().equals("default")) {
+						if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 							((UserRoleDatasetEditor)userRoleDataset).updateUserRoles(ur);
 						} else {
 							((UserRoleDatasetEditorSimple)userRoleDataset).updateUserRoles(ur);

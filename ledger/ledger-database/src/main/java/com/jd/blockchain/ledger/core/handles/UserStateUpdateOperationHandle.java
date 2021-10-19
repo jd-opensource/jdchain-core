@@ -1,6 +1,7 @@
 package com.jd.blockchain.ledger.core.handles;
 
 import com.jd.blockchain.ledger.IllegalTransactionException;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.ledger.UserStateUpdateOperation;
@@ -36,7 +37,7 @@ public class UserStateUpdateOperationHandle extends AbstractLedgerOperationHandl
         }
 
         // 操作账本；
-        if (ledger.getAnchorType().equals("default")) {
+        if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
             ((UserAccountSetEditor)(transactionContext.getDataset().getUserAccountSet())).setState(op.getUserAddress(), op.getState());
         } else {
             ((UserAccountSetEditorSimple)(transactionContext.getDataset().getUserAccountSet())).setState(op.getUserAddress(), op.getState());

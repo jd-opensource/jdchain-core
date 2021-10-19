@@ -1,8 +1,8 @@
 package com.jd.blockchain.ledger.core.handles;
 
-import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.ledger.IdentityMode;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.RootCAUpdateOperation;
@@ -78,7 +78,7 @@ public class RootCAUpdateOperationHandle extends AbstractLedgerOperationHandle<R
                 }
             }
 
-            if (ledger.getAnchorType().equals("default")) {
+            if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
                 ((LedgerAdminDataSetEditor)adminDataset).updateLedgerCA(ledgerCAMap.values().toArray(new String[0]));
             } else {
                 ((LedgerAdminDataSetEditorSimple)adminDataset).updateLedgerCA(ledgerCAMap.values().toArray(new String[0]));

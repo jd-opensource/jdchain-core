@@ -5,6 +5,7 @@ import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.IdentityMode;
 import com.jd.blockchain.ledger.IllegalTransactionException;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.core.EventManager;
@@ -56,7 +57,7 @@ public class UserRegisterOperationHandle extends AbstractLedgerOperationHandle<U
 
 		Bytes userAddress = bid.getAddress();
 
-		if (ledger.getAnchorType().equals("default")) {
+		if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 			((UserAccountSetEditor)(transactionContext.getDataset().getUserAccountSet())).register(userAddress, bid.getPubKey(), op.getCertificate());
 		} else {
 			((UserAccountSetEditorSimple)(transactionContext.getDataset().getUserAccountSet())).register(userAddress, bid.getPubKey(), op.getCertificate());

@@ -121,7 +121,7 @@ public class LedgerManagerTest {
 
 		// 重新加载并校验结果；
 		LedgerManager reloadLedgerManager = new LedgerManager();
-		LedgerRepository reloadLedgerRepo = reloadLedgerManager.register(ledgerHash, storage, "default");
+		LedgerRepository reloadLedgerRepo = reloadLedgerManager.register(ledgerHash, storage, LedgerDataStructure.MERKLE_TREE);
 
 		HashDigest genesisHash = reloadLedgerRepo.getBlockHash(0);
 		assertEquals(ledgerHash, genesisHash);
@@ -160,7 +160,7 @@ public class LedgerManagerTest {
 		showStorageKeys(storage);
 
 		reloadLedgerManager = new LedgerManager();
-		reloadLedgerRepo = reloadLedgerManager.register(ledgerHash, storage, "default");
+		reloadLedgerRepo = reloadLedgerManager.register(ledgerHash, storage, LedgerDataStructure.MERKLE_TREE);
 		latestBlock = reloadLedgerRepo.getLatestBlock();
 		assertEquals(1, latestBlock.getHeight());
 		assertEquals(block1.getHash(), latestBlock.getHash());

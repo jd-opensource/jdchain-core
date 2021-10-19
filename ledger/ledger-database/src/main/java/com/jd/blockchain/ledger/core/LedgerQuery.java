@@ -4,6 +4,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.LedgerAdminInfo;
 import com.jd.blockchain.ledger.LedgerAdminSettings;
 import com.jd.blockchain.ledger.LedgerBlock;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 
 public interface LedgerQuery {
 
@@ -53,12 +54,12 @@ public interface LedgerQuery {
 	HashDigest getBlockHash(long height);
 
 	/**
-	 * 账本仓库锚定类型：default, simple
+	 * 账本数据结构
 	 *
 	 *
 	 * @return
 	 */
-	String getAnchorType();
+	LedgerDataStructure getLedgerDataStructure();
 
 
 	/**
