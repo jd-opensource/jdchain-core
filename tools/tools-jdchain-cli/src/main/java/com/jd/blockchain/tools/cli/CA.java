@@ -39,7 +39,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-import java.util.Scanner;
 import java.util.Set;
 import java.util.UUID;
 
@@ -95,35 +94,11 @@ public class CA implements Runnable {
     }
 
     protected String scanValue(String category) {
-        Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-        System.out.println("input " + category + ": ");
-        System.out.print("> ");
-        return scanner.next();
-    }
-
-    protected String scanValue(String category, String[] values) {
-        Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-        System.out.print("input " + category + " (");
-        for (int i = 0; i < values.length; i++) {
-            System.out.print(i + " for " + values[i]);
-            if (i < values.length - 1) {
-                System.out.print(", ");
-            }
-        }
-        System.out.println("): ");
-        System.out.print("> ");
-        while (true) {
-            try {
-                int index = Integer.parseInt(scanner.next());
-                return values[index];
-            } catch (Exception e) {
-                System.err.print("invalid value");
-            }
-        }
+        System.out.println(String.format("input %s: ", category));
+        return ScannerUtils.read();
     }
 
     protected String[] scanValues(String category, String[] values) {
-        Scanner scanner = new Scanner(System.in).useDelimiter("\n");
         System.out.print("input " + category + " (");
         for (int i = 0; i < values.length; i++) {
             System.out.print(i + " for " + values[i]);
@@ -132,10 +107,9 @@ public class CA implements Runnable {
             }
         }
         System.out.println(". multi values use ',' split): ");
-        System.out.print("> ");
         while (true) {
             try {
-                String[] indexes = scanner.next().split(",");
+                String[] indexes =  ScannerUtils.read().split(",");
                 if (indexes.length == 0) {
                     throw new IllegalStateException();
                 }

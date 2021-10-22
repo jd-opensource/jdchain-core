@@ -32,7 +32,6 @@ import java.io.File;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 
 /**
  * @description: participant operations
@@ -106,10 +105,8 @@ class ParticipantRegister implements Runnable {
         for (int i = 0; i < ledgers.length; i++) {
             System.out.printf("%-7s\t%s%n", i, ledgers[i]);
         }
-        System.out.print("> ");
-        Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-        String input = scanner.next().trim();
-        return ledgers[Integer.parseInt(input)];
+        int selectedIndex = ScannerUtils.readRangeInt(0, ledgers.length - 1);
+        return ledgers[selectedIndex];
     }
 
     TransactionTemplate newTransaction() {
@@ -142,11 +139,9 @@ class ParticipantRegister implements Runnable {
                 passwords[i] = pwd;
                 System.out.printf("%-3s\t%s\t%s%n", i, key, keypairs[i].getAddress());
             }
-            Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-            int keyIndex = Integer.parseInt(scanner.next().trim());
+            int keyIndex = ScannerUtils.readRangeInt(0, keypairs.length - 1);
             System.out.println("input password of the key: ");
-            System.out.print("> ");
-            String pwd = scanner.next();
+            String pwd = ScannerUtils.read();
             if (KeyGenUtils.encodePasswordAsBase58(pwd).equals(passwords[keyIndex])) {
                 ptx.sign(keypairs[keyIndex]);
             } else {

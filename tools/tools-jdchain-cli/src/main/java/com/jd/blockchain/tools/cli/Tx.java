@@ -46,7 +46,6 @@ import java.lang.reflect.Method;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Scanner;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
@@ -112,10 +111,8 @@ public class Tx implements Runnable {
         for (int i = 0; i < ledgers.length; i++) {
             System.out.printf("%-7s\t%s%n", i, ledgers[i]);
         }
-        System.out.print("> ");
-        Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-        String input = scanner.next().trim();
-        return ledgers[Integer.parseInt(input)];
+        int index = ScannerUtils.readRangeInt(0, ledgers.length - 1);
+        return ledgers[index];
     }
 
     TransactionTemplate newTransaction() {
@@ -176,12 +173,9 @@ public class Tx implements Runnable {
                 passwords[i] = pwd;
                 System.out.printf("%-7s\t%s\t%s%n", i, key, keypairs[i].getAddress());
             }
-            System.out.print("> ");
-            Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-            int keyIndex = Integer.parseInt(scanner.next().trim());
+            int keyIndex = ScannerUtils.readRangeInt(0, pubs.length - 1);
             System.out.println("input password of the key: ");
-            System.out.print("> ");
-            String pwd = scanner.next();
+            String pwd = ScannerUtils.read();
             if (KeyGenUtils.encodePasswordAsBase58(pwd).equals(passwords[keyIndex])) {
                 return SignatureUtils.sign(txHash, keypairs[keyIndex]);
             } else {
@@ -213,12 +207,9 @@ public class Tx implements Runnable {
                 passwords[i] = pwd;
                 System.out.printf("%-7s\t%s\t%s%n", i, key, keypairs[i].getAddress());
             }
-            System.out.print("> ");
-            Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-            int keyIndex = Integer.parseInt(scanner.next().trim());
+            int keyIndex = ScannerUtils.readRangeInt(0, pubs.length - 1);
             System.out.println("input password of the key: ");
-            System.out.print("> ");
-            String pwd = scanner.next();
+            String pwd = ScannerUtils.read();
             if (KeyGenUtils.encodePasswordAsBase58(pwd).equals(passwords[keyIndex])) {
                 return keypairs[keyIndex];
             } else {
@@ -417,9 +408,7 @@ class TxUserCAUpdate implements Runnable {
                     addresses[i] = AddressEncoding.generateAddress(KeyGenUtils.decodePubKey(pubkey));
                     System.out.printf("%-7s\t%s\t%s%n", i, key, addresses[i]);
                 }
-                System.out.print("> ");
-                Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-                int keyIndex = Integer.parseInt(scanner.next().trim());
+                int keyIndex = ScannerUtils.readRangeInt(0, addresses.length - 1);
                 address = addresses[keyIndex];
                 certificate = CertificateUtils.parseCertificate(FileUtils.readText(new File(certs[keyIndex])));
                 if (!address.equals(address)) {
