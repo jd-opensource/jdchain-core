@@ -731,6 +731,17 @@ public class ContractLedgerContext implements LedgerContext {
         }
 
         @Override
+        public ContractEventSendOperation send(String address, String event, BytesValueList args) {
+            return send(Bytes.fromBase58(address), event, args);
+        }
+
+        @Override
+        public ContractEventSendOperation send(Bytes address, String event, BytesValueList args) {
+            this.address = address;
+            return invoke(event, args);
+        }
+
+        @Override
         public ContractEventSendOperation invoke(String event, BytesValueList args) {
             ContractEventSendOperation op = new ContractEventSendOpTemplate(address, event, args);
             derivedOperations.add(op);
