@@ -234,7 +234,7 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		// 以交易内容的 hash 为 key；
 		Bytes key = encodeResultKey(txResult.getTransactionHash());
 		// 交易只有唯一的版本；
-		long v = txStateSet.setValue(key, txResultBytes, -1);
+		long v = txStateSet.setValue(key, txResultBytes);
 		if (v < 0) {
 			throw new IllegalTransactionException("Repeated transaction request! --[" + key + "]");
 		}
@@ -256,7 +256,7 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		// 以交易内容的 hash 为 key；
 		Bytes key = encodeRequestKey(txResult.getTransactionHash());
 		// 交易只有唯一的版本；
-		long v = txStateSet.setValue(key, txResultBytes, -1);
+		long v = txStateSet.setValue(key, txResultBytes);
 		if (v < 0) {
 			throw new IllegalTransactionException("Repeated transaction request! --[" + key + "]");
 		}

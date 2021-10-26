@@ -175,6 +175,15 @@ public class DatasetHelper {
 		}
 
 		@Override
+		public long setValue(K key, V value) {
+			long newVersion = dataset.setValue(key, value);
+			if (newVersion > -1) {
+				listener.onChanged(key, value, -1, newVersion);
+			}
+			return newVersion;
+		}
+
+		@Override
 		public V getValue(K key, long version) {
 			return dataset.getValue(key, version);
 		}
@@ -272,6 +281,13 @@ public class DatasetHelper {
 			K1 key1 = keyMapper.encode(key);
 			V1 value1 = valueMapper.encode(value);
 			return dataset.setValue(key1, value1, version);
+		}
+
+		@Override
+		public long setValue(K2 key, V2 value) {
+			K1 key1 = keyMapper.encode(key);
+			V1 value1 = valueMapper.encode(value);
+			return dataset.setValue(key1, value1);
 		}
 
 		@Override
@@ -376,61 +392,6 @@ public class DatasetHelper {
 
 
 	}
-
-//	private static class DataIteratorAdapter<K1, K2, V1, V2> implements DataIterator<K2, V2> {
-//
-//		private DataIterator<K1, V1> iterator;
-//
-//		private TypeMapper<K1, K2> keyMapper;
-//		private TypeMapper<V1, V2> valueMapper;
-//
-//		public DataIteratorAdapter(DataIterator<K1, V1> iterator, TypeMapper<K1, K2> keyMapper,
-//				TypeMapper<V1, V2> valueMapper) {
-//			this.iterator = iterator;
-//			this.keyMapper = keyMapper;
-//			this.valueMapper = valueMapper;
-//		}
-//
-//		@Override
-//		public void skip(long count) {
-//			iterator.skip(count);
-//		}
-//
-//		@Override
-//		public DataEntry<K2, V2> next() {
-//			DataEntry<K1, V1> entry = iterator.next();
-//			return cast(entry);
-//		}
-//
-//		private DataEntry<K2, V2> cast(DataEntry<K1, V1> entry) {
-//			if (entry == null) {
-//				return null;
-//			}
-//
-//			K2 k = keyMapper.decode(entry.getKey());
-//			V2 v = valueMapper.decode(entry.getValue());
-//			return new KeyValueEntry<K2, V2>(k, v, entry.getVersion());
-//		}
-//
-//		@SuppressWarnings("unchecked")
-//		@Override
-//		public DataEntry<K2, V2>[] next(int count) {
-//			DataEntry<K1, V1>[] entries = iterator.next(count);
-//			if (entries == null) {
-//				return null;
-//			}
-//			if (entries.length == 0) {
-//				return (DataEntry<K2, V2>[]) entries;
-//			}
-//			return ArrayUtils.cast(entries, DataEntry.class, e -> cast(e));
-//		}
-//
-//		@Override
-//		public boolean hasNext() {
-//			return iterator.hasNext();
-//		}
-//
-//	}
 
 	private static class KeyValueEntry<K, V> implements DataEntry<K, V> {
 

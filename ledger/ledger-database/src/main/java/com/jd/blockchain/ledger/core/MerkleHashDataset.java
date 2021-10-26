@@ -208,43 +208,6 @@ public class MerkleHashDataset implements MerkleDataset<Bytes, byte[]> {
 		return null;
 	}
 
-//	/**
-//	 * get the data at the specific index;
-//	 *
-//	 * @param fromIndex
-//	 * @return
-//	 */
-//	public byte[] getValuesAt(int fromIndex) {
-//		SkippingIterator<KVEntry> iterator = merkleTree.iterator();
-//		iterator.skip(fromIndex);
-//		if (iterator.hasNext()) {
-//			KVEntry dataNode = iterator.next();
-//			Bytes dataKey = encodeDataKey(dataNode.getKey());
-//			return valueStorage.get(dataKey, dataNode.getVersion());
-//		}
-//
-//		return null;
-//	}
-
-	// 去掉不合理的接口定义； by huanghaiquan 2020-07-10;
-//	// 获得两个默克尔数据集之间的数据节点差异
-//	public byte[][] getDiffMerkleKeys(int fromIndex, int count, MerkleDataSet origMerkleDataSet) {
-//		byte[][] values = new byte[count][];
-//		LongSkippingIterator<MerkleData> diffIterator = merkleTree.getKeyDiffIterator(origMerkleDataSet.merkleTree);
-//		diffIterator.skip(fromIndex);
-//		for (int i = 0; i < count && diffIterator.hasNext(); i++) {
-//			MerkleData merkleData = diffIterator.next();
-//			Bytes dataKey = encodeDataKey(merkleData.getKey());
-//			values[i] = valueStorage.get(dataKey, merkleData.getVersion());
-//		}
-//
-//		return values;
-//	}
-
-//	public SkippingIterator<MerkleTrieData> getDiffMerkleKeys(MerkleHashDataset origMerkleDataSet) {
-//		return merkleTree.getKeyDiffIterator(origMerkleDataSet.merkleTree);
-//	}
-
 	/**
 	 * Create or update the value associated the specified key if the version
 	 * checking is passed.<br>
@@ -279,22 +242,31 @@ public class MerkleHashDataset implements MerkleDataset<Bytes, byte[]> {
 		if (version != latestVersion) {
 			return -1;
 		}
+		long newVersion = valueStorage.set(dataKey, value, version);
+		if (newVersion < 0) {
+			return -1;
+		}
 
-		// set into versioning kv storage before adding to merkle tree, in order to
-		// check version confliction first;
-		long newVersion;
-		if (version < 0) {
-			// creating ;
-			newVersion = valueStorage.set(dataKey, value, -1);
-			if (newVersion < 0) {
-				return -1;
-			}
-		} else {
-			newVersion = valueStorage.set(dataKey, value, version);
-			if (newVersion < 0) {
-				return -1;
-			}
+		// update merkle tree;
+		HashDigest valueHash = DEFAULT_HASH_FUNCTION.hash(value);
+		merkleTree.setData(key.toBytes(), newVersion, valueHash.toBytes());
 
+		return newVersion;
+	}
+
+	@Override
+	public long setValue(Bytes key, byte[] value) {
+		if (readonly) {
+			throw new IllegalArgumentException("This merkle dataset is readonly!");
+		}
+		if (value.length > MAX_SIZE_OF_VALUE) {
+			throw new IllegalArgumentException(
+					"The size of value is great than the max size[" + MAX_SIZE_OF_VALUE + "]!");
+		}
+		Bytes dataKey = encodeDataKey(key);
+		long newVersion = valueStorage.set(dataKey, value, -1);
+		if (newVersion < 0) {
+			return -1;
 		}
 
 		// update merkle tree;
@@ -507,49 +479,6 @@ public class MerkleHashDataset implements MerkleDataset<Bytes, byte[]> {
 			return getDataEntryAt(cursor);
 		}
 
-//
-//		@Override
-//		public void skip(long count) {
-//			cursor = nextCursor(count);
-//		}
-//
-//		private long nextCursor(long skippingCount) {
-//			long c = cursor + skippingCount;
-//			return c > total ? total : c;
-//		}
-//
-//		@Override
-//		public DataEntry<Bytes, byte[]> next() {
-//			if (hasNext()) {
-//				DataEntry<Bytes, byte[]> entry = getDataEntryAt(cursor);
-//				cursor = nextCursor(1);
-//				return entry;
-//			}
-//			return null;
-//		}
-//
-//		@Override
-//		public DataEntry<Bytes, byte[]>[] next(int count) {
-//			if (hasNext()) {
-//				long from = cursor;
-//				long nextCursor = nextCursor(count);
-//				long c = nextCursor - cursor;
-//				if (c > LedgerConsts.MAX_LIST_COUNT) {
-//					throw new IllegalArgumentException(
-//							"Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
-//				}
-//				DataEntry<Bytes, byte[]>[] entries = getDataEntries(from, (int) c);
-//				cursor = nextCursor;
-//				return entries;
-//			}
-//			return EMPTY_ENTRIES;
-//		}
-//
-//		@Override
-//		public boolean hasNext() {
-//			return cursor < total;
-//		}
-
 	}
 
 	private class DescDataInterator extends AbstractSkippingIterator<DataEntry<Bytes, byte[]>> {
@@ -570,52 +499,6 @@ public class MerkleHashDataset implements MerkleDataset<Bytes, byte[]> {
 			// 倒序的迭代器从后往前返回；
 			return getDataEntryAt(total - cursor - 1);
 		}
-
-//		@Override
-//		public void skip(long count) {
-//			cursor = nextCursor(count);
-//		}
-//
-//		private long nextCursor(long skippingCount) {
-//			long c = cursor - skippingCount;
-//			return c < 0 ? -1 : c;
-//		}
-//
-//		@Override
-//		public DataEntry<Bytes, byte[]> next() {
-//			if (hasNext()) {
-//				DataEntry<Bytes, byte[]> entry = getDataEntryAt(cursor);
-//				cursor = nextCursor(1);
-//				return entry;
-//			}
-//			return null;
-//		}
-//
-//		@Override
-//		public DataEntry<Bytes, byte[]>[] next(int count) {
-//			if (hasNext()) {
-//				long nextCursor = nextCursor(count);
-//				long from = nextCursor + 1;
-//				long c = cursor - nextCursor;
-//				if (c > LedgerConsts.MAX_LIST_COUNT) {
-//					throw new IllegalArgumentException(
-//							"Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
-//				}
-//				DataEntry<Bytes, byte[]>[] entries = getDataEntries(from, (int) c);
-//				// reverse;
-//				ArrayUtils.reverse(entries);
-//
-//				cursor = nextCursor;
-//				return entries;
-//			}
-//			return EMPTY_ENTRIES;
-//		}
-//
-//		@Override
-//		public boolean hasNext() {
-//			return cursor < total;
-//		}
-
 	}
 
 }
