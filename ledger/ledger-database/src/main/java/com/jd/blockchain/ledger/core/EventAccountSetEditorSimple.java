@@ -7,6 +7,7 @@ import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.DigitalSignature;
 import com.jd.blockchain.ledger.Event;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
@@ -72,7 +73,7 @@ public class EventAccountSetEditorSimple implements EventAccountSet, Transaction
         if (null == account) {
             return null;
         }
-        return new EventPublishingAccount(account);
+        return new EventPublishingAccount(account, LedgerDataStructure.KV);
     }
 
     @Override
@@ -103,7 +104,7 @@ public class EventAccountSetEditorSimple implements EventAccountSet, Transaction
     public EventPublishingAccount register(Bytes address, PubKey pubKey, DigitalSignature addressSignature) {
         // TODO: 未实现对地址签名的校验和记录；
         CompositeAccount accBase = accountSet.register(address, pubKey);
-        return new EventPublishingAccount(accBase);
+        return new EventPublishingAccount(accBase, LedgerDataStructure.KV);
     }
 
     public boolean isAddNew() {
