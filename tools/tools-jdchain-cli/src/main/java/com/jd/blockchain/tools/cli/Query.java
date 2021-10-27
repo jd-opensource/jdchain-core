@@ -22,8 +22,6 @@ import utils.StringUtils;
 import utils.codec.Base58Utils;
 import utils.serialize.json.JSONSerializeUtils;
 
-import java.util.Scanner;
-
 /**
  * @description: query commands
  * @author: imuge
@@ -99,10 +97,8 @@ public class Query implements Runnable {
         for (int i = 0; i < ledgers.length; i++) {
             System.out.printf("%-7s\t%s%n", i, ledgers[i]);
         }
-        System.out.print("> ");
-        Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-        String input = scanner.next().trim();
-        return ledgers[Integer.parseInt(input)];
+        int selectedIndex = ScannerUtils.readRangeInt(0, ledgers.length - 1);
+        return ledgers[selectedIndex];
     }
 
     @Override

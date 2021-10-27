@@ -295,6 +295,9 @@ public class LedgerInitCommand {
 		// 设置账本名称
 		bindingConf.setLedgerName(ledgerInitProperties.getLedgerName());
 
+		//设置账本存储数据库的锚定类型
+		bindingConf.setDataStructure(ledgerInitProperties.getLedgerDataStructure());
+
 		bindingConf.getParticipant()
 				.setAddress(ledgerInitProperties.getConsensusParticipant(currId).getAddress().toBase58());
 		// 设置参与方名称
