@@ -94,6 +94,30 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 	}
 
 	@Override
+	public int getCommandsNumByCid(String realName, int cid) {
+
+		byte[] hashBytes = Base58Utils.decode(realName);
+
+		HashDigest ledgerHash =  Crypto.resolveAsHashDigest(hashBytes);
+
+		//获得区块高度为cid + 1对应的增量交易数
+		return ((TransactionEngineImpl)txEngine).getTxsNumByHeight(ledgerHash, cid + 1);
+
+	}
+
+	@Override
+	public byte[][] getCommandsByCid(String realName, int  cid, int currHeightCommandsNum) {
+
+		byte[] hashBytes = Base58Utils.decode(realName);
+
+		HashDigest ledgerHash = Crypto.resolveAsHashDigest(hashBytes);
+
+		// 获得区块高度为cid + 1对应的增量交易内容
+		return ((TransactionEngineImpl)txEngine).getTxsByHeight(ledgerHash, cid + 1, currHeightCommandsNum);
+
+	}
+
+	@Override
 	public AsyncFuture<byte[]> processOrdered(int messageId, byte[] message, ConsensusMessageContext context) {
 		// TODO 要求messageId在同一个批次不重复，但目前暂不验证
 		RealmProcessor realmProcessor = realmProcessorMap.get(realmName(context));

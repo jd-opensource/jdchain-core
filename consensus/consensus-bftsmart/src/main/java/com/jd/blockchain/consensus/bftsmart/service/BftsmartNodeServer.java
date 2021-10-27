@@ -726,6 +726,16 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		}
 	}
 
+	@Override
+	public int getCommandsNumByCid(int cid) {
+		return messageHandle.getCommandsNumByCid(realmName, cid);
+	}
+
+	@Override
+	public byte[][] getCommandsByCid(int cid, int currCidCommandsNum) {
+		return messageHandle.getCommandsByCid(realmName, cid, currCidCommandsNum);
+	}
+
 	// notice
 	@Override
 	public byte[] getSnapshot() {
@@ -770,8 +780,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 				public void run() {
 					try {
 						LOGGER.info("Start replica...[ID=" + getId() + "]");
-						replica = new ServiceReplica(null, null, tomConfig, BftsmartNodeServer.this, BftsmartNodeServer.this,
-								(int) latestStateId - 1, latestView, realmName);
+						replica = new ServiceReplica(null, null, tomConfig, BftsmartNodeServer.this, BftsmartNodeServer.this, latestStateId - 1, latestView, realmName);
 						topology = new BftsmartTopology(replica.getReplicaContext().getCurrentView());
 //                initOutTopology();
 						status = Status.RUNNING;
