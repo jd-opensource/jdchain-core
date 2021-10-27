@@ -344,7 +344,7 @@ public class MerkleHashSortTree implements MerkleTree {
 
 		@Override
 		public byte[] toBytes(HashEntry value) {
-			return BinaryProtocol.encode(value, HashBucketEntry.class);
+			return HashBucketEntryConvertor.encode((HashBucketEntry) value);
 		}
 
 		@Override

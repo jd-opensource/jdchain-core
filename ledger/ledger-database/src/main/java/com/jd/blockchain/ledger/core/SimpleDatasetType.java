@@ -9,52 +9,57 @@ package com.jd.blockchain.ledger.core;
 public enum SimpleDatasetType {
 
 	/**
-	 * 交易集
+	 * 交易集,不同与其他数据集的处理
 	 */
 	TX,
 
 	/**
-	 * 用户集
+	 * 用户账户数据集
 	 */
 	USERS,
 
 	/**
-	 * 用户集
+	 * 数据账户数据集
 	 */
 	DATAS,
 
 	/**
-	 * 用户集
+	 * 合约账户数据集
 	 */
 	CONTS,
 
 	/**
-	 * 用户集
+	 * 事件账户数据集
+	 */
+	EVENTS,
+
+	/**
+	 * 用户属性信息数据集
 	 */
 	HDKVS,
 
 	/**
-	 * 用户集
+	 * 用户数据信息数据集
 	 */
 	DTKVS,
 
 	/**
-	 * 参与方集
+	 * 参与方数据集
 	 */
 	PARTIS,
 
 	/**
-	 * 角色权限集
+	 * 角色权限数据集
 	 */
 	ROLEPS,
 
 	/**
-	 * 角色权限集
+	 * 用户角色数据集
 	 */
 	USERRS,
 
 	/**
-	 * 如果设置为NONE，则dataset单独处理，作为中间过渡使用
+	 * 该类型暂不单独处理
 	 */
 	NONE
 }

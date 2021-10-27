@@ -36,7 +36,11 @@ public class EventManager implements EventOperationHandle {
     }
 
     public EventAccount getAccount(Bytes address) {
-        return txCtx.getEventSet().getEventAccountSet().getAccount(address);
+        if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
+            return ((EventAccountSetEditor) (txCtx.getEventSet().getEventAccountSet())).getAccount(address);
+        } else {
+            return ((EventAccountSetEditorSimple) (txCtx.getEventSet().getEventAccountSet())).getAccount(address);
+        }
     }
 
     @Override

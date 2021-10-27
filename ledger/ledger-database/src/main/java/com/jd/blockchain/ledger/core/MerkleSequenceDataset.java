@@ -253,31 +253,6 @@ public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
 		return dataNode.getKey().toUTF8String();
 	}
 
-//	/**
-//	 * Create or update the value associated the specified key if the version
-//	 * checking is passed.<br>
-//	 * 
-//	 * The value of the key will be updated only if it's latest version equals the
-//	 * specified version argument. <br>
-//	 * If the key doesn't exist, it will be created when the version arg was -1.
-//	 * <p>
-//	 * If updating is performed, the version of the key increase by 1. <br>
-//	 * If creating is performed, the version of the key initialize by 0. <br>
-//	 * 
-//	 * @param key     The key of data;
-//	 * @param value   The value of data;
-//	 * @param version The expected latest version of the key.
-//	 * @return The new version of the key. <br>
-//	 *         If the key is new created success, then return 0; <br>
-//	 *         If the key is updated success, then return the new version;<br>
-//	 *         If this operation fail by version checking or other reason, then
-//	 *         return -1;
-//	 */
-//	@Override
-//	public long setValue(String key, byte[] value, long version) {
-//		return setValue(Bytes.fromString(key), value, version);
-//	}
-
 	/**
 	 * Create or update the value associated the specified key if the version
 	 * checking is passed.<br>
@@ -351,6 +326,37 @@ public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
 		return newVersion;
 	}
 
+	@Override
+	public long setValue(Bytes key, byte[] value) {
+		if (readonly) {
+			throw new IllegalArgumentException("This merkle dataset is readonly!");
+		}
+		if (value.length > MAX_SIZE_OF_VALUE) {
+			throw new IllegalArgumentException(
+					"The size of value is great than the max size[" + MAX_SIZE_OF_VALUE + "]!");
+		}
+		Bytes dataKey = encodeDataKey(key);
+		// creating ;
+		long sn = snGenerator.generate(key);
+		long newVersion = valueStorage.set(dataKey, value, -1);
+		if (newVersion < 0) {
+			return -1;
+		}
+		byte[] snBytes = BytesUtils.toBytes(sn);
+		Bytes snKey = encodeSNKey(key);
+		boolean nx = snStorage.set(snKey, snBytes, ExPolicy.NOT_EXISTING);
+		if (!nx) {
+			throw new LedgerException("SN already exist! --[KEY=" + key + "]");
+		}
+
+		// update merkle tree;
+		merkleTree.setData(sn, key, newVersion, value);
+		// TODO: 未在当前实例的层面，实现对输入键-值的缓冲，而直接写入了存储，而 MerkleTree 在未调用 commit
+		// 之前是缓冲的，这使得在存储层面的数据会不一致，而未来需要优化；
+
+		return newVersion;
+	}
+
 	private Bytes encodeSNKey(Bytes key) {
 		return new Bytes(snKeyPrefix, key);
 	}
@@ -396,20 +402,6 @@ public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
 		return mdn.getVersion();
 	}
 
-//	/**
-//	 * Return the specified version's value;<br>
-//	 * 
-//	 * If the key with the specified version doesn't exist, then return null;<br>
-//	 * If the version is specified to -1, then return the latest version's value;
-//	 * 
-//	 * @param key
-//	 * @param version
-//	 */
-//	@Override
-//	public byte[] getValue(String key, long version) {
-//		return getValue(Bytes.fromString(key), version);
-//	}
-
 	/**
 	 * Return the specified version's value;<br>
 	 * 
@@ -432,17 +424,6 @@ public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
 		return valueStorage.get(dataKey, version);
 	}
 
-//	/**
-//	 * Return the latest version's value;
-//	 * 
-//	 * @param key
-//	 * @return return null if not exist;
-//	 */
-//	@Override
-//	public byte[] getValue(String key) {
-//		return getValue(Bytes.fromString(key));
-//	}
-
 	/**
 	 * Return the latest version's value;
 	 * 
@@ -459,18 +440,6 @@ public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
 		return valueStorage.get(dataKey, latestVersion);
 	}
 
-//	/**
-//	 * Return the latest version entry associated the specified key; If the key
-//	 * doesn't exist, then return -1;
-//	 * 
-//	 * @param key
-//	 * @return
-//	 */
-//	@Override
-//	public long getVersion(String key) {
-//		return getMerkleVersion(Bytes.fromString(key));
-//	}
-
 	/**
 	 * Return the latest version entry associated the specified key; If the key
 	 * doesn't exist, then return -1;
@@ -483,11 +452,6 @@ public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
 		return getMerkleVersion(key);
 	}
 
-//	@Override
-//	public VersioningKVEntry<String, byte[]> getDataEntry(String key) {
-//		return getDataEntry(key, -1);
-//	}
-
 	/**
 	 * 
 	 * @param key
@@ -497,24 +461,6 @@ public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
 	public DataEntry<Bytes, byte[]> getDataEntry(Bytes key) {
 		return getDataEntry(key, -1);
 	}
-
-//	@Override
-//	public VersioningKVEntry<String, byte[]> getDataEntry(String key, long version) {
-//		Bytes keyBytes = Bytes.fromString(key);
-//		long latestVersion = getMerkleVersion(keyBytes);
-//		if (latestVersion < 0 || version > latestVersion) {
-//			// key not exist, or the specified version is out of the latest version indexed
-//			// by the current merkletree;
-//			return null;
-//		}
-//		version = version < 0 ? latestVersion : version;
-//		Bytes dataKey = encodeDataKey(keyBytes);
-//		byte[] value = valueStorage.get(dataKey, version);
-//		if (value == null) {
-//			return null;
-//		}
-//		return new VersioningKVData<String, byte[]>(key, version, value);
-//	}
 
 	@Override
 	public DataEntry<Bytes, byte[]> getDataEntry(Bytes key, long version) {
@@ -533,8 +479,6 @@ public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
 		return new VersioningKVData<Bytes, byte[]>(key, version, value);
 	}
 
-	
-	
 	@Override
 	public SkippingIterator<DataEntry<Bytes, byte[]>> iterator() {
 		return new AscDataInterator(getDataCount());
@@ -669,119 +613,5 @@ public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
 		}
 
 	}
-	
-	
-	
-//	private class AscDataInterator implements DataIterator<Bytes, byte[]> {
-//
-//		private final long total;
-//
-//		private long cursor = 0;
-//
-//		public AscDataInterator(long total) {
-//			this.total = total;
-//		}
-//
-//		@Override
-//		public void skip(long count) {
-//			cursor = nextCursor(count);
-//		}
-//
-//		private long nextCursor(long skippingCount) {
-//			long c = cursor + skippingCount;
-//			return c > total ? total : c;
-//		}
-//
-//		@Override
-//		public DataEntry<Bytes, byte[]> next() {
-//			if (hasNext()) {
-//				DataEntry<Bytes, byte[]> entry = getLatestDataEntry(cursor);
-//				cursor = nextCursor(1);
-//				return entry;
-//			}
-//			return null;
-//		}
-//
-//		@Override
-//		public DataEntry<Bytes, byte[]>[] next(int count) {
-//			if (hasNext()) {
-//				long from = cursor;
-//				long nextCursor = nextCursor(count);
-//				long c = nextCursor - cursor;
-//				if (c > LedgerConsts.MAX_LIST_COUNT) {
-//					throw new IllegalArgumentException(
-//							"Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
-//				}
-//				DataEntry<Bytes, byte[]>[] entries = getLatestDataEntries(from, (int) c);
-//				cursor = nextCursor;
-//				return entries;
-//			}
-//			return EMPTY_ENTRIES;
-//		}
-//
-//		@Override
-//		public boolean hasNext() {
-//			return cursor < total;
-//		}
-//
-//	}
-//
-//	private class DescDataInterator implements DataIterator<Bytes, byte[]> {
-//
-//		private final long total;
-//
-//		private long cursor;
-//
-//		public DescDataInterator(long total) {
-//			this.total = total;
-//			this.cursor = total - 1;
-//		}
-//
-//		@Override
-//		public void skip(long count) {
-//			cursor = nextCursor(count);
-//		}
-//
-//		private long nextCursor(long skippingCount) {
-//			long c = cursor - skippingCount;
-//			return c < 0 ? -1 : c;
-//		}
-//
-//		@Override
-//		public DataEntry<Bytes, byte[]> next() {
-//			if (hasNext()) {
-//				DataEntry<Bytes, byte[]> entry = getLatestDataEntry(cursor);
-//				cursor = nextCursor(1);
-//				return entry;
-//			}
-//			return null;
-//		}
-//
-//		@Override
-//		public DataEntry<Bytes, byte[]>[] next(int count) {
-//			if (hasNext()) {
-//				long nextCursor = nextCursor(count);
-//				long from = nextCursor + 1;
-//				long c = cursor - nextCursor;
-//				if (c > LedgerConsts.MAX_LIST_COUNT) {
-//					throw new IllegalArgumentException(
-//							"Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
-//				}
-//				DataEntry<Bytes, byte[]>[] entries = getLatestDataEntries(from, (int) c);
-//				// reverse;
-//				ArrayUtils.reverse(entries);
-//
-//				cursor = nextCursor;
-//				return entries;
-//			}
-//			return EMPTY_ENTRIES;
-//		}
-//
-//		@Override
-//		public boolean hasNext() {
-//			return cursor < total;
-//		}
-//
-//	}
 
 }

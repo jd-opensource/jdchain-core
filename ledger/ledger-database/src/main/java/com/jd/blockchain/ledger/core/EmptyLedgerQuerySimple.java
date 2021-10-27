@@ -128,7 +128,7 @@ class EmptyLedgerQuerySimple implements LedgerQuery {
 
 		@Override
 	    public LedgerDataStructure getLedgerDataStructure() {
-			return LedgerDataStructure.MERKLE_TREE;
+			return LedgerDataStructure.KV;
 		}
 
 	}

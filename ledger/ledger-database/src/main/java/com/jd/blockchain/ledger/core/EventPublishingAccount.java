@@ -7,9 +7,13 @@ import com.jd.blockchain.ledger.AccountType;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.EventInfo;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.TypedValue;
 import utils.Bytes;
+import utils.DataEntry;
 import utils.Dataset;
+import utils.Mapper;
+import utils.SkippingIterator;
 import utils.io.BytesUtils;
 
 import java.util.ArrayList;
@@ -17,8 +21,11 @@ import java.util.List;
 
 public class EventPublishingAccount extends PermissionAccountDecorator implements EventAccount, EventPublisher {
 
-    public EventPublishingAccount(CompositeAccount account) {
+    private LedgerDataStructure ledgerDataStructure;
+
+    public EventPublishingAccount(CompositeAccount account, LedgerDataStructure ledgerDataStructure) {
         super(AccountType.EVENT, account);
+        this.ledgerDataStructure = ledgerDataStructure;
     }
 
     @Override
@@ -45,15 +52,28 @@ public class EventPublishingAccount extends PermissionAccountDecorator implement
 
     @Override
     public String[] getEventNames(long fromIndex, int count) {
+        if (ledgerDataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+            SkippingIterator<DataEntry<String, TypedValue>> iterator = ((MerkleDataset) mklAccount.getDataset()).iterator();
+            iterator.skip(fromIndex);
 
-        String[] eventNames = new String[count];
+            String[] eventNames = iterator.next(count, String.class, new Mapper<DataEntry<String, TypedValue>, String>() {
+                @Override
+                public String from(DataEntry<String, TypedValue> source) {
+                    return source.getKey();
+                }
+            });
 
-        for (int index = 0; index < count; index++) {
-            byte[] indexKey = ((SimpleDatasetImpl)((ComplecatedSimpleAccount)mklAccount).getDataDataset()).getKeyByIndex(fromIndex + index);
-            eventNames[index] = BytesUtils.toString(indexKey);
+            return eventNames;
+        } else {
+            String[] eventNames = new String[count];
+
+            for (int index = 0; index < count; index++) {
+                byte[] indexKey = ((SimpleDatasetImpl)((ComplecatedSimpleAccount)mklAccount).getDataDataset()).getKeyByIndex(fromIndex + index);
+                eventNames[index] = BytesUtils.toString(indexKey);
+            }
+
+            return eventNames;
         }
-
-        return eventNames;
     }
 
     @Override

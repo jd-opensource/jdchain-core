@@ -174,6 +174,15 @@ public class DatasetHelperSimple {
 		}
 
 		@Override
+		public long setValue(K key, V value) {
+			long newVersion = dataset.setValue(key, value);
+			if (newVersion > -1) {
+				listener.onChanged(key, value, -1, newVersion);
+			}
+			return newVersion;
+		}
+
+		@Override
 		public V getValue(K key, long version) {
 			return dataset.getValue(key, version);
 		}
@@ -271,6 +280,13 @@ public class DatasetHelperSimple {
 			K1 key1 = keyMapper.encode(key);
 			V1 value1 = valueMapper.encode(value);
 			return dataset.setValue(key1, value1, version);
+		}
+
+		@Override
+		public long setValue(K2 key, V2 value) {
+			K1 key1 = keyMapper.encode(key);
+			V1 value1 = valueMapper.encode(value);
+			return dataset.setValue(key1, value1);
 		}
 
 		@Override

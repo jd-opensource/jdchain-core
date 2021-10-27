@@ -14,11 +14,9 @@ import utils.StringUtils;
 import utils.codec.Base58Utils;
 import utils.crypto.classic.SHA256Utils;
 import utils.io.FileUtils;
-
 import java.io.File;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
-import java.util.Scanner;
 
 /**
  * @description: JD Chain Keypair management
@@ -116,10 +114,8 @@ class KeysShow implements Runnable {
             return false;
         });
         if (null != pubs && pubs.length > 0) {
-            System.out.println("input the password: ");
-            System.out.print("> ");
-            Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-            String password = scanner.next();
+            System.out.println("input the password:");
+            String password = ScannerUtils.read();
             String base58pwd = FileUtils.readText(new File(keysHome + File.separator + name + ".pwd"));
             if (!StringUtils.isEmpty(password) && base58pwd.equals(Base58Utils.encode(SHA256Utils.hash(password.getBytes())))) {
                 String pubkey = FileUtils.readText(new File(keysHome + File.separator + name + ".pub"));
@@ -177,10 +173,8 @@ class KeysAdd implements Runnable {
                 keypair = Crypto.getSignatureFunction(algorithm.toUpperCase()).generateKeypair(seed.getBytes());
             }
             if (StringUtils.isEmpty(password)) {
-                System.out.println("please input password: ");
-                System.out.print("> ");
-                Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-                password = scanner.next();
+                System.out.println("input the password:");
+                password = ScannerUtils.read();
             }
             if (!StringUtils.isEmpty(password)) {
                 String pubkey = KeyGenUtils.encodePubKey(keypair.getPubKey());
@@ -222,15 +216,12 @@ class KeysUpdate implements Runnable {
         if (names.length == 0) {
             System.err.println("[" + name + "] not exists");
         } else {
-            System.out.println("input the current password: ");
-            System.out.print("> ");
-            Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-            String password = scanner.next();
+            System.out.println("input the current password:");
+            String password = ScannerUtils.read();
             String base58pwd = FileUtils.readText(new File(keysHome + File.separator + name + ".pwd"));
             if (!StringUtils.isEmpty(password) && base58pwd.equals(Base58Utils.encode(SHA256Utils.hash(password.getBytes())))) {
-                System.out.println("input new password: ");
-                System.out.print("> ");
-                password = scanner.next();
+                System.out.println("input new password:");
+                password = ScannerUtils.read();
                 if (!StringUtils.isEmpty(password)) {
                     PrivKey privKey = KeyGenUtils.decodePrivKey(FileUtils.readText(new File(keysHome + File.separator + name + ".priv")), base58pwd);
                     base58pwd = KeyGenUtils.encodePasswordAsBase58(password);
@@ -273,10 +264,8 @@ class KeysDelete implements Runnable {
         if (names.length == 0) {
             System.err.println("[" + name + "] not exists");
         } else {
-            System.out.println("input the current password: ");
-            System.out.print("> ");
-            Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-            String password = scanner.next();
+            System.out.println("input the current password:");
+            String password = ScannerUtils.read();
             String base58pwd = FileUtils.readText(new File(keysHome + File.separator + name + ".pwd"));
             if (!StringUtils.isEmpty(password) && base58pwd.equals(KeyGenUtils.encodePasswordAsBase58(password))) {
                 FileUtils.deleteFile(new File(keysHome + File.separator + name + ".pwd"));
@@ -324,10 +313,8 @@ class KeysImport implements Runnable {
             PubKey pubKey = CertificateUtils.resolvePubKey(certificate);
             PrivKey privKey = CertificateUtils.parsePrivKey(pubKey.getAlgorithm(), new File(keyPath));
             AsymmetricKeypair keypair = new BlockchainKeypair(pubKey, privKey);
-            System.out.println("please input password: ");
-            System.out.print("> ");
-            Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-            String password = scanner.next();
+            System.out.println("please input password:");
+            String password = ScannerUtils.read();
             if (!StringUtils.isEmpty(password)) {
                 String pubkey = KeyGenUtils.encodePubKey(keypair.getPubKey());
                 String base58pwd = KeyGenUtils.encodePasswordAsBase58(password);

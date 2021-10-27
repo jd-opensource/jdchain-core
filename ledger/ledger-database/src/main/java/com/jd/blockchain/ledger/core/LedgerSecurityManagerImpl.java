@@ -443,6 +443,9 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 
 		@Override
 		public void checkDataOwners(DataPermission permission, MultiIDsPolicy midPolicy) throws LedgerSecurityException {
+			if(null == permission || permission.getOwners().length == 0) {
+				return;
+			}
 			if (MultiIDsPolicy.AT_LEAST_ONE == midPolicy) {
 				// 至少一个；
 				for(Bytes address : permission.getOwners()) {

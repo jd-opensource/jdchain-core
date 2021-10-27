@@ -7,6 +7,7 @@ import com.jd.blockchain.ledger.AccountType;
 import com.jd.blockchain.ledger.DataPermission;
 import com.jd.blockchain.ledger.PermissionAccount;
 import com.jd.blockchain.ledger.TypedValue;
+import utils.Bytes;
 
 public class PermissionAccountDecorator extends AccountDecorator implements PermissionAccount {
 
@@ -25,7 +26,7 @@ public class PermissionAccountDecorator extends AccountDecorator implements Perm
             DataPermission dp = BinaryProtocol.decode(ptv.bytesValue());
             return new AccountDataPermission(dp.getModeBits(), dp.getOwners(), dp.getRole());
         } else {
-            return null;
+            return new AccountDataPermission(accountType, new Bytes[]{});
         }
     }
 

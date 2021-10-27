@@ -242,7 +242,7 @@ public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable,
 	 * @param pubKey
 	 */
 	private void initPubKey(PubKey pubKey) {
-		long v = typedHeader.setValue(KEY_PUBKEY, TypedValue.fromPubKey(pubKey), -1);
+		long v = typedHeader.setValue(KEY_PUBKEY, TypedValue.fromPubKey(pubKey));
 		if (v < 0) {
 			throw new LedgerException("PubKey storage conflict!");
 		}

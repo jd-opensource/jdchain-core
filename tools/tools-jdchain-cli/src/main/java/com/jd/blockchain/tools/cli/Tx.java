@@ -28,6 +28,7 @@ import com.jd.blockchain.ledger.TransactionTemplate;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.sdk.client.GatewayBlockchainServiceProxy;
 import com.jd.blockchain.sdk.client.GatewayServiceFactory;
+import com.jd.blockchain.transaction.AccountPermissionSetOperationBuilder;
 import com.jd.blockchain.transaction.RolePrivilegeConfigurer;
 import com.jd.blockchain.transaction.SignatureUtils;
 import com.jd.blockchain.transaction.TransactionService;
@@ -46,7 +47,6 @@ import java.lang.reflect.Method;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Scanner;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
@@ -68,13 +68,16 @@ import java.util.concurrent.atomic.AtomicLong;
                 TxRoleConfig.class,
                 TxAuthorziationConfig.class,
                 TxDataAccountRegister.class,
+                TxDataAccountPermission.class,
                 TxKVSet.class,
+                TxEventAccountRegister.class,
+                TxEventAccountPermission.class,
                 TxEventPublish.class,
                 TxEventSubscribe.class,
                 TxContractDeploy.class,
+                TxContractAccountPermission.class,
                 TxContractCall.class,
                 TxContractStateUpdate.class,
-                TxEventAccountRegister.class,
                 TxSign.class,
                 TxSend.class,
                 TxTestKV.class,
@@ -112,10 +115,8 @@ public class Tx implements Runnable {
         for (int i = 0; i < ledgers.length; i++) {
             System.out.printf("%-7s\t%s%n", i, ledgers[i]);
         }
-        System.out.print("> ");
-        Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-        String input = scanner.next().trim();
-        return ledgers[Integer.parseInt(input)];
+        int index = ScannerUtils.readRangeInt(0, ledgers.length - 1);
+        return ledgers[index];
     }
 
     TransactionTemplate newTransaction() {
@@ -176,12 +177,9 @@ public class Tx implements Runnable {
                 passwords[i] = pwd;
                 System.out.printf("%-7s\t%s\t%s%n", i, key, keypairs[i].getAddress());
             }
-            System.out.print("> ");
-            Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-            int keyIndex = Integer.parseInt(scanner.next().trim());
+            int keyIndex = ScannerUtils.readRangeInt(0, pubs.length - 1);
             System.out.println("input password of the key: ");
-            System.out.print("> ");
-            String pwd = scanner.next();
+            String pwd = ScannerUtils.read();
             if (KeyGenUtils.encodePasswordAsBase58(pwd).equals(passwords[keyIndex])) {
                 return SignatureUtils.sign(txHash, keypairs[keyIndex]);
             } else {
@@ -213,12 +211,9 @@ public class Tx implements Runnable {
                 passwords[i] = pwd;
                 System.out.printf("%-7s\t%s\t%s%n", i, key, keypairs[i].getAddress());
             }
-            System.out.print("> ");
-            Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-            int keyIndex = Integer.parseInt(scanner.next().trim());
+            int keyIndex = ScannerUtils.readRangeInt(0, pubs.length - 1);
             System.out.println("input password of the key: ");
-            System.out.print("> ");
-            String pwd = scanner.next();
+            String pwd = ScannerUtils.read();
             if (KeyGenUtils.encodePasswordAsBase58(pwd).equals(passwords[keyIndex])) {
                 return keypairs[keyIndex];
             } else {
@@ -417,9 +412,7 @@ class TxUserCAUpdate implements Runnable {
                     addresses[i] = AddressEncoding.generateAddress(KeyGenUtils.decodePubKey(pubkey));
                     System.out.printf("%-7s\t%s\t%s%n", i, key, addresses[i]);
                 }
-                System.out.print("> ");
-                Scanner scanner = new Scanner(System.in).useDelimiter("\n");
-                int keyIndex = Integer.parseInt(scanner.next().trim());
+                int keyIndex = ScannerUtils.readRangeInt(0, addresses.length - 1);
                 address = addresses[keyIndex];
                 certificate = CertificateUtils.parseCertificate(FileUtils.readText(new File(certs[keyIndex])));
                 if (!address.equals(address)) {
@@ -1023,7 +1016,7 @@ class TxTestKV implements Runnable {
                     prepare.addSignature(SignatureUtils.sign(prepare.getTransactionHash(), signer));
                     try {
                         TransactionResponse response = prepare.commit();
-                        if(!silence) {
+                        if (!silence) {
                             System.out.println(prepare.getTransactionHash() + ": " + response.getExecutionState());
                         }
                         long l = count.incrementAndGet();
@@ -1040,7 +1033,7 @@ class TxTestKV implements Runnable {
                             }
                         }
                     } catch (Exception e) {
-                        if(!silence) {
+                        if (!silence) {
                             System.out.println(prepare.getTransactionHash() + ": " + e.getMessage());
                         }
                     }
@@ -1052,6 +1045,144 @@ class TxTestKV implements Runnable {
             cdl.await();
         } catch (InterruptedException e) {
             e.printStackTrace();
+        }
+    }
+}
+
+@CommandLine.Command(name = "data-account-permission", mixinStandardHelpOptions = true, header = "Update data account permission.")
+class TxDataAccountPermission implements Runnable {
+
+    @CommandLine.Option(names = "--address", description = "Address of the data account", scope = CommandLine.ScopeType.INHERIT)
+    String address;
+
+    @CommandLine.Option(names = "--role", description = "Role of the data account", scope = CommandLine.ScopeType.INHERIT)
+    String role;
+
+    @CommandLine.Option(names = "--mode", description = "Mode value of the data account", defaultValue = "-1", scope = CommandLine.ScopeType.INHERIT)
+    int mode;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        if (StringUtils.isEmpty(role) && mode == -1) {
+            System.err.println("both role and mode are empty!");
+            return;
+        }
+        TransactionTemplate txTemp = txCommand.newTransaction();
+        AccountPermissionSetOperationBuilder builder = txTemp.dataAccount(address).permission();
+        if (!StringUtils.isEmpty(role)) {
+            builder.role(role);
+        }
+        if (mode > -1) {
+            builder.mode(mode);
+        }
+        PreparedTransaction ptx = txTemp.prepare();
+        String txFile = txCommand.export(ptx);
+        if (null != txFile) {
+            System.err.println("export transaction success: " + txFile);
+        } else {
+            if (txCommand.sign(ptx)) {
+                TransactionResponse response = ptx.commit();
+                if (response.isSuccess()) {
+                    System.out.printf("update data account: [%s] permission\n", address);
+                } else {
+                    System.err.println("update data account permission failed!");
+                }
+            }
+        }
+    }
+}
+
+@CommandLine.Command(name = "event-account-permission", mixinStandardHelpOptions = true, header = "Update event account permission.")
+class TxEventAccountPermission implements Runnable {
+
+    @CommandLine.Option(names = "--address", description = "Address of the event account", scope = CommandLine.ScopeType.INHERIT)
+    String address;
+
+    @CommandLine.Option(names = "--role", description = "Role of the event account", scope = CommandLine.ScopeType.INHERIT)
+    String role;
+
+    @CommandLine.Option(names = "--mode", description = "Mode value of the event account", defaultValue = "-1", scope = CommandLine.ScopeType.INHERIT)
+    int mode;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        if (StringUtils.isEmpty(role) && mode == -1) {
+            System.err.println("both role and mode are empty!");
+            return;
+        }
+        TransactionTemplate txTemp = txCommand.newTransaction();
+        AccountPermissionSetOperationBuilder builder = txTemp.eventAccount(address).permission();
+        if (!StringUtils.isEmpty(role)) {
+            builder.role(role);
+        }
+        if (mode > -1) {
+            builder.mode(mode);
+        }
+        PreparedTransaction ptx = txTemp.prepare();
+        String txFile = txCommand.export(ptx);
+        if (null != txFile) {
+            System.err.println("export transaction success: " + txFile);
+        } else {
+            if (txCommand.sign(ptx)) {
+                TransactionResponse response = ptx.commit();
+                if (response.isSuccess()) {
+                    System.out.printf("update event account: [%s] permission\n", address);
+                } else {
+                    System.err.println("update event account permission failed!");
+                }
+            }
+        }
+    }
+}
+
+@CommandLine.Command(name = "contract-permission", mixinStandardHelpOptions = true, header = "Update contract permission.")
+class TxContractAccountPermission implements Runnable {
+
+    @CommandLine.Option(names = "--address", description = "Address of the contract", scope = CommandLine.ScopeType.INHERIT)
+    String address;
+
+    @CommandLine.Option(names = "--role", description = "Role of the contract", scope = CommandLine.ScopeType.INHERIT)
+    String role;
+
+    @CommandLine.Option(names = "--mode", description = "Mode value of the contract", defaultValue = "-1", scope = CommandLine.ScopeType.INHERIT)
+    int mode;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        if (StringUtils.isEmpty(role) && mode == -1) {
+            System.err.println("both role and mode are empty!");
+            return;
+        }
+        TransactionTemplate txTemp = txCommand.newTransaction();
+        AccountPermissionSetOperationBuilder builder = txTemp.contract(address).permission();
+        if (!StringUtils.isEmpty(role)) {
+            builder.role(role);
+        }
+        if (mode > -1) {
+            builder.mode(mode);
+        }
+        PreparedTransaction ptx = txTemp.prepare();
+        String txFile = txCommand.export(ptx);
+        if (null != txFile) {
+            System.err.println("export transaction success: " + txFile);
+        } else {
+            if (txCommand.sign(ptx)) {
+                TransactionResponse response = ptx.commit();
+                if (response.isSuccess()) {
+                    System.out.printf("update contract: [%s] permission\n", address);
+                } else {
+                    System.err.println("update contract permission failed!");
+                }
+            }
         }
     }
 }

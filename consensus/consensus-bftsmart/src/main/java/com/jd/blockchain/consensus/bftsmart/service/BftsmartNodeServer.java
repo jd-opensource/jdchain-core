@@ -574,7 +574,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 						// 返回成功，但需要设置当前的状态
 						return BatchAppResultImpl.createSuccess(responseLinkedList, cidBytes, batchId, cidBytes);
 					} else {
-						LOGGER.info("Last block's timestamp = {}, current timestamp = {}, time tolerance = {} !",
+						LOGGER.debug("Last block's timestamp = {}, current timestamp = {}, time tolerance = {} !",
 								preBlockTimestamp, timestamp, timeTolerance);
 					}
 				}

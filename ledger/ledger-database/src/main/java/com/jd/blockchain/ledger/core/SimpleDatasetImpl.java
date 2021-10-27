@@ -184,7 +184,7 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 *         return -1;
 	 */
 	@Override
-		public long setValue(Bytes key, byte[] value, long version) {
+	public long setValue(Bytes key, byte[] value, long version) {
 		if (readonly) {
 			throw new IllegalArgumentException("This merkle dataset is readonly!");
 		}
@@ -196,7 +196,7 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 
 		long newVersion;
 		if (datasetType == SimpleDatasetType.TX) {
-			newVersion = setTxTypeValue(dataKey, value, version);
+			newVersion = setTxTypeValue(dataKey, value);
 		} else {
 			newVersion = setNoneTypeValue(dataKey, value, version);
 		}
@@ -204,8 +204,29 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 		return newVersion;
 	}
 
+	@Override
+	public long setValue(Bytes key, byte[] value) {
+		if (readonly) {
+			throw new IllegalArgumentException("This merkle dataset is readonly!");
+		}
+		if (value.length > MAX_SIZE_OF_VALUE) {
+			throw new IllegalArgumentException(
+					"The size of value is great than the max size[" + MAX_SIZE_OF_VALUE + "]!");
+		}
+		Bytes dataKey = encodeDataKey(key);
+
+		long newVersion;
+		if (datasetType == SimpleDatasetType.TX) {
+			newVersion = setTxTypeValue(dataKey, value);
+		} else {
+			newVersion = setNoneTypeValue(dataKey, value, -1);
+		}
+
+		return newVersion;
+	}
+
 	// 对于交易，只有一个版本，不再做多余的查询
-	private long setTxTypeValue(Bytes key, byte[] value, long version) {
+	private long setTxTypeValue(Bytes key, byte[] value) {
 		long newVersion = valueStorage.set(key, value, -1);
 		if (newVersion < 0) {
 			return -1;
