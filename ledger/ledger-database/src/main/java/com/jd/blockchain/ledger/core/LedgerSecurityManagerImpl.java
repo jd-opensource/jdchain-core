@@ -316,7 +316,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 		}
 
 		@Override
-		public void checkEndpointCA(MultiIDsPolicy midPolicy) throws LedgerSecurityException {
+		public void checkEndpointState(MultiIDsPolicy midPolicy) throws LedgerSecurityException {
 			if (MultiIDsPolicy.AT_LEAST_ONE == midPolicy) {
 				// 至少一个；
 				for (Bytes address : getEndpoints()) {
@@ -325,17 +325,18 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 						if(account.getState() != AccountState.NORMAL) {
 							continue;
 						}
-						X509Certificate cert = CertificateUtils.parseCertificate(account.getCertificate());
-						CertificateUtils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
-						CertificateUtils.checkValidity(cert);
-						X509Certificate[] issuers = CertificateUtils.findIssuers(cert, ledgerCAs);
-						Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
-						CertificateUtils.checkValidityAny(issuers);
-
+						if(null != ledgerCAs && ledgerCAs.length > 0) {
+							X509Certificate cert = CertificateUtils.parseCertificate(account.getCertificate());
+							CertificateUtils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
+							CertificateUtils.checkValidity(cert);
+							X509Certificate[] issuers = CertificateUtils.findIssuers(cert, ledgerCAs);
+							Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
+							CertificateUtils.checkValidityAny(issuers);
+						}
 						return;
 					} catch (Exception e) {}
 				}
-				throw new LedgerSecurityException("Invalid endpoint user!");
+				throw new LedgerSecurityException("Invalid endpoint users!");
 			} else if (MultiIDsPolicy.ALL == midPolicy) {
 				// 全部；
 				try {
@@ -344,12 +345,14 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 						if(account.getState() != AccountState.NORMAL) {
 							throw new LedgerSecurityException("Invalid endpoint user!");
 						}
-						X509Certificate cert = CertificateUtils.parseCertificate(account.getCertificate());
-						CertificateUtils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
-						CertificateUtils.checkValidity(cert);
-						X509Certificate[] issuers = CertificateUtils.findIssuers(cert, ledgerCAs);
-						Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
-						CertificateUtils.checkValidityAny(issuers);
+						if(null != ledgerCAs && ledgerCAs.length > 0) {
+							X509Certificate cert = CertificateUtils.parseCertificate(account.getCertificate());
+							CertificateUtils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
+							CertificateUtils.checkValidity(cert);
+							X509Certificate[] issuers = CertificateUtils.findIssuers(cert, ledgerCAs);
+							Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
+							CertificateUtils.checkValidityAny(issuers);
+						}
 					}
 				} catch (Exception e) {
 					throw new LedgerSecurityException("Invalid endpoint user!");
@@ -360,7 +363,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 		}
 
 		@Override
-		public void checkNodeCA(MultiIDsPolicy midPolicy) throws LedgerSecurityException {
+		public void checkNodeState(MultiIDsPolicy midPolicy) throws LedgerSecurityException {
 			if (MultiIDsPolicy.AT_LEAST_ONE == midPolicy) {
 				// 至少一个；
 				for (Bytes address : getNodes()) {

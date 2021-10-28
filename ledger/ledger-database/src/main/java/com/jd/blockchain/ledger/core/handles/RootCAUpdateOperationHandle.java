@@ -78,10 +78,14 @@ public class RootCAUpdateOperationHandle extends AbstractLedgerOperationHandle<R
                 }
             }
 
+            if (ledgerCAMap.size() == 0) {
+                throw new LedgerException("At least one root certificate is required!");
+            }
+
             if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-                ((LedgerAdminDataSetEditor)adminDataset).updateLedgerCA(ledgerCAMap.values().toArray(new String[0]));
+                ((LedgerAdminDataSetEditor) adminDataset).updateLedgerCA(ledgerCAMap.values().toArray(new String[0]));
             } else {
-                ((LedgerAdminDataSetEditorSimple)adminDataset).updateLedgerCA(ledgerCAMap.values().toArray(new String[0]));
+                ((LedgerAdminDataSetEditorSimple) adminDataset).updateLedgerCA(ledgerCAMap.values().toArray(new String[0]));
             }
 
         } else {

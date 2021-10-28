@@ -182,12 +182,10 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 		// 验证参与方节点是否具有核准交易的权限；
 		securityPolicy.checkNodePermission(LedgerPermission.APPROVE_TX, MultiIDsPolicy.AT_LEAST_ONE);
 
-		if(identityMode == IdentityMode.CA) {
-			// 验证节点证书
-			securityPolicy.checkNodeCA(MultiIDsPolicy.AT_LEAST_ONE);
-			// 验证终端用户证书
-			securityPolicy.checkEndpointCA(MultiIDsPolicy.AT_LEAST_ONE);
-		}
+		// 验证节点用户（证书）状态
+		securityPolicy.checkNodeState(MultiIDsPolicy.AT_LEAST_ONE);
+		// 验证终端用户（证书）状态
+		securityPolicy.checkEndpointState(MultiIDsPolicy.AT_LEAST_ONE);
 	}
 
 	private void checkRequest(TransactionRequestExtension reqExt) {
