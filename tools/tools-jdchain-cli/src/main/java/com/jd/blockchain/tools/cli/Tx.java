@@ -243,7 +243,7 @@ public class Tx implements Runnable {
     }
 }
 
-@CommandLine.Command(name = "ledger-ca-update", mixinStandardHelpOptions = true, header = "Update ledger certificates.")
+@CommandLine.Command(name = "root-ca", mixinStandardHelpOptions = true, header = "Update ledger root certificates.")
 class TxLedgerCAUpdate implements Runnable {
 
     @CommandLine.Option(names = {"-n", "--name"}, description = "Name of the certificate")
@@ -378,7 +378,7 @@ class TxUserRegister implements Runnable {
     }
 }
 
-@CommandLine.Command(name = "user-ca-update", mixinStandardHelpOptions = true, header = "Update user certificate.")
+@CommandLine.Command(name = "user-ca", mixinStandardHelpOptions = true, header = "Update user certificate.")
 class TxUserCAUpdate implements Runnable {
 
     @CommandLine.Option(names = "--crt", description = "File of the X509 certificate", scope = CommandLine.ScopeType.INHERIT)
@@ -444,7 +444,7 @@ class TxUserCAUpdate implements Runnable {
     }
 }
 
-@CommandLine.Command(name = "user-state-update", mixinStandardHelpOptions = true, header = "Update user(certificate) state.")
+@CommandLine.Command(name = "user-state", mixinStandardHelpOptions = true, header = "Update user(certificate) state.")
 class TxUserStateUpdate implements Runnable {
 
     @CommandLine.Option(names = "--address", required = true, description = "User address", scope = CommandLine.ScopeType.INHERIT)
@@ -785,7 +785,7 @@ class TxContractCall implements Runnable {
     }
 }
 
-@CommandLine.Command(name = "contract-state-update", mixinStandardHelpOptions = true, header = "Update contract state.")
+@CommandLine.Command(name = "contract-state", mixinStandardHelpOptions = true, header = "Update contract state.")
 class TxContractStateUpdate implements Runnable {
 
     @CommandLine.Option(names = "--address", required = true, description = "Contract address", scope = CommandLine.ScopeType.INHERIT)
