@@ -372,13 +372,14 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 						if(account.getState() != AccountState.NORMAL) {
 							continue;
 						}
-						X509Certificate cert = CertificateUtils.parseCertificate(account.getCertificate());
-						CertificateUtils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW);
-						CertificateUtils.checkValidity(cert);
-						X509Certificate[] issuers = CertificateUtils.findIssuers(cert, ledgerCAs);
-						Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
-						CertificateUtils.checkValidityAny(issuers);
-
+						if(null != ledgerCAs && ledgerCAs.length > 0) {
+							X509Certificate cert = CertificateUtils.parseCertificate(account.getCertificate());
+							CertificateUtils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW);
+							CertificateUtils.checkValidity(cert);
+							X509Certificate[] issuers = CertificateUtils.findIssuers(cert, ledgerCAs);
+							Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
+							CertificateUtils.checkValidityAny(issuers);
+						}
 						return;
 					} catch (Exception e) {}
 				}
@@ -391,12 +392,14 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 						if(account.getState() != AccountState.NORMAL) {
 							throw new LedgerSecurityException("Invalid node signer!");
 						}
-						X509Certificate cert = CertificateUtils.parseCertificate(account.getCertificate());
-						CertificateUtils.checkValidity(cert);
-						CertificateUtils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW);
-						X509Certificate[] issuers = CertificateUtils.findIssuers(cert, ledgerCAs);
-						Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
-						CertificateUtils.checkValidityAny(issuers);
+						if(null != ledgerCAs && ledgerCAs.length > 0) {
+							X509Certificate cert = CertificateUtils.parseCertificate(account.getCertificate());
+							CertificateUtils.checkValidity(cert);
+							CertificateUtils.checkCertificateRolesAny(cert, CertificateRole.PEER, CertificateRole.GW);
+							X509Certificate[] issuers = CertificateUtils.findIssuers(cert, ledgerCAs);
+							Arrays.stream(issuers).forEach(issuer -> CertificateUtils.checkCACertificate(issuer));
+							CertificateUtils.checkValidityAny(issuers);
+						}
 					}
 				} catch (Exception e) {
 					throw new LedgerSecurityException("Invalid node signer!");
