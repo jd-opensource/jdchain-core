@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.jd.blockchain.ca.CertificateUtils;
+import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.ledger.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -323,27 +324,13 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 			// 重新抛出由上层错误处理；
 			throw e;
 		} catch (LedgerException e) {
-			// TODO: 识别更详细的异常类型以及执行对应的处理；
-//			result = TransactionState.LEDGER_ERROR;
 			result = e.getState();
-//			if (e instanceof DataAccountDoesNotExistException) {
-//				result = TransactionState.DATA_ACCOUNT_DOES_NOT_EXIST;
-//			} else if (e instanceof UserDoesNotExistException) {
-//				result = TransactionState.USER_DOES_NOT_EXIST;
-//			} else if (e instanceof ContractDoesNotExistException) {
-//				result = TransactionState.CONTRACT_DOES_NOT_EXIST;
-//			} else if (e instanceof ParticipantDoesNotExistException) {
-//				result = TransactionState.PARTICIPANT_DOES_NOT_EXIST;
-//			} else if (e instanceof DataVersionConflictException) {
-//				result = TransactionState.DATA_VERSION_CONFLICT;
-//			}
 			txCtx.discardAndCommit(result, operationResults);
 			LOGGER.error(String.format(
 					"Due to ledger exception, the data changes resulting from transaction execution will be rolled back and the results of the transaction will be committed! --[BlockHeight=%s][TxHash=%s] --%s",
-					newBlockEditor.getBlockHeight(), request.getTransactionHash(), 
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(),
 					e.getMessage()), e);
 		} catch (LedgerSecurityException e) {
-			// TODO: 识别更详细的异常类型以及执行对应的处理；
 			result = TransactionState.REJECTED_BY_SECURITY_POLICY;
 			txCtx.discardAndCommit(result, operationResults);
 			LOGGER.error(String.format(

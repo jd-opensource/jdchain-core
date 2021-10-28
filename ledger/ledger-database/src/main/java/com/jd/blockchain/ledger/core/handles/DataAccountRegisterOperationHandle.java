@@ -38,12 +38,8 @@ public class DataAccountRegisterOperationHandle extends AbstractLedgerOperationH
 		securityPolicy.checkEndpointPermission(LedgerPermission.REGISTER_DATA_ACCOUNT, MultiIDsPolicy.AT_LEAST_ONE);
 
 		// 操作账本；
-		DataAccountRegisterOperation dataAccountRegOp = (DataAccountRegisterOperation) op;
-		BlockchainIdentity bid = dataAccountRegOp.getAccountID();
-		logger.debug("before register.[dataAddress={}]",bid.getAddress());
-
+		BlockchainIdentity bid = op.getAccountID();
 		DataAccount account;
-
 		if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 			account = ((DataAccountSetEditor)(transactionContext.getDataset().getDataAccountSet())).register(bid.getAddress(), bid.getPubKey(), null);
 		} else {
@@ -51,8 +47,6 @@ public class DataAccountRegisterOperationHandle extends AbstractLedgerOperationH
 		}
 
 		account.setPermission(new AccountDataPermission(AccountType.DATA, requestContext.getEndpointAddresses().toArray(new Bytes[0])));
-
-		logger.debug("after register.[dataAddress={}]",bid.getAddress());
 	}
 
 }

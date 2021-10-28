@@ -1572,7 +1572,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			return new ServiceProxy(tomConfig, new MemoryBasedViewStorage(view), null, null);
 
 		} catch (Exception e) {
-			e.printStackTrace();
 			throw new CreateProxyClientException("[ManagementController] create proxy client exception!");
 		}
 
