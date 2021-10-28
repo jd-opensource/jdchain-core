@@ -51,7 +51,7 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 	private UserAccountSet userAccountsQuery;
 
 	public LedgerSecurityManagerImpl(RolePrivilegeSettings rolePrivilegeSettings, UserAuthorizationSettings userRolesSettings,
-			ParticipantCollection participantsQuery, UserAccountSet userAccountsQuery) {
+									 ParticipantCollection participantsQuery, UserAccountSet userAccountsQuery) {
 		this.rolePrivilegeSettings = rolePrivilegeSettings;
 		this.userRolesSettings = userRolesSettings;
 		this.participantsQuery = participantsQuery;
@@ -166,8 +166,8 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 		private X509Certificate[] ledgerCAs;
 
 		public UserRolesSecurityPolicy(Map<Bytes, UserRolesPrivileges> endpointPrivilegeMap,
-				Map<Bytes, UserRolesPrivileges> nodePrivilegeMap, ParticipantCollection participantsQuery,
-				UserAccountSet userAccountsQuery) {
+									   Map<Bytes, UserRolesPrivileges> nodePrivilegeMap, ParticipantCollection participantsQuery,
+									   UserAccountSet userAccountsQuery) {
 			this.endpointPrivilegeMap = endpointPrivilegeMap;
 			this.nodePrivilegeMap = nodePrivilegeMap;
 			this.participantsQuery = participantsQuery;
@@ -407,20 +407,19 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 		public void checkDataPermission(DataPermission permission, DataPermissionType permissionType) throws LedgerSecurityException {
 			AccountModeBits modeBits = permission.getModeBits();
 
-			// check all users permission
-			if(modeBits.get(AccountModeBits.BitGroup.ALL, permissionType.CODE)) {
-				return;
-			}
-
-			for(Bytes address : permission.getOwners()) {
-				if (endpointPrivilegeMap.containsKey(address)) {
-					// check owner permission
-					if (modeBits.get(AccountModeBits.BitGroup.OWNERS, permissionType.CODE)) {
-						return;
-					}
-				}
-			}
 			for(Bytes address : endpointPrivilegeMap.keySet()) {
+
+				boolean isOwner = Arrays.stream(permission.getOwners()).anyMatch(x -> x.equals(address));
+
+				//check owner's data permission
+				if(isOwner && modeBits.get(AccountModeBits.BitGroup.OWNER, permissionType.CODE)){
+					return;
+				}
+
+				if(isOwner){
+					continue;
+				}
+
 				UserRoles userRoles = userRolesCache.get(address);
 				if (userRoles == null) {
 					userRoles = userRolesSettings.getUserRoles(address);
@@ -428,13 +427,14 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 						userRolesCache.put(address, userRoles);
 					}
 				}
-				if(userRoles != null) {
-					if(Arrays.stream(userRoles.getRoles()).anyMatch(permission.getRole()::equals)) {
-						// check role permission
-						if(modeBits.get(AccountModeBits.BitGroup.ROLE, permissionType.CODE)) {
-							return;
-						}
-					}
+
+				boolean isGroup = userRoles != null && Arrays.stream(userRoles.getRoles()).anyMatch(permission.getRole()::equals);
+
+				//isGroup: check group's user data permission
+				//Others:  check others  user data permission
+				boolean passed = modeBits.get(isGroup ? AccountModeBits.BitGroup.GROUP : AccountModeBits.BitGroup.OTHERS, permissionType.CODE) ;
+				if(passed){
+					return;
 				}
 			}
 
