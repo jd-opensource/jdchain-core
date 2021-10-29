@@ -21,9 +21,9 @@ public class BftsmartClientAuthencationService implements ClientAuthencationServ
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(BftsmartClientAuthencationService.class);
 
-	public static final int MAX_CLIENT_COUNT = 500000;
+	public static final int MAX_CLIENT_COUNT = 100000;
 
-	public static final int POOL_SIZE_PEER_CLIENT = 20;
+	public static final int POOL_SIZE_PEER_CLIENT = 100;
 
 	/**
 	 * 保留的系统 ID 范围大小；
