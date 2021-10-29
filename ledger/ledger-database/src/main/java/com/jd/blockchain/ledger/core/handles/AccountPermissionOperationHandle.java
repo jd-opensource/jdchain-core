@@ -8,6 +8,7 @@ import com.jd.blockchain.ledger.DataAccountDoesNotExistException;
 import com.jd.blockchain.ledger.DataPermission;
 import com.jd.blockchain.ledger.EventAccountDoesNotExistException;
 import com.jd.blockchain.ledger.PermissionAccount;
+import com.jd.blockchain.ledger.RoleDoesNotExistException;
 import com.jd.blockchain.ledger.core.EventManager;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
@@ -48,6 +49,10 @@ public class AccountPermissionOperationHandle extends AbstractLedgerOperationHan
                     throw new ContractDoesNotExistException(String.format("Contract doesn't exist! --[Address=%s]", op.getAddress()));
                 }
                 break;
+        }
+
+        if (!StringUtils.isEmpty(op.getRole()) && !transactionContext.getDataset().getAdminDataset().getAdminSettings().getRolePrivileges().contains(op.getRole())) {
+            throw new RoleDoesNotExistException(String.format("Role doesn't exist! --[Role=%s]", op.getRole()));
         }
 
         // 写权限校验
