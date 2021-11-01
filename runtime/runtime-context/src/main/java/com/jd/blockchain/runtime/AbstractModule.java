@@ -4,6 +4,8 @@ import java.io.InputStream;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.concurrent.Callable;
 
+import com.jd.blockchain.ledger.ContractExecuteException;
+import com.jd.blockchain.ledger.LedgerException;
 import utils.concurrent.AsyncFuture;
 import utils.concurrent.CompletableAsyncFuture;
 
@@ -102,8 +104,10 @@ public abstract class AbstractModule implements Module {
 			}
 
 			throw new IllegalStateException(e.getCause().getMessage(), e.getCause());
-		} catch (Exception e) {
-			throw new IllegalStateException(e.getMessage(), e);
+		} catch (LedgerException e) {
+			throw e;
+		}  catch (Exception e) {
+			throw new ContractExecuteException(e.getMessage());
 		} finally {
 			if (origClassLoader != Thread.currentThread().getContextClassLoader()) {
 				Thread.currentThread().setContextClassLoader(origClassLoader);

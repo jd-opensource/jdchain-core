@@ -1,9 +1,10 @@
 package com.jd.blockchain.ledger.core.handles;
 
-import com.jd.blockchain.ledger.IllegalTransactionException;
+import com.jd.blockchain.ledger.IllegalAccountStateException;
 import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.AccountState;
+import com.jd.blockchain.ledger.UserDoesNotExistException;
 import com.jd.blockchain.ledger.UserStateUpdateOperation;
 import com.jd.blockchain.ledger.core.EventManager;
 import com.jd.blockchain.ledger.core.LedgerQuery;
@@ -31,9 +32,12 @@ public class UserStateUpdateOperationHandle extends AbstractLedgerOperationHandl
         securityPolicy.checkEndpointPermission(LedgerPermission.UPDATE_USER_STATE, MultiIDsPolicy.AT_LEAST_ONE);
 
         UserAccount user = transactionContext.getDataset().getUserAccountSet().getAccount(op.getUserAddress());
+        if(null == user) {
+            throw new UserDoesNotExistException(String.format("User doesn't exist! --[Address=%s]", op.getUserAddress()));
+        }
         // REVOKE 状态不可再恢复
         if (user.getState() == AccountState.REVOKE) {
-            throw new IllegalTransactionException("Can not change user[" + op.getUserAddress() + "] in REVOKE state.");
+            throw new IllegalAccountStateException(String.format("Can not change user in REVOKE state! --[Address=%s]", op.getUserAddress()));
         }
 
         // 操作账本；

@@ -355,14 +355,19 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			}
 
 			try {
+				UserAccount peerAccount = ledgerRepo.getUserAccountSet().getAccount(ledgerCurrNodes.get(ledgerHash).getAddress());
+				if(peerAccount.getState() != AccountState.NORMAL) {
+					LOGGER.error(String.format("Authenticate ledger[%s] error ! peer state is [%s]", ledgerHash.toBase58(), peerAccount.getState()));
+					continue;
+				}
+				UserAccount gwAccount = ledgerRepo.getUserAccountSet().getAccount(AddressEncoding.generateAddress(clientPubKey));
+				if(gwAccount.getState() != AccountState.NORMAL) {
+					LOGGER.error(String.format("Authenticate ledger[%s] error ! gateway state is [%s]", ledgerHash.toBase58(), peerAccount.getState()));
+					continue;
+				}
 				// 证书模式下认证校验
 				if(ledgerIdMode.get(ledgerHash) == IdentityMode.CA) {
 					// 当前Peer证书
-					UserAccount peerAccount = ledgerRepo.getUserAccountSet().getAccount(ledgerCurrNodes.get(ledgerHash).getAddress());
-					if(peerAccount.getState() != AccountState.NORMAL) {
-						LOGGER.error(String.format("Authenticate ledger[%s] error ! peer state is [%s]", ledgerHash.toBase58(), peerAccount.getState()));
-						continue;
-					}
 					X509Certificate peerCA = CertificateUtils.parseCertificate(peerAccount.getCertificate());
 					CertificateUtils.checkCertificateRole(peerCA, CertificateRole.PEER);
 					CertificateUtils.checkValidity(peerCA);
@@ -375,11 +380,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 					CertificateUtils.checkValidityAny(peerIssuers);
 
 					// 接入网关CA
-					UserAccount gwAccount = ledgerRepo.getUserAccountSet().getAccount(AddressEncoding.generateAddress(clientPubKey));
-					if(gwAccount.getState() != AccountState.NORMAL) {
-						LOGGER.error(String.format("Authenticate ledger[%s] error ! gateway state is [%s]", ledgerHash.toBase58(), peerAccount.getState()));
-						continue;
-					}
 					X509Certificate gwCA = CertificateUtils.parseCertificate(gwAccount.getCertificate());
 					CertificateUtils.checkCertificateRole(gwCA, CertificateRole.GW);
 					CertificateUtils.checkValidity(gwCA);
@@ -1572,7 +1572,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			return new ServiceProxy(tomConfig, new MemoryBasedViewStorage(view), null, null);
 
 		} catch (Exception e) {
-			e.printStackTrace();
 			throw new CreateProxyClientException("[ManagementController] create proxy client exception!");
 		}
 

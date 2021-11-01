@@ -1,7 +1,7 @@
 package com.jd.blockchain.ledger.core.handles;
 
-import com.jd.blockchain.ledger.DataAccountDoesNotExistException;
 import com.jd.blockchain.ledger.DataPermissionType;
+import com.jd.blockchain.ledger.EventAccountDoesNotExistException;
 import com.jd.blockchain.ledger.EventPublishOperation;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.core.*;
@@ -20,7 +20,7 @@ public class EventPublishOperationHandle extends AbstractLedgerOperationHandle<E
 
         EventAccount account = manager.getAccount(op.getEventAddress());
         if (null == account) {
-            throw new DataAccountDoesNotExistException("EventAccount doesn't exist!");
+            throw new EventAccountDoesNotExistException(String.format("Event account doesn't exist! --[Address=%s]", op.getEventAddress()));
         }
 
         // 事件账户写权限控制

@@ -51,6 +51,10 @@ public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperati
             }
         }
 
+        if(null == participantNode) {
+            throw new ParticipantDoesNotExistException(String.format("Participant doesn't exist! --[Address=%s]", op.getParticipantID().getAddress()));
+        }
+
         // 激活新参与方的共识状态
         if (previousBlockDataset.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
             ((LedgerAdminDataSetEditor)adminAccountDataSet).updateParticipant(participantNode);

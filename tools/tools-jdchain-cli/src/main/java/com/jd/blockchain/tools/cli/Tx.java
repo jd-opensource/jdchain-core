@@ -243,7 +243,7 @@ public class Tx implements Runnable {
     }
 }
 
-@CommandLine.Command(name = "ledger-ca-update", mixinStandardHelpOptions = true, header = "Update ledger certificates.")
+@CommandLine.Command(name = "root-ca", mixinStandardHelpOptions = true, header = "Update ledger root certificates.")
 class TxLedgerCAUpdate implements Runnable {
 
     @CommandLine.Option(names = {"-n", "--name"}, description = "Name of the certificate")
@@ -286,7 +286,7 @@ class TxLedgerCAUpdate implements Runnable {
                 if (response.isSuccess()) {
                     System.out.printf("ledger ca: [%s](pubkey) updated%n", pubkey);
                 } else {
-                    System.err.printf("update ledger ca: [%s](pubkey) failed!%n", pubkey);
+                    System.err.printf("update ledger ca: [%s](pubkey) failed: [%s]!%n", pubkey, response.getExecutionState());
                 }
             }
         }
@@ -371,14 +371,14 @@ class TxUserRegister implements Runnable {
                 if (response.isSuccess()) {
                     System.out.printf("register user: [%s]%n", AddressEncoding.generateAddress(pubKey));
                 } else {
-                    System.err.println("register user failed!");
+                    System.err.printf("register user failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }
     }
 }
 
-@CommandLine.Command(name = "user-ca-update", mixinStandardHelpOptions = true, header = "Update user certificate.")
+@CommandLine.Command(name = "user-ca", mixinStandardHelpOptions = true, header = "Update user certificate.")
 class TxUserCAUpdate implements Runnable {
 
     @CommandLine.Option(names = "--crt", description = "File of the X509 certificate", scope = CommandLine.ScopeType.INHERIT)
@@ -437,14 +437,14 @@ class TxUserCAUpdate implements Runnable {
                 if (response.isSuccess()) {
                     System.out.printf("user: [%s] ca updated%n", address);
                 } else {
-                    System.err.println("update user ca failed!");
+                    System.err.printf("update user failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }
     }
 }
 
-@CommandLine.Command(name = "user-state-update", mixinStandardHelpOptions = true, header = "Update user(certificate) state.")
+@CommandLine.Command(name = "user-state", mixinStandardHelpOptions = true, header = "Update user(certificate) state.")
 class TxUserStateUpdate implements Runnable {
 
     @CommandLine.Option(names = "--address", required = true, description = "User address", scope = CommandLine.ScopeType.INHERIT)
@@ -470,7 +470,7 @@ class TxUserStateUpdate implements Runnable {
                 if (response.isSuccess()) {
                     System.out.printf("change user: [%s] state to:[%s]%n", address, state);
                 } else {
-                    System.err.println("change user state failed!");
+                    System.err.printf("change user state failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }
@@ -506,7 +506,7 @@ class TxDataAccountRegister implements Runnable {
                 if (response.isSuccess()) {
                     System.out.printf("register data account: [%s]%n", account.getAddress());
                 } else {
-                    System.err.println("register data account failed!");
+                    System.err.printf("register data account failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }
@@ -545,7 +545,7 @@ class TxContractDeploy implements Runnable {
                 if (response.isSuccess()) {
                     System.out.printf("deploy contract: [%s]%n", account.getAddress());
                 } else {
-                    System.err.println("deploy contract failed!");
+                    System.err.printf("deploy contract failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }
@@ -581,7 +581,7 @@ class TxEventAccountRegister implements Runnable {
                 if (response.isSuccess()) {
                     System.out.printf("register event account: [%s]%n", account.getAddress());
                 } else {
-                    System.err.println("register event account failed!");
+                    System.err.printf("register event account failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }
@@ -620,7 +620,7 @@ class TxKVSet implements Runnable {
                 if (response.isSuccess()) {
                     System.out.println("set kv success");
                 } else {
-                    System.err.println("set kv failed!");
+                    System.err.printf("set kv failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }
@@ -659,7 +659,7 @@ class TxEventPublish implements Runnable {
                 if (response.isSuccess()) {
                     System.out.println("event publish success");
                 } else {
-                    System.err.println("event publish failed!");
+                    System.err.printf("event publish failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }
@@ -785,7 +785,7 @@ class TxContractCall implements Runnable {
     }
 }
 
-@CommandLine.Command(name = "contract-state-update", mixinStandardHelpOptions = true, header = "Update contract state.")
+@CommandLine.Command(name = "contract-state", mixinStandardHelpOptions = true, header = "Update contract state.")
 class TxContractStateUpdate implements Runnable {
 
     @CommandLine.Option(names = "--address", required = true, description = "Contract address", scope = CommandLine.ScopeType.INHERIT)
@@ -811,7 +811,7 @@ class TxContractStateUpdate implements Runnable {
                 if (response.isSuccess()) {
                     System.out.printf("change contract: [%s] state to:[%s]%n", address, state);
                 } else {
-                    System.err.println("change contract state failed!");
+                    System.err.printf("change contract state failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }
@@ -865,7 +865,7 @@ class TxRoleConfig implements Runnable {
                 if (response.isSuccess()) {
                     System.err.println("Role config success!");
                 } else {
-                    System.err.println("Role config failed!");
+                    System.err.printf("Role config failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }
@@ -913,7 +913,7 @@ class TxAuthorziationConfig implements Runnable {
                 if (response.isSuccess()) {
                     System.err.println("Authorization config success!");
                 } else {
-                    System.err.println("Authorization config failed!");
+                    System.err.printf("Authorization config failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }
@@ -970,7 +970,7 @@ class TxSend implements Runnable {
             if (response.isSuccess()) {
                 System.out.println("Send transaction success: " + tx.getTransactionHash());
             } else {
-                System.err.println("Send transaction failed!");
+                System.err.printf("Send transaction failed: [%s]!%n", response.getExecutionState());
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -1088,7 +1088,7 @@ class TxDataAccountPermission implements Runnable {
                 if (response.isSuccess()) {
                     System.out.printf("update data account: [%s] permission\n", address);
                 } else {
-                    System.err.println("update data account permission failed!");
+                    System.err.printf("update data account permission failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }
@@ -1134,7 +1134,7 @@ class TxEventAccountPermission implements Runnable {
                 if (response.isSuccess()) {
                     System.out.printf("update event account: [%s] permission\n", address);
                 } else {
-                    System.err.println("update event account permission failed!");
+                    System.err.printf("update event account permission failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }
@@ -1180,7 +1180,7 @@ class TxContractAccountPermission implements Runnable {
                 if (response.isSuccess()) {
                     System.out.printf("update contract: [%s] permission\n", address);
                 } else {
-                    System.err.println("update contract permission failed!");
+                    System.err.printf("update contract permission failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }

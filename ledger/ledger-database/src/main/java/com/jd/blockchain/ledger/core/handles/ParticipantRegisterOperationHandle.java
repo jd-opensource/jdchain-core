@@ -33,7 +33,7 @@ public class ParticipantRegisterOperationHandle extends AbstractLedgerOperationH
 		// 证书模式下必须传递证书
 		if (transactionContext.getDataset().getAdminDataset().getAdminSettings().getMetadata().getIdentityMode() == IdentityMode.CA) {
 			if (StringUtils.isEmpty(op.getCertificate())) {
-				throw new IllegalTransactionException("Participant ca is empty!");
+				throw new IllegalTransactionException("Participant certificate is empty!");
 			}
 
 			X509Certificate cert = CertificateUtils.parseCertificate(op.getCertificate());

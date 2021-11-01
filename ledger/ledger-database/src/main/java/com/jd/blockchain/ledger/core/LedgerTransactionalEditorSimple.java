@@ -787,7 +787,7 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 			TransactionResult txResult;
 			try {
 				txResult = new TransactionResultData(txRequest.getTransactionHash(), ledgerEditor.getBlockHeight(), txExecState, txDataSnapshot,
-						operationResultArray(operationResults));
+						operationResultArray(operationResults), getDerivedOperations());
 
 				logger.debug("before txset.add(),[contentHash={}]", this.getTransactionRequest().getTransactionHash());
 
@@ -842,7 +842,7 @@ public class LedgerTransactionalEditorSimple implements LedgerEditor {
 			TransactionResult txResult;
 			try {
 				txResult = new TransactionResultData(txRequest.getTransactionHash(), ledgerEditor.getBlockHeight(), txExecState, txDataSnapshot,
-						operationResultArray(operationResults));
+						operationResultArray(operationResults), getDerivedOperations());
 
 				ledgerEditor.txset.addTransaction(txRequest, txResult);
 

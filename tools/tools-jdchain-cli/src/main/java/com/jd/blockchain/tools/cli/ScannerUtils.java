@@ -61,9 +61,11 @@ public class ScannerUtils {
                 value = integerPredicate == null || integerPredicate.test(tmp) ? tmp : null;
 
             }catch (Exception e) {
-                if(errPrompt != null){
-                    System.err.println(errPrompt);
-                }
+                //ignore
+            }
+
+            if(value == null && errPrompt != null){
+                System.err.println(errPrompt);
             }
         }
 

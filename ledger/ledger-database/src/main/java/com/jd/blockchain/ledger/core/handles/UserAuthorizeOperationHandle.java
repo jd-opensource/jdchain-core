@@ -1,10 +1,10 @@
 package com.jd.blockchain.ledger.core.handles;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 
 import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerPermission;
+import com.jd.blockchain.ledger.RoleDoesNotExistException;
 import com.jd.blockchain.ledger.RolePrivilegeSettings;
 import com.jd.blockchain.ledger.RolesPolicy;
 import com.jd.blockchain.ledger.UserAuthorizationSettings;
@@ -47,14 +47,11 @@ public class UserAuthorizeOperationHandle extends AbstractLedgerOperationHandle<
 			for (UserRolesEntry urcfg : urcfgs) {
 				//
 				String[] authRoles = urcfg.getAuthorizedRoles();
-				List<String> validRoles = new ArrayList<String>();
-				if (authRoles != null) {
-					for (String r : authRoles) {
-						if (rolesSettings.contains(r)) {
-							validRoles.add(r);
-						}
+				Arrays.stream(authRoles).forEach(role -> {
+					if(!rolesSettings.contains(role)) {
+						throw new RoleDoesNotExistException(String.format("Role doesn't exist! --[Role=%s]", role));
 					}
-				}
+				});
 				for (Bytes address : urcfg.getUserAddresses()) {
 					UserRoles ur = userRoleDataset.getUserRoles(address);
 					if (ur == null) {
@@ -64,13 +61,13 @@ public class UserAuthorizeOperationHandle extends AbstractLedgerOperationHandle<
 							policy = RolesPolicy.UNION;
 						}
 						if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-							((UserRoleDatasetEditor)userRoleDataset).addUserRoles(address, policy, validRoles);
+							((UserRoleDatasetEditor)userRoleDataset).addUserRoles(address, policy, authRoles);
 						} else {
-							((UserRoleDatasetEditorSimple)userRoleDataset).addUserRoles(address, policy, validRoles);
+							((UserRoleDatasetEditorSimple)userRoleDataset).addUserRoles(address, policy, authRoles);
 						}
 					} else {
 						// 更改之前的授权；
-						ur.addRoles(validRoles);
+						ur.addRoles(authRoles);
 						ur.removeRoles(urcfg.getUnauthorizedRoles());
 
 						// 如果请求中设置了策略，才进行更新；

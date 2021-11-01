@@ -1,5 +1,8 @@
 package com.jd.blockchain.tools.cli;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 import java.io.File;
@@ -35,6 +38,7 @@ public class JDChainCli implements Runnable {
     CommandLine.Model.CommandSpec spec;
 
     public static void main(String[] args) {
+        Logger.getRootLogger().setLevel(Level.OFF);
         System.exit(new CommandLine(new JDChainCli()).execute(args));
     }
 

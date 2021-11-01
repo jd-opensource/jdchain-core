@@ -1,8 +1,9 @@
 package com.jd.blockchain.ledger.core.handles;
 
 import com.jd.blockchain.ledger.AccountState;
+import com.jd.blockchain.ledger.ContractDoesNotExistException;
 import com.jd.blockchain.ledger.ContractExecuteException;
-import com.jd.blockchain.ledger.IllegalTransactionException;
+import com.jd.blockchain.ledger.IllegalAccountStateException;
 import com.jd.blockchain.ledger.DataPermissionType;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.MultiLedgerQueryService;
@@ -12,11 +13,9 @@ import com.jd.blockchain.contract.LocalContractEventContext;
 import com.jd.blockchain.contract.engine.ContractCode;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractEventSendOperation;
-import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.core.ContractAccount;
-import com.jd.blockchain.ledger.core.ContractAccountSet;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
 import com.jd.blockchain.ledger.core.OperationHandle;
@@ -49,7 +48,6 @@ public abstract class AbtractContractEventSendOperationHandle implements Operati
 		SecurityPolicy securityPolicy = SecurityContext.getContextUsersPolicy();
 		securityPolicy.checkEndpointPermission(TransactionPermission.CONTRACT_OPERATION, MultiIDsPolicy.AT_LEAST_ONE);
 
-		// 操作账本；
 		ContractEventSendOperation contractOP = (ContractEventSendOperation) op;
 
 		// 处理合约调用栈
@@ -77,27 +75,18 @@ public abstract class AbtractContractEventSendOperationHandle implements Operati
 								 EventManager manager, SecurityPolicy securityPolicy) {
 		// 先从账本校验合约的有效性；
 		// 注意：必须在前一个区块的数据集中进行校验，因为那是经过共识的数据；从当前新区块链数据集校验则会带来攻击风险：未经共识的合约得到执行；
-		ContractAccountSet contractSet = ledger.getContractAccountset();
-		if (!contractSet.contains(contractOP.getContractAddress())) {
-			throw new LedgerException(String.format("Contract was not registered! --[ContractAddress=%s]",
-					contractOP.getContractAddress()));
+		ContractAccount contract = ledger.getContractAccountset().getAccount(contractOP.getContractAddress());
+		if (null == contract) {
+			throw new ContractDoesNotExistException(String.format("Contract doesn't exist! --[Address=%s]", contractOP.getContractAddress()));
 		}
-
 		// 校验合约状态
-		ContractAccount contract = contractSet.getAccount(contractOP.getContractAddress());
-		if (null != contract && contract.getState() != AccountState.NORMAL) {
-			throw new IllegalTransactionException("Can not call contract[" + contract.getAddress() + "] in "+ contract.getState() +" state.");
+		if (contract.getState() != AccountState.NORMAL) {
+			throw new IllegalAccountStateException("Can not call contract[" + contract.getAddress() + "] in "+ contract.getState() +" state.");
 		}
 
 		// 创建合约的账本上下文实例；
 		ContractLedgerContext ledgerContext = new ContractLedgerContext(opHandleContext, new ContractLedgerQueryService(ledger), new MultiLedgerQueryService(ledger));
 		UncommittedLedgerQueryService uncommittedLedgerQueryService = new UncommittedLedgerQueryService(transactionContext);
-
-		// 先检查合约引擎是否已经加载合约；如果未加载，再从账本中读取合约代码并装载到引擎中执行；
-		if (contract == null) {
-			throw new LedgerException(String.format("Contract was not registered! --[ContractAddress=%s]",
-					contractOP.getContractAddress()));
-		}
 
 		// 执行权限校验
 		securityPolicy.checkDataPermission(contract.getPermission(), DataPermissionType.EXECUTE);

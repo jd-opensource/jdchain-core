@@ -243,7 +243,7 @@ class Transactions implements Runnable {
 @CommandLine.Command(name = "tx", mixinStandardHelpOptions = true, header = "Query transaction.")
 class Transaction implements Runnable {
 
-    @CommandLine.Option(names = "--hash", description = "Transaction hash", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--hash", required = true, description = "Transaction hash", scope = CommandLine.ScopeType.INHERIT)
     String hash;
 
     @CommandLine.ParentCommand

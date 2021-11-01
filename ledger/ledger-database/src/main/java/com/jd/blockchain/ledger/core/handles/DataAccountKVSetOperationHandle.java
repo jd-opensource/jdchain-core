@@ -34,7 +34,7 @@ public class DataAccountKVSetOperationHandle extends AbstractLedgerOperationHand
 		// 操作账本；
 		DataAccount account = transactionContext.getDataset().getDataAccountSet().getAccount(kvWriteOp.getAccountAddress());
 		if (account == null) {
-			throw new DataAccountDoesNotExistException("DataAccount doesn't exist!");
+			throw new DataAccountDoesNotExistException(String.format("Data account doesn't exist! --[Address=%s]", kvWriteOp.getAccountAddress()));
 		}
 
 		// 写权限校验

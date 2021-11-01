@@ -3,14 +3,17 @@ package com.jd.blockchain.ledger.core.handles;
 import com.jd.blockchain.ledger.AccountDataPermission;
 import com.jd.blockchain.ledger.AccountModeBits;
 import com.jd.blockchain.ledger.AccountPermissionSetOperation;
+import com.jd.blockchain.ledger.ContractDoesNotExistException;
 import com.jd.blockchain.ledger.DataAccountDoesNotExistException;
 import com.jd.blockchain.ledger.DataPermission;
+import com.jd.blockchain.ledger.EventAccountDoesNotExistException;
+import com.jd.blockchain.ledger.PermissionAccount;
+import com.jd.blockchain.ledger.RoleDoesNotExistException;
 import com.jd.blockchain.ledger.core.EventManager;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
-import com.jd.blockchain.ledger.PermissionAccount;
 import com.jd.blockchain.ledger.core.SecurityContext;
 import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
@@ -30,16 +33,26 @@ public class AccountPermissionOperationHandle extends AbstractLedgerOperationHan
         switch (op.getAccountType()) {
             case DATA:
                 account = transactionContext.getDataset().getDataAccountSet().getAccount(op.getAddress());
+                if (null == account) {
+                    throw new DataAccountDoesNotExistException(String.format("Data account doesn't exist! --[Address=%s]", op.getAddress()));
+                }
                 break;
             case EVENT:
                 account = transactionContext.getEventSet().getEventAccountSet().getAccount(op.getAddress());
+                if (null == account) {
+                    throw new EventAccountDoesNotExistException(String.format("Event account doesn't exist! --[Address=%s]", op.getAddress()));
+                }
                 break;
             case CONTRACT:
                 account = transactionContext.getDataset().getContractAccountSet().getAccount(op.getAddress());
+                if (null == account) {
+                    throw new ContractDoesNotExistException(String.format("Contract doesn't exist! --[Address=%s]", op.getAddress()));
+                }
                 break;
         }
-        if (null == account) {
-            throw new DataAccountDoesNotExistException(String.format("[%s] account [%s] doesn't exist!", op.getAccountType(), op.getAddress()));
+
+        if (!StringUtils.isEmpty(op.getRole()) && !transactionContext.getDataset().getAdminDataset().getAdminSettings().getRolePrivileges().contains(op.getRole())) {
+            throw new RoleDoesNotExistException(String.format("Role doesn't exist! --[Role=%s]", op.getRole()));
         }
 
         // 写权限校验

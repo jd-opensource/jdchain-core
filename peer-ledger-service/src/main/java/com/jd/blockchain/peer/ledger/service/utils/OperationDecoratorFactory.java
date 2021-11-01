@@ -174,6 +174,7 @@ public class OperationDecoratorFactory {
         }
         ledgerInitData.setConsensusProvider(op.getInitSetting().getConsensusProvider());
         ledgerInitData.setCreatedTime(op.getInitSetting().getCreatedTime());
+        ledgerInitData.setLedgerDataStructure(op.getInitSetting().getLedgerDataStructure());
         ParticipantNode[] participantNodes = op.getInitSetting().getConsensusParticipants();
         if (participantNodes != null && participantNodes.length > 0) {
             ParticipantNode[] participants = new ParticipantNode[participantNodes.length];

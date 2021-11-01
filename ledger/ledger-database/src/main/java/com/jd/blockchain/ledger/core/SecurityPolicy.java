@@ -160,17 +160,17 @@ public interface SecurityPolicy {
     void checkDataOwners(DataPermission permission, MultiIDsPolicy midPolicy) throws LedgerSecurityException;
 
 	/**
-	 * 终端用户根证书检查；
+	 * 终端用户（证书）状态检查；
 	 * @param midPolicy
 	 * @throws LedgerSecurityException
 	 */
-	void checkEndpointCA(MultiIDsPolicy midPolicy) throws LedgerSecurityException;
+	void checkEndpointState(MultiIDsPolicy midPolicy) throws LedgerSecurityException;
 
 	/**
-	 * 节点根证书检查；
+	 * 节点用户（证书）状态检查；
 	 * @param midPolicy
 	 * @throws LedgerSecurityException
 	 */
-	void checkNodeCA(MultiIDsPolicy midPolicy) throws LedgerSecurityException;
+	void checkNodeState(MultiIDsPolicy midPolicy) throws LedgerSecurityException;
 
 }

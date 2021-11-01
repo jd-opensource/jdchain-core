@@ -2,6 +2,8 @@ package com.jd.blockchain.contract.jvm;
 
 import java.lang.reflect.Method;
 
+import com.jd.blockchain.ledger.ContractExecuteException;
+import com.jd.blockchain.ledger.LedgerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.ReflectionUtils;
@@ -52,7 +54,7 @@ public abstract class AbstractContractCode implements ContractCode {
 		EventProcessingAware evtProcAwire = null;
 		Object retn = null;
 		Method handleMethod = null;
-		ContractException error = null;
+		LedgerException error = null;
 		try {
 			// 执行预处理;
 			Object contractInstance = getContractInstance();
@@ -78,10 +80,12 @@ public abstract class AbstractContractCode implements ContractCode {
 			
 			retn = ReflectionUtils.invokeMethod(handleMethod, contractInstance, args);
 			
+		} catch (LedgerException e) {
+			error = e;
 		} catch (Throwable e) {
 			String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]! --%s",
 					eventContext.getEvent(), address.toString(), e.getMessage());
-			error = new ContractException(errorMessage, e);
+			error = new ContractExecuteException(errorMessage);
 		}
 
 		if (evtProcAwire != null) {
@@ -90,7 +94,7 @@ public abstract class AbstractContractCode implements ContractCode {
 			} catch (Throwable e) {
 				String errorMessage = "Error occurred while posting contract event! --" + e.getMessage();
 				LOGGER.error(errorMessage, e);
-				throw new ContractException(errorMessage, e);
+				throw new ContractExecuteException(errorMessage);
 			}
 		}
 		if (error != null) {
