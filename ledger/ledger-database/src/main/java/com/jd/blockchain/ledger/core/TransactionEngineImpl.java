@@ -1,19 +1,15 @@
 package com.jd.blockchain.ledger.core;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.jd.binaryproto.BinaryProtocol;
-import com.jd.blockchain.ledger.DigitalSignature;
-import com.jd.blockchain.ledger.LedgerTransaction;
-import com.jd.blockchain.ledger.TransactionContent;
-import com.jd.blockchain.ledger.TransactionRequest;
-import com.jd.blockchain.transaction.TxRequestMessage;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.ledger.LedgerTransaction;
+import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.service.TransactionBatchProcess;
 import com.jd.blockchain.service.TransactionEngine;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TransactionEngineImpl implements TransactionEngine {
 
@@ -70,6 +66,14 @@ public class TransactionEngineImpl implements TransactionEngine {
 		}
 
 		return commands;
+
+	}
+
+	public byte[] getSnapshotByHeight(HashDigest ledgerHash, int height) {
+
+		LedgerRepository ledgerRepo = ledgerService.getLedger(ledgerHash);
+
+		return ledgerRepo.getBlock(height).getHash().toBytes();
 
 	}
 

@@ -1,23 +1,15 @@
 package com.jd.blockchain.consensus.bftsmart.service;
 
-import java.io.ByteArrayOutputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.TreeMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.commons.collections4.map.LRUMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.util.NumberUtils;
-
+import bftsmart.consensus.app.BatchAppResultImpl;
+import bftsmart.reconfiguration.util.HostsConfig;
+import bftsmart.reconfiguration.util.TOMConfiguration;
+import bftsmart.reconfiguration.views.NodeNetwork;
+import bftsmart.reconfiguration.views.View;
+import bftsmart.tom.MessageContext;
+import bftsmart.tom.ReplicaConfiguration;
+import bftsmart.tom.ReplyContextMessage;
+import bftsmart.tom.ServiceReplica;
+import bftsmart.tom.server.defaultservices.DefaultRecoverable;
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.BlockStateSnapshot;
 import com.jd.blockchain.consensus.ClientAuthencationService;
@@ -33,7 +25,6 @@ import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.MonitorService;
 import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.ServerSettings;
-import com.jd.blockchain.consensus.service.StateHandle;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 import com.jd.blockchain.consensus.service.StateSnapshot;
 import com.jd.blockchain.crypto.Crypto;
@@ -43,32 +34,35 @@ import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.runtime.RuntimeConstant;
 import com.jd.blockchain.transaction.TxResponseMessage;
-
-import bftsmart.consensus.app.BatchAppResultImpl;
-import bftsmart.reconfiguration.util.HostsConfig;
-import bftsmart.reconfiguration.util.TOMConfiguration;
-import bftsmart.reconfiguration.views.NodeNetwork;
-import bftsmart.reconfiguration.views.View;
-import bftsmart.tom.MessageContext;
-import bftsmart.tom.ReplicaConfiguration;
-import bftsmart.tom.ReplyContextMessage;
-import bftsmart.tom.ServiceReplica;
-import bftsmart.tom.server.defaultservices.DefaultRecoverable;
+import org.apache.commons.collections4.map.LRUMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.NumberUtils;
 import utils.PropertiesUtils;
 import utils.StringUtils;
+import utils.codec.Base58Utils;
 import utils.concurrent.AsyncFuture;
 import utils.concurrent.CompletableAsyncFuture;
 import utils.io.BytesUtils;
 import utils.io.Storage;
 import utils.serialize.binary.BinarySerializeUtils;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.TreeMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer {
 
 	public static final int MAX_SERVER_ID = 1000;
 
 	private static Logger LOGGER = LoggerFactory.getLogger(BftsmartNodeServer.class);
-
-	private List<StateHandle> stateHandles = new CopyOnWriteArrayList<>();
 
 	private final Map<String, BftsmartConsensusMessageContext> contexts = Collections
 			.synchronizedMap(new LRUMap<>(1024));
@@ -120,7 +114,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	private Storage nodeRuntimeStorage;
 
 	public BftsmartNodeServer(ServerSettings serverSettings, MessageHandle messageHandler,
-			StateMachineReplicate stateMachineReplicate, Storage storage) {
+                              StateMachineReplicate stateMachineReplicate, Storage storage) {
 		this.serverSettings = serverSettings;
 		this.realmName = serverSettings.getRealmName();
 		// used later
@@ -348,7 +342,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		String batchId = messageHandle.beginBatch(context);
 		context.setBatchId(batchId);
 		try {
-			StateSnapshot preStateSnapshot = messageHandle.getStateSnapshot(context);
+			StateSnapshot preStateSnapshot = messageHandle.getLatestStateSnapshot(realmName);
 			if (preStateSnapshot instanceof BlockStateSnapshot) {
 				BlockStateSnapshot preBlockStateSnapshot = (BlockStateSnapshot) preStateSnapshot;
 				long preBlockTimestamp = preBlockStateSnapshot.getTimestamp();
@@ -435,7 +429,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	 */
 	@Override
 	public byte[][] appExecuteBatch(byte[][] commands, MessageContext[] msgCtxs, boolean fromConsensus,
-			List<ReplyContextMessage> replyList) {
+                                    List<ReplyContextMessage> replyList) {
 
 //        if (replyList == null || replyList.size() == 0) {
 //            throw new IllegalArgumentException();
@@ -552,7 +546,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 				contexts.put(batchId, context);
 				stateHolder.batchingID = batchId;
 				// 获取前置区块快照状态
-				preStateSnapshot = messageHandle.getStateSnapshot(context);
+				preStateSnapshot = messageHandle.getLatestStateSnapshot(realmName);
 				if (preStateSnapshot instanceof BlockStateSnapshot) {
 					BlockStateSnapshot preBlockStateSnapshot = (BlockStateSnapshot) preStateSnapshot;
 					long preBlockTimestamp = preBlockStateSnapshot.getTimestamp();
@@ -580,7 +574,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 				}
 
 				// 创世区块的状态快照
-				genisStateSnapshot = messageHandle.getGenesisStateSnapshot(context);
+				genisStateSnapshot = messageHandle.getGenesisStateSnapshot(realmName);
 				for (byte[] txContent : commands) {
 					AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(msgId++, txContent, context);
 					asyncFutureLinkedList.add(asyncFuture);
@@ -736,18 +730,15 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		return messageHandle.getCommandsByCid(realmName, cid, currCidCommandsNum);
 	}
 
-	// notice
+	// 获得checkpoint检查点处的状态快照：区块哈希
 	@Override
-	public byte[] getSnapshot() {
-		LOGGER.debug("------- GetSnapshot...[replica.id=" + this.getId() + "]");
+	public byte[] getCheckPointSnapshot(int cid) {
 
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		BytesUtils.writeInt(stateHandles.size(), out);
-		for (StateHandle stateHandle : stateHandles) {
-			// TODO: 测试代码；
-			return stateHandle.takeSnapshot();
-		}
-		return out.toByteArray();
+		byte[] checkPointSnapshot = messageHandle.getSnapshotByHeight(realmName, cid);
+
+		LOGGER.info("------- GetCheckPointSnapshot...replica.id= {}, checkPointSnapshot = {}", this.getId(), Base58Utils.encode(checkPointSnapshot));
+
+        return checkPointSnapshot;
 	}
 
 	@Override
