@@ -376,31 +376,52 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	 * start
 	 *
 	 */
+//	private byte[][] appExecuteDiffBatch(byte[][] commands, MessageContext[] msgCtxs) {
+//
+//		int manageConsensusId = msgCtxs[0].getConsensusId();
+//		long timestamp = msgCtxs[0].getTimestamp();
+//		List<byte[]> manageConsensusCmds = new ArrayList<>();
+//
+//		int index = 0;
+//		for (MessageContext msgCtx : msgCtxs) {
+//			// 对于commands中包含多个batch时的考虑处理，目前设计中commands仅包含一个批次
+//			if (msgCtx.getConsensusId() == manageConsensusId) {
+//				manageConsensusCmds.add(commands[index]);
+//			} else {
+//				// 达到结块标准，需要进行结块并应答
+//				block(manageConsensusCmds, timestamp);
+//				// 重置链表和共识ID
+//				manageConsensusCmds = new ArrayList<>();
+//				manageConsensusId = msgCtx.getConsensusId();
+//				timestamp = msgCtx.getTimestamp();
+//				manageConsensusCmds.add(commands[index]);
+//			}
+//			index++;
+//		}
+//		// 结束时，肯定有最后一个结块请求未处理
+//		if (!manageConsensusCmds.isEmpty()) {
+//			block(manageConsensusCmds, timestamp);
+//		}
+//		return null;
+//
+//	}
+
+	/**
+	 *
+	 * Local peer has cid diff with remote peer, used by state transfer when peer
+	 * start
+	 * simple version
+	 */
 	private byte[][] appExecuteDiffBatch(byte[][] commands, MessageContext[] msgCtxs) {
 
-		int manageConsensusId = msgCtxs[0].getConsensusId();
-		long timestamp = msgCtxs[0].getTimestamp();
 		List<byte[]> manageConsensusCmds = new ArrayList<>();
 
-		int index = 0;
-		for (MessageContext msgCtx : msgCtxs) {
-			if (msgCtx.getConsensusId() == manageConsensusId) {
-				manageConsensusCmds.add(commands[index]);
-			} else {
-				// 达到结块标准，需要进行结块并应答
-				block(manageConsensusCmds, timestamp);
-				// 重置链表和共识ID
-				manageConsensusCmds = new ArrayList<>();
-				manageConsensusId = msgCtx.getConsensusId();
-				timestamp = msgCtx.getTimestamp();
-				manageConsensusCmds.add(commands[index]);
-			}
-			index++;
+		for (int index = 0; index < commands.length; index++) {
+			manageConsensusCmds.add(commands[index]);
 		}
-		// 结束时，肯定有最后一个结块请求未处理
-		if (!manageConsensusCmds.isEmpty()) {
-			block(manageConsensusCmds, timestamp);
-		}
+
+		block(manageConsensusCmds, System.currentTimeMillis());
+
 		return null;
 
 	}
@@ -427,9 +448,8 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	 * was moved to the consensus stage 2 and 3, in order to guaranteed ledger
 	 * consistency
 	 */
-	@Override
-	public byte[][] appExecuteBatch(byte[][] commands, MessageContext[] msgCtxs, boolean fromConsensus,
-                                    List<ReplyContextMessage> replyList) {
+//	@Override
+//	public byte[][] appExecuteBatch(byte[][] commands, MessageContext[] msgCtxs, boolean fromConsensus) {
 
 //        if (replyList == null || replyList.size() == 0) {
 //            throw new IllegalArgumentException();
@@ -465,15 +485,15 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 //        if (!manageConsensusCmds.isEmpty()) {
 //            blockAndReply(manageConsensusCmds, manageReplyMsgs);
 //        }
-		return null;
-	}
+//		return null;
+//	}
 
 	/**
 	 *
 	 * Block and reply are moved to consensus completion stage
 	 *
 	 */
-	private void blockAndReply(List<byte[]> manageConsensusCmds, List<ReplyContextMessage> replyList) {
+//	private void blockAndReply(List<byte[]> manageConsensusCmds, List<ReplyContextMessage> replyList) {
 //        consensusBatchId = messageHandle.beginBatch(realmName);
 //        List<AsyncFuture<byte[]>> asyncFutureLinkedList = new ArrayList<>(manageConsensusCmds.size());
 //        try {
@@ -516,7 +536,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 //                replyIndex++;
 //            }
 //        });
-	}
+//	}
 
 	/**
 	 * Used by consensus write phase, pre compute new block hash

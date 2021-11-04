@@ -1385,6 +1385,23 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	}
 
+	// 在指定的账本上准备一笔reconfig操作交易
+	private TransactionRequest prepareReconfigTx(HashDigest ledgerHash) {
+
+		TxBuilder txbuilder = new TxBuilder(ledgerHash, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
+
+		// This transaction contains one reconfig op
+		txbuilder.reconfigs().record();
+
+		TransactionRequestBuilder reqBuilder = txbuilder.prepareRequest();
+
+		reqBuilder.signAsEndpoint(new AsymmetricKeypair(ledgerKeypairs.get(ledgerHash).getPubKey(),
+				ledgerKeypairs.get(ledgerHash).getPrivKey()));
+
+		return reqBuilder.buildRequest();
+
+	}
+
 	// 加载本参与方的公私钥对身份信息
 	private AsymmetricKeypair loadIdentity(ParticipantNode currentNode, BindingConfig bindingConfig) {
 
@@ -1499,6 +1516,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 			} else {
 				throw new IllegalArgumentException("[ManagementController] op type error!");
 			}
+
+			// 把交易作为reconfig操作的扩展信息携带，目的是为了让该操作上链，便于后续跟踪；
+			reconfiguration.addExtendInfo(BinaryProtocol.encode(prepareReconfigTx(ledgerRepository.getHash()), TransactionRequest.class));
 
 			// 执行更新目标共识网络的视图ID
 			ReconfigureReply reconfigureReply = reconfiguration.execute();
