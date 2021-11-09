@@ -28,7 +28,7 @@ import java.io.File;
         })
 public class JDChainCli implements Runnable {
 
-    @CommandLine.Option(names = "--home", defaultValue = "../", description = "Set the home directory.", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--home", defaultValue = "../config", description = "Set the home directory.", scope = CommandLine.ScopeType.INHERIT)
     File path;
 
     @CommandLine.Option(names = "--pretty", defaultValue = "false", description = "Pretty json print", scope = CommandLine.ScopeType.INHERIT)

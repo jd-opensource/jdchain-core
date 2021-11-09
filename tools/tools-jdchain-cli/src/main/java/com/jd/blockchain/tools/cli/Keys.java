@@ -39,7 +39,7 @@ import java.util.Arrays;
 )
 public class Keys implements Runnable {
 
-    static final String KEYS_HOME = "config/keys";
+    static final String KEYS_HOME = "keys";
     static final String KEYS_PRINT_FORMAT = "%-15s%-15s\t%s\t%s%n";
 
     @CommandLine.ParentCommand
