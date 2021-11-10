@@ -15,6 +15,7 @@ import com.jd.blockchain.sdk.service.PeerBlockchainServiceFactory;
 import com.jd.blockchain.sdk.service.SessionCredentialProvider;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.transaction.TransactionService;
+import com.jd.httpservice.auth.SSLSecurity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +56,8 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
     private boolean storeTopology = false;
     // 是否动态感知拓扑信息
     private boolean awareTopology = true;
+    // TLS证书信息
+    private SSLSecurity sslSecurity;
 
     public LedgersManager() {
     }
@@ -62,6 +65,13 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
     public void init(AsymmetricKeypair keyPair, GatewayConfigProperties config) {
         this.storeTopology = config.isStoreTopology();
         this.awareTopology = config.isAwareTopology();
+        init(config.masterPeerAddress(), keyPair);
+    }
+
+    public void init(AsymmetricKeypair keyPair, SSLSecurity security, GatewayConfigProperties config) {
+        this.storeTopology = config.isStoreTopology();
+        this.awareTopology = config.isAwareTopology();
+        this.sslSecurity = security;
         init(config.masterPeerAddress(), keyPair);
     }
 
@@ -238,7 +248,7 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
     }
 
     public HashDigest[] getLedgers(AsymmetricKeypair keyPair, NetworkAddress peerAddress) {
-        try (PeerBlockchainServiceFactory factory = PeerBlockchainServiceFactory.connect(keyPair, peerAddress, credentialProvider, clientManager)) {
+        try (PeerBlockchainServiceFactory factory = PeerBlockchainServiceFactory.connect(keyPair, peerAddress, sslSecurity, credentialProvider, clientManager)) {
             return factory.getLedgerHashs();
         } catch (Exception e) {
             logger.error("Get ledgers from {} error", peerAddress, e);
@@ -355,9 +365,9 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
     public LedgerPeersManager newLedgerPeersManager(HashDigest ledger, AsymmetricKeypair keyPair, NetworkAddress[] peerAddresses) {
         LedgerPeerConnectionManager[] peerConnectionServices = new LedgerPeerConnectionManager[peerAddresses.length];
         for (int i = 0; i < peerAddresses.length; i++) {
-            peerConnectionServices[i] = new LedgerPeerConnectionManager(ledger, peerAddresses[i], keyPair, credentialProvider, clientManager, this);
+            peerConnectionServices[i] = new LedgerPeerConnectionManager(ledger, peerAddresses[i], sslSecurity, keyPair, credentialProvider, clientManager, this);
         }
-        return new LedgerPeersManager(ledger, peerConnectionServices, keyPair, credentialProvider, clientManager, this, topologyStorage, awareTopology);
+        return new LedgerPeersManager(ledger, peerConnectionServices, sslSecurity, keyPair, credentialProvider, clientManager, this, topologyStorage, awareTopology);
     }
 
     @Override

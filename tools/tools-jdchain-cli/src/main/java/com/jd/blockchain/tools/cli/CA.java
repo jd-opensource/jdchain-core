@@ -38,9 +38,10 @@ import picocli.CommandLine;
 import utils.StringUtils;
 import utils.io.FileUtils;
 
-import java.io.File;
-import java.io.FileWriter;
+import java.io.*;
 import java.math.BigInteger;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
@@ -522,24 +523,62 @@ class CATest implements Runnable {
                 FileUtils.writeText(pubkey, new File(caCli.getKeysHome() + File.separator + name + ".pub"));
                 FileUtils.writeText(privkey, new File(caCli.getKeysHome() + File.separator + name + ".priv"));
                 FileUtils.writeText(base58pwd, new File(caCli.getKeysHome() + File.separator + name + ".pwd"));
-                FileUtils.writeText(CertificateUtils.toPEMString(algorithm, CertificateUtils.retrievePrivateKey(keypair.getPrivKey(), keypair.getPubKey())), new File(caCli.getKeysHome() + File.separator + name + ".key"));
+                PrivateKey privateKey = CertificateUtils.retrievePrivateKey(keypair.getPrivKey(), keypair.getPubKey());
+                FileUtils.writeText(CertificateUtils.toPEMString(algorithm, privateKey), new File(caCli.getKeysHome() + File.separator + name + ".key"));
 
                 if (i == 0) {
                     issuerPrivKey = keypair.getPrivKey();
                 }
                 X509Certificate certificate = genCert(CertificateUsage.SIGN, name, ou, CertificateUtils.retrievePublicKey(keypair.getPubKey()), CertificateUtils.retrievePrivateKey(issuerPrivKey), issuerCrt);
-                FileUtils.writeText(CertificateUtils.toPEMString(certificate), new File(caCli.getSignHome() + File.separator + name + ".crt"));
                 if (i == 0) {
+                    FileUtils.writeText(CertificateUtils.toPEMString(certificate), new File(caCli.getCaHome() + File.separator + name + ".crt"));
                     issuerCrt = certificate;
                 } else {
+                    FileUtils.writeText(CertificateUtils.toPEMString(certificate), new File(caCli.getSignHome() + File.separator + name + ".crt"));
                     certificate = genCert(CertificateUsage.TLS, "127.0.0.1", ou, CertificateUtils.retrievePublicKey(keypair.getPubKey()), CertificateUtils.retrievePrivateKey(issuerPrivKey), issuerCrt);
                     FileUtils.writeText(CertificateUtils.toPEMString(certificate), new File(caCli.getTlsHome() + File.separator + name + ".crt"));
+                    ksyStore(privateKey, name, "123456", certificate, issuerCrt);
                 }
+                trustStore(name, "123456", certificate);
             }
 
             System.out.println("create test certificates in [" + caCli.getCaHome() + "] success");
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private void ksyStore(PrivateKey privateKey, String alias, String password, X509Certificate cert, X509Certificate ca) throws Exception {
+        char[] phrase = password.toCharArray();
+        X509Certificate[] outChain = {cert, ca};
+        KeyStore p12Store = KeyStore.getInstance("PKCS12");
+        p12Store.load(null, phrase);
+        p12Store.setKeyEntry(alias, privateKey, phrase, outChain);
+        OutputStream p12Stream = new FileOutputStream(caCli.getTlsHome() + File.separator + alias + ".p12");
+        p12Store.store(p12Stream, phrase);
+        p12Stream.close();
+
+        KeyStore jksStore = KeyStore.getInstance("PKCS12");
+        jksStore.load(null, phrase);
+        jksStore.setKeyEntry(alias, p12Store.getKey(alias, phrase), phrase, outChain);
+        OutputStream jksStream = new FileOutputStream(caCli.getTlsHome() + File.separator + alias + ".keystore");
+        jksStore.store(jksStream, phrase);
+        jksStream.close();
+    }
+
+    private void trustStore(String alias, String password, X509Certificate cert) throws Exception {
+        File store = new File(caCli.getTlsHome() + File.separator + "trust.keystore");
+        KeyStore trustStore = KeyStore.getInstance("JKS");
+        if (store.exists()) {
+            try (FileInputStream storeIn = new FileInputStream(store)) {
+                trustStore.load(storeIn, password.toCharArray());
+            }
+        } else {
+            trustStore.load(null, password.toCharArray());
+        }
+        trustStore.setCertificateEntry(alias, cert);
+        try (FileOutputStream storeOut = new FileOutputStream(store)) {
+            trustStore.store(storeOut, password.toCharArray());
         }
     }
 

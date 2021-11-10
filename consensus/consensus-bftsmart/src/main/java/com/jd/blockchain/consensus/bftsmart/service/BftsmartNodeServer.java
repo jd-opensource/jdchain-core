@@ -165,9 +165,9 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 			}
 			LOGGER.info("createConfig node id = {}, port = {}", node.getId(), node.getNetworkAddress().getPort());
 			configList.add(new HostsConfig.Config(node.getId(), node.getNetworkAddress().getHost(),
-					node.getNetworkAddress().getPort(), -1));
+					node.getNetworkAddress().getPort(), -1, node.getNetworkAddress().isSecure()));
 			consensusAddresses.put(node.getId(),
-					new NodeNetwork(node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1));
+					new NodeNetwork(node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1, node.getNetworkAddress().isSecure()));
 		}
 
 		// create HostsConfig instance based on consensus realm nodes
@@ -267,7 +267,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 			int pid = processes[i];
 			if (serverId == pid) {
 				addresses[i] = new NodeNetwork(getTomConfig().getHost(pid), getTomConfig().getPort(pid),
-						getTomConfig().getMonitorPort(pid));
+						getTomConfig().getMonitorPort(pid), getTomConfig().isSecure(pid));
 			} else {
 				addresses[i] = currView.getAddress(pid);
 			}
@@ -335,7 +335,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
 	private NodeNetworkAddress nodeNetworkAddress(NodeNetwork networkAddress) {
 		return new PeerNodeNetwork(networkAddress.getHost(), networkAddress.getConsensusPort(),
-				networkAddress.getMonitorPort());
+				networkAddress.getMonitorPort(), networkAddress.isSecure());
 	}
 
 	/**
@@ -932,13 +932,19 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		 */
 		int monitorPort;
 
+		/**
+		 * 是否开启安全连接
+		 */
+		boolean secure;
+
 		public PeerNodeNetwork() {
 		}
 
-		public PeerNodeNetwork(String host, int consensusPort, int monitorPort) {
+		public PeerNodeNetwork(String host, int consensusPort, int monitorPort, boolean secure) {
 			this.host = host;
 			this.consensusPort = consensusPort;
 			this.monitorPort = monitorPort;
+			this.secure = secure;
 		}
 
 		@Override
@@ -954,6 +960,11 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		@Override
 		public int getMonitorPort() {
 			return monitorPort;
+		}
+
+		@Override
+		public boolean isSecure() {
+			return secure;
 		}
 
 		public void setHost(String host) {

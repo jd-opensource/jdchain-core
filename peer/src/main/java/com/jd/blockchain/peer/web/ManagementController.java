@@ -1550,9 +1550,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				BftsmartNodeSettings node = (BftsmartNodeSettings) origConsensusNodes.get(i);
 				origConsensusProcesses[i] = node.getId();
 				configList.add(new HostsConfig.Config(node.getId(), node.getNetworkAddress().getHost(),
-						node.getNetworkAddress().getPort(), -1));
+						node.getNetworkAddress().getPort(), -1, node.getNetworkAddress().isSecure()));
 				nodeAddresses.add(
-						new NodeNetwork(node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1));
+						new NodeNetwork(node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1, node.getNetworkAddress().isSecure()));
 			}
 
 			// 构建共识的代理客户端需要的主机配置和系统参数配置结构

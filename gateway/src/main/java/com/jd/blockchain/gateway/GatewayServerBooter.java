@@ -10,6 +10,9 @@ import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.gateway.service.topology.LedgerPeersTopology;
+import com.jd.httpservice.auth.SSLClientAuth;
+import com.jd.httpservice.auth.SSLMode;
+import com.jd.httpservice.auth.SSLSecurity;
 import org.apache.commons.io.FileUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -190,6 +193,20 @@ public class GatewayServerBooter {
 		}
 		this.appCtx = startServer(config.http().getHost(), config.http().getPort(), springConfigLocation,
 				config.http().getContextPath());
+		// 如果peer配置为双向认证，需要初始化TLS证书信息，否则建立忽略证书连接
+		SSLSecurity security = null;
+		if(config.getMasterPeerClientAuth().equals(SSLClientAuth.NEED)) {
+			String keyStore = appCtx.getEnvironment().getProperty("server.ssl.key-store");
+			String keyStoreType = appCtx.getEnvironment().getProperty("server.ssl.key-store-type");
+			String keyAlias = appCtx.getEnvironment().getProperty("server.ssl.key-alias");
+			String keyStorePassword = appCtx.getEnvironment().getProperty("server.ssl.key-store-password");
+			String trustStore = appCtx.getEnvironment().getProperty("server.ssl.trust-store");
+			String trustStorePassword = appCtx.getEnvironment().getProperty("server.ssl.trust-store-password");
+			String trustStoreType = appCtx.getEnvironment().getProperty("server.ssl.trust-store-type");
+			security = new SSLSecurity(SSLMode.TWO_WAY, keyStoreType, keyStore, keyAlias, keyStorePassword, trustStore, trustStorePassword, trustStoreType);
+		} else {
+			security = new SSLSecurity();
+		}
 
 		ConsoleUtils.info("\r\n\r\nStart connecting to peer ....");
 		DataSearchController dataSearchController = appCtx.getBean(DataSearchController.class);
@@ -197,7 +214,7 @@ public class GatewayServerBooter {
 		dataSearchController.setSchemaRetrievalUrl(config.getSchemaRetrievalUrl());
 		LedgersManager peerConnector = appCtx.getBean(LedgersManager.class);
 
-		peerConnector.init(defaultKeyPair, config);
+		peerConnector.init(defaultKeyPair, security, config);
 
 		ConsoleUtils.info("Peer[%s] is connected success!", config.masterPeerAddress().toString());
 	}

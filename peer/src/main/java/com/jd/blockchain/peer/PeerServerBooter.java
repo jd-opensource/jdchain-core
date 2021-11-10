@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.logging.log4j.core.config.Configurator;
@@ -104,8 +105,10 @@ import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
 import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
 
 import utils.ArgumentSet;
+import utils.BaseConstant;
 import utils.ConsoleUtils;
 import utils.StringUtils;
+import utils.reflection.TypeUtils;
 
 /**
  * 节点服务实例的启动器；
@@ -132,12 +135,19 @@ public class PeerServerBooter {
 
 	// 日志配置文件
 	public static final String LOG_CONFIG_FILE = "logging.config";
+
+	// Spring配置文件
+	private static final String SPRING_CF_LOCATION = BaseConstant.SPRING_CF_LOCATION;
+	public static final String HOME_DIR;
+
 	static {
 		// 加载 Global ，初始化全局设置；
 		Global.initialize();
 
 		// 注册数据契约
 		registerDataContracts();
+
+		HOME_DIR = TypeUtils.getCodeDirOf(PeerServerBooter.class);
 	}
 
 
@@ -164,7 +174,7 @@ public class PeerServerBooter {
 	public static void handle(String[] args) {
 		LedgerBindingConfig ledgerBindingConfig = null;
 		ArgumentSet arguments = ArgumentSet.resolve(args,
-				ArgumentSet.setting().prefix(LEDGERBIND_ARG, HOST_ARG, PORT_ARG).option(DEBUG_OPT));
+				ArgumentSet.setting().prefix(LEDGERBIND_ARG, HOST_ARG, PORT_ARG, SPRING_CF_LOCATION).option(DEBUG_OPT));
 		boolean debug = false;
 		try {
 			ArgumentSet.ArgEntry argLedgerBindConf = arguments.getArg(LEDGERBIND_ARG);
@@ -202,9 +212,15 @@ public class PeerServerBooter {
 					// ignore NumberFormatException of port argument;
 				}
 			}
+			// spring config location;
+			String springConfigLocation = null;
+			ArgumentSet.ArgEntry spConfigLocation = arguments.getArg(SPRING_CF_LOCATION);
+			if (spConfigLocation != null) {
+				springConfigLocation = spConfigLocation.getValue();
+			}
 
 			debug = arguments.hasOption(DEBUG_OPT);
-			PeerServerBooter booter = new PeerServerBooter(ledgerBindingConfig, host, port);
+			PeerServerBooter booter = new PeerServerBooter(ledgerBindingConfig, host, port, springConfigLocation);
 			if (log.isDebugEnabled()) {
 				log.debug("PeerServerBooter's urls="
 						+ Arrays.toString(((URLClassLoader) booter.getClass().getClassLoader()).getURLs()));
@@ -223,20 +239,27 @@ public class PeerServerBooter {
 	private int port;
 	private Object[] externalBeans;
 	private volatile ConfigurableApplicationContext appContext;
+	private String springConfigLocation;
 
 	public PeerServerBooter(LedgerBindingConfig ledgerBindingConfig, String hostAddress, int port,
 			Object... externalBeans) {
+		this(ledgerBindingConfig, hostAddress, port, null, externalBeans);
+	}
+
+	public PeerServerBooter(LedgerBindingConfig ledgerBindingConfig, String hostAddress, int port,
+							String springConfigLocation, Object... externalBeans) {
 		this.ledgerBindingConfig = ledgerBindingConfig;
 		this.hostAddress = hostAddress;
 		this.port = port;
 		this.externalBeans = externalBeans;
+		this.springConfigLocation = springConfigLocation;
 	}
 
 	public synchronized void start() {
 		if (appContext != null) {
 			throw new IllegalStateException("Peer server is running already!");
 		}
-		appContext = startServer(ledgerBindingConfig, hostAddress, port, externalBeans);
+		appContext = startServer(ledgerBindingConfig, hostAddress, port, springConfigLocation, externalBeans);
 	}
 
 	public synchronized void close() {
@@ -263,14 +286,10 @@ public class PeerServerBooter {
 	 * @return
 	 */
 	private static ConfigurableApplicationContext startServer(LedgerBindingConfig ledgerBindingConfig,
-			String hostAddress, int port, Object... externalBeans) {
+			String hostAddress, int port, String springConfigLocation, Object... externalBeans) {
 		List<String> argList = new ArrayList<String>();
 		String argServerAddress = String.format("--server.address=%s", "0.0.0.0");
 		argList.add(argServerAddress);
-//		if (hostAddress != null && hostAddress.length() > 0) {
-//			String argServerAddress = String.format("--server.address=%s", hostAddress);
-//			argList.add(argServerAddress);
-//		}
 		if (port > 0) {
 			String argServerPort = String.format("--server.port=%s", port);
 			argList.add(argServerPort);
@@ -279,7 +298,9 @@ public class PeerServerBooter {
 			// 设置默认的管理口信息
 			RuntimeConstant.setMonitorPort(8080);
 		}
-
+		if (springConfigLocation != null) {
+			argList.add(String.format("--spring.config.location=%s", springConfigLocation));
+		}
 		String[] args = argList.toArray(new String[argList.size()]);
 
 		SpringApplication app = new SpringApplication(PeerConfiguration.class);

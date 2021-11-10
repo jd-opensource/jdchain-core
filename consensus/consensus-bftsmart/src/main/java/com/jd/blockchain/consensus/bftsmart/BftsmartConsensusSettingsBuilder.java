@@ -293,9 +293,10 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 				int activeId = Integer.parseInt(newProps.getProperty(ACTIVE_PARTICIPANT_ID_KEY));
 				String host = newProps.getProperty(keyOfNode(CONSENSUS_HOST_PATTERN, activeId));
 				int port = Integer.parseInt(newProps.getProperty(keyOfNode(CONSENSUS_PORT_PATTERN, activeId)));
+				boolean secure = Boolean.parseBoolean(newProps.getProperty(keyOfNode(CONSENSUS_SECURE_PATTERN, activeId)));
 				byte[] pubKeyBytes = Base58Utils.decode(newProps.getProperty(keyOfNode(PUBKEY_PATTERN, activeId)));
 				PubKey pubKey = Crypto.resolveAsPubKey(pubKeyBytes);
-				BftsmartNodeConfig bftsmartNodeConfig = new BftsmartNodeConfig(pubKey, activeId, new NetworkAddress(host, port));
+				BftsmartNodeConfig bftsmartNodeConfig = new BftsmartNodeConfig(pubKey, activeId, new NetworkAddress(host, port, secure));
 
 				int index = oldNodeSettings.length;
 				for(int i = 0; i < oldNodeSettings.length; i ++) {

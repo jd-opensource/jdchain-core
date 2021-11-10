@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.*;
 
+import com.jd.httpservice.auth.SSLClientAuth;
 import utils.StringUtils;
 import utils.io.FileUtils;
 import utils.net.NetworkAddress;
@@ -27,6 +28,8 @@ public class GatewayConfigProperties {
 	public static final String PEER_PORT_FORMAT = PEER_PREFIX + "port";
 	// 共识节点的服务是否启用安全证书；
 	public static final String PEER_SECURE_FORMAT = PEER_PREFIX + "secure";
+	// 共识节点SSL客户端认证模式；
+	public static final String PEER_CLIENT_AUTH = PEER_PREFIX + "client-auth";
 	// 支持共识的Provider列表，以英文逗号分隔
 	public static final String PEER_PROVIDERS = PEER_PREFIX + "providers";
 
@@ -60,6 +63,7 @@ public class GatewayConfigProperties {
 	private ProviderConfig providerConfig = new ProviderConfig();
 
 	private NetworkAddress masterPeerAddress = null;
+	private SSLClientAuth masterPeerClientAuth;
 	private boolean storeTopology;
 	private boolean awareTopology;
 
@@ -74,6 +78,10 @@ public class GatewayConfigProperties {
 
 	public NetworkAddress masterPeerAddress() {
 		return masterPeerAddress;
+	}
+
+	public SSLClientAuth getMasterPeerClientAuth() {
+		return masterPeerClientAuth;
 	}
 
 	public String dataRetrievalUrl() {
@@ -136,6 +144,10 @@ public class GatewayConfigProperties {
 		boolean peerSecure = getBoolean(props, PEER_SECURE_FORMAT, false);
 		configProps.setMasterPeerAddress(new NetworkAddress(peerHost, peerPort, peerSecure));
 
+		String peerClientAuth = getProperty(props, PEER_CLIENT_AUTH, false, "NONE");
+		SSLClientAuth auth = SSLClientAuth.valueOf(peerClientAuth);
+		configProps.masterPeerClientAuth = auth;
+
 		configProps.setStoreTopology(getBoolean(props, TOPOLOGY_STORE, false));
 		configProps.setAwareTopology(getBoolean(props, TOPOLOGY_AWARE, false, true));
 
@@ -183,6 +195,14 @@ public class GatewayConfigProperties {
 			return null;
 		}
 		return value;
+	}
+
+	private static String getProperty(Properties props, String key, boolean required, String defaultValue) {
+		String str = getProperty(props, key, required);
+		if (str == null) {
+			return defaultValue;
+		}
+		return str.toUpperCase();
 	}
 
 	private static boolean getBoolean(Properties props, String key, boolean required) {
