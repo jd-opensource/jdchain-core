@@ -420,7 +420,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 			manageConsensusCmds.add(commands[index]);
 		}
 
-		block(manageConsensusCmds, System.currentTimeMillis());
+		block(manageConsensusCmds, msgCtxs[0].getTimestamp());
 
 		return null;
 
@@ -748,6 +748,11 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	@Override
 	public byte[][] getCommandsByCid(int cid, int currCidCommandsNum) {
 		return messageHandle.getCommandsByCid(realmName, cid, currCidCommandsNum);
+	}
+
+	@Override
+	public long getTimestampByCid(int cid) {
+		return messageHandle.getTimestampByCid(realmName, cid);
 	}
 
 	// 获得checkpoint检查点处的状态快照：区块哈希

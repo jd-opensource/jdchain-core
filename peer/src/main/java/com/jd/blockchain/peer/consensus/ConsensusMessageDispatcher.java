@@ -127,6 +127,15 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 	}
 
 	@Override
+	public long getTimestampByCid(String realName, int cid) {
+		byte[] hashBytes = Base58Utils.decode(realName);
+
+		HashDigest ledgerHash =  Crypto.resolveAsHashDigest(hashBytes);
+
+		return ((TransactionEngineImpl)txEngine).getTimestampByHeight(ledgerHash, cid + 1);
+	}
+
+	@Override
 	public AsyncFuture<byte[]> processOrdered(int messageId, byte[] message, ConsensusMessageContext context) {
 		// TODO 要求messageId在同一个批次不重复，但目前暂不验证
 		RealmProcessor realmProcessor = realmProcessorMap.get(realmName(context));

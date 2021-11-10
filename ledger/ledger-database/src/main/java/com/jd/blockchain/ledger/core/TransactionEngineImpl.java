@@ -77,6 +77,14 @@ public class TransactionEngineImpl implements TransactionEngine {
 
 	}
 
+	public long getTimestampByHeight(HashDigest ledgerHash, int height) {
+
+		LedgerRepository ledgerRepo = ledgerService.getLedger(ledgerHash);
+
+		return ledgerRepo.getBlock(height).getTimestamp();
+
+	}
+
 	@Override
 	public synchronized TransactionBatchProcess createNextBatch(HashDigest ledgerHash) {
 		TransactionBatchProcessor batch = batchs.get(ledgerHash);
