@@ -15,6 +15,7 @@ import utils.codec.Base58Utils;
 import utils.crypto.classic.SHA256Utils;
 import utils.io.FileUtils;
 import java.io.File;
+import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 
@@ -180,9 +181,11 @@ class KeysAdd implements Runnable {
                 String pubkey = KeyGenUtils.encodePubKey(keypair.getPubKey());
                 String base58pwd = KeyGenUtils.encodePasswordAsBase58(password);
                 String privkey = KeyGenUtils.encodePrivKey(keypair.getPrivKey(), base58pwd);
+                PrivateKey privateKey = CertificateUtils.retrievePrivateKey(keypair.getPrivKey());
                 FileUtils.writeText(pubkey, new File(keysHome + File.separator + name + ".pub"));
                 FileUtils.writeText(privkey, new File(keysHome + File.separator + name + ".priv"));
                 FileUtils.writeText(base58pwd, new File(keysHome + File.separator + name + ".pwd"));
+                FileUtils.writeText(CertificateUtils.toPEMString(algorithm, privateKey), new File(keysHome + File.separator + name + ".key"));
                 System.out.printf(Keys.KEYS_PRINT_FORMAT, "NAME", "ALGORITHM", "ADDRESS", "PUBKEY");
                 System.out.printf(Keys.KEYS_PRINT_FORMAT, name, Crypto.getAlgorithm(algorithm).name(), AddressEncoding.generateAddress(keypair.getPubKey()), keypair.getPubKey());
             } else {

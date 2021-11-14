@@ -11,10 +11,10 @@ import com.jd.blockchain.setting.GatewayAuthResponse;
 import com.jd.blockchain.setting.LedgerIncomingSettings;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 import com.jd.blockchain.transaction.TransactionService;
-import com.jd.httpservice.auth.SSLSecurity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.net.NetworkAddress;
+import utils.net.SSLSecurity;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -56,20 +56,23 @@ public class LedgerPeerConnectionManager {
     private Set<HashDigest> accessibleLedgers;
 
     private PeerAuthenticator authenticator;
-    private SSLSecurity sslSecurity;
+    private SSLSecurity manageSslSecurity;
+    private SSLSecurity consensusSslSecurity;
 
     public LedgerPeerConnectionManager(HashDigest ledger, NetworkAddress peerAddress, AsymmetricKeypair keyPair,
                                        SessionCredentialProvider credentialProvider, ConsensusClientManager clientManager,
                                        LedgersListener ledgersListener) {
-        this(ledger, peerAddress, new SSLSecurity(), keyPair, credentialProvider, clientManager, ledgersListener);
+        this(ledger, peerAddress, new SSLSecurity(), new SSLSecurity(), keyPair, credentialProvider, clientManager, ledgersListener);
     }
-    public LedgerPeerConnectionManager(HashDigest ledger, NetworkAddress peerAddress, SSLSecurity sslSecurity,
-                                       AsymmetricKeypair keyPair, SessionCredentialProvider credentialProvider,
+
+    public LedgerPeerConnectionManager(HashDigest ledger, NetworkAddress peerAddress, SSLSecurity manageSslSecurity,
+                                       SSLSecurity consensusSslSecurity, AsymmetricKeypair keyPair, SessionCredentialProvider credentialProvider,
                                        ConsensusClientManager clientManager, LedgersListener ledgersListener) {
         this.executorService = Executors.newScheduledThreadPool(2);
         this.latestHeight = -1;
         this.state = State.UNAVAILABLE;
-        this.sslSecurity = sslSecurity;
+        this.manageSslSecurity = manageSslSecurity;
+        this.consensusSslSecurity = consensusSslSecurity;
         this.ledger = ledger;
         this.accessibleLedgers = new HashSet<>();
         this.accessibleLedgers.add(ledger);
@@ -78,7 +81,7 @@ public class LedgerPeerConnectionManager {
         this.credentialProvider = credentialProvider;
         this.clientManager = clientManager;
         this.ledgersListener = ledgersListener;
-        this.authenticator = new PeerAuthenticator(peerAddress, sslSecurity, keyPair, credentialProvider);
+        this.authenticator = new PeerAuthenticator(peerAddress, manageSslSecurity, keyPair, credentialProvider);
     }
 
     public void setConnectionListener(LedgerPeerConnectionListener connectionListener) {
@@ -216,7 +219,7 @@ public class LedgerPeerConnectionManager {
     }
 
     public synchronized HashDigest[] connect() {
-        PeerBlockchainServiceFactory factory = PeerBlockchainServiceFactory.connect(keyPair, peerAddress, sslSecurity, credentialProvider, clientManager);
+        PeerBlockchainServiceFactory factory = PeerBlockchainServiceFactory.connect(keyPair, peerAddress, manageSslSecurity, consensusSslSecurity, credentialProvider, clientManager);
         if (null != blockchainServiceFactory) {
             blockchainServiceFactory.close();
         }
@@ -245,7 +248,7 @@ public class LedgerPeerConnectionManager {
                     try {
                         logger.info("Auth {}-{} recreate connection", ledger, peerAddress);
                         blockchainServiceFactory.close();
-                        blockchainServiceFactory = PeerBlockchainServiceFactory.create(keyPair, peerAddress, sslSecurity, authResponse.getLedgers(), credentialProvider, clientManager);
+                        blockchainServiceFactory = PeerBlockchainServiceFactory.create(keyPair, peerAddress, manageSslSecurity, consensusSslSecurity, authResponse.getLedgers(), credentialProvider, clientManager);
                     } catch (Exception e) {
                         logger.warn("Auth {}-{} recreate connection", ledger, peerAddress, e);
                     }

@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class RuntimeConstant {
 
     private static final ThreadLocal<Integer> MONITOR_PORT_LOCAL = new ThreadLocal<>();
+    private static final ThreadLocal<Boolean> MONITOR_SECURE_LOCAL = new ThreadLocal<>();
 
     /**
      * 管理口常量
@@ -17,9 +18,10 @@ public class RuntimeConstant {
      */
     private static final AtomicInteger MONITOR_PORT = new AtomicInteger(-1);
 
-    public static void setMonitorPort(int monitorPort) {
+    public static void setMonitorProperties(int monitorPort, boolean monitorSecure) {
         MONITOR_PORT_LOCAL.set(monitorPort);
         MONITOR_PORT.set(monitorPort);
+        MONITOR_SECURE_LOCAL.set(monitorSecure);
     }
 
     public static int getMonitorPort() {
@@ -28,5 +30,13 @@ public class RuntimeConstant {
             return MONITOR_PORT.get();
         }
         return monitorPort;
+    }
+
+    public static boolean isMonitorSecure() {
+        Boolean monitorSecure = MONITOR_SECURE_LOCAL.get();
+        if (monitorSecure == null) {
+            return false;
+        }
+        return monitorSecure;
     }
 }

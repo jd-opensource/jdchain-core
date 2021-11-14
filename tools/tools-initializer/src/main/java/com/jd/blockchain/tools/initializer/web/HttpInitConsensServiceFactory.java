@@ -3,7 +3,7 @@ package com.jd.blockchain.tools.initializer.web;
 import com.jd.httpservice.agent.HttpServiceAgent;
 import com.jd.httpservice.agent.ServiceEndpoint;
 
-import com.jd.httpservice.auth.SSLSecurity;
+import utils.net.SSLSecurity;
 import utils.net.NetworkAddress;
 
 public class HttpInitConsensServiceFactory implements InitConsensusServiceFactory {

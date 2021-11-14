@@ -16,6 +16,7 @@ import com.jd.blockchain.crypto.PrivKey;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.crypto.SignatureDigest;
 import com.jd.blockchain.crypto.SignatureFunction;
+import utils.net.SSLSecurity;
 
 import java.security.cert.X509Certificate;
 
@@ -67,6 +68,17 @@ public class BftsmartConsensusClientFactory implements ClientFactory {
 
 		return clientSettings;
 	}
+
+	@Override
+	public ClientSettings buildClientSettings(ClientIncomingSettings incomingSettings, SSLSecurity sslSecurity) {
+
+		BftsmartClientIncomingSettings clientIncomingSettings = (BftsmartClientIncomingSettings) incomingSettings;
+
+		BftsmartClientSettings clientSettings = new BftsmartClientConfig(clientIncomingSettings, sslSecurity);
+
+		return clientSettings;
+	}
+
 
 	@Override
 	public ConsensusClient setupClient(ClientSettings settings) {

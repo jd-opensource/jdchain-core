@@ -9,7 +9,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.logging.log4j.core.config.Configurator;
@@ -126,8 +125,6 @@ public class PeerServerBooter {
 	private static final String HOST_ARG = "-h";
 	// 服务端口；
 	private static final String PORT_ARG = "-p";
-	// 是否输出调试信息；
-	private static final String DEBUG_OPT = "-debug";
 
 	public static final String LEDGER_BIND_CONFIG_NAME = "ledger-binding.conf";
 
@@ -174,8 +171,7 @@ public class PeerServerBooter {
 	public static void handle(String[] args) {
 		LedgerBindingConfig ledgerBindingConfig = null;
 		ArgumentSet arguments = ArgumentSet.resolve(args,
-				ArgumentSet.setting().prefix(LEDGERBIND_ARG, HOST_ARG, PORT_ARG, SPRING_CF_LOCATION).option(DEBUG_OPT));
-		boolean debug = false;
+				ArgumentSet.setting().prefix(LEDGERBIND_ARG, HOST_ARG, PORT_ARG, SPRING_CF_LOCATION));
 		try {
 			ArgumentSet.ArgEntry argLedgerBindConf = arguments.getArg(LEDGERBIND_ARG);
 			ledgerBindConfigFile = argLedgerBindConf == null ? null : argLedgerBindConf.getValue();
@@ -219,7 +215,6 @@ public class PeerServerBooter {
 				springConfigLocation = spConfigLocation.getValue();
 			}
 
-			debug = arguments.hasOption(DEBUG_OPT);
 			PeerServerBooter booter = new PeerServerBooter(ledgerBindingConfig, host, port, springConfigLocation);
 			if (log.isDebugEnabled()) {
 				log.debug("PeerServerBooter's urls="
@@ -227,10 +222,7 @@ public class PeerServerBooter {
 			}
 			booter.start();
 		} catch (Exception e) {
-			ConsoleUtils.error("Error occurred on startup! --%s", e.getMessage());
-			if (debug) {
-				e.printStackTrace();
-			}
+			e.printStackTrace();
 		}
 	}
 
@@ -293,10 +285,8 @@ public class PeerServerBooter {
 		if (port > 0) {
 			String argServerPort = String.format("--server.port=%s", port);
 			argList.add(argServerPort);
-			RuntimeConstant.setMonitorPort(port);
 		} else {
-			// 设置默认的管理口信息
-			RuntimeConstant.setMonitorPort(8080);
+			port = 8080;
 		}
 		if (springConfigLocation != null) {
 			argList.add(String.format("--spring.config.location=%s", springConfigLocation));
@@ -316,6 +306,7 @@ public class PeerServerBooter {
 		}
 		// 启动 web 服务；
 		ConfigurableApplicationContext ctx = app.run(args);
+		RuntimeConstant.setMonitorProperties(port, Boolean.valueOf(ctx.getEnvironment().getProperty("server.ssl.enabled")));
 		// 配置文件为空，则说明目前没有账本，不需要配置账本相关信息
 		if (ledgerBindingConfig != null) {
 			// 建立共识网络；

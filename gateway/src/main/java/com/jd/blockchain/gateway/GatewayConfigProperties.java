@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.*;
 
-import com.jd.httpservice.auth.SSLClientAuth;
+import utils.net.SSLClientAuth;
 import utils.StringUtils;
 import utils.io.FileUtils;
 import utils.net.NetworkAddress;
@@ -13,10 +13,16 @@ public class GatewayConfigProperties {
 
 	// HTTP协议相关配置项的键的前缀；
 	public static final String HTTP_PREFIX = "http.";
+	// HTTP协议相关配置项的键的前缀；
+	public static final String HTTPS_PREFIX = "https.";
 	// 网关的HTTP服务地址；
 	public static final String HTTP_HOST = HTTP_PREFIX + "host";
 	// 网关的HTTP服务端口；
 	public static final String HTTP_PORT = HTTP_PREFIX + "port";
+	// 网关服务是否启用安全证书；
+	public static final String HTTP_SECURE = HTTP_PREFIX + "secure";
+	// 网关服务TLS客户端认证模式；
+	public static final String HTTP_CLIENT_AUTH = HTTPS_PREFIX + "client-auth";
 	// 网关的HTTP服务上下文路径，可选；
 	public static final String HTTP_CONTEXT_PATH = HTTP_PREFIX + "context-path";
 
@@ -28,8 +34,8 @@ public class GatewayConfigProperties {
 	public static final String PEER_PORT_FORMAT = PEER_PREFIX + "port";
 	// 共识节点的服务是否启用安全证书；
 	public static final String PEER_SECURE_FORMAT = PEER_PREFIX + "secure";
-	// 共识节点SSL客户端认证模式；
-	public static final String PEER_CLIENT_AUTH = PEER_PREFIX + "client-auth";
+	// 共识节点的共识服务是否启用安全证书；
+	public static final String PEER_CONSENSUS_SECURE = PEER_PREFIX + "consensus.secure";
 	// 支持共识的Provider列表，以英文逗号分隔
 	public static final String PEER_PROVIDERS = PEER_PREFIX + "providers";
 
@@ -63,7 +69,8 @@ public class GatewayConfigProperties {
 	private ProviderConfig providerConfig = new ProviderConfig();
 
 	private NetworkAddress masterPeerAddress = null;
-	private SSLClientAuth masterPeerClientAuth;
+	private SSLClientAuth masterPeerClientAuth = SSLClientAuth.NONE;
+	private boolean consensusSecure;
 	private boolean storeTopology;
 	private boolean awareTopology;
 
@@ -82,6 +89,14 @@ public class GatewayConfigProperties {
 
 	public SSLClientAuth getMasterPeerClientAuth() {
 		return masterPeerClientAuth;
+	}
+
+	public boolean isConsensusSecure() {
+		return consensusSecure;
+	}
+
+	public void setConsensusSecure(boolean consensusSecure) {
+		this.consensusSecure = consensusSecure;
 	}
 
 	public String dataRetrievalUrl() {
@@ -137,16 +152,18 @@ public class GatewayConfigProperties {
 		GatewayConfigProperties configProps = new GatewayConfigProperties();
 		configProps.http.host = getProperty(props, HTTP_HOST, true);
 		configProps.http.port = getInt(props, HTTP_PORT, true);
+		configProps.http.secure = getBoolean(props, HTTP_SECURE, false, false);
+		if(configProps.http.secure) {
+			configProps.http.clientAuth = SSLClientAuth.valueOf(getProperty(props, HTTP_CLIENT_AUTH, false, "none").toUpperCase());
+		}
 		configProps.http.contextPath = getProperty(props, HTTP_CONTEXT_PATH, false);
 
 		String peerHost = getProperty(props, PEER_HOST_FORMAT, true);
 		int peerPort = getInt(props, PEER_PORT_FORMAT, true);
-		boolean peerSecure = getBoolean(props, PEER_SECURE_FORMAT, false);
+		boolean peerSecure = getBoolean(props, PEER_SECURE_FORMAT, false, false);
 		configProps.setMasterPeerAddress(new NetworkAddress(peerHost, peerPort, peerSecure));
 
-		String peerClientAuth = getProperty(props, PEER_CLIENT_AUTH, false, "NONE");
-		SSLClientAuth auth = SSLClientAuth.valueOf(peerClientAuth);
-		configProps.masterPeerClientAuth = auth;
+		configProps.consensusSecure = getBoolean(props, PEER_CONSENSUS_SECURE, false, false);
 
 		configProps.setStoreTopology(getBoolean(props, TOPOLOGY_STORE, false));
 		configProps.setAwareTopology(getBoolean(props, TOPOLOGY_AWARE, false, true));
@@ -265,18 +282,12 @@ public class GatewayConfigProperties {
 	public static class HttpConfig {
 
 		private String host;
-
 		private int port;
-
 		private String contextPath;
+		private boolean secure;
+		private SSLClientAuth clientAuth;
 
 		private HttpConfig() {
-		}
-
-		private HttpConfig(String host, int port, String contextPath) {
-			this.host = host;
-			this.port = port;
-			this.contextPath = contextPath;
 		}
 
 		public String getHost() {
@@ -301,6 +312,22 @@ public class GatewayConfigProperties {
 
 		public void setContextPath(String contextPath) {
 			this.contextPath = contextPath;
+		}
+
+		public boolean isSecure() {
+			return secure;
+		}
+
+		public void setSecure(boolean secure) {
+			this.secure = secure;
+		}
+
+		public SSLClientAuth getClientAuth() {
+			return clientAuth;
+		}
+
+		public void setClientAuth(SSLClientAuth clientAuth) {
+			this.clientAuth = clientAuth;
 		}
 	}
 

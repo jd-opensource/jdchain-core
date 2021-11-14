@@ -7,6 +7,7 @@ import com.jd.blockchain.consensus.bftsmart.BftsmartClientIncomingSettings;
 import com.jd.blockchain.crypto.PubKey;
 
 import bftsmart.demo.bftmap.BFTMapRequestType;
+import utils.net.SSLSecurity;
 
 public class BftsmartClientConfig implements BftsmartClientSettings {
 
@@ -17,27 +18,13 @@ public class BftsmartClientConfig implements BftsmartClientSettings {
 	private byte[] tomConfig;
 	BftsmartClientIncomingSettings clientIncomingSettings;
 	private BftsmartSessionCredential sessionCredential;
-
-	/**
-	 * 创建客户端配置；
-	 * 
-	 * @param clientPubkey   客户端的公钥；
-	 * @param sessionCredential 回复的客户端信息；
-	 * @param viewSettings
-	 * @param topology
-	 * @param tomConfig
-	 */
-	public BftsmartClientConfig(PubKey clientPubkey, BftsmartSessionCredential sessionCredential, ConsensusViewSettings viewSettings,
-			byte[] topology, byte[] tomConfig) {
-		this.clientId = sessionCredential.getClientId();
-		this.clientPubkey = clientPubkey;
-		this.viewSettings = viewSettings;
-		this.topology = topology;
-		this.tomConfig = tomConfig;
-		this.sessionCredential = sessionCredential;
-	}
+	private SSLSecurity sslSecurity;
 
 	public BftsmartClientConfig(BftsmartClientIncomingSettings clientIncomingSettings) {
+		this(clientIncomingSettings, new SSLSecurity());
+	}
+
+	public BftsmartClientConfig(BftsmartClientIncomingSettings clientIncomingSettings, SSLSecurity sslSecurity) {
 		this.clientIncomingSettings = clientIncomingSettings;
 		this.clientId = clientIncomingSettings.getClientId();
 		this.clientPubkey = clientIncomingSettings.getPubKey();
@@ -45,6 +32,7 @@ public class BftsmartClientConfig implements BftsmartClientSettings {
 		this.topology = clientIncomingSettings.getTopology();
 		this.tomConfig = clientIncomingSettings.getTomConfig();
 		this.sessionCredential = (BftsmartSessionCredential) clientIncomingSettings.getCredential();
+		this.sslSecurity = sslSecurity;
 	}
 
 	@Override
@@ -94,5 +82,18 @@ public class BftsmartClientConfig implements BftsmartClientSettings {
 	@Override
 	public BftsmartSessionCredential getSessionCredential() {
 		return sessionCredential;
+	}
+
+	@Override
+	public SSLSecurity getSSLSecurity() {
+		return sslSecurity;
+	}
+
+	public SSLSecurity getSslSecurity() {
+		return sslSecurity;
+	}
+
+	public void setSslSecurity(SSLSecurity sslSecurity) {
+		this.sslSecurity = sslSecurity;
 	}
 }

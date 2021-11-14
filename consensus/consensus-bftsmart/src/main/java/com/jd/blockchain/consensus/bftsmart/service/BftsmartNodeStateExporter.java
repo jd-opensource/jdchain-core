@@ -102,8 +102,8 @@ class BftsmartNodeStateExporter implements BftsmartNodeState {
 				if (nodeNetwork == null) {
 					continue;
 				}
-				networkAddresses[i] = new BftsmartNodeServer.PeerNodeNetwork(nodeNetwork.getHost(),
-						nodeNetwork.getConsensusPort(), nodeNetwork.getMonitorPort(), nodeNetwork.isSecure());
+				networkAddresses[i] = new BftsmartNodeServer.PeerNodeNetwork(nodeNetwork.getHost(), nodeNetwork.getConsensusPort(), nodeNetwork.getMonitorPort(),
+						nodeNetwork.isConsensusSecure(), nodeNetwork.isMonitorSecure());
 			}
 
 			return networkAddresses;

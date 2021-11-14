@@ -32,8 +32,7 @@ public abstract class BftsmartConsensusManageService implements ConsensusManageS
 
 			Reconfiguration reconfiguration = new Reconfiguration(serviceProxy.getProcessId(), serviceProxy);
 
-			reconfiguration.addServer(bftsmartReplica.getId(), bftsmartReplica.getNetworkAddress().getHost(),
-					bftsmartReplica.getNetworkAddress().getPort());
+			reconfiguration.addServer(bftsmartReplica.getId(), bftsmartReplica.getNetworkAddress());
 
 			ReconfigureReply reply = reconfiguration.execute();
 

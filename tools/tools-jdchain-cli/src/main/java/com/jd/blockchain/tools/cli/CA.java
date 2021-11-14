@@ -41,7 +41,6 @@ import utils.io.FileUtils;
 import java.io.*;
 import java.math.BigInteger;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
@@ -74,8 +73,8 @@ import java.util.UUID;
 
 public class CA implements Runnable {
     static final String CA_HOME = "certs";
+    static final String KEYS_HOME = "keys";
     static final String CA_SIGN_HOME = "certs/sign";
-    static final String CA_KEYS_HOME = "certs/keys";
     static final String CA_TLS_HOME = "certs/tls";
     static final String CA_LIST_FORMAT = "%s\t%s\t%s\t%s%n";
     static Map<String, String> CA_ALGORITHM_MAP = new HashMap<>();
@@ -139,7 +138,7 @@ public class CA implements Runnable {
 
     protected String getKeysHome() {
         try {
-            File caHome = new File(jdChainCli.path.getCanonicalPath() + File.separator + CA_KEYS_HOME);
+            File caHome = new File(jdChainCli.path.getCanonicalPath() + File.separator + KEYS_HOME);
             if (!caHome.exists()) {
                 caHome.mkdirs();
             }
@@ -264,8 +263,6 @@ class CACsr implements Runnable {
             PubKey pubKey = KeyGenUtils.decodePubKey(pub);
             PrivateKey privateKey = CertificateUtils.retrievePrivateKey(privKey);
             String algorithm = Crypto.getAlgorithm(privKey.getAlgorithm()).name();
-            String keyFile = caCli.getKeysHome() + File.separator + output + ".key";
-            FileUtils.writeText(CertificateUtils.toPEMString(algorithm, privateKey), new File(keyFile));
             ContentSigner signGen = new JcaContentSignerBuilder(caCli.CA_ALGORITHM_MAP.get(algorithm)).build(privateKey);
             PublicKey publicKey = CertificateUtils.retrievePublicKey(pubKey);
             PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(subject, publicKey);
@@ -554,9 +551,6 @@ class CATest implements Runnable {
         KeyStore p12Store = KeyStore.getInstance("PKCS12");
         p12Store.load(null, phrase);
         p12Store.setKeyEntry(alias, privateKey, phrase, outChain);
-        OutputStream p12Stream = new FileOutputStream(caCli.getTlsHome() + File.separator + alias + ".p12");
-        p12Store.store(p12Stream, phrase);
-        p12Stream.close();
 
         KeyStore jksStore = KeyStore.getInstance("PKCS12");
         jksStore.load(null, phrase);
@@ -567,7 +561,7 @@ class CATest implements Runnable {
     }
 
     private void trustStore(String alias, String password, X509Certificate cert) throws Exception {
-        File store = new File(caCli.getTlsHome() + File.separator + "trust.keystore");
+        File store = new File(caCli.getTlsHome() + File.separator + "trust.jks");
         KeyStore trustStore = KeyStore.getInstance("JKS");
         if (store.exists()) {
             try (FileInputStream storeIn = new FileInputStream(store)) {

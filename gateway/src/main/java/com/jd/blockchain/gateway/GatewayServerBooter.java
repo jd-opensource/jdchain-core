@@ -10,9 +10,7 @@ import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.gateway.service.topology.LedgerPeersTopology;
-import com.jd.httpservice.auth.SSLClientAuth;
-import com.jd.httpservice.auth.SSLMode;
-import com.jd.httpservice.auth.SSLSecurity;
+import utils.net.SSLSecurity;
 import org.apache.commons.io.FileUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -191,11 +189,10 @@ public class GatewayServerBooter {
 		if (this.appCtx != null) {
 			throw new IllegalStateException("Gateway server is running already.");
 		}
-		this.appCtx = startServer(config.http().getHost(), config.http().getPort(), springConfigLocation,
-				config.http().getContextPath());
-		// 如果peer配置为双向认证，需要初始化TLS证书信息，否则建立忽略证书连接
-		SSLSecurity security = null;
-		if(config.getMasterPeerClientAuth().equals(SSLClientAuth.NEED)) {
+		this.appCtx = startServer(config.http(), springConfigLocation);
+		// 网关连接PEER节点管理服务TLS配置
+		SSLSecurity manageSecurity;
+		if(config.masterPeerAddress().isSecure()) {
 			String keyStore = appCtx.getEnvironment().getProperty("server.ssl.key-store");
 			String keyStoreType = appCtx.getEnvironment().getProperty("server.ssl.key-store-type");
 			String keyAlias = appCtx.getEnvironment().getProperty("server.ssl.key-alias");
@@ -203,9 +200,16 @@ public class GatewayServerBooter {
 			String trustStore = appCtx.getEnvironment().getProperty("server.ssl.trust-store");
 			String trustStorePassword = appCtx.getEnvironment().getProperty("server.ssl.trust-store-password");
 			String trustStoreType = appCtx.getEnvironment().getProperty("server.ssl.trust-store-type");
-			security = new SSLSecurity(SSLMode.TWO_WAY, keyStoreType, keyStore, keyAlias, keyStorePassword, trustStore, trustStorePassword, trustStoreType);
+			manageSecurity = new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword, trustStore, trustStorePassword, trustStoreType);
 		} else {
-			security = new SSLSecurity();
+			manageSecurity = new SSLSecurity();
+		}
+		// 网关连接PEER节点共识服务TLS配置
+		SSLSecurity consensusSecurity;
+		if(config.isConsensusSecure()) {
+			consensusSecurity = manageSecurity;
+		} else {
+			consensusSecurity = new SSLSecurity();
 		}
 
 		ConsoleUtils.info("\r\n\r\nStart connecting to peer ....");
@@ -214,7 +218,7 @@ public class GatewayServerBooter {
 		dataSearchController.setSchemaRetrievalUrl(config.getSchemaRetrievalUrl());
 		LedgersManager peerConnector = appCtx.getBean(LedgersManager.class);
 
-		peerConnector.init(defaultKeyPair, security, config);
+		peerConnector.init(defaultKeyPair, manageSecurity, consensusSecurity, config);
 
 		ConsoleUtils.info("Peer[%s] is connected success!", config.masterPeerAddress().toString());
 	}
@@ -226,18 +230,21 @@ public class GatewayServerBooter {
 		this.appCtx.close();
 	}
 
-	private static ConfigurableApplicationContext startServer(String host, int port, String springConfigLocation,
-			String contextPath) {
+	private static ConfigurableApplicationContext startServer(GatewayConfigProperties.HttpConfig config, String springConfigLocation) {
 		List<String> argList = new ArrayList<String>();
-		argList.add(String.format("--server.address=%s", host));
-		argList.add(String.format("--server.port=%s", port));
+		argList.add(String.format("--server.address=%s", config.getHost()));
+		argList.add(String.format("--server.port=%s", config.getPort()));
+		argList.add(String.format("--server.ssl.enabled=%s", config.isSecure()));
+		if(config.isSecure()) {
+			argList.add(String.format("--server.ssl.client-auth=%s", config.getClientAuth()));
+		}
 
 		if (springConfigLocation != null) {
 			argList.add(String.format("--spring.config.location=%s", springConfigLocation));
 		}
 
-		if (contextPath != null) {
-			argList.add(String.format("--server.context-path=%s", contextPath));
+		if (!StringUtils.isEmpty(config.getContextPath())) {
+			argList.add(String.format("--server.context-path=%s", config.getContextPath()));
 		}
 
 		String[] args = argList.toArray(new String[argList.size()]);
