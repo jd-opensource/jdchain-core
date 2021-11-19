@@ -10,6 +10,8 @@ import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.gateway.service.topology.LedgerPeersTopology;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import utils.net.SSLSecurity;
 import org.apache.commons.io.FileUtils;
 import org.springframework.boot.SpringApplication;
@@ -60,7 +62,6 @@ import com.jd.blockchain.sdk.GatewayAuthRequest;
 import utils.ArgumentSet;
 import utils.ArgumentSet.ArgEntry;
 import utils.BaseConstant;
-import utils.ConsoleUtils;
 import utils.StringUtils;
 import utils.reflection.TypeUtils;
 
@@ -82,6 +83,8 @@ public class GatewayServerBooter {
 
 	public static final String RUNTIME_STORAGE_DIR;
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(GatewayServerBooter.class);
+
 	static {
 		HOME_DIR = TypeUtils.getCodeDirOf(GatewayServerBooter.class);
 		RUNTIME_STORAGE_DIR = new File(HOME_DIR, RUNTIME_FOLDER_NAME).getAbsolutePath();
@@ -95,13 +98,13 @@ public class GatewayServerBooter {
 			String configFile = argHost == null ? null : argHost.getValue();
 			GatewayConfigProperties configProps;
 			if (configFile == null) {
-				ConsoleUtils.info("Load build-in default configuration ...");
+				LOGGER.info("Load build-in default configuration ...");
 				ClassPathResource configResource = new ClassPathResource("gateway.conf");
 				try (InputStream in = configResource.getInputStream()) {
 					configProps = GatewayConfigProperties.resolve(in);
 				}
 			} else {
-				ConsoleUtils.info("Load configuration ...");
+				LOGGER.info("Load configuration ...");
 				configProps = GatewayConfigProperties.resolve(argHost.getValue());
 			}
 
@@ -113,8 +116,7 @@ public class GatewayServerBooter {
 			} else {
 				// if no the config file, then should tip as follows. but it's not a good
 				// feeling, so we create it by inputStream;
-				ConsoleUtils.info(
-						"no param:-sp, format: -sp /x/xx.properties, use the default application-gw.properties 	");
+				LOGGER.info("no param:-sp, format: -sp /x/xx.properties, use the default application-gw.properties 	");
 				ClassPathResource configResource = new ClassPathResource(DEFAULT_GATEWAY_PROPS);
 				InputStream in = configResource.getInputStream();
 
@@ -132,11 +134,11 @@ public class GatewayServerBooter {
 			}
 
 			// 启动服务器；
-			ConsoleUtils.info("Starting web server......");
+			LOGGER.info("Starting web server......");
 			GatewayServerBooter booter = new GatewayServerBooter(configProps, springConfigLocation);
 			booter.start();
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error("Gateway start error", e);
 		}
 	}
 
@@ -212,7 +214,7 @@ public class GatewayServerBooter {
 			consensusSecurity = new SSLSecurity();
 		}
 
-		ConsoleUtils.info("\r\n\r\nStart connecting to peer ....");
+		LOGGER.info("Start connecting to peer ....");
 		DataSearchController dataSearchController = appCtx.getBean(DataSearchController.class);
 		dataSearchController.setDataRetrievalUrl(config.dataRetrievalUrl());
 		dataSearchController.setSchemaRetrievalUrl(config.getSchemaRetrievalUrl());
@@ -220,7 +222,7 @@ public class GatewayServerBooter {
 
 		peerConnector.init(defaultKeyPair, manageSecurity, consensusSecurity, config);
 
-		ConsoleUtils.info("Peer[%s] is connected success!", config.masterPeerAddress().toString());
+		LOGGER.info("Peer {} is connected success!", config.masterPeerAddress().toString());
 	}
 
 	public synchronized void close() {

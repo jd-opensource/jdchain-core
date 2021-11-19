@@ -11,7 +11,8 @@ import com.jd.blockchain.ump.service.DataRetrievalService;
 import com.jd.blockchain.ump.service.UmpStateService;
 import com.jd.blockchain.ump.web.RetrievalConfig;
 
-import utils.ConsoleUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,7 @@ import javax.servlet.http.HttpServletRequest;
 @RestController
 @RequestMapping(path = "/schema")
 public class RetrievalController {
+    private static final Logger LOGGER = LoggerFactory.getLogger(RetrievalController.class);
 
     @Autowired
     private DataRetrievalService dataRetrievalService;
@@ -55,7 +57,7 @@ public class RetrievalController {
             try {
 
                 result = dataRetrievalService.retrievalPost(fullQueryUrl,JSONObject.toJSONString(schemaDomain));
-                ConsoleUtils.info("request = {%s} \r\n result = {%s} \r\n", fullQueryUrl, result);
+                LOGGER.info("request = {} \r\n result = {} \r\n", fullQueryUrl, result);
             } catch (Exception e) {
                 result = "{'message':'error','data':'" + e.getMessage() + "'}";
             }
@@ -83,7 +85,7 @@ public class RetrievalController {
                     .toString();
             try {
                 result = dataRetrievalService.retrievalPost(fullQueryUrl,jsonObject);
-                ConsoleUtils.info("request = {%s} \r\n result = {%s} \r\n", fullQueryUrl, result);
+                LOGGER.info("request = {} \r\n result = {} \r\n", fullQueryUrl, result);
             } catch (Exception e) {
                 result = "{'message':'error','data':'" + e.getMessage() + "'}";
             }
@@ -110,7 +112,7 @@ public class RetrievalController {
                     .toString();
             try {
                 result = dataRetrievalService.retrieval(fullQueryUrl);
-                ConsoleUtils.info("request = {%s} \r\n result = {%s} \r\n", fullQueryUrl, result);
+                LOGGER.info("request = {} \r\n result = {} \r\n", fullQueryUrl, result);
             } catch (Exception e) {
                 result = "{'message':'error','data':'" + e.getMessage() + "'}";
             }
@@ -137,7 +139,7 @@ public class RetrievalController {
                     .toString();
             try {
                 result = dataRetrievalService.delete(fullQueryUrl);
-                ConsoleUtils.info("request = {%s} \r\n result = {%s} \r\n", fullQueryUrl, result);
+                LOGGER.info("request = {} \r\n result = {} \r\n", fullQueryUrl, result);
             } catch (Exception e) {
                 result = "{'message':'error','data':'" + e.getMessage() + "'}";
             }
@@ -164,7 +166,7 @@ public class RetrievalController {
                     .toString();
             try {
                 result = dataRetrievalService.retrieval(fullQueryUrl);
-                ConsoleUtils.info("request = {%s} \r\n result = {%s} \r\n", fullQueryUrl, result);
+                LOGGER.info("request = {} \r\n result = {} \r\n", fullQueryUrl, result);
             } catch (Exception e) {
                 result = "{'message':'error','data':'" + e.getMessage() + "'}";
             }
@@ -191,7 +193,7 @@ public class RetrievalController {
                     .toString();
             try {
                 result = dataRetrievalService.retrieval(fullQueryUrl);
-                ConsoleUtils.info("request = {%s} \r\n result = {%s} \r\n", fullQueryUrl, result);
+                LOGGER.info("request = {} \r\n result = {} \r\n", fullQueryUrl, result);
             } catch (Exception e) {
                 result = "{'message':'error','data':'" + e.getMessage() + "'}";
             }
@@ -218,7 +220,7 @@ public class RetrievalController {
                     .toString();
             try {
                 result = dataRetrievalService.retrievalPost(fullQueryUrl,queryString);
-                ConsoleUtils.info("request = {%s} \r\n result = {%s} \r\n", fullQueryUrl, result);
+                LOGGER.info("request = {} \r\n result = {} \r\n", fullQueryUrl, result);
             } catch (Exception e) {
                 result = "{'message':'error','data':'" + e.getMessage() + "'}";
             }

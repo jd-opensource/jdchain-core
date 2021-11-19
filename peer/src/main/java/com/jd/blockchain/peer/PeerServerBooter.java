@@ -9,9 +9,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.logging.log4j.core.config.Configurator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContextInitializer;
@@ -105,8 +104,6 @@ import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
 
 import utils.ArgumentSet;
 import utils.BaseConstant;
-import utils.ConsoleUtils;
-import utils.StringUtils;
 import utils.reflection.TypeUtils;
 
 /**
@@ -117,7 +114,7 @@ import utils.reflection.TypeUtils;
  */
 public class PeerServerBooter {
 
-	private static final Log log = LogFactory.getLog(PeerServerBooter.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(PeerServerBooter.class);
 
 	// 初始化账本绑定配置文件的路径；
 	public static final String LEDGERBIND_ARG = "-c";
@@ -154,20 +151,9 @@ public class PeerServerBooter {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		configLogger();
 		handle(args);
 	}
 
-	private static void configLogger() {
-		String conFile = System.getProperty(LOG_CONFIG_FILE);
-		if(!StringUtils.isEmpty(conFile)) {
-			URI uri = URI.create(conFile);
-			File log4jFile = new File(uri);
-			if (log4jFile.exists()) {
-				Configurator.initialize("Log4j2", log4jFile.getAbsolutePath()).start();
-			}
-		}
-	}
 	public static void handle(String[] args) {
 		LedgerBindingConfig ledgerBindingConfig = null;
 		ArgumentSet arguments = ArgumentSet.resolve(args,
@@ -176,7 +162,7 @@ public class PeerServerBooter {
 			ArgumentSet.ArgEntry argLedgerBindConf = arguments.getArg(LEDGERBIND_ARG);
 			ledgerBindConfigFile = argLedgerBindConf == null ? null : argLedgerBindConf.getValue();
 			if (ledgerBindConfigFile == null) {
-				ConsoleUtils.info("Load build-in default configuration ...");
+				LOGGER.info("Load build-in default configuration ...");
 				ClassPathResource configResource = new ClassPathResource(LEDGER_BIND_CONFIG_NAME);
 				if (configResource.exists()) {
 					try (InputStream in = configResource.getInputStream()) {
@@ -184,13 +170,13 @@ public class PeerServerBooter {
 					}
 				}
 			} else {
-				ConsoleUtils.info("Load configuration,ledgerBindConfigFile position=" + ledgerBindConfigFile);
+				LOGGER.info("Load configuration,ledgerBindConfigFile position=" + ledgerBindConfigFile);
 				File file = new File(ledgerBindConfigFile);
 				if (file.exists()) {
 					try {
 						ledgerBindingConfig = LedgerBindingConfig.resolve(file);
 					} catch (LedgerBindingConfigException e) {
-						ConsoleUtils.info("Load ledgerBindConfigFile content is empty !!!");
+						LOGGER.info("Load ledgerBindConfigFile content is empty !!!");
 					}
 				}
 			}
@@ -216,13 +202,10 @@ public class PeerServerBooter {
 			}
 
 			PeerServerBooter booter = new PeerServerBooter(ledgerBindingConfig, host, port, springConfigLocation);
-			if (log.isDebugEnabled()) {
-				log.debug("PeerServerBooter's urls="
-						+ Arrays.toString(((URLClassLoader) booter.getClass().getClassLoader()).getURLs()));
-			}
+			LOGGER.debug("PeerServerBooter's urls=" + Arrays.toString(((URLClassLoader) booter.getClass().getClassLoader()).getURLs()));
 			booter.start();
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error("Peer start error", e);
 		}
 	}
 

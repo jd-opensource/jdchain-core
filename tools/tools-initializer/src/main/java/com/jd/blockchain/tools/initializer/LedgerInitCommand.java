@@ -57,8 +57,6 @@ public class LedgerInitCommand {
 
 	private static final Prompter DEFAULT_PROMPTER = new ConsolePrompter();
 
-	private static final Prompter ANSWER_PROMPTER = new PresetAnswerPrompter("Y");
-
 	private static final Prompter LOG_PROMPTER = new LogPrompter();
 
 	/**
