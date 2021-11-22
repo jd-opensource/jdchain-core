@@ -22,6 +22,7 @@ import java.io.File;
                 Query.class,
                 Participant.class,
                 TestNet.class,
+                Version.class,
                 CommandLine.HelpCommand.class
         })
 public class JDChainCli implements Runnable {
@@ -50,5 +51,17 @@ public class JDChainCli implements Runnable {
     @Override
     public void run() {
         spec.commandLine().usage(System.err);
+    }
+}
+
+@CommandLine.Command(name = "version", mixinStandardHelpOptions = true, header = "JD Chain version.")
+class Version implements Runnable {
+
+    @CommandLine.ParentCommand
+    JDChainCli jdChainCli;
+
+    @Override
+    public void run() {
+        System.out.println("JD Chain 1.6.1.RELEASE");
     }
 }
