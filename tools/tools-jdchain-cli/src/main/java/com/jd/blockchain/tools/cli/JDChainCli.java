@@ -21,6 +21,7 @@ import java.io.File;
                 Tx.class,
                 Query.class,
                 Participant.class,
+                TestNet.class,
                 CommandLine.HelpCommand.class
         })
 public class JDChainCli implements Runnable {
