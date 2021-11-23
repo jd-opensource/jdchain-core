@@ -14,19 +14,20 @@ import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.ledger.TransactionTemplate;
 import com.jd.blockchain.sdk.BlockchainService;
 import com.jd.blockchain.sdk.client.GatewayServiceFactory;
+import com.jd.httpservice.agent.ServiceConnectionManager;
+import com.jd.httpservice.agent.ServiceEndpoint;
 import com.jd.httpservice.converters.JsonResponseConverter;
 import com.jd.httpservice.utils.web.WebResponse;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import picocli.CommandLine;
 import utils.StringUtils;
 import utils.codec.Base58Utils;
 import utils.io.FileUtils;
+import utils.net.SSLSecurity;
 
 import java.io.File;
 import java.security.cert.X509Certificate;
@@ -235,8 +236,14 @@ class ParticipantActive implements Runnable {
     @CommandLine.Option(names = "--port", required = true, description = "Set the participant service port.", scope = CommandLine.ScopeType.INHERIT)
     int port;
 
+    @CommandLine.Option(names = "--secure", description = "Secure of participant service service.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
+    boolean secure;
+
     @CommandLine.Option(names = "--consensus-port", required = true, description = "Set the participant consensus port.", scope = CommandLine.ScopeType.INHERIT)
     int consensusPort;
+
+    @CommandLine.Option(names = "--consensus-secure", description = "Whether to open the secure connection for consensus.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
+    boolean consensusSecure;
 
     @CommandLine.Option(names = "--syn-host", required = true, description = "Set synchronization participant host.", scope = CommandLine.ScopeType.INHERIT)
     String synHost;
@@ -244,14 +251,38 @@ class ParticipantActive implements Runnable {
     @CommandLine.Option(names = "--syn-port", required = true, description = "Set synchronization participant port.", scope = CommandLine.ScopeType.INHERIT)
     int synPort;
 
+    @CommandLine.Option(names = "--syn-secure", description = "Whether the syn connection is secure.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
+    boolean synSecure;
+
     @CommandLine.Option(names = "--shutdown", description = "Restart the node server.", scope = CommandLine.ScopeType.INHERIT)
     boolean shutdown;
+
+    @CommandLine.Option(names = "--ssl.key-store", description = "Set ssl.key-store for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String keyStore;
+
+    @CommandLine.Option(names = "--ssl.key-store-type", description = "Set ssl.key-store-type for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String keyStoreType;
+
+    @CommandLine.Option(names = "--ssl.key-alias", description = "Set ssl.key-alias for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String keyAlias;
+
+    @CommandLine.Option(names = "--ssl.key-store-password", description = "Set ssl.key-store-password for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String keyStorePassword;
+
+    @CommandLine.Option(names = "--ssl.trust-store", description = "Set ssl.trust-store for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String trustStore;
+
+    @CommandLine.Option(names = "--ssl.trust-store-password", description = "Set trust-store-password for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String trustStorePassword;
+
+    @CommandLine.Option(names = "--ssl.trust-store-type", description = "Set ssl.trust-store-type for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String trustStoreType;
 
     @Override
     public void run() {
         // TODO valid params
         try {
-            WebResponse webResponse = update();
+            WebResponse webResponse = active();
             if (webResponse.isSuccess()) {
                 System.out.println("participant activated");
             } else {
@@ -262,25 +293,75 @@ class ParticipantActive implements Runnable {
         }
     }
 
-    public WebResponse update() throws Exception {
-        String url = "http://" + host + ":" + port + "/management/delegate/activeparticipant";
+    public WebResponse active() throws Exception {
+        String url = (secure ? "https://" : "http//") + host + ":" + port + "/management/delegate/activeparticipant";
         HttpPost httpPost = new HttpPost(url);
         List<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
         params.add(new BasicNameValuePair("ledgerHash", ledger));
         params.add(new BasicNameValuePair("consensusHost", host));
         params.add(new BasicNameValuePair("consensusPort", consensusPort + ""));
+        params.add(new BasicNameValuePair("consensusSecure", consensusSecure + ""));
         params.add(new BasicNameValuePair("remoteManageHost", synHost));
         params.add(new BasicNameValuePair("remoteManagePort", synPort + ""));
+        params.add(new BasicNameValuePair("remoteManageSecure", synSecure + ""));
         params.add(new BasicNameValuePair("shutdown", shutdown + ""));
         httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
-        HttpClient httpClient = HttpClients.createDefault();
-        HttpResponse response = httpClient.execute(httpPost);
+        ServiceEndpoint endpoint = new ServiceEndpoint(host, port, secure);
+        if (secure) {
+            endpoint.setSslSecurity(new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword, trustStore, trustStorePassword, trustStoreType));
+        } else {
+            endpoint.setSslSecurity(new SSLSecurity());
+        }
+        HttpResponse response = ServiceConnectionManager.buildHttpClient(endpoint).execute(httpPost);
         return (WebResponse) new JsonResponseConverter(WebResponse.class).getResponse(null, response.getEntity().getContent(), null);
     }
 }
 
 @CommandLine.Command(name = "update", mixinStandardHelpOptions = true, header = "Update participant.")
-class ParticipantUpdate extends ParticipantActive {
+class ParticipantUpdate implements Runnable {
+
+    @CommandLine.Option(names = "--ledger", required = true, description = "Set the ledger.", scope = CommandLine.ScopeType.INHERIT)
+    String ledger;
+
+    @CommandLine.Option(names = "--host", required = true, description = "Set the participant host.", scope = CommandLine.ScopeType.INHERIT)
+    String host;
+
+    @CommandLine.Option(names = "--port", required = true, description = "Set the participant service port.", scope = CommandLine.ScopeType.INHERIT)
+    int port;
+
+    @CommandLine.Option(names = "--secure", description = "Secure of participant service service.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
+    boolean secure;
+
+    @CommandLine.Option(names = "--consensus-port", required = true, description = "Set the participant consensus port.", scope = CommandLine.ScopeType.INHERIT)
+    int consensusPort;
+
+    @CommandLine.Option(names = "--consensus-secure", description = "Whether to open the secure connection for consensus.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
+    boolean consensusSecure;
+
+    @CommandLine.Option(names = "--shutdown", description = "Restart the node server.", scope = CommandLine.ScopeType.INHERIT)
+    boolean shutdown;
+
+    @CommandLine.Option(names = "--ssl.key-store", description = "Set ssl.key-store for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String keyStore;
+
+    @CommandLine.Option(names = "--ssl.key-store-type", description = "Set ssl.key-store-type for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String keyStoreType;
+
+    @CommandLine.Option(names = "--ssl.key-alias", description = "Set ssl.key-alias for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String keyAlias;
+
+    @CommandLine.Option(names = "--ssl.key-store-password", description = "Set ssl.key-store-password for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String keyStorePassword;
+
+    @CommandLine.Option(names = "--ssl.trust-store", description = "Set ssl.trust-store for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String trustStore;
+
+    @CommandLine.Option(names = "--ssl.trust-store-password", description = "Set trust-store-password for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String trustStorePassword;
+
+    @CommandLine.Option(names = "--ssl.trust-store-type", description = "Set ssl.trust-store-type for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String trustStoreType;
+
     @Override
     public void run() {
         // TODO valid params
@@ -295,6 +376,26 @@ class ParticipantUpdate extends ParticipantActive {
             e.printStackTrace();
             System.out.println("update participant error: " + e.getMessage());
         }
+    }
+
+    public WebResponse update() throws Exception {
+        String url = (secure ? "https://" : "http//") + host + ":" + port + "/management/delegate/updateparticipant";
+        HttpPost httpPost = new HttpPost(url);
+        List<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
+        params.add(new BasicNameValuePair("ledgerHash", ledger));
+        params.add(new BasicNameValuePair("consensusHost", host));
+        params.add(new BasicNameValuePair("consensusPort", consensusPort + ""));
+        params.add(new BasicNameValuePair("consensusSecure", consensusSecure + ""));
+        params.add(new BasicNameValuePair("shutdown", shutdown + ""));
+        httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
+        ServiceEndpoint endpoint = new ServiceEndpoint(host, port, secure);
+        if (secure) {
+            endpoint.setSslSecurity(new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword, trustStore, trustStorePassword, trustStoreType));
+        } else {
+            endpoint.setSslSecurity(new SSLSecurity());
+        }
+        HttpResponse response = ServiceConnectionManager.buildHttpClient(endpoint).execute(httpPost);
+        return (WebResponse) new JsonResponseConverter(WebResponse.class).getResponse(null, response.getEntity().getContent(), null);
     }
 }
 
@@ -313,18 +414,47 @@ class ParticipantInactive implements Runnable {
     @CommandLine.Option(names = "--port", required = true, description = "Set the participant service port.", scope = CommandLine.ScopeType.INHERIT)
     int port;
 
+    @CommandLine.Option(names = "--secure", description = "Secure of participant service service.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
+    boolean secure;
+
+    @CommandLine.Option(names = "--ssl.key-store", description = "Set ssl.key-store for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String keyStore;
+
+    @CommandLine.Option(names = "--ssl.key-store-type", description = "Set ssl.key-store-type for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String keyStoreType;
+
+    @CommandLine.Option(names = "--ssl.key-alias", description = "Set ssl.key-alias for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String keyAlias;
+
+    @CommandLine.Option(names = "--ssl.key-store-password", description = "Set ssl.key-store-password for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String keyStorePassword;
+
+    @CommandLine.Option(names = "--ssl.trust-store", description = "Set ssl.trust-store for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String trustStore;
+
+    @CommandLine.Option(names = "--ssl.trust-store-password", description = "Set trust-store-password for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String trustStorePassword;
+
+    @CommandLine.Option(names = "--ssl.trust-store-type", description = "Set ssl.trust-store-type for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String trustStoreType;
+
     @Override
     public void run() {
         // TODO valid params
         try {
-            String url = "http://" + host + ":" + port + "/management/delegate/deactiveparticipant";
+            String url = (secure ? "https://" : "http//") + host + ":" + port + "/management/delegate/deactiveparticipant";
             HttpPost httpPost = new HttpPost(url);
             List<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
             params.add(new BasicNameValuePair("ledgerHash", ledger));
             params.add(new BasicNameValuePair("participantAddress", address));
             httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
-            HttpClient httpClient = HttpClients.createDefault();
-            HttpResponse response = httpClient.execute(httpPost);
+            ServiceEndpoint endpoint = new ServiceEndpoint(host, port, secure);
+            if (secure) {
+                endpoint.setSslSecurity(new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword, trustStore, trustStorePassword, trustStoreType));
+            } else {
+                endpoint.setSslSecurity(new SSLSecurity());
+            }
+            HttpResponse response = ServiceConnectionManager.buildHttpClient(endpoint).execute(httpPost);
             WebResponse webResponse = (WebResponse) new JsonResponseConverter(WebResponse.class).getResponse(null, response.getEntity().getContent(), null);
             if (webResponse.isSuccess()) {
                 System.out.println("participant inactivated");
