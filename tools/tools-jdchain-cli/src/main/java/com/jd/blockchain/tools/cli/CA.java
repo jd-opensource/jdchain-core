@@ -196,7 +196,7 @@ public class CA implements Runnable {
 @CommandLine.Command(name = "show", mixinStandardHelpOptions = true, header = "Show certificate.")
 class CAShow implements Runnable {
 
-    @CommandLine.Option(required = true, names = "--cert", description = "Path of the certificate file")
+    @CommandLine.Option(required = true, names = "--crt", description = "Path of the certificate file")
     String cert;
 
     @CommandLine.ParentCommand

@@ -9,7 +9,7 @@ import java.io.File;
  * @author: imuge
  * @date: 2021/7/23
  **/
-@CommandLine.Command(name = "jdchain-cli", mixinStandardHelpOptions = true, version = "1.0",
+@CommandLine.Command(name = "jdchain-cli", mixinStandardHelpOptions = true, version = "JD Chain 1.6.1 RELEASE",
         description = "JDChain Cli is a convenient tool to manage jdchain keys, " +
                 "sign and send transactions to jdchain network, " +
                 "query data from jdchain network.",
@@ -22,7 +22,6 @@ import java.io.File;
                 Query.class,
                 Participant.class,
                 TestNet.class,
-                Version.class,
                 CommandLine.HelpCommand.class
         })
 public class JDChainCli implements Runnable {
@@ -51,17 +50,5 @@ public class JDChainCli implements Runnable {
     @Override
     public void run() {
         spec.commandLine().usage(System.err);
-    }
-}
-
-@CommandLine.Command(name = "version", mixinStandardHelpOptions = true, header = "JD Chain version.")
-class Version implements Runnable {
-
-    @CommandLine.ParentCommand
-    JDChainCli jdChainCli;
-
-    @Override
-    public void run() {
-        System.out.println("JD Chain 1.6.1.RELEASE");
     }
 }
