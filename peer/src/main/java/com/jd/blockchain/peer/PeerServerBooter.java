@@ -104,6 +104,7 @@ import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
 
 import utils.ArgumentSet;
 import utils.BaseConstant;
+import utils.StringUtils;
 import utils.reflection.TypeUtils;
 
 /**
@@ -128,7 +129,7 @@ public class PeerServerBooter {
 	public static String ledgerBindConfigFile;
 
 	// 日志配置文件
-	public static final String LOG_CONFIG_FILE = "logging.config";
+	public static final String LOG_CONFIG_FILE = "log4j.configurationFile";
 
 	// Spring配置文件
 	private static final String SPRING_CF_LOCATION = BaseConstant.SPRING_CF_LOCATION;
@@ -263,6 +264,10 @@ public class PeerServerBooter {
 	private static ConfigurableApplicationContext startServer(LedgerBindingConfig ledgerBindingConfig,
 			String hostAddress, int port, String springConfigLocation, Object... externalBeans) {
 		List<String> argList = new ArrayList<String>();
+		String logConfig = System.getProperty(LOG_CONFIG_FILE);
+		if(!StringUtils.isEmpty(logConfig)) {
+			argList.add(String.format("--logging.config=%s", logConfig));
+		}
 		String argServerAddress = String.format("--server.address=%s", "0.0.0.0");
 		argList.add(argServerAddress);
 		if (port > 0) {

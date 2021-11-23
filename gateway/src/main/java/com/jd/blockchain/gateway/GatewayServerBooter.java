@@ -83,6 +83,9 @@ public class GatewayServerBooter {
 
 	public static final String RUNTIME_STORAGE_DIR;
 
+	// 日志配置文件
+	public static final String LOG_CONFIG_FILE = "log4j.configurationFile";
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(GatewayServerBooter.class);
 
 	static {
@@ -234,6 +237,10 @@ public class GatewayServerBooter {
 
 	private static ConfigurableApplicationContext startServer(GatewayConfigProperties.HttpConfig config, String springConfigLocation) {
 		List<String> argList = new ArrayList<String>();
+		String logConfig = System.getProperty(LOG_CONFIG_FILE);
+		if(!StringUtils.isEmpty(logConfig)) {
+			argList.add(String.format("--logging.config=%s", logConfig));
+		}
 		argList.add(String.format("--server.address=%s", config.getHost()));
 		argList.add(String.format("--server.port=%s", config.getPort()));
 		argList.add(String.format("--server.ssl.enabled=%s", config.isSecure()));
