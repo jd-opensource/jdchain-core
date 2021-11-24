@@ -195,27 +195,18 @@ public class GatewayServerBooter {
 			throw new IllegalStateException("Gateway server is running already.");
 		}
 		this.appCtx = startServer(config.http(), springConfigLocation);
+
+		String keyStore = appCtx.getEnvironment().getProperty("server.ssl.key-store");
+		String keyStoreType = appCtx.getEnvironment().getProperty("server.ssl.key-store-type");
+		String keyAlias = appCtx.getEnvironment().getProperty("server.ssl.key-alias");
+		String keyStorePassword = appCtx.getEnvironment().getProperty("server.ssl.key-store-password");
+		String trustStore = appCtx.getEnvironment().getProperty("server.ssl.trust-store");
+		String trustStorePassword = appCtx.getEnvironment().getProperty("server.ssl.trust-store-password");
+		String trustStoreType = appCtx.getEnvironment().getProperty("server.ssl.trust-store-type");
 		// 网关连接PEER节点管理服务TLS配置
-		SSLSecurity manageSecurity;
-		if(config.masterPeerAddress().isSecure()) {
-			String keyStore = appCtx.getEnvironment().getProperty("server.ssl.key-store");
-			String keyStoreType = appCtx.getEnvironment().getProperty("server.ssl.key-store-type");
-			String keyAlias = appCtx.getEnvironment().getProperty("server.ssl.key-alias");
-			String keyStorePassword = appCtx.getEnvironment().getProperty("server.ssl.key-store-password");
-			String trustStore = appCtx.getEnvironment().getProperty("server.ssl.trust-store");
-			String trustStorePassword = appCtx.getEnvironment().getProperty("server.ssl.trust-store-password");
-			String trustStoreType = appCtx.getEnvironment().getProperty("server.ssl.trust-store-type");
-			manageSecurity = new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword, trustStore, trustStorePassword, trustStoreType);
-		} else {
-			manageSecurity = new SSLSecurity();
-		}
+		SSLSecurity manageSecurity = new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword, trustStore, trustStorePassword, trustStoreType);
 		// 网关连接PEER节点共识服务TLS配置
-		SSLSecurity consensusSecurity;
-		if(config.isConsensusSecure()) {
-			consensusSecurity = manageSecurity;
-		} else {
-			consensusSecurity = new SSLSecurity();
-		}
+		SSLSecurity consensusSecurity = manageSecurity;
 
 		LOGGER.info("Start connecting to peer ....");
 		DataSearchController dataSearchController = appCtx.getBean(DataSearchController.class);

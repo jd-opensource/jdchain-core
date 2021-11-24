@@ -45,7 +45,6 @@ import java.util.List;
         description = "Add, update or delete participant.",
         subcommands = {
                 ParticipantRegister.class,
-                ParticipantSync.class,
                 ParticipantActive.class,
                 ParticipantUpdate.class,
                 ParticipantInactive.class,
@@ -96,8 +95,8 @@ class ParticipantRegister implements Runnable {
     @CommandLine.Option(names = "--gw-port", defaultValue = "8080", description = "Set the gateway port. Default: 8080", scope = CommandLine.ScopeType.INHERIT)
     int gwPort;
 
-    @CommandLine.Option(names = "--secure", description = "Secure of the gateway service.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
-    boolean secure;
+    @CommandLine.Option(names = "--gw-secure", description = "Secure of the gateway service.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
+    boolean gwSecure;
 
     @CommandLine.Option(names = "--pubkey", description = "Pubkey of the user", scope = CommandLine.ScopeType.INHERIT)
     String pubkey;
@@ -117,11 +116,11 @@ class ParticipantRegister implements Runnable {
 
     BlockchainService getChainService() {
         if (null == blockchainService) {
-            if (secure) {
-                blockchainService = GatewayServiceFactory.connect(gwHost, gwPort, secure, new SSLSecurity(participant.keyStoreType, participant.keyStore, participant.keyAlias, participant.keyStorePassword,
+            if (gwSecure) {
+                blockchainService = GatewayServiceFactory.connect(gwHost, gwPort, gwSecure, new SSLSecurity(participant.keyStoreType, participant.keyStore, participant.keyAlias, participant.keyStorePassword,
                         participant.trustStore, participant.trustStorePassword, participant.trustStoreType)).getBlockchainService();
             } else {
-                blockchainService = GatewayServiceFactory.connect(gwHost, gwPort, secure).getBlockchainService();
+                blockchainService = GatewayServiceFactory.connect(gwHost, gwPort, gwSecure).getBlockchainService();
             }
         }
         return blockchainService;
@@ -225,70 +224,6 @@ class ParticipantRegister implements Runnable {
                 System.err.println("register participant failed!");
             }
         }
-    }
-}
-
-@CommandLine.Command(name = "sync", mixinStandardHelpOptions = true, header = "Sync participant ledger data.")
-class ParticipantSync implements Runnable {
-
-    @CommandLine.Option(names = "--ledger", required = true, description = "Set the ledger.", scope = CommandLine.ScopeType.INHERIT)
-    String ledger;
-
-    @CommandLine.Option(names = "--host", required = true, description = "Set the participant host.", scope = CommandLine.ScopeType.INHERIT)
-    String host;
-
-    @CommandLine.Option(names = "--port", required = true, description = "Set the participant service port.", scope = CommandLine.ScopeType.INHERIT)
-    int port;
-
-    @CommandLine.Option(names = "--secure", description = "Secure of participant service service.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
-    boolean secure;
-
-    @CommandLine.Option(names = "--syn-host", required = true, description = "Set synchronization participant host.", scope = CommandLine.ScopeType.INHERIT)
-    String synHost;
-
-    @CommandLine.Option(names = "--syn-port", required = true, description = "Set synchronization participant port.", scope = CommandLine.ScopeType.INHERIT)
-    int synPort;
-
-    @CommandLine.Option(names = "--syn-secure", description = "Whether the synchronization connection is secure.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
-    boolean synSecure;
-
-    @CommandLine.ParentCommand
-    private Participant participant;
-
-    @Override
-    public void run() {
-        // TODO valid params
-        try {
-            WebResponse webResponse = active();
-            if (webResponse.isSuccess()) {
-                System.out.println("sync participant success");
-            } else {
-                System.err.println("sync participant failed: " + webResponse.getError().getErrorMessage());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("sync participant error");
-        }
-    }
-
-    public WebResponse active() throws Exception {
-        String url = (secure ? "https://" : "http://") + host + ":" + port + "/block/sync";
-        HttpPost httpPost = new HttpPost(url);
-        List<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
-        params.add(new BasicNameValuePair("ledgerHash", ledger));
-        params.add(new BasicNameValuePair("syncHost", synHost));
-        params.add(new BasicNameValuePair("syncPort", synPort + ""));
-        params.add(new BasicNameValuePair("syncSecure", synSecure + ""));
-        httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
-        ServiceEndpoint endpoint = new ServiceEndpoint(host, port, secure);
-        if (secure) {
-            endpoint.setSslSecurity(new SSLSecurity(participant.keyStoreType, participant.keyStore, participant.keyAlias, participant.keyStorePassword,
-                    participant.trustStore, participant.trustStorePassword, participant.trustStoreType));
-        } else {
-            endpoint.setSslSecurity(new SSLSecurity());
-        }
-        HttpResponse response = ServiceConnectionManager.buildHttpClient(endpoint).execute(httpPost);
-        return (WebResponse) new JsonResponseConverter(WebResponse.class).getResponse(null, response.getEntity().getContent(), null);
     }
 }
 

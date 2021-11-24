@@ -196,7 +196,7 @@ public class LedgerPeerConnectionManager {
         logger.debug("Connect {}-{}", ledger, peerAddress);
         try {
             Set<HashDigest> ledgers = new HashSet<>(Arrays.asList(connect()));
-            logger.debug("Connect {}-{}:{}", ledger, peerAddress, ledgers);
+            logger.info("Connect {}-{}:{}", ledger, peerAddress, ledgers);
             if (ledgers.contains(ledger)) {
                 state = State.AVAILABLE;
                 if (null != connectionListener) {

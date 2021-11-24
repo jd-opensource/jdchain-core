@@ -707,7 +707,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 	public WebResponse syncBlock(@RequestParam("ledgerHash") String ledgerHash,
 								 @RequestParam("syncHost") String syncHost,
 								 @RequestParam("syncPort") int syncPort,
-								 @RequestParam(name = "syncSecure", required = false, defaultValue = "false") boolean syncSecure) {
+								 @RequestParam(name = "syncSecure", required = false, defaultValue = "false") boolean syncSecure,
+								 @RequestParam(name = "restart", required = false, defaultValue = "false") boolean restart) {
 		try {
 			HashDigest ledger = Crypto.resolveAsHashDigest(Base58Utils.decode(ledgerHash));
 			if (!ledgerKeypairs.containsKey(ledger)) {
@@ -726,13 +727,15 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 				ServiceEndpoint endpoint = new ServiceEndpoint(new NetworkAddress(syncHost, syncPort, syncSecure));
 				SSLSecurity sslSecurity = ledgerSecurities.get(ledger);
 				endpoint.setSslSecurity(sslSecurity);
-				WebResponse webResponse = checkLedgerDiff(ledgerRepo, ledgerLatestBlock, endpoint);
+				WebResponse webResponse = checkLedgerDiff(ledger, ledgerRepo, ledgerLatestBlock, endpoint);
 				if (!webResponse.isSuccess()) {
 					return webResponse;
 				}
 
 				// 重建 NodeServer
-				setupServer(ledgerRepo, false);
+				if(restart) {
+					setupServer(ledgerRepo, false);
+				}
 
 				LOGGER.info("sync block success!");
 
@@ -1128,13 +1131,11 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
 	}
 
-	private WebResponse checkLedgerDiff(LedgerRepository ledgerRepository, LedgerBlock ledgerLatestBlock, ServiceEndpoint endpoint) {
+	private WebResponse checkLedgerDiff(HashDigest ledgerHash, LedgerRepository ledgerRepository, LedgerBlock ledgerLatestBlock, ServiceEndpoint endpoint) {
 		LOGGER.info("check ledger diff from {}:{}:{}", endpoint.getHost(), endpoint.getPort(), endpoint.isSecure());
 		long localLatestBlockHeight = ledgerLatestBlock.getHeight();
 
 		HashDigest localLatestBlockHash = ledgerLatestBlock.getHash();
-
-		HashDigest ledgerHash = ledgerLatestBlock.getLedgerHash();
 
 		TransactionBatchResultHandle handle = null;
 

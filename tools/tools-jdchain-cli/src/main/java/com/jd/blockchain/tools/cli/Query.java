@@ -73,8 +73,8 @@ public class Query implements Runnable {
     @CommandLine.Option(names = "--gw-port", defaultValue = "8080", description = "Set the gateway port. Default: 8080", scope = CommandLine.ScopeType.INHERIT)
     int gwPort;
 
-    @CommandLine.Option(names = "--secure", description = "Secure of the gateway service.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
-    boolean secure;
+    @CommandLine.Option(names = "--gw-secure", description = "Secure of the gateway service.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
+    boolean gwSecure;
 
     @CommandLine.Option(names = "--ssl.key-store", description = "Set ssl.key-store for TLS.", scope = CommandLine.ScopeType.INHERIT)
     String keyStore;
@@ -107,11 +107,11 @@ public class Query implements Runnable {
 
     BlockchainService getChainService() {
         if (null == blockchainService) {
-            if (secure) {
-                blockchainService = GatewayServiceFactory.connect(gwHost, gwPort, secure, new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword,
+            if (gwSecure) {
+                blockchainService = GatewayServiceFactory.connect(gwHost, gwPort, gwSecure, new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword,
                         trustStore, trustStorePassword, trustStoreType)).getBlockchainService();
             } else {
-                blockchainService = GatewayServiceFactory.connect(gwHost, gwPort, secure).getBlockchainService();
+                blockchainService = GatewayServiceFactory.connect(gwHost, gwPort, gwSecure).getBlockchainService();
             }
         }
         return blockchainService;
