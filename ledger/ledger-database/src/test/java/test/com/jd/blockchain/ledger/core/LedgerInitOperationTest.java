@@ -84,6 +84,8 @@ public class LedgerInitOperationTest {
 		ConsensusParticipantData[] parties1 = Arrays.copyOf(parties, 4);
 
 		ledgerInitSettingData.setConsensusParticipants(parties1);
+		ledgerInitSettingData.setIdentityMode(IdentityMode.KEYPAIR);
+		ledgerInitSettingData.setLedgerDataStructure(LedgerDataStructure.MERKLE_TREE);
 
 		LedgerInitOpTemplate template = new LedgerInitOpTemplate(ledgerInitSettingData);
 
@@ -124,6 +126,8 @@ public class LedgerInitOperationTest {
 		ParticipantCertData[] parties1 = Arrays.copyOf(parties, 4);
 
 		ledgerInitSettingData.setConsensusParticipants(parties1);
+		ledgerInitSettingData.setIdentityMode(IdentityMode.KEYPAIR);
+		ledgerInitSettingData.setLedgerDataStructure(LedgerDataStructure.MERKLE_TREE);
 
 		LedgerInitOpTemplate template = new LedgerInitOpTemplate(ledgerInitSettingData);
 

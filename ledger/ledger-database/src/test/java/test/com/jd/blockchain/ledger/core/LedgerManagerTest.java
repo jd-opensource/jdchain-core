@@ -239,6 +239,8 @@ public class LedgerManagerTest {
 		parties[3].setParticipantState(ParticipantNodeState.CONSENSUS);
 
 		initSetting.setConsensusParticipants(parties);
+		initSetting.setLedgerDataStructure(LedgerDataStructure.MERKLE_TREE);
+		initSetting.setIdentityMode(IdentityMode.KEYPAIR);
 
 		return initSetting;
 	}

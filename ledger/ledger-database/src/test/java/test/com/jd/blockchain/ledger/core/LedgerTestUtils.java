@@ -87,6 +87,7 @@ public class LedgerTestUtils {
 
 		initSetting.setLedgerSeed(BytesUtils.toBytes("A Test Ledger seed!", "UTF-8"));
 		initSetting.setCryptoSetting(cryptoSetting);
+		initSetting.setIdentityMode(IdentityMode.KEYPAIR);
 		ConsensusParticipantData[] parties = new ConsensusParticipantData[partiKeys.length];
 		for (int i = 0; i < parties.length; i++) {
 			parties[i] = new ConsensusParticipantData();
