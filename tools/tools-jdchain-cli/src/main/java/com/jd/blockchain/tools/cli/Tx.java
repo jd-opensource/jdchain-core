@@ -276,9 +276,6 @@ public class Tx implements Runnable {
 @CommandLine.Command(name = "root-ca", mixinStandardHelpOptions = true, header = "Update ledger root certificates.")
 class TxLedgerCAUpdate implements Runnable {
 
-    @CommandLine.Option(names = {"-n", "--name"}, description = "Name of the certificate")
-    String name;
-
     @CommandLine.Option(names = "--crt", description = "File of the X509 certificate", scope = CommandLine.ScopeType.INHERIT)
     String caPath;
 
@@ -290,12 +287,12 @@ class TxLedgerCAUpdate implements Runnable {
 
     @Override
     public void run() {
-        if (StringUtils.isEmpty(name) && StringUtils.isEmpty(caPath)) {
-            System.err.println("crt name and crt path cannot be empty at the same time");
+        if (StringUtils.isEmpty(caPath)) {
+            System.err.println("crt path cannot be empty");
             return;
         }
         TransactionTemplate txTemp = txCommand.newTransaction();
-        X509Certificate certificate = CertificateUtils.parseCertificate(!StringUtils.isEmpty(name) ? FileUtils.readText(txCommand.getKeysHome() + File.separator + name + ".crt") : FileUtils.readText(caPath));
+        X509Certificate certificate = CertificateUtils.parseCertificate(FileUtils.readText(caPath));
         CertificateUtils.checkCertificateRolesAny(certificate, CertificateRole.ROOT, CertificateRole.CA);
         CertificateUtils.checkValidity(certificate);
         if (operation == Operation.ADD) {
@@ -332,53 +329,25 @@ class TxLedgerCAUpdate implements Runnable {
 @CommandLine.Command(name = "user-register", mixinStandardHelpOptions = true, header = "Register new user.")
 class TxUserRegister implements Runnable {
 
-    @CommandLine.Option(names = {"-n", "--name"}, description = "Name of the key")
-    String name;
-
     @CommandLine.Option(names = "--pubkey", description = "Pubkey of the user", scope = CommandLine.ScopeType.INHERIT)
     String pubkey;
 
     @CommandLine.Option(names = "--crt", description = "File of the X509 certificate", scope = CommandLine.ScopeType.INHERIT)
     String caPath;
 
-    @CommandLine.Option(names = "--ca-mode", description = "Register with CA", scope = CommandLine.ScopeType.INHERIT)
-    boolean caMode;
-
     @CommandLine.ParentCommand
     private Tx txCommand;
 
     @Override
     public void run() {
-        File keysHome = new File(txCommand.getKeysHome());
         PubKey pubKey = null;
         X509Certificate certificate = null;
-        if (!StringUtils.isEmpty(name)) {
-            File[] pubs;
-            if (caMode) {
-                pubs = keysHome.listFiles((dir, name) -> {
-                    return name.endsWith(this.name + ".crt");
-                });
-                if (pubs.length != 1) {
-                    System.err.printf("no [%s.crt] in path [%s]%n", name, keysHome.getAbsolutePath());
-                    return;
-                }
-                certificate = CertificateUtils.parseCertificate(FileUtils.readText(pubs[0]));
-            } else {
-                pubs = keysHome.listFiles((dir, name) -> {
-                    return name.endsWith(this.name + ".pub");
-                });
-                if (pubs.length != 1) {
-                    System.err.printf("no [%s.pub] in path [%s]%n", name, keysHome.getAbsolutePath());
-                    return;
-                }
-                pubKey = Crypto.resolveAsPubKey(Base58Utils.decode(FileUtils.readText(pubs[0])));
-            }
-        } else if (!StringUtils.isEmpty(caPath)) {
+        if (!StringUtils.isEmpty(caPath)) {
             certificate = CertificateUtils.parseCertificate(FileUtils.readText(caPath));
-        } else if (!StringUtils.isEmpty(pubkey) && !caMode) {
+        } else if (!StringUtils.isEmpty(pubkey)) {
             pubKey = Crypto.resolveAsPubKey(Base58Utils.decode(pubkey));
         } else {
-            System.err.println("key name, public key and certificate file can not be empty at the same time");
+            System.err.println("public key and certificate file can not be empty at the same time");
             return;
         }
 
@@ -422,37 +391,12 @@ class TxUserCAUpdate implements Runnable {
         TransactionTemplate txTemp = txCommand.newTransaction();
         X509Certificate certificate;
         Bytes address;
-        if (StringUtils.isEmpty(caPath)) {
-            File keysHome = new File(txCommand.getKeysHome());
-            File[] pubs = keysHome.listFiles((dir, name) -> {
-                return name.endsWith(".crt");
-            });
-            if (pubs.length == 0) {
-                System.err.printf("no certificate in path [%s]%n", keysHome.getAbsolutePath());
-                return;
-            } else {
-                System.out.printf("select user to update: %n%-7s\t%s\t%s%n", "INDEX", "KEY", "ADDRESS");
-                Bytes[] addresses = new Bytes[pubs.length];
-                String[] certs = new String[pubs.length];
-                for (int i = 0; i < pubs.length; i++) {
-                    String key = FilenameUtils.removeExtension(pubs[i].getName());
-                    String keyPath = FilenameUtils.removeExtension(pubs[i].getAbsolutePath());
-                    String pubkey = FileUtils.readText(new File(keyPath + ".pub"));
-                    certs[i] = keyPath + ".crt";
-                    addresses[i] = AddressEncoding.generateAddress(KeyGenUtils.decodePubKey(pubkey));
-                    System.out.printf("%-7s\t%s\t%s%n", i, key, addresses[i]);
-                }
-                int keyIndex = ScannerUtils.readRangeInt(0, addresses.length - 1);
-                address = addresses[keyIndex];
-                certificate = CertificateUtils.parseCertificate(FileUtils.readText(new File(certs[keyIndex])));
-                if (!address.equals(address)) {
-                    System.err.println("the key pair does not match the certificate");
-                    return;
-                }
-            }
-        } else {
+        if (!StringUtils.isEmpty(caPath)) {
             certificate = CertificateUtils.parseCertificate(new File(caPath));
             address = AddressEncoding.generateAddress(CertificateUtils.resolvePubKey(certificate));
+        } else {
+            System.err.println("certificate file can not be empty");
+            return;
         }
         CertificateUtils.checkCertificateRolesAny(certificate, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
         CertificateUtils.checkValidity(certificate);

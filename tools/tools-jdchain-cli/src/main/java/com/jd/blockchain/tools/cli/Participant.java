@@ -319,6 +319,9 @@ class ParticipantUpdate implements Runnable {
     @CommandLine.Option(names = "--secure", description = "Secure of participant service service.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
     boolean secure;
 
+    @CommandLine.Option(names = "--consensus-host", required = true, description = "Set the participant consensus host.", scope = CommandLine.ScopeType.INHERIT)
+    String consensusHost;
+
     @CommandLine.Option(names = "--consensus-port", required = true, description = "Set the participant consensus port.", scope = CommandLine.ScopeType.INHERIT)
     int consensusPort;
 
@@ -352,7 +355,7 @@ class ParticipantUpdate implements Runnable {
         HttpPost httpPost = new HttpPost(url);
         List<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
         params.add(new BasicNameValuePair("ledgerHash", ledger));
-        params.add(new BasicNameValuePair("consensusHost", host));
+        params.add(new BasicNameValuePair("consensusHost", consensusHost));
         params.add(new BasicNameValuePair("consensusPort", consensusPort + ""));
         params.add(new BasicNameValuePair("consensusSecure", consensusSecure + ""));
         params.add(new BasicNameValuePair("shutdown", shutdown + ""));
