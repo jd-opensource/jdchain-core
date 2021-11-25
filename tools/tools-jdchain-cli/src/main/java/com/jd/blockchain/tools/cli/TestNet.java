@@ -63,7 +63,7 @@ class InitConfig implements Runnable {
     String[] peerHosts;
 
     @CommandLine.Option(names = "--peer-manage-ports", description = "Ports for node manage server, input one (all the peers use the same manage port) or peer-size(comma division)",
-            defaultValue = "7080,7081,7082,7082", split = ",")
+            defaultValue = "7080,7081,7082,7083", split = ",")
     int[] peerManagePorts;
 
     @CommandLine.Option(names = "--peer-consensus-ports", description = "Ports for node consensus server, input one (all the peers use the same consensus port) or peer-size(comma division)",
@@ -205,7 +205,7 @@ class InitConfig implements Runnable {
             String peerAddresses = "";
             String consensusAddresses = "";
             for (int i = 0; i < peerSize; i++) {
-                initializerAddresses += hostsForPeer[i] + ":" + portsForInit[i] + " ";
+                initializerAddresses += hostsForInit[i] + ":" + portsForInit[i] + " ";
                 peerAddresses += hostsForPeer[i] + ":" + portsForManage[i] + " ";
                 consensusAddresses += hostsForPeer[i] + ":" + portsForConsensus[i] + " ";
                 consensusAddresses += hostsForPeer[i] + ":" + (portsForConsensus[i] + 1) + " ";
@@ -565,7 +565,7 @@ class InitConfig implements Runnable {
                 "SPRING_CONFIG=$CONFIG_PATH/application-peer.properties\n" +
                 "\n" +
                 "#定义程序启动的参数\n" +
-                "JAVA_OPTS=\"-jar -server -Xms2048m -Xmx2048m -Djdchain.log=$APP_HOME/logs -Dlogging.config=file:$APP_HOME/config/log4j2-peer.xml\"\n" +
+                "JAVA_OPTS=\"-jar -server -Xms2048m -Xmx2048m -Djdchain.log=$APP_HOME/logs -Dlog4j.configurationFile=file:$APP_HOME/config/log4j2-peer.xml\"\n" +
                 "\n" +
                 "#APP具体相关命令\n" +
                 "APP_CMD=$APP_SYSTEM_PATH/$APP_JAR\" -home=\"$APP_HOME\" -c \"$LEDGER_BINDING_CONFIG\" -p \"$WEB_PORT\" -sp \"$SPRING_CONFIG\n" +
