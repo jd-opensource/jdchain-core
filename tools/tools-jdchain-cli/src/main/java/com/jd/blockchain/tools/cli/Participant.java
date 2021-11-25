@@ -351,7 +351,7 @@ class ParticipantUpdate implements Runnable {
     }
 
     public WebResponse update() throws Exception {
-        String url = (secure ? "https://" : "http//") + host + ":" + port + "/management/delegate/updateparticipant";
+        String url = (secure ? "https://" : "http://") + host + ":" + port + "/management/delegate/updateparticipant";
         HttpPost httpPost = new HttpPost(url);
         List<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
         params.add(new BasicNameValuePair("ledgerHash", ledger));
@@ -397,7 +397,7 @@ class ParticipantInactive implements Runnable {
     public void run() {
         // TODO valid params
         try {
-            String url = (secure ? "https://" : "http//") + host + ":" + port + "/management/delegate/deactiveparticipant";
+            String url = (secure ? "https://" : "http://") + host + ":" + port + "/management/delegate/deactiveparticipant";
             HttpPost httpPost = new HttpPost(url);
             List<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
             params.add(new BasicNameValuePair("ledgerHash", ledger));
