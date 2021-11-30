@@ -75,6 +75,7 @@ public class RaftSnapshotFile {
         public void setAppliedIndex(long appliedIndex) {
             this.appliedIndex = appliedIndex;
         }
+
     }
 
 

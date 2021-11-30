@@ -39,6 +39,7 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
     private volatile long currentBlockHeight;
     private volatile long appliedIndex;
 
+
     @Override
     public void onApply(Iterator iterator) {
         int index = 0;

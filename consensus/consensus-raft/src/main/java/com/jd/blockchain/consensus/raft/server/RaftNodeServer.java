@@ -93,6 +93,7 @@ public class RaftNodeServer implements NodeServer {
 
         RaftConsensusStateMachine stateMachine = new RaftConsensusStateMachine();
         stateMachine.setCommitter(blockCommitter);
+
         stateMachine.setRaftNodeServer(this);
         this.nodeOptions.setFsm(stateMachine);
 

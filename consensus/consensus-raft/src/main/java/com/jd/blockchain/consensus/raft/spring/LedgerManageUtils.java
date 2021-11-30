@@ -1,5 +1,6 @@
 package com.jd.blockchain.consensus.raft.spring;
 
+
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.core.LedgerManager;
@@ -9,6 +10,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import utils.codec.Base58Utils;
 
+
 public class LedgerManageUtils implements ApplicationContextAware {
 
     private static ApplicationContext applicationContext;
@@ -17,10 +19,12 @@ public class LedgerManageUtils implements ApplicationContextAware {
         return applicationContext.getBean(LedgerManager.class);
     }
 
+
     public static LedgerRepository getLedgerRepository(String ledgerHash) {
         HashDigest ledgerHashDigest = Crypto.resolveAsHashDigest(Base58Utils.decode(ledgerHash));
         return getLedgerManager().getLedger(ledgerHashDigest);
     }
+
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {

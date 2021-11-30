@@ -2,6 +2,7 @@ package com.jd.blockchain.consensus.raft.server;
 
 import com.alipay.sofa.jraft.Status;
 import com.jd.blockchain.consensus.raft.consensus.Block;
+
 import com.jd.blockchain.consensus.raft.consensus.BlockCommitCallback;
 import com.jd.blockchain.consensus.raft.consensus.BlockCommittedException;
 import com.jd.blockchain.consensus.raft.consensus.BlockCommitter;
@@ -17,6 +18,7 @@ import utils.concurrent.AsyncFuture;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import java.util.Optional;
 
 public class BlockCommitService implements BlockCommitter {
@@ -83,7 +85,6 @@ public class BlockCommitService implements BlockCommitter {
             result = false;
             messageHandle.rollbackBatch(TransactionState.CONSENSUS_ERROR.CODE, context);
             status = new Status(TransactionState.CONSENSUS_ERROR.CODE, e.getMessage());
-
             blockCommitCallbackList.forEach(c -> c.commitCallBack(block, false));
         }
 
