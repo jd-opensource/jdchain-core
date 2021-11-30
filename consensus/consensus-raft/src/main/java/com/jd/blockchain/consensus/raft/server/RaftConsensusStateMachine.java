@@ -17,10 +17,8 @@ import com.jd.blockchain.consensus.raft.util.LoggerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -37,7 +35,9 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
     private final AtomicBoolean isLeader = new AtomicBoolean(false);
     private volatile long term = -1;
     private volatile String leaderIp = "unknown";
+
     private volatile long currentBlockHeight;
+    private volatile long appliedIndex;
 
     @Override
     public void onApply(Iterator iterator) {
@@ -67,6 +67,7 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
                         boolean result = committer.commitBlock(block, closure);
                         if (result) {
                             currentBlockHeight = block.getHeight();
+                            appliedIndex = iterator.getIndex();
                         }
                     } catch (BlockCommittedException bce) {
                         //ignore
@@ -104,10 +105,17 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
 
     @Override
     public void onSnapshotSave(SnapshotWriter writer, Closure done) {
-        long height = currentBlockHeight;
+        long height = this.currentBlockHeight;
+        long index = this.appliedIndex;
+
         Utils.runInThread(() -> {
             final RaftSnapshotFile snapshot = new RaftSnapshotFile(writer.getPath());
-            if (snapshot.save(new RaftSnapshotFile.RaftSnapshotData(height))) {
+
+            RaftSnapshotFile.RaftSnapshotData snapshotData = new RaftSnapshotFile.RaftSnapshotData();
+            snapshotData.setHeight(height);
+            snapshotData.setAppliedIndex(index);
+
+            if (snapshot.save(snapshotData)) {
                 if (writer.addFile(snapshot.getName())) {
                     done.run(Status.OK());
                 } else {
@@ -137,7 +145,15 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
 
         try {
             RaftSnapshotFile.RaftSnapshotData load = raftSnapshotFile.load();
-            this.currentBlockHeight = load.getHeight();
+            long snapshotHeight = load.getHeight();
+
+            if (snapshotHeight <= this.currentBlockHeight) {
+                LOGGER.warn("snapshot height: {} less than current block height: {}, ignore it", snapshotHeight, this.currentBlockHeight);
+                return true;
+            }
+
+            this.currentBlockHeight = snapshotHeight;
+            this.appliedIndex = load.getAppliedIndex();
 
             //TODO: 校验当前账本高度， 若高度不一致，则向leader节点账本请求最新数据
 

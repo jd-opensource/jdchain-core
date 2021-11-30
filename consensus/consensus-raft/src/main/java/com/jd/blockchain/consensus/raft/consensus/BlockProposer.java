@@ -7,4 +7,5 @@ public interface BlockProposer {
     Block proposeBlock(List<byte[]> txs);
 
     boolean canPropose();
+
 }

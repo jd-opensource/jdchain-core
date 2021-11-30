@@ -55,8 +55,9 @@ public class RaftSnapshotFile {
 
         private long height;
 
-        public RaftSnapshotData(long height) {
-            this.height = height;
+        private long appliedIndex;
+
+        public RaftSnapshotData() {
         }
 
         public long getHeight() {
@@ -65,6 +66,14 @@ public class RaftSnapshotFile {
 
         public void setHeight(long height) {
             this.height = height;
+        }
+
+        public long getAppliedIndex() {
+            return appliedIndex;
+        }
+
+        public void setAppliedIndex(long appliedIndex) {
+            this.appliedIndex = appliedIndex;
         }
     }
 

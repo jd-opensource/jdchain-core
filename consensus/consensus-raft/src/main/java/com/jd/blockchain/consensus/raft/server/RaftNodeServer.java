@@ -14,7 +14,7 @@ import com.jd.blockchain.consensus.ClientAuthencationService;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.raft.RaftConsensusProvider;
 import com.jd.blockchain.consensus.raft.config.RaftConfig;
-import com.jd.blockchain.consensus.raft.consensus.BlockSerializer;
+import com.jd.blockchain.consensus.raft.consensus.*;
 import com.jd.blockchain.consensus.raft.rpc.ParticipantNodeChangeRequestProcessor;
 import com.jd.blockchain.consensus.raft.rpc.SubmitTxRequestProcessor;
 import com.jd.blockchain.consensus.raft.settings.RaftNodeSettings;
@@ -55,6 +55,10 @@ public class RaftNodeServer implements NodeServer {
     private RaftGroupService raftGroupService;
     private RaftNodeServerService raftNodeServerService;
 
+    private BlockProposer blockProposer;
+    private BlockCommitter blockCommitter;
+    private BlockVerifier blockVerifier;
+
     private volatile boolean isStart;
     private volatile boolean isStop;
 
@@ -65,7 +69,7 @@ public class RaftNodeServer implements NodeServer {
         this.realmName = realmName;
         this.serverSettings = serverSettings;
         this.messageHandle = messageHandler;
-        init(this.serverSettings);
+//        init(this.serverSettings);
     }
 
     private void init(RaftServerSettings raftServerSettings) {
@@ -83,8 +87,12 @@ public class RaftNodeServer implements NodeServer {
         this.nodeOptions = initNodeOptions(raftServerSettings);
         this.nodeOptions.setInitialConf(this.configuration);
 
+        blockProposer = new BlockProposerService(this, LedgerManageUtils.getLedgerRepository(this.realmName));
+        blockCommitter = new BlockCommitService(this.realmName, this.messageHandle, LedgerManageUtils.getLedgerRepository(this.realmName));
+        blockCommitter.registerCallBack((BlockCommitCallback) blockProposer);
+
         RaftConsensusStateMachine stateMachine = new RaftConsensusStateMachine();
-        stateMachine.setCommitter(new BlockCommitService(this.realmName, this.messageHandle, LedgerManageUtils.getLedgerManager()));
+        stateMachine.setCommitter(blockCommitter);
         stateMachine.setRaftNodeServer(this);
         this.nodeOptions.setFsm(stateMachine);
 
