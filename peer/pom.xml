@@ -46,6 +46,13 @@
 		</dependency>
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
+			<artifactId>consensus-raft</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+
+		<dependency>
+			<groupId>com.jd.blockchain</groupId>
 			<artifactId>ledger-database</artifactId>
 			<version>${project.version}</version>
 		</dependency>
