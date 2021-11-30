@@ -20,11 +20,11 @@ bin/
 
 *.versionsBackup
 .factorypath
-source/**/configProperty/currentView
+source/**/config/currentView
 source/gateway/data/
 source/peer/data/
 *.orig
-source/peer/configProperty/view/current.view
+source/peer/config/view/current.view
 source/contract/contract-jar/src/main/java/com/jd/blockchain/contract/*.contract
 source/contract/contract-jar/src/main/java/com/jd/blockchain/contract/contract.properties
 source/contract/logs
@@ -38,5 +38,5 @@ contract-libs/coreLib/crypto-framework-0.6.0-SNAPSHOT.jar
 contract-libs/coreLib/ledger-model-0.6.0-SNAPSHOT.jar
 contract-libs/coreLib/sdk-base-0.6.0-SNAPSHOT.jar
 contract-libs/coreLib/utils-common-1.6.1-SNAPSHOT.jar
-source/tools/tools-initializer/bftsmart.configProperty
+source/tools/tools-initializer/bftsmart.config
 test/test-integration/runtime/
