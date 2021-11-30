@@ -9,17 +9,20 @@
 package com.jd.blockchain.consensus.mq.settings;
 
 import com.jd.binaryproto.DataContract;
+import com.jd.binaryproto.DataField;
+import com.jd.binaryproto.PrimitiveType;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consts.DataCodes;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/12/13
  * @since 1.0.0
  */
 
-@DataContract(code=DataCodes.CONSENSUS_MSGQUEUE_NODE_SETTINGS)
+@DataContract(code = DataCodes.CONSENSUS_MSGQUEUE_NODE_SETTINGS)
 public interface MsgQueueNodeSettings extends NodeSettings {
 
+    @DataField(order = 0, primitiveType = PrimitiveType.INT32)
+    int getId();
 }

@@ -10,11 +10,14 @@ package com.jd.blockchain.consensus.mq.util;
 
 import com.alibaba.fastjson.JSON;
 import com.jd.blockchain.consensus.mq.event.BlockEvent;
+import com.jd.blockchain.consensus.mq.event.MessageEvent;
 import com.jd.blockchain.consensus.mq.event.TxBlockedEvent;
 
 import utils.security.ShaUtils;
 
 import org.springframework.util.Base64Utils;
+
+import java.util.List;
 
 
 /**
@@ -77,6 +80,24 @@ public class MessageConvertUtil {
             throw new RuntimeException(e);
         }
         return serializeBytes;
+    }
+
+    public static byte[] serializeBlockTxs(List<MessageEvent> messageEvents) {
+        byte[] serializeBytes;
+        try {
+            serializeBytes = JSON.toJSONString(messageEvents).getBytes(defaultCharsetName);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return serializeBytes;
+    }
+
+    public static List<MessageEvent> convertBytesToBlockTxs(byte[] bytes) {
+        try {
+            return JSON.parseArray(new String(bytes, defaultCharsetName), MessageEvent.class);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static byte[] serializeTxBlockedEvent(TxBlockedEvent txBlockedEvent) {

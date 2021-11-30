@@ -34,7 +34,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/12/13
  * @since 1.0.0
@@ -42,12 +41,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class MsgQueueMessageExecutor implements EventHandler<EventEntity<ExchangeEventInnerEntity>> {
 
-    private static final Logger LOGGER  = LoggerFactory.getLogger(MsgQueueMessageExecutor.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MsgQueueMessageExecutor.class);
 
     // todo 暂不处理队列溢出导致的OOM
     private final ExecutorService blockEventExecutor = Executors.newFixedThreadPool(10);
 
     private MsgQueueProducer blProducer;
+
+    private MsgQueueProducer preBlProducer;
+
+    private boolean isLeader;
 
     private List<MessageEvent> exchangeEvents = new ArrayList<>();
 
@@ -71,6 +74,16 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
         return this;
     }
 
+    public MsgQueueMessageExecutor setPreBlProducer(MsgQueueProducer preBlProducer) {
+        this.preBlProducer = preBlProducer;
+        return this;
+    }
+
+    public MsgQueueMessageExecutor setIsLeader(boolean isLeader) {
+        this.isLeader = isLeader;
+        return this;
+    }
+
     public MsgQueueMessageExecutor setTxSizePerBlock(int txSizePerBlock) {
         this.txSizePerBlock = txSizePerBlock;
         return this;
@@ -90,8 +103,11 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
         try {
             long latestStateId = stateMachineReplicator.getLatestStateID(realmName);
             // 设置基础消息ID
-            messageId.set(((int)latestStateId + 1) * txSizePerBlock);
-            blProducer.connect();
+            messageId.set(((int) latestStateId + 1) * txSizePerBlock);
+            if (isLeader) {
+                blProducer.connect();
+                preBlProducer.connect();
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -102,7 +118,9 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
     public void onEvent(EventEntity<ExchangeEventInnerEntity> event, long sequence, boolean endOfBatch) throws Exception {
         ExchangeEventInnerEntity entity = event.getEntity();
         if (entity != null) {
-            if (entity.getType() == ExchangeType.BLOCK || entity.getType() == ExchangeType.EMPTY) {
+            if (entity.getType() == ExchangeType.PREBLOCK) {
+                process(event.getEntity());
+            } else if (entity.getType() == ExchangeType.BLOCK || entity.getType() == ExchangeType.EMPTY) {
                 if (!exchangeEvents.isEmpty()) {
                     process(exchangeEvents);
                     exchangeEvents.clear();
@@ -120,11 +138,13 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
             try {
                 Map<String, AsyncFuture<byte[]>> txResponseMap = execute(messageEvents);
                 if (txResponseMap != null && !txResponseMap.isEmpty()) {
-//                    byte[] asyncFuture;
+                    if (isLeader) {
+                        // 领导者节点向follower同步区块
+                        this.preBlProducer.publish(MessageConvertUtil.serializeBlockTxs(messageEvents));
+                    }
                     for (Map.Entry<String, AsyncFuture<byte[]>> entry : txResponseMap.entrySet()) {
                         final String txKey = entry.getKey();
                         final AsyncFuture<byte[]> asyncFuture = entry.getValue();
-//                        asyncFuture = entry.getValue().get();
 
                         blockEventExecutor.execute(() -> {
                             TxBlockedEvent txBlockedEvent = new TxBlockedEvent(txKey,
@@ -146,6 +166,15 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
         }
     }
 
+    private void process(ExchangeEventInnerEntity message) {
+        try {
+            execute(MessageConvertUtil.convertBytesToBlockTxs(message.getContent()));
+        } catch (Exception e) {
+            // 打印日志
+            LOGGER.error("process message exception {}", e.getMessage());
+        }
+    }
+
     private Map<String, AsyncFuture<byte[]>> execute(List<MessageEvent> messageEvents) {
         Map<String, AsyncFuture<byte[]>> asyncFutureMap = new HashMap<>();
         // 使用MessageHandle处理
@@ -159,7 +188,9 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
                 AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(messageId.getAndIncrement(), txContent, consensusContext);
                 asyncFutureMap.put(txKey, asyncFuture);
             }
+            consensusContext.setTimestamp(System.currentTimeMillis());
             messageHandle.completeBatch(consensusContext);
+            // TODO imuge 验证
             messageHandle.commitBatch(consensusContext);
         } catch (Exception e) {
             // todo 需要处理应答码

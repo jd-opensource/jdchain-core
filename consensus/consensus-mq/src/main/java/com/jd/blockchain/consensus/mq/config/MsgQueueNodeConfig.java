@@ -13,6 +13,7 @@ import com.jd.blockchain.crypto.PubKey;
 
 /**
  * peer节点IP
+ *
  * @author shaozhuguang
  * @create 2018/12/12
  * @since 1.0.0
@@ -20,8 +21,8 @@ import com.jd.blockchain.crypto.PubKey;
 
 public class MsgQueueNodeConfig implements MsgQueueNodeSettings {
 
+    private int id = -1;
     private String address;
-
     private PubKey pubKey;
 
     public MsgQueueNodeConfig setAddress(String address) {
@@ -34,6 +35,11 @@ public class MsgQueueNodeConfig implements MsgQueueNodeSettings {
         return this;
     }
 
+    public MsgQueueNodeConfig setId(int id) {
+        this.id = id;
+        return this;
+    }
+
     @Override
     public String getAddress() {
         return this.address;
@@ -42,5 +48,10 @@ public class MsgQueueNodeConfig implements MsgQueueNodeSettings {
     @Override
     public PubKey getPubKey() {
         return this.pubKey;
+    }
+
+    @Override
+    public int getId() {
+        return id;
     }
 }

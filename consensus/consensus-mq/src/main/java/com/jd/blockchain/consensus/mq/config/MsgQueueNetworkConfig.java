@@ -29,6 +29,8 @@ public class MsgQueueNetworkConfig implements MsgQueueNetworkSettings {
 
     private String msgTopic;
 
+    private String preBlTopic;
+
     public MsgQueueNetworkConfig setServer(String server) {
         this.server = server;
         return this;
@@ -46,6 +48,11 @@ public class MsgQueueNetworkConfig implements MsgQueueNetworkSettings {
 
     public MsgQueueNetworkConfig setMsgTopic(String msgTopic) {
         this.msgTopic = msgTopic;
+        return this;
+    }
+
+    public MsgQueueNetworkConfig setPreBlTopic(String preBlTopic) {
+        this.preBlTopic = preBlTopic;
         return this;
     }
 
@@ -67,5 +74,10 @@ public class MsgQueueNetworkConfig implements MsgQueueNetworkSettings {
     @Override
     public String getMsgTopic() {
         return msgTopic;
+    }
+
+    @Override
+    public String getPreBlTopic() {
+        return preBlTopic;
     }
 }

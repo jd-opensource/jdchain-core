@@ -48,6 +48,8 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 
 	private static final String DEFAULT_TOPIC_BL = "bl-topic";
 
+	private static final String DEFAULT_TOPIC_BL_PRE = "pre-bl-topic";
+
 	private static final String DEFAULT_TOPIC_MSG = "msg-topic";
 
 	private static final int DEFAULT_TXSIZE = 1000;
@@ -74,6 +76,8 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 	public static final String MSG_QUEUE_TOPIC_TX = "system.msg.queue.topic.tx";
 
 	public static final String MSG_QUEUE_TOPIC_BL = "system.msg.queue.topic.bl";
+
+	public static final String MSG_QUEUE_TOPIC_BL_PRE = "system.msg.queue.topic.bl.pre";
 
 	public static final String MSG_QUEUE_TOPIC_MSG = "system.msg.queue.topic.msg";
 
@@ -109,6 +113,7 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 		}
 		networkConfig.setServer(server).setTxTopic(initProp(resolvingProps, MSG_QUEUE_TOPIC_TX, DEFAULT_TOPIC_TX))
 				.setBlTopic(initProp(resolvingProps, MSG_QUEUE_TOPIC_BL, DEFAULT_TOPIC_BL))
+				.setPreBlTopic(initProp(resolvingProps, MSG_QUEUE_TOPIC_BL_PRE, DEFAULT_TOPIC_BL_PRE))
 				.setMsgTopic(initProp(resolvingProps, MSG_QUEUE_TOPIC_MSG, DEFAULT_TOPIC_MSG));
 
 		MsgQueueBlockConfig blockConfig = new MsgQueueBlockConfig()
@@ -132,7 +137,7 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 			Bytes address = AddressEncoding.generateAddress(pubKey);
 
 			String networkAddress = address.toBase58();
-			MsgQueueNodeConfig nodeConfig = new MsgQueueNodeConfig().setAddress(networkAddress).setPubKey(pubKey);
+			MsgQueueNodeConfig nodeConfig = new MsgQueueNodeConfig().setAddress(networkAddress).setPubKey(pubKey).setId(id);
 			consensusConfig.addNodeSettings(nodeConfig);
 		}
 		return consensusConfig;
@@ -190,6 +195,12 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 			blTopic = DEFAULT_TOPIC_BL;
 		}
 		props.setProperty(MSG_QUEUE_TOPIC_BL, blTopic);
+
+		String preBlTopic = networkSettings.getPreBlTopic();
+		if (preBlTopic == null || preBlTopic.length() <= 0) {
+			preBlTopic = DEFAULT_TOPIC_BL_PRE;
+		}
+		props.setProperty(MSG_QUEUE_TOPIC_BL_PRE, preBlTopic);
 
 		String msgTopic = networkSettings.getMsgTopic();
 		if (msgTopic == null || msgTopic.length() <= 0) {

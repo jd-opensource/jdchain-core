@@ -21,6 +21,10 @@ public class ExchangeEntityFactory {
         return new ExchangeEventInnerEntity(ExchangeType.BLOCK);
     }
 
+    public static ExchangeEventInnerEntity newPreBlockInstance(byte[] txs) {
+        return new ExchangeEventInnerEntity(ExchangeType.PREBLOCK, txs);
+    }
+
     public static ExchangeEventInnerEntity newEmptyInstance() {
         return new ExchangeEventInnerEntity(ExchangeType.EMPTY);
     }

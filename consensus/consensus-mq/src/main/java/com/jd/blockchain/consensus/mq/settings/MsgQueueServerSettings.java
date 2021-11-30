@@ -22,4 +22,6 @@ public interface MsgQueueServerSettings extends ServerSettings {
     MsgQueueBlockSettings getBlockSettings();
 
     MsgQueueConsensusSettings getConsensusSettings();
+
+    MsgQueueNodeSettings getMsgQueueNodeSettings();
 }

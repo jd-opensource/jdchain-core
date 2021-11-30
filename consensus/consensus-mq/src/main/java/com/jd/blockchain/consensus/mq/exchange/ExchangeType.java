@@ -19,5 +19,6 @@ public enum ExchangeType {
     BLOCK,
     EMPTY,
     TRANSACTION,
+    PREBLOCK,
     ;
 }

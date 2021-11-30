@@ -21,13 +21,14 @@ import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/12/13
  * @since 1.0.0
@@ -35,11 +36,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatcher, EventHandler<EventEntity<byte[]>> {
 
+    private final Logger LOGGER = LoggerFactory.getLogger(DefaultMsgQueueMessageDispatcher.class);
+
     private static final byte[] blockCommitBytes = new byte[]{0x00};
-
-    private final BlockingQueue<byte[]> dataQueue = new ArrayBlockingQueue<>(1024 * 16);
-
-    private final ExecutorService dataExecutor = Executors.newSingleThreadExecutor();
 
     private final ScheduledThreadPoolExecutor timeHandleExecutor = new ScheduledThreadPoolExecutor(2);
 
@@ -51,6 +50,8 @@ public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatch
 
     private MsgQueueConsumer txConsumer;
 
+    private MsgQueueConsumer preBlConsumer;
+
     private EventProducer eventProducer;
 
     private EventHandler eventHandler;
@@ -60,6 +61,8 @@ public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatch
     private final long MAX_DELAY_MILLISECONDS_PER_BLOCK;
 
     private boolean isRunning;
+
+    private boolean isLeader;
 
     private boolean isConnected;
 
@@ -78,8 +81,18 @@ public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatch
         return this;
     }
 
+    public DefaultMsgQueueMessageDispatcher setPreBlConsumer(MsgQueueConsumer preBlConsumer) {
+        this.preBlConsumer = preBlConsumer;
+        return this;
+    }
+
     public DefaultMsgQueueMessageDispatcher setEventHandler(EventHandler eventHandler) {
         this.eventHandler = eventHandler;
+        return this;
+    }
+
+    public DefaultMsgQueueMessageDispatcher setIsLeader(boolean isLeader) {
+        this.isLeader = isLeader;
         return this;
     }
 
@@ -103,8 +116,12 @@ public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatch
 
     public synchronized void connect() throws Exception {
         if (!isConnected) {
-            txProducer.connect();
-            txConsumer.connect(this);
+            if (isLeader) {
+                txProducer.connect();
+                txConsumer.connect(this);
+            } else {
+                preBlConsumer.connect(this);
+            }
             isConnected = true;
         }
     }
@@ -119,128 +136,15 @@ public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatch
     public void run() {
         this.isRunning = true;
         try {
-            txConsumer.start();
+            if (isLeader) {
+                txConsumer.start();
+            } else {
+                preBlConsumer.start();
+            }
         } catch (Exception e) {
 
         }
-//        handleData();
-//        listen();
     }
-
-//    private void listen() {
-//        while (isRunning) {
-//            try {
-//                byte[] data = this.txConsumer.start();
-//                dataQueue.put(data);
-//                // 收到数据后由队列处理
-////                handleData(data);
-//            } catch (Exception e) {
-//                // 日志打印
-//                ConsoleUtils.info("ERROR dispatcher start data exception {%s}", e.getMessage());
-//            }
-//        }
-//    }
-
-//    private void handleData() {
-//        dataExecutor.execute(() -> {
-//            byte[] data;
-//            for (;;) {
-//                try {
-//                    data = dataQueue.take();
-//                    if (data.length == 1) {
-//                        // 结块标识优先处理
-//                        syncIndex = 0L;
-//                        this.blockIndex.getAndIncrement();
-//                        eventProducer.publish(ExchangeEntityFactory.newBlockInstance());
-//                    } else {
-//                        if (syncIndex == 0) { // 收到第一个交易
-//                            // 需要判断是否需要进行定时任务
-//                            if (MAX_DELAY_MILLISECONDS_PER_BLOCK > 0) {
-//                                this.timeHandleExecutor.schedule(
-//                                        timeBlockTask(this.blockIndex.get()),
-//                                        MAX_DELAY_MILLISECONDS_PER_BLOCK, TimeUnit.MILLISECONDS);
-//                            }
-//                        }
-//                        syncIndex++;
-//                        eventProducer.publish(ExchangeEntityFactory.newTransactionInstance(data));
-//                        if (syncIndex == TX_SIZE_PER_BLOCK) {
-//                            syncIndex = 0L;
-//                            this.blockIndex.getAndIncrement();
-//                            eventProducer.publish(ExchangeEntityFactory.newBlockInstance());
-//                        }
-//                    }
-//
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//        });
-//        for (;;) {
-//            try {
-//                final byte[] data = dataQueue.take();
-//                dataExecutor.execute(() -> {
-//                        if (data.length == 1) {
-//                            // 结块标识优先处理
-//                            syncIndex = 0L;
-//                            this.blockIndex.getAndIncrement();
-//                            eventProducer.publish(ExchangeEntityFactory.newBlockInstance());
-//                        } else {
-//                            if (syncIndex == 0) { // 收到第一个交易
-//                                // 需要判断是否需要进行定时任务
-//                                if (MAX_DELAY_MILLISECONDS_PER_BLOCK > 0) {
-//                                    this.timeHandleExecutor.schedule(
-//                                            timeBlockTask(this.blockIndex.get()),
-//                                            MAX_DELAY_MILLISECONDS_PER_BLOCK, TimeUnit.MILLISECONDS);
-//                                }
-//                            }
-//                            syncIndex++;
-//                            eventProducer.publish(ExchangeEntityFactory.newTransactionInstance(data));
-//                            if (syncIndex == TX_SIZE_PER_BLOCK) {
-//                                syncIndex = 0L;
-//                                this.blockIndex.getAndIncrement();
-//                                eventProducer.publish(ExchangeEntityFactory.newBlockInstance());
-//                            }
-//                        }
-//                    }
-//                );
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        }
-//    }
-
-//    private void handleData(final byte[] data) {
-//        dataExecutor.execute(() -> {
-//            try {
-//                if (data.length == 1) {
-//                    // 结块标识优先处理
-//                    syncIndex = 0L;
-//                    this.blockIndex.getAndIncrement();
-//                    eventProducer.publish(ExchangeEntityFactory.newBlockInstance());
-//                } else {
-//                    if (syncIndex == 0) { // 收到第一个交易
-//                        // 需要判断是否需要进行定时任务
-//                        if (MAX_DELAY_MILLISECONDS_PER_BLOCK > 0) {
-//                            this.timeHandleExecutor.schedule(
-//                                    timeBlockTask(this.blockIndex.get()),
-//                                    MAX_DELAY_MILLISECONDS_PER_BLOCK, TimeUnit.MILLISECONDS);
-//                        }
-//                    }
-//                    syncIndex++;
-//                    eventProducer.publish(ExchangeEntityFactory.newTransactionInstance(data));
-//                    if (syncIndex == TX_SIZE_PER_BLOCK) {
-//                        syncIndex = 0L;
-//                        this.blockIndex.getAndIncrement();
-//                        eventProducer.publish(ExchangeEntityFactory.newBlockInstance());
-//                    }
-//                }
-//            } catch (Exception e) {
-//                // 记录日志
-//                ConsoleUtils.info("ERROR TransactionDispatcher process queue data exception {%s}", e.getMessage());
-//            }
-//        });
-//
-//    }
 
     private Runnable timeBlockTask(final long currentBlockIndex) {
         return () -> {
@@ -258,40 +162,49 @@ public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatch
 
     @Override
     public void close() throws IOException {
-        this.txProducer.close();
-        this.txConsumer.close();
+        if (isLeader) {
+            this.txProducer.close();
+            this.txConsumer.close();
+        } else {
+            this.preBlConsumer.close();
+        }
     }
 
     @Override
     public void onEvent(EventEntity<byte[]> event, long sequence, boolean endOfBatch) throws Exception {
         try {
-            byte[] data = event.getEntity();
-//            System.out.printf("Thread [%s, $s] on event !!!\r\n",
-//                    Thread.currentThread().getId(), Thread.currentThread().getName());
-            if (data.length == 1) {
-                // 结块标识优先处理
-                syncIndex = 0L;
-                this.blockIndex.getAndIncrement();
-                eventProducer.publish(ExchangeEntityFactory.newBlockInstance());
-            } else {
-                if (syncIndex == 0) { // 收到第一个交易
-                    // 需要判断是否需要进行定时任务
-                    if (MAX_DELAY_MILLISECONDS_PER_BLOCK > 0) {
-                        this.timeHandleExecutor.schedule(
-                                timeBlockTask(this.blockIndex.get()),
-                                MAX_DELAY_MILLISECONDS_PER_BLOCK, TimeUnit.MILLISECONDS);
-                    }
-                }
-                syncIndex++;
-                eventProducer.publish(ExchangeEntityFactory.newTransactionInstance(data));
-                if (syncIndex == TX_SIZE_PER_BLOCK) {
+            if (isLeader) {
+                byte[] data = event.getEntity();
+                if (data.length == 1) {
+                    // 结块标识优先处理
                     syncIndex = 0L;
                     this.blockIndex.getAndIncrement();
+                    LOGGER.info("propose new block for timer");
                     eventProducer.publish(ExchangeEntityFactory.newBlockInstance());
+                } else {
+                    if (syncIndex == 0) { // 收到第一个交易
+                        // 需要判断是否需要进行定时任务
+                        if (MAX_DELAY_MILLISECONDS_PER_BLOCK > 0) {
+                            this.timeHandleExecutor.schedule(
+                                    timeBlockTask(this.blockIndex.get()),
+                                    MAX_DELAY_MILLISECONDS_PER_BLOCK, TimeUnit.MILLISECONDS);
+                        }
+                    }
+                    syncIndex++;
+                    eventProducer.publish(ExchangeEntityFactory.newTransactionInstance(data));
+                    if (syncIndex == TX_SIZE_PER_BLOCK) {
+                        syncIndex = 0L;
+                        this.blockIndex.getAndIncrement();
+                        LOGGER.info("propose new block for txs");
+                        eventProducer.publish(ExchangeEntityFactory.newBlockInstance());
+                    }
                 }
+            } else {
+                LOGGER.info("receive new block");
+                eventProducer.publish(ExchangeEntityFactory.newPreBlockInstance(event.getEntity()));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.info("dispatcher error", e);
         }
     }
 }

@@ -33,4 +33,7 @@ public interface MsgQueueNetworkSettings {
 
     @DataField(order = 3, primitiveType = PrimitiveType.TEXT)
     String getMsgTopic();
+
+    @DataField(order = 4, primitiveType = PrimitiveType.TEXT)
+    String getPreBlTopic();
 }

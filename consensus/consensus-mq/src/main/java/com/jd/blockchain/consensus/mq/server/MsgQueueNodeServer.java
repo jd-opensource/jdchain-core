@@ -15,27 +15,27 @@ import com.jd.blockchain.consensus.mq.MsgQueueConsensusProvider;
 import com.jd.blockchain.consensus.mq.consumer.MsgQueueConsumer;
 import com.jd.blockchain.consensus.mq.factory.MsgQueueFactory;
 import com.jd.blockchain.consensus.mq.producer.MsgQueueProducer;
-import com.jd.blockchain.consensus.mq.settings.MsgQueueBlockSettings;
-import com.jd.blockchain.consensus.mq.settings.MsgQueueConsensusSettings;
-import com.jd.blockchain.consensus.mq.settings.MsgQueueNetworkSettings;
-import com.jd.blockchain.consensus.mq.settings.MsgQueueServerSettings;
+import com.jd.blockchain.consensus.mq.settings.*;
 import com.jd.blockchain.consensus.service.Communication;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.NodeState;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import utils.concurrent.AsyncFuture;
 import utils.concurrent.CompletableAsyncFuture;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/12/13
  * @since 1.0.0
  */
 
 public class MsgQueueNodeServer implements NodeServer {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MsgQueueNodeServer.class);
 
     private DefaultMsgQueueMessageDispatcher dispatcher;
 
@@ -87,35 +87,43 @@ public class MsgQueueNodeServer implements NodeServer {
     public MsgQueueNodeServer setServerSettings(MsgQueueServerSettings serverSettings) {
         this.serverSettings = serverSettings;
         this.manageService = new MsgQueueConsensusManageService()
-                                .setConsensusSettings(serverSettings.getConsensusSettings());
+                .setConsensusSettings(serverSettings.getConsensusSettings());
         return this;
     }
 
     public MsgQueueNodeServer init() {
+        MsgQueueNodeSettings currentNodeSettings = serverSettings.getMsgQueueNodeSettings();
         String realmName = this.serverSettings.getRealmName();
         MsgQueueBlockSettings blockSettings = this.serverSettings.getBlockSettings();
         MsgQueueConsensusSettings consensusSettings = this.serverSettings.getConsensusSettings();
 
         this.setTxSizePerBlock(blockSettings.getTxSizePerBlock())
-            .setMaxDelayMilliSecondsPerBlock(blockSettings.getMaxDelayMilliSecondsPerBlock())
-            .setMsgQueueNetworkSettings(consensusSettings.getNetworkSettings())
-            ;
+                .setMaxDelayMilliSecondsPerBlock(blockSettings.getMaxDelayMilliSecondsPerBlock())
+                .setMsgQueueNetworkSettings(consensusSettings.getNetworkSettings())
+        ;
 
-        String  server = networkSettings.getServer(),
-               txTopic = networkSettings.getTxTopic(),
-               blTopic = networkSettings.getBlTopic(),
-              msgTopic = networkSettings.getMsgTopic();
+        // TODO imuge 此处暂时使用简单等于0判断是否为领导者
+        boolean isLeader = currentNodeSettings.getId() == 0;
+        LOGGER.info("Am I leader ? {}", isLeader);
+
+        String server = networkSettings.getServer(),
+                txTopic = networkSettings.getTxTopic(),
+                blTopic = networkSettings.getBlTopic(),
+                preBlTopic = networkSettings.getPreBlTopic(),
+                msgTopic = networkSettings.getMsgTopic();
 
         MsgQueueProducer blProducer = MsgQueueFactory.newProducer(server, blTopic),
-                         txProducer = MsgQueueFactory.newProducer(server, txTopic),
-                        msgProducer = MsgQueueFactory.newProducer(server, msgTopic);
+                preBlProducer = MsgQueueFactory.newProducer(server, preBlTopic),
+                txProducer = MsgQueueFactory.newProducer(server, txTopic),
+                msgProducer = MsgQueueFactory.newProducer(server, msgTopic);
 
         MsgQueueConsumer txConsumer = MsgQueueFactory.newConsumer(server, txTopic),
-                        msgConsumer = MsgQueueFactory.newConsumer(server, msgTopic);
+                preBlConsumer = MsgQueueFactory.newConsumer(server, preBlTopic),
+                msgConsumer = MsgQueueFactory.newConsumer(server, msgTopic);
 
-        initMessageExecutor(blProducer, realmName);
+        initMessageExecutor(isLeader, blProducer, preBlProducer, realmName);
 
-        initDispatcher(txProducer, txConsumer);
+        initDispatcher(isLeader, txProducer, txConsumer, preBlConsumer);
 
         initExtendExecutor(msgProducer, msgConsumer);
 
@@ -128,7 +136,7 @@ public class MsgQueueNodeServer implements NodeServer {
     }
 
     @Override
-	public ClientAuthencationService getClientAuthencationService() {
+    public ClientAuthencationService getClientAuthencationService() {
         return this.manageService;
     }
 
@@ -144,34 +152,34 @@ public class MsgQueueNodeServer implements NodeServer {
 
     @Override
     public synchronized AsyncFuture<?> start() {
-    	if (isRunning) {
-			return CompletableAsyncFuture.completeFuture(null);
-		}
-    	
-    	isRunning = true;
-    	CompletableAsyncFuture<?> future = new CompletableAsyncFuture<>();
-    	Thread thrd = new Thread(new Runnable() {
-			
-			@Override
-			public void run() {
-				try {
-					dispatcher.connect();
-					Executors.newSingleThreadExecutor().execute(dispatcher);
-					extendExecutor.connect();
-					Executors.newSingleThreadExecutor().execute(extendExecutor);
-					isRunning = true;
-					
-					future.complete(null);
-				} catch (Exception e) {
-					isRunning = false;
-					future.error(e);
-				}
-			}
-		});
-    	
-    	thrd.setDaemon(true);
-    	thrd.start();
-    	return future;
+        if (isRunning) {
+            return CompletableAsyncFuture.completeFuture(null);
+        }
+
+        isRunning = true;
+        CompletableAsyncFuture<?> future = new CompletableAsyncFuture<>();
+        Thread thrd = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    dispatcher.connect();
+                    Executors.newSingleThreadExecutor().execute(dispatcher);
+                    extendExecutor.connect();
+                    Executors.newSingleThreadExecutor().execute(extendExecutor);
+                    isRunning = true;
+
+                    future.complete(null);
+                } catch (Exception e) {
+                    isRunning = false;
+                    future.error(e);
+                }
+            }
+        });
+
+        thrd.setDaemon(true);
+        thrd.start();
+        return future;
     }
 
     @Override
@@ -187,21 +195,25 @@ public class MsgQueueNodeServer implements NodeServer {
         }
     }
 
-    private void initMessageExecutor(MsgQueueProducer blProducer, final String realmName) {
+    private void initMessageExecutor(boolean isLeader, MsgQueueProducer blProducer, MsgQueueProducer preBlProducer, final String realmName) {
         messageExecutor = new MsgQueueMessageExecutor()
                 .setRealmName(realmName)
                 .setMessageHandle(messageHandle)
                 .setBlProducer(blProducer)
+                .setPreBlProducer(preBlProducer)
+                .setIsLeader(isLeader)
                 .setStateMachineReplicator(stateMachineReplicator)
                 .setTxSizePerBlock(txSizePerBlock)
                 .init()
         ;
     }
 
-    private void initDispatcher(MsgQueueProducer txProducer, MsgQueueConsumer txConsumer) {
+    private void initDispatcher(boolean isLeader, MsgQueueProducer txProducer, MsgQueueConsumer txConsumer, MsgQueueConsumer preBlConsumer) {
         dispatcher = new DefaultMsgQueueMessageDispatcher(txSizePerBlock, maxDelayMilliSecondsPerBlock)
                 .setTxProducer(txProducer)
                 .setTxConsumer(txConsumer)
+                .setPreBlConsumer(preBlConsumer)
+                .setIsLeader(isLeader)
                 .setEventHandler(messageExecutor)
         ;
         dispatcher.init();
@@ -216,16 +228,16 @@ public class MsgQueueNodeServer implements NodeServer {
         ;
         extendExecutor.init();
     }
-    
+
     @Override
     public NodeState getState() {
-    	// TODO Auto-generated method stub
-    	throw new IllegalStateException("Not implemented!");
+        // TODO Auto-generated method stub
+        throw new IllegalStateException("Not implemented!");
     }
-    
+
     @Override
     public Communication getCommunication() {
-    	// TODO Auto-generated method stub
-    	throw new IllegalStateException("Not implemented!");
+        // TODO Auto-generated method stub
+        throw new IllegalStateException("Not implemented!");
     }
 }

@@ -5,8 +5,8 @@ import com.jd.blockchain.consensus.service.ConsensusMessageContext;
 public class MsgQueueConsensusMessageContext implements ConsensusMessageContext {
 
     private String realmName;
-
     private String batchId;
+    private Long timestamp;
 
     private MsgQueueConsensusMessageContext(String realmName) {
         this.realmName = realmName;
@@ -24,11 +24,15 @@ public class MsgQueueConsensusMessageContext implements ConsensusMessageContext 
 
     @Override
     public long getTimestamp() {
-        return -1L;
+        return timestamp;
     }
 
     public void setBatchId(String batchId) {
         this.batchId = batchId;
+    }
+
+    public void setTimestamp(Long timestamp) {
+        this.timestamp = timestamp;
     }
 
     public static MsgQueueConsensusMessageContext createInstance(String realmName) {

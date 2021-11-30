@@ -69,4 +69,9 @@ public class MsgQueueServerConfig implements MsgQueueServerSettings {
     public MsgQueueConsensusSettings getConsensusSettings() {
         return consensusSettings;
     }
+
+    @Override
+    public MsgQueueNodeSettings getMsgQueueNodeSettings() {
+        return nodeSettings;
+    }
 }

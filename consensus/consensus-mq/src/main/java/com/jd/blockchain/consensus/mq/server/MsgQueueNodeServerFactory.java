@@ -9,6 +9,7 @@
 package com.jd.blockchain.consensus.mq.server;
 
 import com.jd.blockchain.consensus.ConsensusViewSettings;
+import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.mq.config.MsgQueueNodeConfig;
 import com.jd.blockchain.consensus.mq.config.MsgQueueServerConfig;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueConsensusSettings;
@@ -44,7 +45,14 @@ public class MsgQueueNodeServerFactory implements NodeServerFactory {
 					"ConsensusSettings data isn't supported! Accept MsgQueueConsensusSettings only!");
 		}
 
-		MsgQueueNodeSettings nodeSettings = new MsgQueueNodeConfig().setAddress(nodeAddress);
+		int id = -1;
+		for(NodeSettings nodeSettings : viewSettings.getNodes()) {
+			MsgQueueNodeSettings settings = (MsgQueueNodeSettings) nodeSettings;
+			if(settings.getAddress().equals(nodeAddress)) {
+				id = settings.getId();
+			}
+		}
+		MsgQueueNodeSettings nodeSettings = new MsgQueueNodeConfig().setAddress(nodeAddress).setId(id);
 
 		MsgQueueServerSettings serverSettings = new MsgQueueServerConfig().setRealmName(realmName)
 				.setNodeSettings(nodeSettings).setConsensusSettings((MsgQueueConsensusSettings) viewSettings);
