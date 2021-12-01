@@ -53,6 +53,8 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
 
     private MsgQueueProducer preBlProducer;
 
+    private int nodeId;
+
     private boolean isLeader;
 
     private List<MessageEvent> exchangeEvents = new ArrayList<>();
@@ -84,6 +86,11 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
 
     public MsgQueueMessageExecutor setIsLeader(boolean isLeader) {
         this.isLeader = isLeader;
+        return this;
+    }
+
+    public MsgQueueMessageExecutor setNodeId(int nodeId) {
+        this.nodeId = nodeId;
         return this;
     }
 

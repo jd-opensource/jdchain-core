@@ -37,11 +37,10 @@ public class RabbitProducer implements MsgQueueProducer {
 
     private String server;
 
-    public RabbitProducer() {
+    private int clientId;
 
-    }
-
-    public RabbitProducer(String server, String topic) throws Exception {
+    public RabbitProducer(int clientId, String server, String topic) throws Exception {
+        this.clientId = clientId;
         this.exchangeName = topic;
         this.server = server;
     }

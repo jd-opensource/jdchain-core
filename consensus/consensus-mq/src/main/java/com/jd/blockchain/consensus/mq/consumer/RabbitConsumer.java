@@ -34,7 +34,10 @@ public class RabbitConsumer extends AbstractConsumer implements MsgQueueConsumer
 
     private String queueName;
 
-    public RabbitConsumer(String server, String topic) {
+    private int clientId;
+
+    public RabbitConsumer(int clientId, String server, String topic) {
+        this.clientId = clientId;
         this.server = server;
         this.exchangeName = topic;
     }
@@ -68,7 +71,11 @@ public class RabbitConsumer extends AbstractConsumer implements MsgQueueConsumer
         channel = connection.createChannel();
 
         channel.exchangeDeclare(this.exchangeName, "fanout", true);
-        queueName = channel.queueDeclare("",  true, false, false, null).getQueue();
+        if (clientId > -1) {
+            queueName = channel.queueDeclare(String.valueOf(this.clientId), true, false, false, null).getQueue();
+        } else {
+            queueName = channel.queueDeclare("", true, false, false, null).getQueue();
+        }
         channel.queueBind(queueName, this.exchangeName, "");
         channel.basicQos(1);
 

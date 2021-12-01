@@ -18,7 +18,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/11/5
  * @since 1.0.0
@@ -34,17 +33,16 @@ public class NatsProducer implements MsgQueueProducer {
     // 主题
     private String topic;
 
-    public NatsProducer() {
+    private int clientId;
 
-    }
-
-    public NatsProducer(String server, String topic) {
+    public NatsProducer(int clientId, String server, String topic) {
+        this.clientId = clientId;
         this.topic = topic;
         this.server = server;
     }
 
     @Override
-    public void connect() throws Exception{
+    public void connect() throws Exception {
         Options o = new Options.Builder().server(server).noReconnect().build();
         this.nc = Nats.connect(o);
         ConsoleUtils.info("[*] NatsProducer[%s, %s] connect success !!!", this.server, this.topic);

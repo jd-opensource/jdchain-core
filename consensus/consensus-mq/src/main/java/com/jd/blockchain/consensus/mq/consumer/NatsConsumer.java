@@ -18,7 +18,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/11/5
  * @since 1.0.0
@@ -36,7 +35,10 @@ public class NatsConsumer extends AbstractConsumer implements MsgQueueConsumer {
 
     private String topic;
 
-    public NatsConsumer(String server, String topic) {
+    private int clientId;
+
+    public NatsConsumer(int clientId, String server, String topic) {
+        this.clientId = clientId;
         this.server = server;
         this.topic = topic;
     }
@@ -54,7 +56,7 @@ public class NatsConsumer extends AbstractConsumer implements MsgQueueConsumer {
     @Override
     public void start() {
         msgListener.execute(() -> {
-            for (;;) {
+            for (; ; ) {
                 try {
                     Message msg = this.sub.nextMessage(Duration.ZERO);
                     eventProducer.publish(msg.getData());

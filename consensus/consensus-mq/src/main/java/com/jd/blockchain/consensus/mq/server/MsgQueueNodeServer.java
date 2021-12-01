@@ -59,6 +59,8 @@ public class MsgQueueNodeServer implements NodeServer {
 
     private boolean isRunning;
 
+    private int nodeId;
+
     public MsgQueueNodeServer setMessageHandle(MessageHandle messageHandle) {
         this.messageHandle = messageHandle;
         return this;
@@ -102,9 +104,8 @@ public class MsgQueueNodeServer implements NodeServer {
                 .setMsgQueueNetworkSettings(consensusSettings.getNetworkSettings())
         ;
 
-        // TODO imuge 此处暂时使用简单等于0判断是否为领导者
-        boolean isLeader = currentNodeSettings.getId() == 0;
-        LOGGER.info("Am I leader ? {}", isLeader);
+        this.nodeId = currentNodeSettings.getId();
+        LOGGER.info("My nodeId is {}, isLeader: {}", nodeId, isLeader());
 
         String server = networkSettings.getServer(),
                 txTopic = networkSettings.getTxTopic(),
@@ -112,22 +113,27 @@ public class MsgQueueNodeServer implements NodeServer {
                 preBlTopic = networkSettings.getPreBlTopic(),
                 msgTopic = networkSettings.getMsgTopic();
 
-        MsgQueueProducer blProducer = MsgQueueFactory.newProducer(server, blTopic),
-                preBlProducer = MsgQueueFactory.newProducer(server, preBlTopic),
-                txProducer = MsgQueueFactory.newProducer(server, txTopic),
-                msgProducer = MsgQueueFactory.newProducer(server, msgTopic);
+        MsgQueueProducer blProducer = MsgQueueFactory.newProducer(nodeId, server, blTopic),
+                preBlProducer = MsgQueueFactory.newProducer(nodeId, server, preBlTopic),
+                txProducer = MsgQueueFactory.newProducer(nodeId, server, txTopic),
+                msgProducer = MsgQueueFactory.newProducer(nodeId, server, msgTopic);
 
-        MsgQueueConsumer txConsumer = MsgQueueFactory.newConsumer(server, txTopic),
-                preBlConsumer = MsgQueueFactory.newConsumer(server, preBlTopic),
-                msgConsumer = MsgQueueFactory.newConsumer(server, msgTopic);
+        MsgQueueConsumer txConsumer = MsgQueueFactory.newConsumer(nodeId, server, txTopic),
+                preBlConsumer = MsgQueueFactory.newConsumer(nodeId, server, preBlTopic),
+                msgConsumer = MsgQueueFactory.newConsumer(nodeId, server, msgTopic);
 
-        initMessageExecutor(isLeader, blProducer, preBlProducer, realmName);
+        initMessageExecutor(blProducer, preBlProducer, realmName);
 
-        initDispatcher(isLeader, txProducer, txConsumer, preBlConsumer);
+        initDispatcher(txProducer, txConsumer, preBlConsumer);
 
         initExtendExecutor(msgProducer, msgConsumer);
 
         return this;
+    }
+
+    private boolean isLeader() {
+        // TODO imuge 此处暂时使用简单等于0判断是否为领导者
+        return nodeId == 0;
     }
 
     @Override
@@ -195,25 +201,26 @@ public class MsgQueueNodeServer implements NodeServer {
         }
     }
 
-    private void initMessageExecutor(boolean isLeader, MsgQueueProducer blProducer, MsgQueueProducer preBlProducer, final String realmName) {
+    private void initMessageExecutor(MsgQueueProducer blProducer, MsgQueueProducer preBlProducer, final String realmName) {
         messageExecutor = new MsgQueueMessageExecutor()
                 .setRealmName(realmName)
                 .setMessageHandle(messageHandle)
                 .setBlProducer(blProducer)
                 .setPreBlProducer(preBlProducer)
-                .setIsLeader(isLeader)
+                .setIsLeader(isLeader())
+                .setNodeId(nodeId)
                 .setStateMachineReplicator(stateMachineReplicator)
                 .setTxSizePerBlock(txSizePerBlock)
                 .init()
         ;
     }
 
-    private void initDispatcher(boolean isLeader, MsgQueueProducer txProducer, MsgQueueConsumer txConsumer, MsgQueueConsumer preBlConsumer) {
+    private void initDispatcher(MsgQueueProducer txProducer, MsgQueueConsumer txConsumer, MsgQueueConsumer preBlConsumer) {
         dispatcher = new DefaultMsgQueueMessageDispatcher(txSizePerBlock, maxDelayMilliSecondsPerBlock)
                 .setTxProducer(txProducer)
                 .setTxConsumer(txConsumer)
                 .setPreBlConsumer(preBlConsumer)
-                .setIsLeader(isLeader)
+                .setIsLeader(isLeader())
                 .setEventHandler(messageExecutor)
         ;
         dispatcher.init();
