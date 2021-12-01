@@ -23,12 +23,12 @@ import com.rabbitmq.client.ConnectionFactory;
 
 public class RabbitFactory {
 
-    public static MsgQueueProducer newProducer(int clientId, String server, String topic) throws Exception {
-        return new RabbitProducer(clientId, server, topic);
+    public static MsgQueueProducer newProducer(int clientId, String server, String topic, boolean durable) throws Exception {
+        return new RabbitProducer(clientId, server, topic, durable);
     }
 
-    public static MsgQueueConsumer newConsumer(int clientId, String server, String topic) throws Exception {
-        return new RabbitConsumer(clientId, server, topic);
+    public static MsgQueueConsumer newConsumer(int clientId, String server, String topic, boolean durable) throws Exception {
+        return new RabbitConsumer(clientId, server, topic, durable);
     }
 
     public static ConnectionFactory initConnectionFactory(String server) {

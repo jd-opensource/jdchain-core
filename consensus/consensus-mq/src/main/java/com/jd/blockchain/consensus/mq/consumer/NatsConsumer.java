@@ -37,10 +37,13 @@ public class NatsConsumer extends AbstractConsumer implements MsgQueueConsumer {
 
     private int clientId;
 
-    public NatsConsumer(int clientId, String server, String topic) {
+    private boolean durable;
+
+    public NatsConsumer(int clientId, String server, String topic, boolean durable) {
         this.clientId = clientId;
         this.server = server;
         this.topic = topic;
+        this.durable = durable;
     }
 
     @Override

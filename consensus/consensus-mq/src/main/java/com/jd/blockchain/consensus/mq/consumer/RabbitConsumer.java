@@ -36,10 +36,13 @@ public class RabbitConsumer extends AbstractConsumer implements MsgQueueConsumer
 
     private int clientId;
 
-    public RabbitConsumer(int clientId, String server, String topic) {
+    private boolean durable;
+
+    public RabbitConsumer(int clientId, String server, String topic, boolean durable) {
         this.clientId = clientId;
         this.server = server;
         this.exchangeName = topic;
+        this.durable = durable;
     }
 
     private void rabbitConsumerHandle() throws Exception {
@@ -70,16 +73,28 @@ public class RabbitConsumer extends AbstractConsumer implements MsgQueueConsumer
         connection = factory.newConnection();
         channel = connection.createChannel();
 
-        channel.exchangeDeclare(this.exchangeName, "fanout", true);
-        if (clientId > -1) {
-            queueName = channel.queueDeclare(String.valueOf(this.clientId), true, false, false, null).getQueue();
+
+        if (durable) {
+            initDurableChannel();
         } else {
-            queueName = channel.queueDeclare("", true, false, false, null).getQueue();
+            initNotDurableChannel();
         }
-        channel.queueBind(queueName, this.exchangeName, "");
-        channel.basicQos(1);
 
         ConsoleUtils.info("[*] RabbitConsumer[%s, %s] connect success !!!", this.server, this.exchangeName);
+    }
+
+    private void initDurableChannel() throws Exception {
+        channel.exchangeDeclare(this.exchangeName, "fanout", true);
+        queueName = channel.queueDeclare(clientId > -1 ? this.exchangeName + "-" + this.clientId : "", true, false, false, null).getQueue();
+        channel.queueBind(queueName, this.exchangeName, "");
+        channel.basicQos(1);
+    }
+
+    private void initNotDurableChannel() throws Exception {
+        channel.exchangeDeclare(this.exchangeName, "fanout");
+        queueName = channel.queueDeclare().getQueue();
+        channel.queueBind(queueName, this.exchangeName, "");
+        channel.basicQos(1);
     }
 
     @Override

@@ -35,10 +35,13 @@ public class NatsProducer implements MsgQueueProducer {
 
     private int clientId;
 
-    public NatsProducer(int clientId, String server, String topic) {
+    private boolean durable;
+
+    public NatsProducer(int clientId, String server, String topic, boolean durable) {
         this.clientId = clientId;
         this.topic = topic;
         this.server = server;
+        this.durable = durable;
     }
 
     @Override

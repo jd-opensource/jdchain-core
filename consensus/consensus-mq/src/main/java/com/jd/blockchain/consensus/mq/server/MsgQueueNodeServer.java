@@ -113,14 +113,14 @@ public class MsgQueueNodeServer implements NodeServer {
                 preBlTopic = networkSettings.getPreBlTopic(),
                 msgTopic = networkSettings.getMsgTopic();
 
-        MsgQueueProducer blProducer = MsgQueueFactory.newProducer(nodeId, server, blTopic),
-                preBlProducer = MsgQueueFactory.newProducer(nodeId, server, preBlTopic),
-                txProducer = MsgQueueFactory.newProducer(nodeId, server, txTopic),
-                msgProducer = MsgQueueFactory.newProducer(nodeId, server, msgTopic);
+        MsgQueueProducer blProducer = MsgQueueFactory.newProducer(nodeId, server, blTopic, true),
+                preBlProducer = MsgQueueFactory.newProducer(nodeId, server, preBlTopic, true),
+                txProducer = MsgQueueFactory.newProducer(nodeId, server, txTopic, true),
+                msgProducer = MsgQueueFactory.newProducer(server, msgTopic, false);
 
-        MsgQueueConsumer txConsumer = MsgQueueFactory.newConsumer(nodeId, server, txTopic),
-                preBlConsumer = MsgQueueFactory.newConsumer(nodeId, server, preBlTopic),
-                msgConsumer = MsgQueueFactory.newConsumer(nodeId, server, msgTopic);
+        MsgQueueConsumer txConsumer = MsgQueueFactory.newConsumer(nodeId, server, txTopic, true),
+                preBlConsumer = MsgQueueFactory.newConsumer(nodeId, server, preBlTopic, true),
+                msgConsumer = MsgQueueFactory.newConsumer(server, msgTopic, false);
 
         initMessageExecutor(blProducer, preBlProducer, realmName);
 

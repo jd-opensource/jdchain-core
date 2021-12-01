@@ -18,7 +18,6 @@ import com.jd.blockchain.consensus.mq.settings.MsgQueueClientSettings;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueNetworkSettings;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/12/12
  * @since 1.0.0
@@ -50,17 +49,17 @@ public class MsgQueueConsensusClient implements ConsensusClient {
         String blTopic = msgQueueNetworkSettings.getBlTopic();
         String msgTopic = msgQueueNetworkSettings.getMsgTopic();
 
-        MsgQueueProducer txProducer = MsgQueueFactory.newProducer(server, txTopic);
-        MsgQueueProducer msgProducer = MsgQueueFactory.newProducer(server, msgTopic);
-        MsgQueueConsumer blConsumer = MsgQueueFactory.newConsumer(server, blTopic);
-        MsgQueueConsumer msgConsumer = MsgQueueFactory.newConsumer(server, msgTopic);
+        MsgQueueProducer txProducer = MsgQueueFactory.newProducer(server, txTopic, true);
+        MsgQueueProducer msgProducer = MsgQueueFactory.newProducer(server, msgTopic, false);
+        MsgQueueConsumer blConsumer = MsgQueueFactory.newConsumer(server, blTopic, true);
+        MsgQueueConsumer msgConsumer = MsgQueueFactory.newConsumer(server, msgTopic, false);
 
         transmitter = new DefaultMessageTransmitter()
                 .setTxProducer(txProducer)
                 .setMsgProducer(msgProducer)
                 .setBlConsumer(blConsumer)
                 .setMsgConsumer(msgConsumer)
-                ;
+        ;
     }
 
     @Override

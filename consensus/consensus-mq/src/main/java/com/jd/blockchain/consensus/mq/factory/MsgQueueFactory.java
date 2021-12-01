@@ -23,16 +23,16 @@ import static com.jd.blockchain.consensus.mq.factory.MsgQueueConfig.RABBIT_PREFI
 
 public class MsgQueueFactory {
 
-    public static MsgQueueProducer newProducer(String server, String topic) {
-        return newProducer(-1, server, topic);
+    public static MsgQueueProducer newProducer(String server, String topic, boolean durable) {
+        return newProducer(-1, server, topic, durable);
     }
 
-    public static MsgQueueProducer newProducer(int clientId, String server, String topic) {
+    public static MsgQueueProducer newProducer(int clientId, String server, String topic, boolean durable) {
         try {
             if (server.startsWith(NATS_PREFIX)) {
-                return NatsFactory.newProducer(clientId, server, topic);
+                return NatsFactory.newProducer(clientId, server, topic, durable);
             } else if (server.startsWith(RABBIT_PREFIX)) {
-                return RabbitFactory.newProducer(clientId, server, topic);
+                return RabbitFactory.newProducer(clientId, server, topic, durable);
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -40,16 +40,16 @@ public class MsgQueueFactory {
         return null;
     }
 
-    public static MsgQueueConsumer newConsumer(String server, String topic) {
-        return newConsumer(-1, server, topic);
+    public static MsgQueueConsumer newConsumer(String server, String topic, boolean durable) {
+        return newConsumer(-1, server, topic, durable);
     }
 
-    public static MsgQueueConsumer newConsumer(int clientId, String server, String topic) {
+    public static MsgQueueConsumer newConsumer(int clientId, String server, String topic, boolean durable) {
         try {
             if (server.startsWith(NATS_PREFIX)) {
-                return NatsFactory.newConsumer(clientId, server, topic);
+                return NatsFactory.newConsumer(clientId, server, topic, durable);
             } else if (server.startsWith(RABBIT_PREFIX)) {
-                return RabbitFactory.newConsumer(clientId, server, topic);
+                return RabbitFactory.newConsumer(clientId, server, topic, durable);
             }
             return null;
         } catch (Exception e) {

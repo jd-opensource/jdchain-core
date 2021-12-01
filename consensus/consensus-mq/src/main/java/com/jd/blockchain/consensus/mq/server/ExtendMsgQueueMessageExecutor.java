@@ -107,7 +107,7 @@ public class ExtendMsgQueueMessageExecutor implements MsgQueueMessageDispatcher,
                 AsyncFuture<byte[]> result = messageHandle.processUnordered(data);
                 msgProducer.publish(result.get());
             } catch (Exception e) {
-                LOGGER.error("process Unordered message exception {}", e.getMessage());
+                LOGGER.error("process Unordered message exception", e);
             }
         });
     }

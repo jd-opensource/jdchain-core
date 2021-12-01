@@ -39,10 +39,13 @@ public class RabbitProducer implements MsgQueueProducer {
 
     private int clientId;
 
-    public RabbitProducer(int clientId, String server, String topic) throws Exception {
+    private boolean durable;
+
+    public RabbitProducer(int clientId, String server, String topic, boolean durable) throws Exception {
         this.clientId = clientId;
         this.exchangeName = topic;
         this.server = server;
+        this.durable = durable;
     }
 
     @Override
@@ -50,7 +53,7 @@ public class RabbitProducer implements MsgQueueProducer {
         ConnectionFactory factory = RabbitFactory.initConnectionFactory(server);
         connection = factory.newConnection();
         channel = connection.createChannel();
-        channel.exchangeDeclare(this.exchangeName, "fanout", true);
+        channel.exchangeDeclare(this.exchangeName, "fanout", durable);
         ConsoleUtils.info("[*] RabbitProducer[%s, %s] connect success !!!", this.server, this.exchangeName);
     }
 

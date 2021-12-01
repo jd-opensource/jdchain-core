@@ -19,19 +19,16 @@ import com.jd.blockchain.consensus.mq.util.MessageConvertUtil;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 import com.jd.blockchain.consensus.service.StateSnapshot;
-import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.TransactionState;
 import com.lmax.disruptor.EventHandler;
 
+import utils.codec.Base58Utils;
 import utils.concurrent.AsyncFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -195,11 +192,11 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
                 asyncFutureMap.put(txKey, asyncFuture);
             }
             consensusContext.setTimestamp(System.currentTimeMillis());
-            StateSnapshot stateSnapshot = messageHandle.completeBatch(consensusContext);
+            StateSnapshot snapshot = messageHandle.completeBatch(consensusContext);
             messageHandle.commitBatch(consensusContext);
             if (isLeader) {
                 // 领导者节点向follower同步区块
-                this.preBlProducer.publish(MessageConvertUtil.serializeBlockTxs(new BlockEvent(stateSnapshot.getId(), consensusContext.getTimestamp(), messageEvents)));
+                this.preBlProducer.publish(MessageConvertUtil.serializeBlockTxs(new BlockEvent(snapshot.getId(), snapshot.getTimestamp(), snapshot.getSnapshot(), messageEvents)));
             }
         } catch (Exception e) {
             // todo 需要处理应答码
@@ -214,15 +211,17 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
         String batchId = messageHandle.beginBatch(consensusContext);
         consensusContext.setBatchId(batchId);
         try {
-            for (MessageEvent messageEvent : block.getMessageEvents()) {
+            for (MessageEvent messageEvent : block.getTxEvents()) {
                 messageHandle.processOrdered(messageId.getAndIncrement(), messageEvent.getMessage(), consensusContext);
             }
             consensusContext.setTimestamp(block.getTimestamp());
-            StateSnapshot stateSnapshot = messageHandle.completeBatch(consensusContext);
-            if (stateSnapshot.getId() == block.getHeight()) {
+            StateSnapshot snapshot = messageHandle.completeBatch(consensusContext);
+            if (snapshot.getId() == block.getHeight() && Arrays.equals(snapshot.getSnapshot(), block.getHash())) {
                 messageHandle.commitBatch(consensusContext);
             } else {
-                LOGGER.error("stateSnapshot not match the leader's, follower: {}, leader: {}", stateSnapshot.getId(), block.getHeight());
+                LOGGER.error("stateSnapshot not match the leader's, follower: {}-{}, leader: {}-{}",
+                        snapshot.getId(), Base58Utils.encode(block.getHash()),
+                        snapshot.getSnapshot(), Base58Utils.encode(block.getHash()));
                 messageHandle.rollbackBatch(TransactionState.CONSENSUS_ERROR.CODE, consensusContext);
             }
         } catch (Exception e) {

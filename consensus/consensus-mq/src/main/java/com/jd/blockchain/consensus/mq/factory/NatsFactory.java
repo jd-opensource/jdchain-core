@@ -22,11 +22,11 @@ import com.jd.blockchain.consensus.mq.producer.NatsProducer;
 
 public class NatsFactory {
 
-    public static MsgQueueProducer newProducer(int clientId, String server, String topic) throws Exception {
-        return new NatsProducer(clientId, server, topic);
+    public static MsgQueueProducer newProducer(int clientId, String server, String topic, boolean durable) throws Exception {
+        return new NatsProducer(clientId, server, topic, durable);
     }
 
-    public static MsgQueueConsumer newConsumer(int clientId, String server, String topic) throws Exception {
-        return new NatsConsumer(clientId, server, topic);
+    public static MsgQueueConsumer newConsumer(int clientId, String server, String topic, boolean durable) throws Exception {
+        return new NatsConsumer(clientId, server, topic, durable);
     }
 }
