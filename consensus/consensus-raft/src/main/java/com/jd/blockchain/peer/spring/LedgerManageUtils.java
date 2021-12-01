@@ -1,4 +1,4 @@
-package com.jd.blockchain.consensus.raft.spring;
+package com.jd.blockchain.peer.spring;
 
 
 import com.jd.blockchain.crypto.Crypto;
@@ -8,9 +8,10 @@ import com.jd.blockchain.ledger.core.LedgerRepository;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.annotation.Configuration;
 import utils.codec.Base58Utils;
 
-
+@Configuration
 public class LedgerManageUtils implements ApplicationContextAware {
 
     private static ApplicationContext applicationContext;

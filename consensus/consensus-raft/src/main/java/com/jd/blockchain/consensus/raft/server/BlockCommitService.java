@@ -59,23 +59,21 @@ public class BlockCommitService implements BlockCommitter {
         LoggerUtils.debugIfEnabled(LOGGER, "commit block start, batchId: {}", batch);
 
         Status status = Status.OK();
-        long blockHeight = block.getHeight();
-
         try {
             int msgId = 0;
             for (byte[] tx : block.getTxs()) {
                 AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(msgId++, tx, context);
                 Optional.ofNullable(done).ifPresent(d -> d.addFuture(asyncFuture));
             }
-            StateSnapshot stateSnapshot = messageHandle.completeBatch(context);
-            blockHeight = stateSnapshot.getId();
 
+            messageHandle.completeBatch(context);
+            //todo ?
             messageHandle.commitBatch(context);
 
             LedgerBlock repositoryLatestBlock = ledgerRepository.getLatestBlock();
-            assert blockHeight == block.getHeight();
+            assert repositoryLatestBlock.getHeight() == block.getHeight();
 
-            block.setPreBlockHash(latestBlock.getPreviousHash().toBase58());
+            block.setPreBlockHash(repositoryLatestBlock.getPreviousHash().toBase58());
             block.setCurrentBlockHash(repositoryLatestBlock.getHash().toBase58());
 
             blockCommitCallbackList.forEach(c -> c.commitCallBack(block, true));
@@ -88,7 +86,7 @@ public class BlockCommitService implements BlockCommitter {
             blockCommitCallbackList.forEach(c -> c.commitCallBack(block, false));
         }
 
-        LoggerUtils.debugIfEnabled(LOGGER, "commit block end, batchId: {}, blockHeight: {}, status: {}", batch, blockHeight, status);
+        LoggerUtils.debugIfEnabled(LOGGER, "commit block end, batchId: {}, blockHeight: {}, status: {}", batch, block.getHeight(), status);
 
         if (done != null) {
             done.run(status);

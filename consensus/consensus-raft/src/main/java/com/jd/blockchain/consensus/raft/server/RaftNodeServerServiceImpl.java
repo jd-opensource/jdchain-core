@@ -8,6 +8,7 @@ import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.util.*;
 import com.jd.blockchain.consensus.raft.consensus.Block;
 import com.jd.blockchain.consensus.raft.consensus.BlockProposer;
+import com.jd.blockchain.consensus.raft.consensus.BlockSerializer;
 import com.jd.blockchain.consensus.raft.rpc.*;
 import com.jd.blockchain.consensus.raft.util.LoggerUtils;
 import com.jd.blockchain.ledger.TransactionState;
@@ -16,7 +17,6 @@ import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.concurrent.AsyncFuture;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -32,15 +32,16 @@ public class RaftNodeServerServiceImpl implements RaftNodeServerService {
     private static final int MAX_SUBMIT_RETRY_TIMES = 3;
 
     private RaftNodeServer nodeServer;
-
-    //todo
     private BlockProposer proposer;
+    private BlockSerializer serializer;
 
     private Disruptor<SubmitTx> submitTxDisruptor;
     private RingBuffer<SubmitTx> submitTxQueue;
 
-    public RaftNodeServerServiceImpl(RaftNodeServer nodeServer) {
+    public RaftNodeServerServiceImpl(RaftNodeServer nodeServer, BlockProposer proposer, BlockSerializer serializer) {
         this.nodeServer = nodeServer;
+        this.proposer = proposer;
+        this.serializer = serializer;
         this.submitTxDisruptor = DisruptorBuilder.<SubmitTx>newInstance()
                 .setRingBufferSize(nodeServer.getServerSettings().getRaftSettings().getDisruptorBufferSize())
                 .setEventFactory(new SubmitTxFactory())
@@ -222,7 +223,7 @@ public class RaftNodeServerServiceImpl implements RaftNodeServerService {
             final Task task = new Task();
 
             Block block = proposer.proposeBlock(txList);
-            task.setData(ByteBuffer.wrap(nodeServer.getTxSerializer().serialize(block)));
+            task.setData(ByteBuffer.wrap(serializer.serialize(block)));
             task.setDone(new BlockClosure(block, doneList));
 
             nodeServer.getNode().apply(task);

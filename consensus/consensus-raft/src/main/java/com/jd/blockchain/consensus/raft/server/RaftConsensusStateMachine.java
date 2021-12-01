@@ -1,10 +1,11 @@
 package com.jd.blockchain.consensus.raft.server;
 
-import com.alipay.sofa.jraft.*;
+import com.alipay.sofa.jraft.Closure;
+import com.alipay.sofa.jraft.Iterator;
+import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.core.StateMachineAdapter;
 import com.alipay.sofa.jraft.entity.LeaderChangeContext;
-import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.error.RaftException;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
@@ -13,32 +14,41 @@ import com.alipay.sofa.jraft.util.Utils;
 import com.jd.blockchain.consensus.raft.consensus.Block;
 import com.jd.blockchain.consensus.raft.consensus.BlockCommittedException;
 import com.jd.blockchain.consensus.raft.consensus.BlockCommitter;
+import com.jd.blockchain.consensus.raft.consensus.BlockSerializer;
 import com.jd.blockchain.consensus.raft.util.LoggerUtils;
+import com.jd.blockchain.ledger.LedgerBlock;
+import com.jd.blockchain.ledger.core.LedgerRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RaftConsensusStateMachine extends StateMachineAdapter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RaftConsensusStateMachine.class);
 
-    private RaftNodeServer raftNodeServer;
     private BlockCommitter committer;
-
-    private Node node;
+    private BlockSerializer serializer;
+    private LedgerRepository ledgerRepository;
 
     private final AtomicBoolean isLeader = new AtomicBoolean(false);
     private volatile long term = -1;
     private volatile String leaderIp = "unknown";
 
     private volatile long currentBlockHeight;
-    private volatile long appliedIndex;
 
+    public RaftConsensusStateMachine(BlockCommitter committer, BlockSerializer serializer,LedgerRepository ledgerRepository) {
+        this.committer = committer;
+        this.serializer = serializer;
+        this.ledgerRepository = ledgerRepository;
+    }
+
+    public void onStart() {
+        LedgerBlock ledgerBlock = ledgerRepository.retrieveLatestBlock();
+        this.currentBlockHeight = ledgerBlock.getHeight();
+    }
 
     @Override
     public void onApply(Iterator iterator) {
@@ -55,35 +65,23 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
                         block = closure.getBlock();
                     } else {
                         final ByteBuffer data = iterator.getData();
-                        block = raftNodeServer.getTxSerializer().deserialize(data.array());
+                        block = serializer.deserialize(data.array());
                     }
 
-                    LoggerUtils.debugIfEnabled(LOGGER, "node: {} apply state machine log index: {} term: {}, block: {}",
-                            raftNodeServer.getNode().getNodeId(),
-                            iterator.getIndex(),
-                            iterator.getTerm(),
-                            block);
+                    LoggerUtils.debugIfEnabled(LOGGER, "apply state machine log index: {} term: {}, block: {}", iterator.getIndex(), iterator.getTerm(), block);
 
                     try {
                         boolean result = committer.commitBlock(block, closure);
                         if (result) {
                             currentBlockHeight = block.getHeight();
-                            appliedIndex = iterator.getIndex();
                         }
                     } catch (BlockCommittedException bce) {
                         //ignore
                         LoggerUtils.debugIfEnabled(LOGGER, "block committed,  ignore it", bce);
                     }
 
-
                 } catch (Throwable e) {
-                    LOGGER.error("node: {} apply state machine log index: {} term: {} , txList: {} error",
-                            raftNodeServer.getNode().getNodeId(),
-                            iterator.getIndex(),
-                            iterator.getTerm(),
-                            block,
-                            e
-                    );
+                    LOGGER.error("apply state machine log index: {} term: {} , txList: {} error", iterator.getIndex(), iterator.getTerm(), block, e);
                     index++;
                     status.setError(RaftError.UNKNOWN, e.toString());
                     throw e;
@@ -107,14 +105,12 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
     @Override
     public void onSnapshotSave(SnapshotWriter writer, Closure done) {
         long height = this.currentBlockHeight;
-        long index = this.appliedIndex;
 
         Utils.runInThread(() -> {
             final RaftSnapshotFile snapshot = new RaftSnapshotFile(writer.getPath());
 
             RaftSnapshotFile.RaftSnapshotData snapshotData = new RaftSnapshotFile.RaftSnapshotData();
             snapshotData.setHeight(height);
-            snapshotData.setAppliedIndex(index);
 
             if (snapshot.save(snapshotData)) {
                 if (writer.addFile(snapshot.getName())) {
@@ -154,8 +150,6 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
             }
 
             this.currentBlockHeight = snapshotHeight;
-            this.appliedIndex = load.getAppliedIndex();
-
             //TODO: 校验当前账本高度， 若高度不一致，则向leader节点账本请求最新数据
 
 
@@ -173,7 +167,6 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
         super.onLeaderStart(term);
         this.term = term;
         this.isLeader.set(true);
-        this.leaderIp = node.getNodeId().getPeerId().getEndpoint().toString();
     }
 
     @Override
@@ -208,45 +201,34 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
 
     }
 
+
+
     public boolean isLeader() {
         return isLeader.get();
     }
+//
+//    public PeerId getLeader() {
+//        if (node == null) {
+//            return null;
+//        }
+//
+//        if (node.isLeader()) {
+//            return node.getLeaderId();
+//        }
+//
+//        return RouteTable.getInstance().selectLeader(node.getGroupId());
+//    }
 
-    public PeerId getLeader() {
-        if (node == null) {
-            return null;
-        }
-
-        if (node.isLeader()) {
-            return node.getLeaderId();
-        }
-
-        return RouteTable.getInstance().selectLeader(node.getGroupId());
-    }
-
-    private List<PeerId> allPeers() {
-        if (node == null) {
-            return Collections.emptyList();
-        }
-
-        if (node.isLeader()) {
-            return node.listPeers();
-        }
-
-        return RouteTable.getInstance().getConfiguration(node.getGroupId()).getPeers();
-    }
-
-
-    public void setCommitter(BlockCommitter committer) {
-        this.committer = committer;
-    }
-
-    public void setRaftNodeServer(RaftNodeServer raftNodeServer) {
-        this.raftNodeServer = raftNodeServer;
-    }
-
-    public void setNode(Node node) {
-        this.node = node;
-    }
+//    private List<PeerId> allPeers() {
+//        if (node == null) {
+//            return Collections.emptyList();
+//        }
+//
+//        if (node.isLeader()) {
+//            return node.listPeers();
+//        }
+//
+//        return RouteTable.getInstance().getConfiguration(node.getGroupId()).getPeers();
+//    }
 
 }
