@@ -10,6 +10,7 @@ import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.gateway.service.topology.LedgerPeersTopology;
+import com.jd.blockchain.ledger.ConsensusTypeUpdateOperation;
 import org.apache.commons.io.FileUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -251,6 +252,8 @@ public class GatewayServerBooter {
 		DataContractRegistry.register(EventPublishOperation.class);
 		DataContractRegistry.register(EventPublishOperation.EventEntry.class);
 		DataContractRegistry.register(ConsensusSettingsUpdateOperation.class);
+		DataContractRegistry.register(ConsensusTypeUpdateOperation.class);
+
 
 		DataContractRegistry.register(GatewayAuthRequest.class);
 		DataContractRegistry.register(ActionRequest.class);
