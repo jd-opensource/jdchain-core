@@ -10,14 +10,11 @@ package com.jd.blockchain.consensus.mq.util;
 
 import com.alibaba.fastjson.JSON;
 import com.jd.blockchain.consensus.mq.event.BlockEvent;
-import com.jd.blockchain.consensus.mq.event.MessageEvent;
 import com.jd.blockchain.consensus.mq.event.TxBlockedEvent;
 
 import utils.security.ShaUtils;
 
 import org.springframework.util.Base64Utils;
-
-import java.util.List;
 
 
 /**
@@ -43,20 +40,6 @@ public class MessageConvertUtil {
         return base64Encode(ShaUtils.hash_256(src));
     }
 
-    public static BlockEvent convertBytes2BlockEvent(byte[] serializeBytes) {
-        String text;
-        try{
-            text = new String(serializeBytes, defaultCharsetName);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return convertString2BlockEvent(text);
-    }
-
-    public static BlockEvent convertString2BlockEvent(String serializeString) {
-        return JSON.parseObject(serializeString, BlockEvent.class);
-    }
-
     public static TxBlockedEvent convertBytes2TxBlockedEvent(byte[] serializeBytes) {
         String text;
         try{
@@ -71,30 +54,19 @@ public class MessageConvertUtil {
         return JSON.parseObject(serializeString, TxBlockedEvent.class);
     }
 
-    public static byte[] serializeBlockEvent(BlockEvent blockEvent) {
-        String serializeString = serializeEvent(blockEvent);
+    public static byte[] serializeBlockTxs(BlockEvent blockEvent) {
         byte[] serializeBytes;
         try {
-            serializeBytes = serializeString.getBytes(defaultCharsetName);
+            serializeBytes = JSON.toJSONString(blockEvent).getBytes(defaultCharsetName);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
         return serializeBytes;
     }
 
-    public static byte[] serializeBlockTxs(List<MessageEvent> messageEvents) {
-        byte[] serializeBytes;
+    public static BlockEvent convertBytesToBlockTxs(byte[] bytes) {
         try {
-            serializeBytes = JSON.toJSONString(messageEvents).getBytes(defaultCharsetName);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return serializeBytes;
-    }
-
-    public static List<MessageEvent> convertBytesToBlockTxs(byte[] bytes) {
-        try {
-            return JSON.parseArray(new String(bytes, defaultCharsetName), MessageEvent.class);
+            return JSON.parseObject(new String(bytes, defaultCharsetName), BlockEvent.class);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -109,9 +81,5 @@ public class MessageConvertUtil {
             throw new RuntimeException(e);
         }
         return serializeBytes;
-    }
-
-    public static String serializeEvent(BlockEvent blockEvent) {
-        return JSON.toJSONString(blockEvent);
     }
 }

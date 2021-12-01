@@ -17,7 +17,6 @@ import utils.ConsoleUtils;
 import java.io.IOException;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/11/5
  * @since 1.0.0
@@ -68,10 +67,10 @@ public class RabbitConsumer extends AbstractConsumer implements MsgQueueConsumer
         connection = factory.newConnection();
         channel = connection.createChannel();
 
-        channel.exchangeDeclare(this.exchangeName, "fanout");
-        queueName = channel.queueDeclare().getQueue();
+        channel.exchangeDeclare(this.exchangeName, "fanout", true);
+        queueName = channel.queueDeclare("",  true, false, false, null).getQueue();
         channel.queueBind(queueName, this.exchangeName, "");
-        channel.basicQos(8);
+        channel.basicQos(1);
 
         ConsoleUtils.info("[*] RabbitConsumer[%s, %s] connect success !!!", this.server, this.exchangeName);
     }

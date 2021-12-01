@@ -13,6 +13,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
+import com.rabbitmq.client.MessageProperties;
 import utils.ConsoleUtils;
 
 import java.io.IOException;
@@ -20,7 +21,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/11/5
  * @since 1.0.0
@@ -51,13 +51,13 @@ public class RabbitProducer implements MsgQueueProducer {
         ConnectionFactory factory = RabbitFactory.initConnectionFactory(server);
         connection = factory.newConnection();
         channel = connection.createChannel();
-        channel.exchangeDeclare(this.exchangeName, "fanout");
+        channel.exchangeDeclare(this.exchangeName, "fanout", true);
         ConsoleUtils.info("[*] RabbitProducer[%s, %s] connect success !!!", this.server, this.exchangeName);
     }
 
     @Override
     public void publish(byte[] message) throws Exception {
-        channel.basicPublish(this.exchangeName, "", null, message);
+        channel.basicPublish(this.exchangeName, "", MessageProperties.PERSISTENT_TEXT_PLAIN, message);
     }
 
     @Override

@@ -161,39 +161,6 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
         return future;
     }
 
-//    private void blockConsumerListening() {
-//        // 区块事件由单独一个线程处理
-//        blockExecutor.execute(() -> {
-//            while(isConnected) {
-//                try {
-//                    byte[] txBlockedEventBytes = blConsumer.start();
-//                    // 交由事件处理机制来处理
-//                    if (txBlockedEventBytes != null && txBlockedEventBytes.length > 0) {
-//                        txBlockedEventHandle(txBlockedEventBytes);
-//                    }
-//                } catch (Exception e) {
-//                    LOGGER.error("process block listening message exception {}", e.getMessage());
-//                }
-//            }
-//        });
-//    }
-
-//    private void extendConsumerListening() {
-//        extendExecutor.execute(() -> {
-//            while (isConnected) {
-//                try {
-//                    byte[] msgBytes = msgConsumer.start();
-//                    // 交由事件处理机制来处理
-//                    if (msgBytes != null && msgBytes.length > 0) {
-//                        extendMessageHandle(msgBytes);
-//                    }
-//                } catch (Exception e) {
-//                    LOGGER.error("process extend listening message exception {}", e.getMessage());
-//                }
-//            }
-//        });
-//    }
-
     private void txBlockedEventHandle(byte[] bytes) {
         messageExecutorArray.execute(() -> {
             if (!this.messageListeners.isEmpty()) {

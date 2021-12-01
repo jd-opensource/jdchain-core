@@ -9,6 +9,7 @@
 package com.jd.blockchain.consensus.mq.server;
 
 import com.jd.blockchain.consensus.event.EventEntity;
+import com.jd.blockchain.consensus.mq.event.BlockEvent;
 import com.jd.blockchain.consensus.mq.event.MessageEvent;
 import com.jd.blockchain.consensus.mq.event.TxBlockedEvent;
 import com.jd.blockchain.consensus.mq.exchange.ExchangeEventInnerEntity;
@@ -17,6 +18,8 @@ import com.jd.blockchain.consensus.mq.producer.MsgQueueProducer;
 import com.jd.blockchain.consensus.mq.util.MessageConvertUtil;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
+import com.jd.blockchain.consensus.service.StateSnapshot;
+import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.TransactionState;
 import com.lmax.disruptor.EventHandler;
 
@@ -138,10 +141,6 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
             try {
                 Map<String, AsyncFuture<byte[]>> txResponseMap = execute(messageEvents);
                 if (txResponseMap != null && !txResponseMap.isEmpty()) {
-                    if (isLeader) {
-                        // 领导者节点向follower同步区块
-                        this.preBlProducer.publish(MessageConvertUtil.serializeBlockTxs(messageEvents));
-                    }
                     for (Map.Entry<String, AsyncFuture<byte[]>> entry : txResponseMap.entrySet()) {
                         final String txKey = entry.getKey();
                         final AsyncFuture<byte[]> asyncFuture = entry.getValue();
@@ -189,14 +188,41 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
                 asyncFutureMap.put(txKey, asyncFuture);
             }
             consensusContext.setTimestamp(System.currentTimeMillis());
-            messageHandle.completeBatch(consensusContext);
-            // TODO imuge 验证
+            StateSnapshot stateSnapshot = messageHandle.completeBatch(consensusContext);
             messageHandle.commitBatch(consensusContext);
+            if (isLeader) {
+                // 领导者节点向follower同步区块
+                this.preBlProducer.publish(MessageConvertUtil.serializeBlockTxs(new BlockEvent(stateSnapshot.getId(), consensusContext.getTimestamp(), messageEvents)));
+            }
         } catch (Exception e) {
             // todo 需要处理应答码
             messageHandle.rollbackBatch(TransactionState.CONSENSUS_ERROR.CODE, consensusContext);
         }
         return asyncFutureMap;
+    }
+
+    private void execute(BlockEvent block) {
+        // 使用MessageHandle处理
+        MsgQueueConsensusMessageContext consensusContext = MsgQueueConsensusMessageContext.createInstance(realmName);
+        String batchId = messageHandle.beginBatch(consensusContext);
+        consensusContext.setBatchId(batchId);
+        try {
+            for (MessageEvent messageEvent : block.getMessageEvents()) {
+                messageHandle.processOrdered(messageId.getAndIncrement(), messageEvent.getMessage(), consensusContext);
+            }
+            consensusContext.setTimestamp(block.getTimestamp());
+            StateSnapshot stateSnapshot = messageHandle.completeBatch(consensusContext);
+            if (stateSnapshot.getId() == block.getHeight()) {
+                messageHandle.commitBatch(consensusContext);
+            } else {
+                LOGGER.error("stateSnapshot not match the leader's, follower: {}, leader: {}", stateSnapshot.getId(), block.getHeight());
+                messageHandle.rollbackBatch(TransactionState.CONSENSUS_ERROR.CODE, consensusContext);
+            }
+        } catch (Exception e) {
+            LOGGER.error("follower execute exception", e);
+            // todo 需要处理应答码
+            messageHandle.rollbackBatch(TransactionState.CONSENSUS_ERROR.CODE, consensusContext);
+        }
     }
 
 
