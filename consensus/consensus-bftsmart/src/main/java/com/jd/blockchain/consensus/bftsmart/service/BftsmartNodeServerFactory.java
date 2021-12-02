@@ -16,6 +16,7 @@ import com.jd.blockchain.consensus.service.StateMachineReplicate;
 
 import utils.io.Storage;
 import utils.net.NetworkAddress;
+import utils.net.SSLSecurity;
 
 public class BftsmartNodeServerFactory implements NodeServerFactory {
 
@@ -24,7 +25,11 @@ public class BftsmartNodeServerFactory implements NodeServerFactory {
 	@Override
 	public ServerSettings buildServerSettings(String realmName, ConsensusViewSettings viewSettings,
 			String nodeAddress) {
+		return buildServerSettings(realmName, viewSettings, nodeAddress, new SSLSecurity());
+	}
 
+	@Override
+	public ServerSettings buildServerSettings(String realmName, ConsensusViewSettings viewSettings, String nodeAddress, SSLSecurity sslSecurity) {
 		NodeSettings currentNodeSetting = null;
 
 		BftsmartServerSettingConfig serverSettings = new BftsmartServerSettingConfig();
@@ -43,20 +48,20 @@ public class BftsmartNodeServerFactory implements NodeServerFactory {
 
 		// set server settings
 		serverSettings.setRealmName(realmName);
-
 		serverSettings.setReplicaSettings(currentNodeSetting);
-
 		serverSettings.setConsensusSettings((BftsmartConsensusViewSettings) viewSettings);
+		serverSettings.setSslSecurity(sslSecurity);
 
 		return serverSettings;
-
 	}
 
 	@Override
 	public NodeServer setupServer(ServerSettings serverSettings, MessageHandle messageHandler,
 			StateMachineReplicate stateMachineReplicator, Storage runtimeStorage) {
 
-		NodeSettings[] currNodeSettings = (((BftsmartServerSettings) serverSettings).getConsensusSettings()).getNodes();
+		BftsmartServerSettings consensusSettings = (BftsmartServerSettings) serverSettings;
+
+		NodeSettings[] currNodeSettings = consensusSettings.getConsensusSettings().getNodes();
 
 		String currRealName = serverSettings.getRealmName();
 		
@@ -65,7 +70,7 @@ public class BftsmartNodeServerFactory implements NodeServerFactory {
 		if (!hasIntersection(currRealName, currNodeSettings)) {
 			Storage nodeRuntimeStorage = runtimeStorage.getStorage("bftsmart");
 			BftsmartNodeServer nodeServer = new BftsmartNodeServer(serverSettings, messageHandler,
-					stateMachineReplicator, nodeRuntimeStorage);
+					stateMachineReplicator, nodeRuntimeStorage, consensusSettings.getSslSecurity());
 			nodeServerMap.put(serverSettings.getRealmName(), currNodeSettings);
 			return nodeServer;
 		} else {

@@ -85,7 +85,7 @@ public abstract class AbstractContractCode implements ContractCode {
 		} catch (Throwable e) {
 			String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]! --%s",
 					eventContext.getEvent(), address.toString(), e.getMessage());
-			error = new ContractExecuteException(errorMessage);
+			error = new ContractExecuteException(errorMessage, e);
 		}
 
 		if (evtProcAwire != null) {

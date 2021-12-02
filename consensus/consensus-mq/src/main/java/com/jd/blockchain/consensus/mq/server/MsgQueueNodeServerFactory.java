@@ -20,6 +20,7 @@ import com.jd.blockchain.consensus.service.ServerSettings;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 
 import utils.io.Storage;
+import utils.net.SSLSecurity;
 
 /**
  *
@@ -33,8 +34,12 @@ public class MsgQueueNodeServerFactory implements NodeServerFactory {
 	@Override
 	public MsgQueueServerSettings buildServerSettings(String realmName, ConsensusViewSettings consensusSetting,
 			String nodeAddress) {
+		return buildServerSettings(realmName, consensusSetting, nodeAddress, new SSLSecurity());
+	}
 
-		if (!(consensusSetting instanceof MsgQueueConsensusSettings)) {
+	@Override
+	public MsgQueueServerSettings buildServerSettings(String realmName, ConsensusViewSettings viewSettings, String nodeAddress, SSLSecurity sslSecurity) {
+		if (!(viewSettings instanceof MsgQueueConsensusSettings)) {
 			throw new IllegalArgumentException(
 					"ConsensusSettings data isn't supported! Accept MsgQueueConsensusSettings only!");
 		}
@@ -42,9 +47,8 @@ public class MsgQueueNodeServerFactory implements NodeServerFactory {
 		MsgQueueNodeSettings nodeSettings = new MsgQueueNodeConfig().setAddress(nodeAddress);
 
 		MsgQueueServerSettings serverSettings = new MsgQueueServerConfig().setRealmName(realmName)
-				.setNodeSettings(nodeSettings).setConsensusSettings((MsgQueueConsensusSettings) consensusSetting);
+				.setNodeSettings(nodeSettings).setConsensusSettings((MsgQueueConsensusSettings) viewSettings);
 		return serverSettings;
-
 	}
 
 	@Override

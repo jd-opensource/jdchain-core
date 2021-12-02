@@ -70,7 +70,7 @@ public class BftsmartPeerProxyFactory extends BasePooledObjectFactory<AsynchServ
 		// every proxy client has unique id;
 		int processId = allocateId();
 		tomConfiguration.setProcessId(processId);
-		AsynchServiceProxy peerProxy = new AsynchServiceProxy(tomConfiguration, viewStorage);
+		AsynchServiceProxy peerProxy = new AsynchServiceProxy(tomConfiguration, viewStorage, bftsmartClientSettings.getSSLSecurity());
 
 		if (LOGGER.isInfoEnabled()) {
 			// 打印view

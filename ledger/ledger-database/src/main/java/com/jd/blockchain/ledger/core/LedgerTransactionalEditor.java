@@ -34,7 +34,6 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 	static {
 		PARALLEL_DB_WRITE = Boolean.getBoolean("parallel-dbwrite");
-		System.out.println("------ [[ parallel-dbwrite=" + PARALLEL_DB_WRITE + " ]] ------");
 	}
 
 	/**

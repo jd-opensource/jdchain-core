@@ -10,7 +10,9 @@ import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.gateway.service.topology.LedgerPeersTopology;
-import com.jd.blockchain.ledger.ConsensusTypeUpdateOperation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import utils.net.SSLSecurity;
 import org.apache.commons.io.FileUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -60,7 +62,6 @@ import com.jd.blockchain.sdk.GatewayAuthRequest;
 import utils.ArgumentSet;
 import utils.ArgumentSet.ArgEntry;
 import utils.BaseConstant;
-import utils.ConsoleUtils;
 import utils.StringUtils;
 import utils.reflection.TypeUtils;
 
@@ -82,6 +83,11 @@ public class GatewayServerBooter {
 
 	public static final String RUNTIME_STORAGE_DIR;
 
+	// 日志配置文件
+	public static final String LOG_CONFIG_FILE = "log4j.configurationFile";
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(GatewayServerBooter.class);
+
 	static {
 		HOME_DIR = TypeUtils.getCodeDirOf(GatewayServerBooter.class);
 		RUNTIME_STORAGE_DIR = new File(HOME_DIR, RUNTIME_FOLDER_NAME).getAbsolutePath();
@@ -95,13 +101,13 @@ public class GatewayServerBooter {
 			String configFile = argHost == null ? null : argHost.getValue();
 			GatewayConfigProperties configProps;
 			if (configFile == null) {
-				ConsoleUtils.info("Load build-in default configuration ...");
+				LOGGER.info("Load build-in default configuration ...");
 				ClassPathResource configResource = new ClassPathResource("gateway.conf");
 				try (InputStream in = configResource.getInputStream()) {
 					configProps = GatewayConfigProperties.resolve(in);
 				}
 			} else {
-				ConsoleUtils.info("Load configuration ...");
+				LOGGER.info("Load configuration ...");
 				configProps = GatewayConfigProperties.resolve(argHost.getValue());
 			}
 
@@ -113,8 +119,7 @@ public class GatewayServerBooter {
 			} else {
 				// if no the config file, then should tip as follows. but it's not a good
 				// feeling, so we create it by inputStream;
-				ConsoleUtils.info(
-						"no param:-sp, format: -sp /x/xx.properties, use the default application-gw.properties 	");
+				LOGGER.info("no param:-sp, format: -sp /x/xx.properties, use the default application-gw.properties 	");
 				ClassPathResource configResource = new ClassPathResource(DEFAULT_GATEWAY_PROPS);
 				InputStream in = configResource.getInputStream();
 
@@ -132,11 +137,11 @@ public class GatewayServerBooter {
 			}
 
 			// 启动服务器；
-			ConsoleUtils.info("Starting web server......");
+			LOGGER.info("Starting web server......");
 			GatewayServerBooter booter = new GatewayServerBooter(configProps, springConfigLocation);
 			booter.start();
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error("Gateway start error", e);
 		}
 	}
 
@@ -189,18 +194,29 @@ public class GatewayServerBooter {
 		if (this.appCtx != null) {
 			throw new IllegalStateException("Gateway server is running already.");
 		}
-		this.appCtx = startServer(config.http().getHost(), config.http().getPort(), springConfigLocation,
-				config.http().getContextPath());
+		this.appCtx = startServer(config.http(), springConfigLocation);
 
-		ConsoleUtils.info("\r\n\r\nStart connecting to peer ....");
+		String keyStore = appCtx.getEnvironment().getProperty("server.ssl.key-store");
+		String keyStoreType = appCtx.getEnvironment().getProperty("server.ssl.key-store-type");
+		String keyAlias = appCtx.getEnvironment().getProperty("server.ssl.key-alias");
+		String keyStorePassword = appCtx.getEnvironment().getProperty("server.ssl.key-store-password");
+		String trustStore = appCtx.getEnvironment().getProperty("server.ssl.trust-store");
+		String trustStorePassword = appCtx.getEnvironment().getProperty("server.ssl.trust-store-password");
+		String trustStoreType = appCtx.getEnvironment().getProperty("server.ssl.trust-store-type");
+		// 网关连接PEER节点管理服务TLS配置
+		SSLSecurity manageSecurity = new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword, trustStore, trustStorePassword, trustStoreType);
+		// 网关连接PEER节点共识服务TLS配置
+		SSLSecurity consensusSecurity = manageSecurity;
+
+		LOGGER.info("Start connecting to peer ....");
 		DataSearchController dataSearchController = appCtx.getBean(DataSearchController.class);
 		dataSearchController.setDataRetrievalUrl(config.dataRetrievalUrl());
 		dataSearchController.setSchemaRetrievalUrl(config.getSchemaRetrievalUrl());
 		LedgersManager peerConnector = appCtx.getBean(LedgersManager.class);
 
-		peerConnector.init(defaultKeyPair, config);
+		peerConnector.init(defaultKeyPair, manageSecurity, consensusSecurity, config);
 
-		ConsoleUtils.info("Peer[%s] is connected success!", config.masterPeerAddress().toString());
+		LOGGER.info("Peer {} is connected success!", config.masterPeerAddress().toString());
 	}
 
 	public synchronized void close() {
@@ -210,18 +226,25 @@ public class GatewayServerBooter {
 		this.appCtx.close();
 	}
 
-	private static ConfigurableApplicationContext startServer(String host, int port, String springConfigLocation,
-			String contextPath) {
+	private static ConfigurableApplicationContext startServer(GatewayConfigProperties.HttpConfig config, String springConfigLocation) {
 		List<String> argList = new ArrayList<String>();
-		argList.add(String.format("--server.address=%s", host));
-		argList.add(String.format("--server.port=%s", port));
+		String logConfig = System.getProperty(LOG_CONFIG_FILE);
+		if(!StringUtils.isEmpty(logConfig)) {
+			argList.add(String.format("--logging.config=%s", logConfig));
+		}
+		argList.add(String.format("--server.address=%s", config.getHost()));
+		argList.add(String.format("--server.port=%s", config.getPort()));
+		argList.add(String.format("--server.ssl.enabled=%s", config.isSecure()));
+		if(config.isSecure()) {
+			argList.add(String.format("--server.ssl.client-auth=%s", config.getClientAuth()));
+		}
 
 		if (springConfigLocation != null) {
 			argList.add(String.format("--spring.config.location=%s", springConfigLocation));
 		}
 
-		if (contextPath != null) {
-			argList.add(String.format("--server.context-path=%s", contextPath));
+		if (!StringUtils.isEmpty(config.getContextPath())) {
+			argList.add(String.format("--server.context-path=%s", config.getContextPath()));
 		}
 
 		String[] args = argList.toArray(new String[argList.size()]);
@@ -252,8 +275,6 @@ public class GatewayServerBooter {
 		DataContractRegistry.register(EventPublishOperation.class);
 		DataContractRegistry.register(EventPublishOperation.EventEntry.class);
 		DataContractRegistry.register(ConsensusSettingsUpdateOperation.class);
-		DataContractRegistry.register(ConsensusTypeUpdateOperation.class);
-
 
 		DataContractRegistry.register(GatewayAuthRequest.class);
 		DataContractRegistry.register(ActionRequest.class);

@@ -1,5 +1,7 @@
 package com.jd.blockchain.consensus.raft.server;
 
+import com.alipay.remoting.exception.CodecException;
+import com.alipay.remoting.serialization.SerializerManager;
 import com.jd.blockchain.consensus.raft.consensus.Block;
 import com.jd.blockchain.consensus.raft.consensus.BlockSerializer;
 import org.slf4j.Logger;
@@ -12,31 +14,21 @@ public class SimpleBlockSerializerService implements BlockSerializer {
 
     @Override
     public byte[] serialize(Block block) {
-        return new byte[0];
+        try {
+            return SerializerManager.getSerializer(SerializerManager.Hessian2).serialize(block);
+        } catch (CodecException e) {
+            LOGGER.error("serialize block error", e);
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public Block deserialize(byte[] blockBytes) {
-        return null;
+        try {
+            return SerializerManager.getSerializer(SerializerManager.Hessian2).deserialize(blockBytes, Block.class.getName());
+        } catch (CodecException e) {
+            LOGGER.error("deserialize blockBytes error", e);
+            throw new RuntimeException(e);
+        }
     }
-
-//    @Override
-//    public byte[] serialize(List<byte[]> txList) {
-//        try {
-//            return SerializerManager.getSerializer(SerializerManager.Hessian2).serialize(txList);
-//        } catch (CodecException e) {
-//            LOGGER.error("serialize txs error", e);
-//            throw new RuntimeException(e);
-//        }
-//    }
-//
-//    @Override
-//    public List<byte[]> deserialize(byte[] blockBytes) {
-//        try {
-//            return SerializerManager.getSerializer(SerializerManager.Hessian2).deserialize(blockBytes, LIST_BYTE_CLASS_NAME);
-//        } catch (CodecException e) {
-//            LOGGER.error("deserialize blockBytes error", e);
-//            throw new RuntimeException(e);
-//        }
-//    }
 }

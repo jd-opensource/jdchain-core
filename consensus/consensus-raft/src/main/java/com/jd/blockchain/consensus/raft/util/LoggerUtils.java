@@ -11,8 +11,6 @@ public final class LoggerUtils {
         if (logger.isDebugEnabled()) {
             logger.debug(fmt, args);
         }
-        //todo
-        logger.error(fmt, args);
     }
 
     public static void infoIfEnabled(Logger logger, String fmt, Object... args) {

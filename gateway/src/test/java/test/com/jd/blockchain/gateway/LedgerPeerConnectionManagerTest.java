@@ -11,6 +11,7 @@ import com.jd.blockchain.sdk.service.ConsensusClientManager;
 import com.jd.blockchain.setting.GatewayAuthResponse;
 import com.jd.blockchain.setting.LedgerIncomingSettings;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import utils.codec.Base58Utils;
 import utils.net.NetworkAddress;
@@ -22,6 +23,7 @@ import static org.mockito.Mockito.*;
 /**
  * 节点连接测试
  */
+@Ignore("耗时太长，不同机器环境不一定都能通过，测试用例需要重新设计")
 public class LedgerPeerConnectionManagerTest {
 
     static AsymmetricKeypair keyPair = new BlockchainKeypair(KeyGenUtils.decodePubKey("3snPdw7i7PhgdrXp9UxgTMr5PAYFxrEWdRdAdn9hsBA4pvp1iVYXM6"),

@@ -14,6 +14,7 @@ import com.jd.blockchain.transaction.TransactionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.net.NetworkAddress;
+import utils.net.SSLSecurity;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,6 +52,8 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
     private Map<NetworkAddress, LedgerPeerConnectionManager> connections;
 
     private ReadWriteLock connectionsLock = new ReentrantReadWriteLock();
+    private SSLSecurity manageSslSecurity;
+    private SSLSecurity consensusSslSecurity;
 
     // 是否准备就绪，已经有可用连接
     private volatile boolean ready;
@@ -64,6 +67,12 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
     public LedgerPeersManager(HashDigest ledger, LedgerPeerConnectionManager[] peerConnectionServices, AsymmetricKeypair keyPair,
                               SessionCredentialProvider credentialProvider, ConsensusClientManager clientManager,
                               LedgersListener ledgersListener, LedgerPeersTopologyStorage topologyStorage, boolean topologyAware) {
+        this(ledger, peerConnectionServices, new SSLSecurity(), new SSLSecurity(), keyPair, credentialProvider, clientManager, ledgersListener, topologyStorage, topologyAware);
+    }
+
+    public LedgerPeersManager(HashDigest ledger, LedgerPeerConnectionManager[] peerConnectionServices, SSLSecurity manageSslSecurity,
+                              SSLSecurity consensusSslSecurity, AsymmetricKeypair keyPair, SessionCredentialProvider credentialProvider,
+                              ConsensusClientManager clientManager, LedgersListener ledgersListener, LedgerPeersTopologyStorage topologyStorage, boolean topologyAware) {
         this.ledger = ledger;
         this.keyPair = keyPair;
         this.credentialProvider = credentialProvider;
@@ -71,7 +80,9 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
         this.ledgersListener = ledgersListener;
         this.topologyStorage = topologyStorage;
         this.topologyAware = topologyAware;
-        executorService = Executors.newSingleThreadScheduledExecutor();
+        this.executorService = Executors.newSingleThreadScheduledExecutor();
+        this.manageSslSecurity = manageSslSecurity;
+        this.consensusSslSecurity = consensusSslSecurity;
         this.connections = new ConcurrentHashMap<>();
         for (LedgerPeerConnectionManager manager : peerConnectionServices) {
             manager.setConnectionListener(this);
@@ -80,7 +91,7 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
     }
 
     public LedgerPeerConnectionManager newPeerConnectionManager(NetworkAddress peerAddress) {
-        return new LedgerPeerConnectionManager(ledger, peerAddress, keyPair, credentialProvider, clientManager, ledgersListener);
+        return new LedgerPeerConnectionManager(ledger, peerAddress, manageSslSecurity, consensusSslSecurity, keyPair, credentialProvider, clientManager, ledgersListener);
     }
 
     public HashDigest getLedger() {
@@ -275,7 +286,7 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
                         for (NodeNetworkAddress address : nodeAddresses) {
                             // 存在端口小于0的情况则不使用此次查询结果
                             if (address.getMonitorPort() > 0) {
-                                addresses.add(new NetworkAddress(address.getHost(), address.getMonitorPort()));
+                                addresses.add(new NetworkAddress(address.getHost(), address.getMonitorPort(), address.isMonitorSecure()));
                             } else {
                                 satisfied = false;
                                 break;

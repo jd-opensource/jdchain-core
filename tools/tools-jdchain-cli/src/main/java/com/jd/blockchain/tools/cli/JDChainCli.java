@@ -1,8 +1,5 @@
 package com.jd.blockchain.tools.cli;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 import java.io.File;
@@ -12,7 +9,7 @@ import java.io.File;
  * @author: imuge
  * @date: 2021/7/23
  **/
-@CommandLine.Command(name = "jdchain-cli", mixinStandardHelpOptions = true, version = "1.0",
+@CommandLine.Command(name = "jdchain-cli", mixinStandardHelpOptions = true, version = "JD Chain 1.6.1 RELEASE",
         description = "JDChain Cli is a convenient tool to manage jdchain keys, " +
                 "sign and send transactions to jdchain network, " +
                 "query data from jdchain network.",
@@ -24,11 +21,12 @@ import java.io.File;
                 Tx.class,
                 Query.class,
                 Participant.class,
+                TestNet.class,
                 CommandLine.HelpCommand.class
         })
 public class JDChainCli implements Runnable {
 
-    @CommandLine.Option(names = "--home", defaultValue = "../", description = "Set the home directory.", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--home", defaultValue = "../config", description = "Set the home directory.", scope = CommandLine.ScopeType.INHERIT)
     File path;
 
     @CommandLine.Option(names = "--pretty", defaultValue = "false", description = "Pretty json print", scope = CommandLine.ScopeType.INHERIT)
@@ -38,7 +36,6 @@ public class JDChainCli implements Runnable {
     CommandLine.Model.CommandSpec spec;
 
     public static void main(String[] args) {
-        Logger.getRootLogger().setLevel(Level.OFF);
         System.exit(new CommandLine(new JDChainCli()).execute(args));
     }
 

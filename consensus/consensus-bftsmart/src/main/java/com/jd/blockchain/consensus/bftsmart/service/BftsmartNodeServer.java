@@ -60,6 +60,8 @@ import utils.concurrent.AsyncFuture;
 import utils.concurrent.CompletableAsyncFuture;
 import utils.io.BytesUtils;
 import utils.io.Storage;
+import utils.net.SSLMode;
+import utils.net.SSLSecurity;
 import utils.serialize.binary.BinarySerializeUtils;
 
 public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer {
@@ -119,8 +121,15 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
 	private Storage nodeRuntimeStorage;
 
+	private SSLSecurity sslSecurity;
+
 	public BftsmartNodeServer(ServerSettings serverSettings, MessageHandle messageHandler,
 			StateMachineReplicate stateMachineReplicate, Storage storage) {
+		this(serverSettings, messageHandler, stateMachineReplicate, storage, new SSLSecurity());
+	}
+
+	public BftsmartNodeServer(ServerSettings serverSettings, MessageHandle messageHandler,
+							  StateMachineReplicate stateMachineReplicate, Storage storage, SSLSecurity sslSecurity) {
 		this.serverSettings = serverSettings;
 		this.realmName = serverSettings.getRealmName();
 		// used later
@@ -139,6 +148,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		this.clientAuthService = new BftsmartClientAuthencationService(this,
 				nodeRuntimeStorage.getStorage("client-auth"));
 		this.timeTolerance = tomConfig.getTimeTolerance();
+		this.sslSecurity = sslSecurity;
 	}
 
 	protected int findServerId() {
@@ -165,9 +175,9 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 			}
 			LOGGER.info("createConfig node id = {}, port = {}", node.getId(), node.getNetworkAddress().getPort());
 			configList.add(new HostsConfig.Config(node.getId(), node.getNetworkAddress().getHost(),
-					node.getNetworkAddress().getPort(), -1));
+					node.getNetworkAddress().getPort(), -1, node.getNetworkAddress().isSecure(), false));
 			consensusAddresses.put(node.getId(),
-					new NodeNetwork(node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1));
+					new NodeNetwork(node.getNetworkAddress().getHost(), node.getNetworkAddress().getPort(), -1, node.getNetworkAddress().isSecure(), false));
 		}
 
 		// create HostsConfig instance based on consensus realm nodes
@@ -191,14 +201,16 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 			LOGGER.info("###peer-startup.sh###,set up the -DhostPort=" + port);
 		}
 		int monitorPort = RuntimeConstant.getMonitorPort();
+		boolean monitorSecure = RuntimeConstant.isMonitorSecure();
 		String preHostIp = System.getProperty("hostIp");
 		if (!StringUtils.isEmpty(preHostIp)) {
-			hostConfig.add(id, preHostIp, port, monitorPort);
+			hostConfig.add(id, preHostIp, port, monitorPort, false, monitorSecure);
 			LOGGER.info("###peer-startup.sh###,set up the -DhostIp=" + preHostIp);
 		}
 
 		// 调整视图中的本节点端口号
 		consensusAddresses.get(id).setMonitorPort(monitorPort);
+		consensusAddresses.get(id).setMonitorSecure(monitorSecure);
 
 		this.tomConfig = new TOMConfiguration(id, systemsConfig, hostConfig, outerHostConfig);
 
@@ -267,7 +279,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 			int pid = processes[i];
 			if (serverId == pid) {
 				addresses[i] = new NodeNetwork(getTomConfig().getHost(pid), getTomConfig().getPort(pid),
-						getTomConfig().getMonitorPort(pid));
+						getTomConfig().getMonitorPort(pid), getTomConfig().isSecure(pid), getTomConfig().isMonitorSecure(pid));
 			} else {
 				addresses[i] = currView.getAddress(pid);
 			}
@@ -335,7 +347,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
 	private NodeNetworkAddress nodeNetworkAddress(NodeNetwork networkAddress) {
 		return new PeerNodeNetwork(networkAddress.getHost(), networkAddress.getConsensusPort(),
-				networkAddress.getMonitorPort());
+				networkAddress.getMonitorPort(), networkAddress.isConsensusSecure(), networkAddress.isMonitorSecure());
 	}
 
 	/**
@@ -771,7 +783,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 					try {
 						LOGGER.info("Start replica...[ID=" + getId() + "]");
 						replica = new ServiceReplica(null, null, tomConfig, BftsmartNodeServer.this, BftsmartNodeServer.this,
-								(int) latestStateId - 1, latestView, realmName);
+								(int) latestStateId - 1, latestView, realmName, sslSecurity);
 						topology = new BftsmartTopology(replica.getReplicaContext().getCurrentView());
 //                initOutTopology();
 						status = Status.RUNNING;
@@ -932,13 +944,25 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		 */
 		int monitorPort;
 
+		/**
+		 * 共识服务是否开启安全连接
+		 */
+		boolean consensusSecure;
+
+		/**
+		 * 管理服务是否开启安全连接
+		 */
+		boolean monitorSecure;
+
 		public PeerNodeNetwork() {
 		}
 
-		public PeerNodeNetwork(String host, int consensusPort, int monitorPort) {
+		public PeerNodeNetwork(String host, int consensusPort, int monitorPort, boolean consensusSecure, boolean monitorSecure) {
 			this.host = host;
 			this.consensusPort = consensusPort;
 			this.monitorPort = monitorPort;
+			this.consensusSecure = consensusSecure;
+			this.monitorSecure = monitorSecure;
 		}
 
 		@Override
@@ -956,6 +980,16 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 			return monitorPort;
 		}
 
+		@Override
+		public boolean isConsensusSecure() {
+			return consensusSecure;
+		}
+
+		@Override
+		public boolean isMonitorSecure() {
+			return monitorSecure;
+		}
+
 		public void setHost(String host) {
 			this.host = host;
 		}
@@ -966,6 +1000,14 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
 		public void setMonitorPort(int monitorPort) {
 			this.monitorPort = monitorPort;
+		}
+
+		public void setConsensusSecure(boolean consensusSecure) {
+			this.consensusSecure = consensusSecure;
+		}
+
+		public void setMonitorSecure(boolean monitorSecure) {
+			this.monitorSecure = monitorSecure;
 		}
 	}
 

@@ -1,32 +1,24 @@
 package com.jd.blockchain.runtime;
 
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 /**
  * 运行中的常量
- *
  */
 public class RuntimeConstant {
 
-    private static final ThreadLocal<Integer> MONITOR_PORT_LOCAL = new ThreadLocal<>();
+    private static int MONITOR_PORT = -1;
+    private static boolean MONITOR_SECURE = false;
 
-    /**
-     * 管理口常量
-     *
-     */
-    private static final AtomicInteger MONITOR_PORT = new AtomicInteger(-1);
-
-    public static void setMonitorPort(int monitorPort) {
-        MONITOR_PORT_LOCAL.set(monitorPort);
-        MONITOR_PORT.set(monitorPort);
+    public static void setMonitorProperties(int monitorPort, boolean monitorSecure) {
+        MONITOR_PORT = monitorPort;
+        MONITOR_SECURE = monitorSecure;
     }
 
     public static int getMonitorPort() {
-        Integer monitorPort = MONITOR_PORT_LOCAL.get();
-        if (monitorPort == null) {
-            return MONITOR_PORT.get();
-        }
-        return monitorPort;
+        return MONITOR_PORT;
+    }
+
+    public static boolean isMonitorSecure() {
+        return MONITOR_SECURE;
     }
 }

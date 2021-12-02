@@ -894,7 +894,8 @@ public class MerkleSortTree<T> implements Transactional {
 	private MerkleIndex loadMerkleEntry(HashDigest nodeHash) {
 		byte[] nodeBytes = loadNodeBytes(nodeHash);
 
-		return MerkleIndexConvertor.decode(nodeBytes);
+		MerkleIndex merkleEntry = BinaryProtocol.decode(nodeBytes);
+		return merkleEntry;
 	}
 
 	private void verifyHash(HashDigest hash, byte[] bytes, String errMessage, Object... errorArgs) {
@@ -904,7 +905,7 @@ public class MerkleSortTree<T> implements Transactional {
 	}
 
 	private HashDigest saveIndex(MerkleIndex indexEntry) {
-		byte[] nodeBytes = MerkleIndexConvertor.encode(indexEntry);
+		byte[] nodeBytes = BinaryProtocol.encode(indexEntry, MerkleIndex.class);
 		return saveNodeBytes(nodeBytes, true);
 	}
 
@@ -1344,12 +1345,12 @@ public class MerkleSortTree<T> implements Transactional {
 
 		@Override
 		protected MerkleIndex deserializeChild(byte[] childBytes) {
-			return MerkleIndexConvertor.decode(childBytes);
+			return BinaryProtocol.decode(childBytes, MerkleIndex.class);
 		}
 
 		@Override
 		protected byte[] serializeChild(Object child) {
-			return MerkleIndexConvertor.encode((MerkleIndex) child);
+			return BinaryProtocol.encode(child, MerkleIndex.class);
 		}
 
 		@Override

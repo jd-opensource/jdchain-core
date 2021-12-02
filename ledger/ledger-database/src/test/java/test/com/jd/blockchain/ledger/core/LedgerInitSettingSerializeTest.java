@@ -6,6 +6,8 @@ import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 import java.util.Random;
 
+import com.jd.blockchain.ledger.IdentityMode;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.ParticipantNodeState;
 import org.junit.Before;
 import org.junit.Test;
@@ -88,6 +90,8 @@ public class LedgerInitSettingSerializeTest {
 		ConsensusParticipantData[] parties1 = Arrays.copyOf(parties, 4);
 
 		ledgerInitSettingData.setConsensusParticipants(parties1);
+		ledgerInitSettingData.setLedgerDataStructure(LedgerDataStructure.MERKLE_TREE);
+		ledgerInitSettingData.setIdentityMode(IdentityMode.KEYPAIR);
 
 		byte[] encode = BinaryProtocol.encode(ledgerInitSettingData, LedgerInitSetting.class);
 
@@ -132,6 +136,8 @@ public class LedgerInitSettingSerializeTest {
 		ParticipantCertData[] parties1 = Arrays.copyOf(parties, 4);
 
 		ledgerInitSettingData.setConsensusParticipants(parties1);
+		ledgerInitSettingData.setLedgerDataStructure(LedgerDataStructure.MERKLE_TREE);
+		ledgerInitSettingData.setIdentityMode(IdentityMode.KEYPAIR);
 
 		byte[] encode = BinaryProtocol.encode(ledgerInitSettingData, LedgerInitSetting.class);
 

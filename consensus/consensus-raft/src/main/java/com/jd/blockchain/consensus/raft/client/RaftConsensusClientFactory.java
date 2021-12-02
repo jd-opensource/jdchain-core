@@ -17,6 +17,7 @@ import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.SignatureDigest;
 import com.jd.blockchain.crypto.SignatureFunction;
+import utils.net.SSLSecurity;
 
 import java.security.cert.X509Certificate;
 import java.util.Optional;
@@ -66,6 +67,13 @@ public class RaftConsensusClientFactory implements ClientFactory, ManageClientFa
         }
 
         return new RaftClientConfig((RaftClientIncomingSettings) incomingSettings);
+    }
+
+
+    @Override
+    public ClientSettings buildClientSettings(ClientIncomingSettings incomingSettings, SSLSecurity sslSecurity) {
+        //todo
+        return buildClientSettings(incomingSettings);
     }
 
 

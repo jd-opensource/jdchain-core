@@ -6,4 +6,6 @@ public interface BlockCommitter {
 
     boolean commitBlock(Block block, BlockClosure done) throws BlockCommittedException;
 
+    void registerCallBack(BlockCommitCallback callback);
+
 }

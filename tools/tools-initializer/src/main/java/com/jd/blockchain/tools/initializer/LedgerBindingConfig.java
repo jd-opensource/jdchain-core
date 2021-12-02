@@ -20,6 +20,7 @@ import utils.StringUtils;
 import utils.codec.Base58Utils;
 import utils.io.FileUtils;
 import utils.io.RuntimeIOException;
+import utils.net.SSLSecurity;
 
 public class LedgerBindingConfig {
 
@@ -45,7 +46,14 @@ public class LedgerBindingConfig {
 	public static final String PARTI_PK_PATH = PARTI_PREFIX + "pk-path";
 	public static final String PARTI_PK = PARTI_PREFIX + "pk";
 	public static final String PARTI_PASSWORD = PARTI_PREFIX + "pwd";
-
+	// TLS配置
+	public static final String PARTI_SSL_KEY_STORE = "ssl.key-store";
+	public static final String PARTI_SSL_KEY_STORE_TYPE = "ssl.key-store-type";
+	public static final String PARTI_SSL_KEY_ALIAS = "ssl.key-alias";
+	public static final String PARTI_SSL_KEY_STORE_PASSWORD = "ssl.key-store-password";
+	public static final String PARTI_SSL_TRUST_STORE = "ssl.trust-store";
+	public static final String PARTI_SSL_TRUST_STORE_PASSWORD = "ssl.trust-store-password";
+	public static final String PARTI_SSL_TRUST_STORE_TYPE = "ssl.trust-store-type";
 
 	// DB Connection Config Key Prefix;
 	public static final String DB_PREFIX = "db.";
@@ -128,6 +136,13 @@ public class LedgerBindingConfig {
 		String partiNameKey = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_NAME);
 		String partiPKKey = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_PK);
 		String partiPwdKey = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_PASSWORD);
+		String partiSslKeyStore = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_KEY_STORE);
+		String partiSslKeyStoreType = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_KEY_STORE_TYPE);
+		String partiSslKeyAlias = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_KEY_ALIAS);
+		String partiSslKeyStorePassword = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_KEY_STORE_PASSWORD);
+		String partiSslTrustStore = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_TRUST_STORE);
+		String partiSslTrustStorePassword = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_TRUST_STORE_PASSWORD);
+		String partiSslTrustStoreType = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_TRUST_STORE_TYPE);
 
 		writeLine(builder, "#账本的当前共识参与方的节点地址 Address；");
 		writeLine(builder, "%s=%s", partiAddressKey, stringOf(binding.getParticipant().getAddress()));
@@ -139,6 +154,14 @@ public class LedgerBindingConfig {
 		writeLine(builder, "%s=%s", partiPKKey, stringOf(binding.getParticipant().getPk()));
 		writeLine(builder, "#账本的当前共识参与方的私钥文件的读取口令；可为空；如果为空时，节点的启动过程中需要手动从控制台输入；");
 		writeLine(builder, "%s=%s", partiPwdKey, stringOf(binding.getParticipant().getPassword()));
+		writeLine(builder, "#账本的当前共识参与方的共识服务TLS相关配置；");
+		writeLine(builder, "%s=%s", partiSslKeyStore, stringOf(binding.getParticipant().getSslKeyStore()));
+		writeLine(builder, "%s=%s", partiSslKeyStoreType, stringOf(binding.getParticipant().getSslKeyStoreType()));
+		writeLine(builder, "%s=%s", partiSslKeyAlias, stringOf(binding.getParticipant().getSslKeyAlias()));
+		writeLine(builder, "%s=%s", partiSslKeyStorePassword, stringOf(binding.getParticipant().getSslKeyStorePassword()));
+		writeLine(builder, "%s=%s", partiSslTrustStore, stringOf(binding.getParticipant().getSslTrustStore()));
+		writeLine(builder, "%s=%s", partiSslTrustStorePassword, stringOf(binding.getParticipant().getSslTrustStorePassword()));
+		writeLine(builder, "%s=%s", partiSslTrustStoreType, stringOf(binding.getParticipant().getSslTrustStoreType()));
 		writeLine(builder);
 	}
 
@@ -255,16 +278,30 @@ public class LedgerBindingConfig {
 		String partiNameKey = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_NAME);
 		String partiPKKey = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_PK);
 		String partiPwdKey = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_PASSWORD);
+		String partiSslKeyStore = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_KEY_STORE);
+		String partiSslKeyStoreType = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_KEY_STORE_TYPE);
+		String partiSslKeyAlias = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_KEY_ALIAS);
+		String partiSslKeyStorePassword = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_KEY_STORE_PASSWORD);
+		String partiSslTrustStore = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_TRUST_STORE);
+		String partiSslTrustStorePassword = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_TRUST_STORE_PASSWORD);
+		String partiSslTrustStoreType = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_TRUST_STORE_TYPE);
 
 		binding.participant.address = getProperty(props, partiAddrKey, true);
 		binding.participant.name = getProperty(props, partiNameKey, true);
 		binding.participant.pkPath = getProperty(props, partiPkPathKey, false);
 		binding.participant.pk = getProperty(props, partiPKKey, false);
 		binding.participant.password = getProperty(props, partiPwdKey, false);
-//		if (binding.participant.address < 0) {
-//			throw new IllegalArgumentException(
-//					String.format("Participant id less than 0 in ledger binding[%s]!", ledgerHash));
-//		}
+
+		binding.participant.sslKeyStore = getProperty(props, partiSslKeyStore, false);
+		binding.participant.sslKeyStoreType = getProperty(props, partiSslKeyStoreType, false);
+		binding.participant.sslKeyAlias = getProperty(props, partiSslKeyAlias, false);
+		binding.participant.sslKeyStorePassword = getProperty(props, partiSslKeyStorePassword, false);
+		binding.participant.sslTrustStore = getProperty(props, partiSslTrustStore, false);
+		binding.participant.sslTrustStorePassword = getProperty(props, partiSslTrustStorePassword, false);
+		binding.participant.sslTrustStoreType = getProperty(props, partiSslTrustStoreType, false);
+		binding.setSslSecurity(new SSLSecurity(binding.participant.sslKeyStoreType, binding.participant.sslKeyStore, binding.participant.sslKeyAlias, binding.participant.sslKeyStorePassword,
+				binding.participant.sslTrustStore, binding.participant.sslTrustStorePassword, binding.participant.sslTrustStoreType));
+
 		if (binding.participant.pkPath == null && binding.participant.pk == null) {
 			throw new IllegalArgumentException(
 					String.format("No priv key config of participant of ledger binding[%s]!", ledgerHash));
@@ -341,6 +378,8 @@ public class LedgerBindingConfig {
 
 		private LedgerDataStructure dataStructure = LedgerDataStructure.MERKLE_TREE;
 
+		private SSLSecurity sslSecurity;
+
 		// 账本名字
 		private ParticipantBindingConfig participant = new ParticipantBindingConfig();
 
@@ -369,19 +408,30 @@ public class LedgerBindingConfig {
 		public void setDataStructure(LedgerDataStructure dataStructure) {
 			this.dataStructure = dataStructure;
 		}
+
+		public SSLSecurity getSslSecurity() {
+			return sslSecurity;
+		}
+
+		public void setSslSecurity(SSLSecurity sslSecurity) {
+			this.sslSecurity = sslSecurity;
+		}
 	}
 
 	public static class ParticipantBindingConfig {
 
 		private String address;
-
 		private String name;
-
 		private String pkPath;
-
 		private String pk;
-
 		private String password;
+		private String sslKeyStore;
+		private String sslKeyStoreType;
+		private String sslKeyAlias;
+		private String sslKeyStorePassword;
+		private String sslTrustStore;
+		private String sslTrustStorePassword;
+		private String sslTrustStoreType;
 
 		public String getName() {
 			return name;
@@ -423,6 +473,61 @@ public class LedgerBindingConfig {
 			this.password = password;
 		}
 
+		public String getSslKeyStore() {
+			return sslKeyStore;
+		}
+
+		public void setSslKeyStore(String sslKeyStore) {
+			this.sslKeyStore = sslKeyStore;
+		}
+
+		public String getSslKeyStoreType() {
+			return sslKeyStoreType;
+		}
+
+		public void setSslKeyStoreType(String sslKeyStoreType) {
+			this.sslKeyStoreType = sslKeyStoreType;
+		}
+
+		public String getSslKeyAlias() {
+			return sslKeyAlias;
+		}
+
+		public void setSslKeyAlias(String sslKeyAlias) {
+			this.sslKeyAlias = sslKeyAlias;
+		}
+
+		public String getSslKeyStorePassword() {
+			return sslKeyStorePassword;
+		}
+
+		public void setSslKeyStorePassword(String sslKeyStorePassword) {
+			this.sslKeyStorePassword = sslKeyStorePassword;
+		}
+
+		public String getSslTrustStore() {
+			return sslTrustStore;
+		}
+
+		public void setSslTrustStore(String sslTrustStore) {
+			this.sslTrustStore = sslTrustStore;
+		}
+
+		public String getSslTrustStorePassword() {
+			return sslTrustStorePassword;
+		}
+
+		public void setSslTrustStorePassword(String sslTrustStorePassword) {
+			this.sslTrustStorePassword = sslTrustStorePassword;
+		}
+
+		public String getSslTrustStoreType() {
+			return sslTrustStoreType;
+		}
+
+		public void setSslTrustStoreType(String sslTrustStoreType) {
+			this.sslTrustStoreType = sslTrustStoreType;
+		}
 	}
 
 }

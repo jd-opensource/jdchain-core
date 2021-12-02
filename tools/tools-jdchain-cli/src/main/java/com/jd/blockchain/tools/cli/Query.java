@@ -20,6 +20,7 @@ import com.jd.blockchain.sdk.client.GatewayServiceFactory;
 import picocli.CommandLine;
 import utils.StringUtils;
 import utils.codec.Base58Utils;
+import utils.net.SSLSecurity;
 import utils.serialize.json.JSONSerializeUtils;
 
 /**
@@ -72,6 +73,30 @@ public class Query implements Runnable {
     @CommandLine.Option(names = "--gw-port", defaultValue = "8080", description = "Set the gateway port. Default: 8080", scope = CommandLine.ScopeType.INHERIT)
     int gwPort;
 
+    @CommandLine.Option(names = "--gw-secure", description = "Secure of the gateway service.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
+    boolean gwSecure;
+
+    @CommandLine.Option(names = "--ssl.key-store", description = "Set ssl.key-store for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String keyStore;
+
+    @CommandLine.Option(names = "--ssl.key-store-type", description = "Set ssl.key-store-type for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String keyStoreType;
+
+    @CommandLine.Option(names = "--ssl.key-alias", description = "Set ssl.key-alias for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String keyAlias;
+
+    @CommandLine.Option(names = "--ssl.key-store-password", description = "Set ssl.key-store-password for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String keyStorePassword;
+
+    @CommandLine.Option(names = "--ssl.trust-store", description = "Set ssl.trust-store for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String trustStore;
+
+    @CommandLine.Option(names = "--ssl.trust-store-password", description = "Set trust-store-password for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String trustStorePassword;
+
+    @CommandLine.Option(names = "--ssl.trust-store-type", description = "Set ssl.trust-store-type for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    String trustStoreType;
+
     @CommandLine.ParentCommand
     JDChainCli jdChainCli;
 
@@ -82,7 +107,12 @@ public class Query implements Runnable {
 
     BlockchainService getChainService() {
         if (null == blockchainService) {
-            blockchainService = GatewayServiceFactory.connect(gwHost, gwPort, false).getBlockchainService();
+            if (gwSecure) {
+                blockchainService = GatewayServiceFactory.connect(gwHost, gwPort, gwSecure, new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword,
+                        trustStore, trustStorePassword, trustStoreType)).getBlockchainService();
+            } else {
+                blockchainService = GatewayServiceFactory.connect(gwHost, gwPort, gwSecure).getBlockchainService();
+            }
         }
         return blockchainService;
     }

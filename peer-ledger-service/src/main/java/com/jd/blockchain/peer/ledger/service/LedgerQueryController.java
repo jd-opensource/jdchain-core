@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jd.blockchain.contract.ContractException;
@@ -58,7 +57,6 @@ import com.jd.blockchain.ledger.core.UserAccountSet;
 import com.jd.blockchain.peer.ledger.service.utils.LedgerAdminInfoDecorator;
 import com.jd.blockchain.peer.ledger.service.utils.TransactionDecorator;
 import com.jd.blockchain.transaction.BlockchainQueryService;
-import com.jd.blockchain.web.converters.BinaryMessageConverter;
 
 import utils.Bytes;
 import utils.DataEntry;
@@ -375,8 +373,8 @@ public class LedgerQueryController implements BlockchainQueryService {
 //		return txsDecorator(txs);
 	}
 
-	@RequestMapping(method = RequestMethod.POST, path = POST_GET_TRANSACTIONS_IN_BLOCK_HEIGHT, produces = BinaryMessageConverter.CONTENT_TYPE_VALUE)
-	public @ResponseBody LedgerTransactions getAdditionalTransactionsInBinary(
+	@RequestMapping(method = RequestMethod.POST, path = POST_GET_TRANSACTIONS_IN_BLOCK_HEIGHT)
+	public LedgerTransactions getAdditionalTransactionsInBinary(
 			@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 			@PathVariable(name = "blockHeight") long blockHeight,
 			@RequestParam(name = "fromIndex", required = false, defaultValue = "0") int fromIndex,

@@ -7,7 +7,7 @@ public class Block implements Serializable {
 
     private static final long serialVersionUID = 4648845890303631523L;
 
-    private long timestamp;
+    private long proposalTimestamp;
 
     private long height;
 
@@ -15,6 +15,7 @@ public class Block implements Serializable {
 
     private String preBlockHash;
 
+    //todo
     private String currentBlockHash;
 
     public long getHeight() {
@@ -49,11 +50,22 @@ public class Block implements Serializable {
         this.currentBlockHash = currentBlockHash;
     }
 
-    public long getTimestamp() {
-        return timestamp;
+    public long getProposalTimestamp() {
+        return proposalTimestamp;
     }
 
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
+    public void setProposalTimestamp(long proposalTimestamp) {
+        this.proposalTimestamp = proposalTimestamp;
+    }
+
+    @Override
+    public String toString() {
+        return "Block{" +
+                "proposalTimestamp=" + proposalTimestamp +
+                ", height=" + height +
+                ", txs[size]=" + txs.size() +
+                ", preBlockHash='" + preBlockHash + '\'' +
+                ", currentBlockHash='" + currentBlockHash + '\'' +
+                '}';
     }
 }

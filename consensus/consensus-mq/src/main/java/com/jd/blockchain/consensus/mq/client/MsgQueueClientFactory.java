@@ -23,6 +23,7 @@ import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.crypto.SignatureDigest;
 import com.jd.blockchain.crypto.SignatureFunction;
+import utils.net.SSLSecurity;
 
 import java.security.cert.X509Certificate;
 
@@ -65,7 +66,11 @@ public class MsgQueueClientFactory implements ClientFactory {
 
     @Override
     public MsgQueueClientSettings buildClientSettings(ClientIncomingSettings incomingSettings) {
+        return buildClientSettings(incomingSettings, new SSLSecurity());
+    }
 
+    @Override
+    public MsgQueueClientSettings buildClientSettings(ClientIncomingSettings incomingSettings, SSLSecurity sslSecurity) {
         MsgQueueClientIncomingSettings mqcic = (MsgQueueClientIncomingSettings)incomingSettings;
         if (mqcic != null) {
             return buildClientSettings(mqcic.getClientId(), mqcic.getPubKey(), (MsgQueueConsensusSettings)(mqcic.getViewSettings()));

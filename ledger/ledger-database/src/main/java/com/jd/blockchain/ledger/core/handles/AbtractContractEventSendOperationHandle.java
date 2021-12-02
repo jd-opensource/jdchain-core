@@ -93,7 +93,7 @@ public abstract class AbtractContractEventSendOperationHandle implements Operati
 
 		// 创建合约上下文;
 		LocalContractEventContext localContractEventContext = new LocalContractEventContext(
-				request.getTransactionContent().getLedgerHash(), contractOP.getEvent());
+				request.getTransactionContent().getLedgerHash(), contract.getAddress(), contractOP.getEvent());
 		localContractEventContext.setArgs(contractOP.getArgs()).setTransactionRequest(request)
 				.setLedgerContext(ledgerContext).setVersion(contract.getChainCodeVersion())
 				.setUncommittedLedgerContext(uncommittedLedgerQueryService);

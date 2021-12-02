@@ -18,7 +18,7 @@ public class BftsmartView implements ConsensusView {
 		this.nodes = new Node[processes.length];
 		for (int i = 0; i < nodes.length; i++) {
 			NodeNetwork network = view.getAddress(processes[i]);
-			nodes[i] = new NodeInfo(processes[i], new NetworkAddress(network.getHost(), network.getConsensusPort()));
+			nodes[i] = new NodeInfo(processes[i], new NetworkAddress(network.getHost(), network.getConsensusPort(), network.isConsensusSecure()));
 		}
 	}
 

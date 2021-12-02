@@ -57,8 +57,6 @@ public class LedgerInitCommand {
 
 	private static final Prompter DEFAULT_PROMPTER = new ConsolePrompter();
 
-	private static final Prompter ANSWER_PROMPTER = new PresetAnswerPrompter("Y");
-
 	private static final Prompter LOG_PROMPTER = new LogPrompter();
 
 	/**
@@ -313,6 +311,15 @@ public class LedgerInitCommand {
 		if(!StringUtils.isEmpty(base58Pwd)) {
 			bindingConf.getParticipant().setPassword(base58Pwd);
 		}
+
+		// 共识服务TLS相关参数
+		bindingConf.getParticipant().setSslKeyStore(localConfig.getLocal().getSslKeyStore());
+		bindingConf.getParticipant().setSslKeyStorePassword(localConfig.getLocal().getSslKeyStorePassword());
+		bindingConf.getParticipant().setSslKeyStoreType(localConfig.getLocal().getSslKeyStoreType());
+		bindingConf.getParticipant().setSslKeyAlias(localConfig.getLocal().getSslKeyAlias());
+		bindingConf.getParticipant().setSslTrustStore(localConfig.getLocal().getSslTrustStore());
+		bindingConf.getParticipant().setSslTrustStorePassword(localConfig.getLocal().getSslTrustStorePassword());
+		bindingConf.getParticipant().setSslTrustStoreType(localConfig.getLocal().getSslTrustStoreType());
 
 		bindingConf.getDbConnection().setConnectionUri(localConfig.getStoragedDb().getUri());
 		bindingConf.getDbConnection().setPassword(localConfig.getStoragedDb().getPassword());

@@ -3,11 +3,11 @@ package com.jd.blockchain.consensus.raft.server;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.raft.config.RaftServerSettingsConfig;
-import com.jd.blockchain.consensus.raft.server.RaftNodeServer;
 import com.jd.blockchain.consensus.raft.settings.RaftConsensusSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftServerSettings;
 import com.jd.blockchain.consensus.service.*;
 import utils.io.Storage;
+import utils.net.SSLSecurity;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,9 +46,16 @@ public class RaftNodeServerFactory implements NodeServerFactory {
 
 
     @Override
+    public ServerSettings buildServerSettings(String realmName, ConsensusViewSettings viewSettings, String nodeAddress, SSLSecurity sslSecurity) {
+        //todo
+        return buildServerSettings(realmName, viewSettings, nodeAddress);
+    }
+
+
+    @Override
     public NodeServer setupServer(ServerSettings serverSettings, MessageHandle messageHandler, StateMachineReplicate stateMachineReplicator, Storage runtimeStorage) {
 
-        if(!(serverSettings instanceof RaftServerSettings)){
+        if (!(serverSettings instanceof RaftServerSettings)) {
             throw new IllegalStateException("server settings should be raft-server settings");
         }
 

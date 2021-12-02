@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import com.jd.blockchain.ledger.IdentityMode;
 import org.junit.Test;
 
 import com.jd.blockchain.crypto.AddressEncoding;
@@ -87,7 +88,7 @@ public class LedgerAdminDatasetTest {
 		cryptoSetting.setAutoVerifyHash(true);
 		cryptoSetting.setHashAlgorithm(ClassicAlgorithm.SHA256);
 		initSetting.setCryptoSetting(cryptoSetting);
-
+		initSetting.setIdentityMode(IdentityMode.KEYPAIR);
 		byte[] ledgerSeed = new byte[16];
 		rand.nextBytes(ledgerSeed);
 		initSetting.setLedgerSeed(ledgerSeed);
@@ -300,6 +301,7 @@ public class LedgerAdminDatasetTest {
 
 		BlockchainKeypair newKey = BlockchainKeyGenerator.getInstance().generate();
 		newParti.setPubKey(newKey.getPubKey());
+		newParti.setParticipantState(ParticipantNodeState.CONSENSUS);
 
 		Throwable ex = null;
 		try {

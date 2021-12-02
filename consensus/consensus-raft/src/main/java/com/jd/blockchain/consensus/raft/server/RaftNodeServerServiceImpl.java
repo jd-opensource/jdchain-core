@@ -2,12 +2,14 @@ package com.jd.blockchain.consensus.raft.server;
 
 import com.alipay.sofa.jraft.Closure;
 import com.alipay.sofa.jraft.Status;
+import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.entity.Task;
 import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.util.*;
 import com.jd.blockchain.consensus.raft.consensus.Block;
 import com.jd.blockchain.consensus.raft.consensus.BlockProposer;
+import com.jd.blockchain.consensus.raft.consensus.BlockSerializer;
 import com.jd.blockchain.consensus.raft.rpc.*;
 import com.jd.blockchain.consensus.raft.util.LoggerUtils;
 import com.jd.blockchain.ledger.TransactionState;
@@ -16,7 +18,6 @@ import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.concurrent.AsyncFuture;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -32,15 +33,16 @@ public class RaftNodeServerServiceImpl implements RaftNodeServerService {
     private static final int MAX_SUBMIT_RETRY_TIMES = 3;
 
     private RaftNodeServer nodeServer;
-
-    //todo
     private BlockProposer proposer;
+    private BlockSerializer serializer;
 
     private Disruptor<SubmitTx> submitTxDisruptor;
     private RingBuffer<SubmitTx> submitTxQueue;
 
-    public RaftNodeServerServiceImpl(RaftNodeServer nodeServer) {
+    public RaftNodeServerServiceImpl(RaftNodeServer nodeServer, BlockProposer proposer, BlockSerializer serializer) {
         this.nodeServer = nodeServer;
+        this.proposer = proposer;
+        this.serializer = serializer;
         this.submitTxDisruptor = DisruptorBuilder.<SubmitTx>newInstance()
                 .setRingBufferSize(nodeServer.getServerSettings().getRaftSettings().getDisruptorBufferSize())
                 .setEventFactory(new SubmitTxFactory())
@@ -93,23 +95,44 @@ public class RaftNodeServerServiceImpl implements RaftNodeServerService {
     }
 
     @Override
-    public void handleParticipantNodeChangeRequest(ParticipantNodeChangeRequest request, Closure done) {
-        applyRequest(request, (RpcResponseClosure) done, (req, closure) -> {
-            PeerId changePeer = PeerId.parsePeer(String.format("%s:%d", request.getNodeHost(), request.getNodePort()));
-            boolean isAdd = request.getChangeType() == ParticipantNodeChangeRequest.ChangeType.ADD;
-            if (isAdd) {
-                nodeServer.getNode().addPeer(changePeer, done);
-            } else {
-                nodeServer.getNode().removePeer(changePeer, done);
-            }
-        });
-    }
-
-    @Override
     public void publishBlockEvent() {
         if (nodeServer.isLeader()) {
             this.submitTxQueue.publishEvent((event, sequence) -> event.setBlockEvent(true));
         }
+    }
+
+    @Override
+    public void addParticipantNode(ParticipantNodeAddRequest request, Closure done) {
+        applyRequest(request, (RpcResponseClosure) done, (req, closure) -> {
+            PeerId changePeer = PeerId.parsePeer(String.format("%s:%d", request.getHost(), request.getPort()));
+            nodeServer.getNode().addPeer(changePeer, done);
+            done.run(Status.OK());
+        });
+    }
+
+    @Override
+    public void removeParticipantNode(ParticipantNodeRemoveRequest request, Closure done) {
+        applyRequest(request, (RpcResponseClosure) done, (req, closure) -> {
+            PeerId changePeer = PeerId.parsePeer(String.format("%s:%d", request.getHost(), request.getPort()));
+            nodeServer.getNode().removePeer(changePeer, done);
+            done.run(Status.OK());
+        });
+    }
+
+    @Override
+    public void transferParticipantNode(ParticipantNodeTransferRequest request, Closure done) {
+        applyRequest(request, (RpcResponseClosure) done, (req, closure) -> {
+            PeerId removePeer = PeerId.parsePeer(String.format("%s:%d", request.getPreHost(), request.getPrePort()));
+            PeerId addPeer = PeerId.parsePeer(String.format("%s:%d", request.getNewHost(), request.getNewHost()));
+            List<PeerId> peerIds = nodeServer.getNode().listPeers();
+            peerIds.remove(removePeer);
+            peerIds.add(addPeer);
+
+            nodeServer.getNode().changePeers(new Configuration(peerIds), done);
+
+            done.run(Status.OK());
+        });
+
     }
 
 
@@ -222,7 +245,7 @@ public class RaftNodeServerServiceImpl implements RaftNodeServerService {
             final Task task = new Task();
 
             Block block = proposer.proposeBlock(txList);
-            task.setData(ByteBuffer.wrap(nodeServer.getTxSerializer().serialize(block)));
+            task.setData(ByteBuffer.wrap(serializer.serialize(block)));
             task.setDone(new BlockClosure(block, doneList));
 
             nodeServer.getNode().apply(task);
