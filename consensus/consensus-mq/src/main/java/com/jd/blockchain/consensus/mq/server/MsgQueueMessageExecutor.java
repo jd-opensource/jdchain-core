@@ -9,24 +9,23 @@
 package com.jd.blockchain.consensus.mq.server;
 
 import com.jd.blockchain.consensus.event.EventEntity;
-import com.jd.blockchain.consensus.mq.event.BlockEvent;
-import com.jd.blockchain.consensus.mq.event.MessageEvent;
-import com.jd.blockchain.consensus.mq.event.TxBlockedEvent;
+import com.jd.blockchain.consensus.mq.consumer.MsgQueueHandler;
+import com.jd.blockchain.consensus.mq.event.BlockMessage;
+import com.jd.blockchain.consensus.mq.event.MessageConvertor;
+import com.jd.blockchain.consensus.mq.event.TxMessage;
+import com.jd.blockchain.consensus.mq.event.TxResultMessage;
 import com.jd.blockchain.consensus.mq.exchange.ExchangeEventInnerEntity;
 import com.jd.blockchain.consensus.mq.exchange.ExchangeType;
 import com.jd.blockchain.consensus.mq.producer.MsgQueueProducer;
-import com.jd.blockchain.consensus.mq.util.MessageConvertUtil;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 import com.jd.blockchain.consensus.service.StateSnapshot;
 import com.jd.blockchain.ledger.TransactionState;
 import com.lmax.disruptor.EventHandler;
-
-import utils.codec.Base58Utils;
-import utils.concurrent.AsyncFuture;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.codec.Base58Utils;
+import utils.concurrent.AsyncFuture;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -39,29 +38,20 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @since 1.0.0
  */
 
-public class MsgQueueMessageExecutor implements EventHandler<EventEntity<ExchangeEventInnerEntity>> {
+public class MsgQueueMessageExecutor implements EventHandler<EventEntity<ExchangeEventInnerEntity>>, MsgQueueHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MsgQueueMessageExecutor.class);
 
     // todo 暂不处理队列溢出导致的OOM
     private final ExecutorService blockEventExecutor = Executors.newFixedThreadPool(10);
-
-    private MsgQueueProducer txResultProducer;
-
-    private MsgQueueProducer blockProducer;
-
-    private int nodeId;
-
-    private boolean isLeader;
-
-    private List<MessageEvent> exchangeEvents = new ArrayList<>();
-
-    private String realmName;
-
-    private MessageHandle messageHandle;
-
     private final AtomicInteger messageId = new AtomicInteger();
-
+    private final List<TxMessage> exchangeEvents = new ArrayList<>();
+    private MsgQueueProducer txResultProducer;
+    private MsgQueueProducer blockProducer;
+    private int nodeId;
+    private boolean isLeader;
+    private String realmName;
+    private MessageHandle messageHandle;
     private int txSizePerBlock = 1000;
 
     private StateMachineReplicate stateMachineReplicator;
@@ -125,9 +115,7 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
     public void onEvent(EventEntity<ExchangeEventInnerEntity> event, long sequence, boolean endOfBatch) throws Exception {
         ExchangeEventInnerEntity entity = event.getEntity();
         if (entity != null) {
-            if (entity.getType() == ExchangeType.BLOCK) {
-                process(event.getEntity());
-            } else if (entity.getType() == ExchangeType.PROPOSE || entity.getType() == ExchangeType.EMPTY) {
+            if (entity.getType() == ExchangeType.PROPOSE || entity.getType() == ExchangeType.EMPTY) {
                 if (!exchangeEvents.isEmpty()) {
                     process(exchangeEvents);
                     exchangeEvents.clear();
@@ -135,59 +123,48 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
             } else {
                 byte[] bytes = event.getEntity().getContent();
                 String key = bytes2Key(bytes);
-                exchangeEvents.add(new MessageEvent(key, bytes));
+                exchangeEvents.add(new TxMessage(key, bytes));
             }
         }
     }
 
-    private void process(List<MessageEvent> messageEvents) {
-        if (messageEvents != null && !messageEvents.isEmpty()) {
+    private void process(List<TxMessage> txMessages) {
+        if (txMessages != null && !txMessages.isEmpty()) {
             try {
-                Map<String, AsyncFuture<byte[]>> txResponseMap = execute(messageEvents);
+                Map<String, AsyncFuture<byte[]>> txResponseMap = execute(txMessages);
                 if (txResponseMap != null && !txResponseMap.isEmpty()) {
                     for (Map.Entry<String, AsyncFuture<byte[]>> entry : txResponseMap.entrySet()) {
                         final String txKey = entry.getKey();
                         final AsyncFuture<byte[]> asyncFuture = entry.getValue();
 
                         blockEventExecutor.execute(() -> {
-                            TxBlockedEvent txBlockedEvent = new TxBlockedEvent(txKey,
-                                    MessageConvertUtil.base64Encode(asyncFuture.get()));
-                            byte[] serializeBytes = MessageConvertUtil.serializeTxBlockedEvent(txBlockedEvent);
-                            // 通过消息队列发送该消息
+                            TxResultMessage txResultMessage = new TxResultMessage(txKey, asyncFuture.get());
                             try {
-                                this.txResultProducer.publish(serializeBytes);
+                                // 通过消息队列发送交易执行结果
+                                this.txResultProducer.publish(MessageConvertor.serializeTxResultEvent(txResultMessage));
                             } catch (Exception e) {
-                                LOGGER.error("publish block event message exception {}", e.getMessage());
+                                LOGGER.error("publish block event message exception", e);
                             }
                         });
                     }
                 }
             } catch (Exception e) {
                 // 打印日志
-                LOGGER.error("process message exception {}", e.getMessage());
+                LOGGER.error("process message exception", e);
             }
         }
     }
 
-    private void process(ExchangeEventInnerEntity message) {
-        try {
-            execute(MessageConvertUtil.convertBytesToBlockTxs(message.getContent()));
-        } catch (Exception e) {
-            // 打印日志
-            LOGGER.error("process message exception {}", e.getMessage());
-        }
-    }
-
-    private Map<String, AsyncFuture<byte[]>> execute(List<MessageEvent> messageEvents) {
+    private Map<String, AsyncFuture<byte[]>> execute(List<TxMessage> txMessages) {
         Map<String, AsyncFuture<byte[]>> asyncFutureMap = new HashMap<>();
         // 使用MessageHandle处理
         MsgQueueConsensusMessageContext consensusContext = MsgQueueConsensusMessageContext.createInstance(realmName);
         String batchId = messageHandle.beginBatch(consensusContext);
         consensusContext.setBatchId(batchId);
         try {
-            for (MessageEvent messageEvent : messageEvents) {
-                String txKey = messageEvent.getMessageKey();
-                byte[] txContent = messageEvent.getMessage();
+            for (TxMessage txMessage : txMessages) {
+                String txKey = txMessage.getKey();
+                byte[] txContent = txMessage.getMessage();
                 AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(messageId.getAndIncrement(), txContent, consensusContext);
                 asyncFutureMap.put(txKey, asyncFuture);
             }
@@ -196,7 +173,7 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
             messageHandle.commitBatch(consensusContext);
             if (isLeader) {
                 // 领导者节点向follower同步区块
-                this.blockProducer.publish(MessageConvertUtil.serializeBlockTxs(new BlockEvent(snapshot.getId(), snapshot.getTimestamp(), snapshot.getSnapshot(), messageEvents)));
+                this.blockProducer.publish(MessageConvertor.serializeBlockTxs(new BlockMessage(snapshot.getId(), snapshot.getTimestamp(), snapshot.getSnapshot(), txMessages)));
             }
         } catch (Exception e) {
             // todo 需要处理应答码
@@ -205,23 +182,27 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
         return asyncFutureMap;
     }
 
-    private void execute(BlockEvent block) {
+    private void execute(BlockMessage block) {
+        if (block.getHeight() <= stateMachineReplicator.getLatestStateID(realmName)) {
+            LOGGER.warn("ignore old block, height: {}, timestamp: {}, hash: {}", block.getHeight(), block.getTimestamp(), Base58Utils.encode(block.getHash()));
+            return;
+        }
         // 使用MessageHandle处理
         MsgQueueConsensusMessageContext consensusContext = MsgQueueConsensusMessageContext.createInstance(realmName);
         String batchId = messageHandle.beginBatch(consensusContext);
         consensusContext.setBatchId(batchId);
         try {
-            for (MessageEvent messageEvent : block.getTxEvents()) {
-                messageHandle.processOrdered(messageId.getAndIncrement(), messageEvent.getMessage(), consensusContext);
+            for (TxMessage txMessage : block.getTxMessages()) {
+                messageHandle.processOrdered(messageId.getAndIncrement(), txMessage.getMessage(), consensusContext);
             }
             consensusContext.setTimestamp(block.getTimestamp());
             StateSnapshot snapshot = messageHandle.completeBatch(consensusContext);
             if (snapshot.getId() == block.getHeight() && Arrays.equals(snapshot.getSnapshot(), block.getHash())) {
                 messageHandle.commitBatch(consensusContext);
             } else {
-                LOGGER.error("stateSnapshot not match the leader's, follower: {}-{}, leader: {}-{}",
-                        snapshot.getId(), Base58Utils.encode(block.getHash()),
-                        snapshot.getSnapshot(), Base58Utils.encode(block.getHash()));
+                LOGGER.error("stateSnapshot not match the leader's, \nfollower height: {}, timestamp: {}, hash: {} \nleader: height: {}, timestamp: {}, hash: {}",
+                        snapshot.getId(), snapshot.getTimestamp(), Base58Utils.encode(snapshot.getSnapshot()),
+                        block.getHeight(), block.getTimestamp(), Base58Utils.encode(block.getHash()));
                 messageHandle.rollbackBatch(TransactionState.CONSENSUS_ERROR.CODE, consensusContext);
             }
         } catch (Exception e) {
@@ -233,6 +214,16 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
 
 
     private String bytes2Key(byte[] bytes) {
-        return MessageConvertUtil.messageKey(bytes);
+        return MessageConvertor.messageKey(bytes);
+    }
+
+    @Override
+    public void handle(byte[] msg) {
+        try {
+            execute(MessageConvertor.convertBytesToBlockTxs(msg));
+        } catch (Exception e) {
+            // 打印日志
+            LOGGER.error("process message exception", e);
+        }
     }
 }

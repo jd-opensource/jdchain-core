@@ -9,29 +9,28 @@
 package com.jd.blockchain.consensus.mq.event;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/11/23
  * @since 1.0.0
  */
 
-public class MessageEvent {
+public class TxMessage {
 
-    String messageKey;
+    String key;
 
     byte[] message;
 
-    public MessageEvent(String messageKey, byte[] message) {
-        this.messageKey = messageKey;
+    public TxMessage(String key, byte[] message) {
+        this.key = key;
         this.message = message;
     }
 
-    public String getMessageKey() {
-        return messageKey;
+    public String getKey() {
+        return key;
     }
 
-    public void setMessageKey(String messageKey) {
-        this.messageKey = messageKey;
+    public void setKey(String key) {
+        this.key = key;
     }
 
     public byte[] getMessage() {

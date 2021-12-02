@@ -8,26 +8,20 @@
  */
 package com.jd.blockchain.consensus.mq.client;
 
+import com.jd.blockchain.consensus.MessageService;
+import com.jd.blockchain.consensus.mq.consumer.MsgQueueConsumer;
+import com.jd.blockchain.consensus.mq.consumer.MsgQueueHandler;
+import com.jd.blockchain.consensus.mq.event.TxResultMessage;
+import com.jd.blockchain.consensus.mq.producer.MsgQueueProducer;
+import com.jd.blockchain.consensus.mq.event.MessageConvertor;
+import utils.concurrent.AsyncFuture;
+import utils.concurrent.CompletableAsyncFuture;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import com.jd.blockchain.consensus.event.EventEntity;
-import com.lmax.disruptor.EventHandler;
-
-import utils.concurrent.AsyncFuture;
-import utils.concurrent.CompletableAsyncFuture;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.jd.blockchain.consensus.MessageService;
-import com.jd.blockchain.consensus.mq.consumer.MsgQueueConsumer;
-import com.jd.blockchain.consensus.mq.event.TxBlockedEvent;
-import com.jd.blockchain.consensus.mq.producer.MsgQueueProducer;
-import com.jd.blockchain.consensus.mq.util.MessageConvertUtil;
 
 /**
  * @author shaozhuguang
@@ -37,15 +31,13 @@ import com.jd.blockchain.consensus.mq.util.MessageConvertUtil;
 
 public class DefaultMessageTransmitter implements MessageTransmitter, MessageService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultMessageTransmitter.class);
-
     private final ExecutorService messageExecutorArray = Executors.newFixedThreadPool(10);
 
     private final Map<String, MessageListener> messageListeners = new ConcurrentHashMap<>();
 
-    private final BlockEventHandler blockEventHandler = new BlockEventHandler();
+    private final MsgQueueHandler blockMsgQueueHandler = new BlockMsgQueueHandler();
 
-    private final ExtendEventHandler extendEventHandler = new ExtendEventHandler();
+    private final MsgQueueHandler extendMsgQueueHandler = new ExtendMsgQueueHandler();
 
     private MsgQueueProducer txProducer;
 
@@ -107,9 +99,9 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
     public void connect() throws Exception {
         if (!isConnected) {
             this.txProducer.connect();
-            this.txResultConsumer.connect(blockEventHandler);
+            this.txResultConsumer.connect(blockMsgQueueHandler);
             this.msgProducer.connect();
-            this.msgConsumer.connect(extendEventHandler);
+            this.msgConsumer.connect(extendMsgQueueHandler);
             isConnected = true;
             txResultConsumer.start();
             msgConsumer.start();
@@ -144,7 +136,7 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
     }
 
     private String messageKey(byte[] message) {
-        return MessageConvertUtil.messageKey(message);
+        return MessageConvertor.messageKey(message);
     }
 
     private AsyncFuture<byte[]> registerMessageListener(String messageKey) {
@@ -154,57 +146,12 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
         return future;
     }
 
-    private void txBlockedEventHandle(byte[] bytes) {
-        messageExecutorArray.execute(() -> {
-            if (!this.messageListeners.isEmpty()) {
-                // 首先将字节数组转换为BlockEvent
-                final TxBlockedEvent txBlockedEvent =
-                        MessageConvertUtil.convertBytes2TxBlockedEvent(bytes);
-                if (txBlockedEvent != null) {
-                    // 需要判断该区块是否需要处理
-                    if (isTxBlockedEventNeedManage(txBlockedEvent)) {
-                        dealTxBlockedEvent(txBlockedEvent);
-                    }
-                }
-            }
-        });
-    }
-
-    private void extendMessageHandle(byte[] message) {
-        messageExecutorArray.execute(() -> {
-            String messageKey = messageKey(message);
-            if (messageListeners.containsKey(messageKey)) {
-                dealExtendMessage(messageKey, message);
-            }
-        });
-    }
-
-    private boolean isTxBlockedEventNeedManage(final TxBlockedEvent txBlockedEvent) {
+    private boolean isTxBlockedEventNeedManage(final TxResultMessage txResultMessage) {
         if (this.messageListeners.isEmpty()) {
             return false;
         }
-        if (messageListeners.containsKey(txBlockedEvent.getTxKey())) {
-            return true;
-        }
+        return messageListeners.containsKey(txResultMessage.getKey());
         // 无须处理区块高度
-        return false;
-    }
-
-    private void dealTxBlockedEvent(final TxBlockedEvent txBlockedEvent) {
-        String txKey = txBlockedEvent.getTxKey();
-        MessageListener txListener = this.messageListeners.get(txKey);
-        if (txListener != null) {
-            txListener.received(txBlockedEvent);
-            this.messageListeners.remove(txKey);
-        }
-    }
-
-    private void dealExtendMessage(final String messageKey, final byte[] message) {
-        MessageListener txListener = this.messageListeners.get(messageKey);
-        if (txListener != null) {
-            txListener.received(message);
-            this.messageListeners.remove(messageKey);
-        }
     }
 
     private class MessageListener {
@@ -227,9 +174,9 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
             }
         }
 
-        public void received(final TxBlockedEvent txBlockedEvent) {
+        public void received(final TxResultMessage txResultMessage) {
             // 期望是false，假设是false则设置为true，成功的情况下表示是第一次
-            byte[] txResp = txBlockedEvent.txResponseBytes();
+            byte[] txResp = txResultMessage.getResponse();
             if (txResp != null) {
                 if (isDeal.compareAndSet(false, true)) {
                     //生成对应的交易应答
@@ -249,25 +196,43 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
         }
     }
 
-    public class BlockEventHandler implements EventHandler<EventEntity<byte[]>> {
+    public class BlockMsgQueueHandler implements MsgQueueHandler {
 
         @Override
-        public void onEvent(EventEntity<byte[]> event, long sequence, boolean endOfBatch) throws Exception {
-            byte[] txBlockedEventBytes = event.getEntity();
-            if (txBlockedEventBytes != null && txBlockedEventBytes.length > 0) {
-                txBlockedEventHandle(txBlockedEventBytes);
-            }
+        public void handle(byte[] msg) {
+            messageExecutorArray.execute(() -> {
+                if (!messageListeners.isEmpty()) {
+                    TxResultMessage txResultMessage = MessageConvertor.convertBytesToTxResultEvent(msg);
+                    if (txResultMessage != null) {
+                        // 需要判断该区块是否需要处理
+                        if (isTxBlockedEventNeedManage(txResultMessage)) {
+                            String txKey = txResultMessage.getKey();
+                            MessageListener txListener = messageListeners.get(txKey);
+                            if (txListener != null) {
+                                txListener.received(txResultMessage);
+                                messageListeners.remove(txKey);
+                            }
+                        }
+                    }
+                }
+            });
         }
     }
 
-    public class ExtendEventHandler implements EventHandler<EventEntity<byte[]>> {
+    public class ExtendMsgQueueHandler implements MsgQueueHandler {
 
         @Override
-        public void onEvent(EventEntity<byte[]> event, long sequence, boolean endOfBatch) throws Exception {
-            byte[] msgBytes = event.getEntity();
-            if (msgBytes != null && msgBytes.length > 0) {
-                extendMessageHandle(msgBytes);
-            }
+        public void handle(byte[] msg) {
+            messageExecutorArray.execute(() -> {
+                String messageKey = messageKey(msg);
+                if (messageListeners.containsKey(messageKey)) {
+                    MessageListener txListener = messageListeners.get(messageKey);
+                    if (txListener != null) {
+                        txListener.received(msg);
+                        messageListeners.remove(messageKey);
+                    }
+                }
+            });
         }
     }
 }

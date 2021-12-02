@@ -8,9 +8,9 @@
  */
 package com.jd.blockchain.consensus.mq.consumer;
 
-import com.lmax.disruptor.EventHandler;
 import io.nats.client.*;
-import utils.ConsoleUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -23,21 +23,16 @@ import java.util.concurrent.Executors;
  * @since 1.0.0
  */
 
-public class NatsConsumer extends AbstractConsumer implements MsgQueueConsumer {
-
+public class NatsConsumer implements MsgQueueConsumer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(NatsConsumer.class);
     private final ExecutorService msgListener = Executors.newSingleThreadExecutor();
-
     private Connection nc;
-
     private Subscription sub;
-
-    private String server;
-
-    private String topic;
-
-    private int clientId;
-
-    private boolean durable;
+    private final String server;
+    private final String topic;
+    private final int clientId;
+    private final boolean durable;
+    private MsgQueueHandler msgQueueHandler;
 
     public NatsConsumer(int clientId, String server, String topic, boolean durable) {
         this.clientId = clientId;
@@ -47,13 +42,13 @@ public class NatsConsumer extends AbstractConsumer implements MsgQueueConsumer {
     }
 
     @Override
-    public void connect(EventHandler eventHandler) throws Exception {
-        initEventHandler(eventHandler);
+    public void connect(MsgQueueHandler msgQueueHandler) throws Exception {
+        this.msgQueueHandler = msgQueueHandler;
         Options options = new Options.Builder().server(server).noReconnect().build();
         this.nc = Nats.connect(options);
         this.sub = nc.subscribe(topic);
         this.nc.flush(Duration.ZERO);
-        ConsoleUtils.info("[*] NatsConsumer[%s, %s] connect success !!!", this.server, this.topic);
+        LOGGER.info("NatsConsumer[{}, {}] connect success !!!", this.server, this.topic);
     }
 
     @Override
@@ -62,7 +57,7 @@ public class NatsConsumer extends AbstractConsumer implements MsgQueueConsumer {
             for (; ; ) {
                 try {
                     Message msg = this.sub.nextMessage(Duration.ZERO);
-                    eventProducer.publish(msg.getData());
+                    msgQueueHandler.handle(msg.getData());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

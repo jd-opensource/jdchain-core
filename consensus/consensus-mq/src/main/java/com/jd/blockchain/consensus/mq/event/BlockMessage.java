@@ -1,15 +1,20 @@
 package com.jd.blockchain.consensus.mq.event;
 
-import com.jd.blockchain.consensus.service.StateSnapshot;
-
 import java.util.List;
 
-public class BlockEvent {
+public class BlockMessage {
 
     private long height;
     private long timestamp;
     private byte[] hash;
-    private List<MessageEvent> txEvents;
+    private List<TxMessage> txMessages;
+
+    public BlockMessage(long height, long timestamp, byte[] hash, List<TxMessage> txMessages) {
+        this.height = height;
+        this.timestamp = timestamp;
+        this.hash = hash;
+        this.txMessages = txMessages;
+    }
 
     public long getHeight() {
         return height;
@@ -35,18 +40,11 @@ public class BlockEvent {
         this.hash = hash;
     }
 
-    public List<MessageEvent> getTxEvents() {
-        return txEvents;
+    public List<TxMessage> getTxMessages() {
+        return txMessages;
     }
 
-    public void setTxEvents(List<MessageEvent> txEvents) {
-        this.txEvents = txEvents;
-    }
-
-    public BlockEvent(long height, long timestamp, byte[] hash, List<MessageEvent> txEvents) {
-        this.height = height;
-        this.timestamp = timestamp;
-        this.hash = hash;
-        this.txEvents = txEvents;
+    public void setTxMessages(List<TxMessage> txMessages) {
+        this.txMessages = txMessages;
     }
 }

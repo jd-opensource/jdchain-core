@@ -11,6 +11,8 @@ package com.jd.blockchain.consensus.mq.server;
 import com.jd.blockchain.consensus.event.EventEntity;
 import com.jd.blockchain.consensus.event.EventProducer;
 import com.jd.blockchain.consensus.mq.consumer.MsgQueueConsumer;
+import com.jd.blockchain.consensus.mq.consumer.MsgQueueDisruptorHandler;
+import com.jd.blockchain.consensus.mq.consumer.MsgQueueHandler;
 import com.jd.blockchain.consensus.mq.exchange.ExchangeEntityFactory;
 import com.jd.blockchain.consensus.mq.exchange.ExchangeEventFactory;
 import com.jd.blockchain.consensus.mq.exchange.ExchangeEventInnerEntity;
@@ -25,7 +27,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.concurrent.*;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -36,30 +39,20 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatcher, EventHandler<EventEntity<byte[]>> {
 
-    private final Logger LOGGER = LoggerFactory.getLogger(DefaultMsgQueueMessageDispatcher.class);
-
     private static final byte[] blockCommitBytes = new byte[]{0x00};
-
+    private final Logger LOGGER = LoggerFactory.getLogger(DefaultMsgQueueMessageDispatcher.class);
     private final ScheduledThreadPoolExecutor timeHandleExecutor = new ScheduledThreadPoolExecutor(2);
 
     private final AtomicLong blockIndex = new AtomicLong();
-
-    private long syncIndex = 0L;
-
-    private MsgQueueProducer txProducer;
-
-    private MsgQueueConsumer txConsumer;
-
-    private MsgQueueConsumer blockConsumer;
-
-    private EventProducer eventProducer;
-
-    private EventHandler eventHandler;
-
     private final int TX_SIZE_PER_BLOCK;
-
     private final long MAX_DELAY_MILLISECONDS_PER_BLOCK;
-
+    private long syncIndex = 0L;
+    private MsgQueueProducer txProducer;
+    private MsgQueueConsumer txConsumer;
+    private MsgQueueConsumer blockConsumer;
+    private EventProducer eventProducer;
+    private EventHandler eventHandler;
+    private MsgQueueHandler msgQueueHandler;
     private boolean isRunning;
 
     private boolean isLeader;
@@ -96,6 +89,11 @@ public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatch
         return this;
     }
 
+    public DefaultMsgQueueMessageDispatcher setMsgQueueHandler(MsgQueueHandler msgQueueHandler) {
+        this.msgQueueHandler = msgQueueHandler;
+        return this;
+    }
+
     public void init() {
         handleDisruptor(eventHandler);
     }
@@ -118,9 +116,9 @@ public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatch
         if (!isConnected) {
             if (isLeader) {
                 txProducer.connect();
-                txConsumer.connect(this);
+                txConsumer.connect(new MsgQueueDisruptorHandler(this));
             } else {
-                blockConsumer.connect(this);
+                blockConsumer.connect(msgQueueHandler);
             }
             isConnected = true;
         }
@@ -199,9 +197,6 @@ public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatch
                         eventProducer.publish(ExchangeEntityFactory.newProposeInstance());
                     }
                 }
-            } else {
-                LOGGER.info("receive new block");
-                eventProducer.publish(ExchangeEntityFactory.newBlockInstance(event.getEntity()));
             }
         } catch (Exception e) {
             LOGGER.info("dispatcher error", e);

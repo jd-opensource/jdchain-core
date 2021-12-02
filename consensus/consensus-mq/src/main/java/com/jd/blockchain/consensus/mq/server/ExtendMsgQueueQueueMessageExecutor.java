@@ -8,31 +8,27 @@
  */
 package com.jd.blockchain.consensus.mq.server;
 
-import com.jd.blockchain.consensus.event.EventEntity;
 import com.jd.blockchain.consensus.mq.consumer.MsgQueueConsumer;
+import com.jd.blockchain.consensus.mq.consumer.MsgQueueHandler;
 import com.jd.blockchain.consensus.mq.producer.MsgQueueProducer;
 import com.jd.blockchain.consensus.service.MessageHandle;
-import com.lmax.disruptor.EventHandler;
-
-import utils.concurrent.AsyncFuture;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.concurrent.AsyncFuture;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/12/13
  * @since 1.0.0
  */
 
-public class ExtendMsgQueueMessageExecutor implements MsgQueueMessageDispatcher, EventHandler<EventEntity<byte[]>> {
+public class ExtendMsgQueueQueueMessageExecutor implements MsgQueueMessageDispatcher, MsgQueueHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ExtendMsgQueueMessageExecutor.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExtendMsgQueueQueueMessageExecutor.class);
 
     private final ExecutorService dataExecutor = Executors.newSingleThreadExecutor();
 
@@ -46,17 +42,17 @@ public class ExtendMsgQueueMessageExecutor implements MsgQueueMessageDispatcher,
 
     private boolean isConnected;
 
-    public ExtendMsgQueueMessageExecutor setMsgProducer(MsgQueueProducer msgProducer) {
+    public ExtendMsgQueueQueueMessageExecutor setMsgProducer(MsgQueueProducer msgProducer) {
         this.msgProducer = msgProducer;
         return this;
     }
 
-    public ExtendMsgQueueMessageExecutor setMsgConsumer(MsgQueueConsumer msgConsumer) {
+    public ExtendMsgQueueQueueMessageExecutor setMsgConsumer(MsgQueueConsumer msgConsumer) {
         this.msgConsumer = msgConsumer;
         return this;
     }
 
-    public ExtendMsgQueueMessageExecutor setMessageHandle(MessageHandle messageHandle) {
+    public ExtendMsgQueueQueueMessageExecutor setMessageHandle(MessageHandle messageHandle) {
         this.messageHandle = messageHandle;
         return this;
     }
@@ -84,32 +80,6 @@ public class ExtendMsgQueueMessageExecutor implements MsgQueueMessageDispatcher,
     @Override
     public void run() {
         this.isRunning = true;
-//        this.msgConsumer.start();
-//        listen();
-    }
-
-//    private void listen() {
-//        while (isRunning) {
-//            try {
-//                byte[] data = this.msgConsumer.start();
-//                // 收到数据后由队列处理
-//                handleData(data);
-//            } catch (Exception e) {
-//                // 日志打印
-//                LOGGER.error("extend message handle exception {}", e.getMessage());
-//            }
-//        }
-//    }
-
-    private void handleData(byte[] data) {
-        dataExecutor.execute(() -> {
-            try {
-                AsyncFuture<byte[]> result = messageHandle.processUnordered(data);
-                msgProducer.publish(result.get());
-            } catch (Exception e) {
-                LOGGER.error("process Unordered message exception", e);
-            }
-        });
     }
 
     @Override
@@ -120,8 +90,14 @@ public class ExtendMsgQueueMessageExecutor implements MsgQueueMessageDispatcher,
     }
 
     @Override
-    public void onEvent(EventEntity<byte[]> event, long sequence, boolean endOfBatch) throws Exception {
-        byte[] data = event.getEntity();
-        handleData(data);
+    public void handle(byte[] msg) {
+        dataExecutor.execute(() -> {
+            try {
+                AsyncFuture<byte[]> result = messageHandle.processUnordered(msg);
+                msgProducer.publish(result.get());
+            } catch (Exception e) {
+                LOGGER.error("process Unordered message exception", e);
+            }
+        });
     }
 }

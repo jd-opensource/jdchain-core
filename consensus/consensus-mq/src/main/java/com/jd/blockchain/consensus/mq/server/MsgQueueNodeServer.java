@@ -39,7 +39,7 @@ public class MsgQueueNodeServer implements NodeServer {
 
     private DefaultMsgQueueMessageDispatcher dispatcher;
 
-    private ExtendMsgQueueMessageExecutor extendExecutor;
+    private ExtendMsgQueueQueueMessageExecutor extendExecutor;
 
     private MessageHandle messageHandle;
 
@@ -222,13 +222,14 @@ public class MsgQueueNodeServer implements NodeServer {
                 .setBlockConsumer(blockConsumer)
                 .setIsLeader(isLeader())
                 .setEventHandler(messageExecutor)
+                .setMsgQueueHandler(messageExecutor)
         ;
         dispatcher.init();
     }
 
 
     private void initExtendExecutor(MsgQueueProducer msgProducer, MsgQueueConsumer msgConsumer) {
-        extendExecutor = new ExtendMsgQueueMessageExecutor()
+        extendExecutor = new ExtendMsgQueueQueueMessageExecutor()
                 .setMessageHandle(messageHandle)
                 .setMsgConsumer(msgConsumer)
                 .setMsgProducer(msgProducer)

@@ -1,11 +1,3 @@
-/**
- * Copyright: Copyright 2016-2020 JD.COM All Right Reserved
- * FileName: com.jd.blockchain.consensus.mq.consumer.AbstractConsumer
- * Author: shaozhuguang
- * Department: 区块链研发部
- * Date: 2018/12/29 下午12:31
- * Description:
- */
 package com.jd.blockchain.consensus.mq.consumer;
 
 import com.jd.blockchain.consensus.event.EventEntity;
@@ -18,18 +10,11 @@ import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 
-/**
- *
- * @author shaozhuguang
- * @create 2018/12/29
- * @since 1.0.0
- */
-
-public abstract class AbstractConsumer implements MsgQueueConsumer {
+public class MsgQueueDisruptorHandler implements MsgQueueHandler {
 
     protected EventProducer eventProducer;
 
-    protected void initEventHandler(EventHandler eventHandler) {
+    public MsgQueueDisruptorHandler(EventHandler eventHandler) {
         Disruptor<EventEntity<byte[]>> disruptor =
                 new Disruptor<>(new BytesEventFactory(),
                         BytesEventFactory.BUFFER_SIZE, r -> {
@@ -40,5 +25,10 @@ public abstract class AbstractConsumer implements MsgQueueConsumer {
         disruptor.start();
         RingBuffer<EventEntity<byte[]>> ringBuffer = disruptor.getRingBuffer();
         this.eventProducer = new BytesEventProducer(ringBuffer);
+    }
+
+    @Override
+    public void handle(byte[] msg) {
+        this.eventProducer.publish(msg);
     }
 }
