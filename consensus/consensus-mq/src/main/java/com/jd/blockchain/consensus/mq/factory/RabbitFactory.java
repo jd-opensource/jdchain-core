@@ -13,9 +13,14 @@ import com.jd.blockchain.consensus.mq.consumer.RabbitConsumer;
 import com.jd.blockchain.consensus.mq.producer.MsgQueueProducer;
 import com.jd.blockchain.consensus.mq.producer.RabbitProducer;
 import com.rabbitmq.client.ConnectionFactory;
+import utils.StringUtils;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/11/5
  * @since 1.0.0
@@ -31,22 +36,9 @@ public class RabbitFactory {
         return new RabbitConsumer(clientId, server, topic, durable);
     }
 
-    public static ConnectionFactory initConnectionFactory(String server) {
+    public static ConnectionFactory initConnectionFactory(String server) throws URISyntaxException, NoSuchAlgorithmException, KeyManagementException {
         ConnectionFactory factory = new ConnectionFactory();
-        // 解析server，生成host+port，默认格式：rabbit://localhost:5672
-        try {
-            String[] hostAndPort = server.split("//")[1].split(":");
-            if (hostAndPort == null || hostAndPort.length == 0) {
-                factory.setHost("localhost");
-            } else if (hostAndPort.length == 1) {
-                factory.setHost(hostAndPort[0]);
-            } else {
-                factory.setHost(hostAndPort[0]);
-                factory.setPort(Integer.parseInt(hostAndPort[1]));
-            }
-        } catch (Exception e) {
-            factory.setHost("localhost");
-        }
+        factory.setUri(server);
         return factory;
     }
 }
