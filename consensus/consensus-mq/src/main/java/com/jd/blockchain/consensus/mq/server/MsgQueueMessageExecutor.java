@@ -122,8 +122,7 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
                 }
             } else {
                 byte[] bytes = event.getEntity().getContent();
-                String key = bytes2Key(bytes);
-                exchangeEvents.add(new TxMessage(key, bytes));
+                exchangeEvents.add(new TxMessage(MessageConvertor.messageKey(bytes), bytes));
             }
         }
     }
@@ -141,16 +140,17 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
                             TxResultMessage txResultMessage = new TxResultMessage(txKey, asyncFuture.get());
                             try {
                                 // 通过消息队列发送交易执行结果
+                                LOGGER.debug("publish tx result message, key: {}", txKey);
                                 this.txResultProducer.publish(MessageConvertor.serializeTxResultEvent(txResultMessage));
                             } catch (Exception e) {
-                                LOGGER.error("publish block event message exception", e);
+                                LOGGER.error("publish tx result message exception", e);
                             }
                         });
                     }
                 }
             } catch (Exception e) {
                 // 打印日志
-                LOGGER.error("process message exception", e);
+                LOGGER.error("process tx result message exception", e);
             }
         }
     }
@@ -210,11 +210,6 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
             // todo 需要处理应答码
             messageHandle.rollbackBatch(TransactionState.CONSENSUS_ERROR.CODE, consensusContext);
         }
-    }
-
-
-    private String bytes2Key(byte[] bytes) {
-        return MessageConvertor.messageKey(bytes);
     }
 
     @Override

@@ -14,6 +14,8 @@ import com.jd.blockchain.consensus.mq.consumer.MsgQueueHandler;
 import com.jd.blockchain.consensus.mq.event.TxResultMessage;
 import com.jd.blockchain.consensus.mq.producer.MsgQueueProducer;
 import com.jd.blockchain.consensus.mq.event.MessageConvertor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import utils.concurrent.AsyncFuture;
 import utils.concurrent.CompletableAsyncFuture;
 
@@ -30,6 +32,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 
 public class DefaultMessageTransmitter implements MessageTransmitter, MessageService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultMessageTransmitter.class);
 
     private final ExecutorService messageExecutorArray = Executors.newFixedThreadPool(10);
 
@@ -130,13 +134,8 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
 //      异步回调
 //      需要监听MQ结块的应答
 //      首先需要一个Consumer，在子类已实现
-        String messageKey = messageKey(message);
-        AsyncFuture<byte[]> messageFuture = registerMessageListener(messageKey);
+        AsyncFuture<byte[]> messageFuture = registerMessageListener(MessageConvertor.messageKey(message));
         return messageFuture;
-    }
-
-    private String messageKey(byte[] message) {
-        return MessageConvertor.messageKey(message);
     }
 
     private AsyncFuture<byte[]> registerMessageListener(String messageKey) {
@@ -204,9 +203,10 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
                 if (!messageListeners.isEmpty()) {
                     TxResultMessage txResultMessage = MessageConvertor.convertBytesToTxResultEvent(msg);
                     if (txResultMessage != null) {
+                        String txKey = txResultMessage.getKey();
+                        LOGGER.debug("receive tx result message, key: {}", txKey);
                         // 需要判断该区块是否需要处理
                         if (isTxBlockedEventNeedManage(txResultMessage)) {
-                            String txKey = txResultMessage.getKey();
                             MessageListener txListener = messageListeners.get(txKey);
                             if (txListener != null) {
                                 txListener.received(txResultMessage);
@@ -224,7 +224,7 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
         @Override
         public void handle(byte[] msg) {
             messageExecutorArray.execute(() -> {
-                String messageKey = messageKey(msg);
+                String messageKey = MessageConvertor.messageKey(msg);
                 if (messageListeners.containsKey(messageKey)) {
                     MessageListener txListener = messageListeners.get(messageKey);
                     if (txListener != null) {
