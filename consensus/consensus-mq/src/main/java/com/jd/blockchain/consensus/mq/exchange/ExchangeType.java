@@ -9,16 +9,18 @@
 package com.jd.blockchain.consensus.mq.exchange;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/11/5
  * @since 1.0.0
  */
 
 public enum ExchangeType {
-    BLOCK,
+    // 提议打块
+    PROPOSE,
+    // 空
     EMPTY,
+    // 交易
     TRANSACTION,
-    PREBLOCK,
-    ;
+    // 区块信息
+    BLOCK,
 }

@@ -50,7 +50,7 @@ public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatch
 
     private MsgQueueConsumer txConsumer;
 
-    private MsgQueueConsumer preBlConsumer;
+    private MsgQueueConsumer blockConsumer;
 
     private EventProducer eventProducer;
 
@@ -81,8 +81,8 @@ public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatch
         return this;
     }
 
-    public DefaultMsgQueueMessageDispatcher setPreBlConsumer(MsgQueueConsumer preBlConsumer) {
-        this.preBlConsumer = preBlConsumer;
+    public DefaultMsgQueueMessageDispatcher setBlockConsumer(MsgQueueConsumer blockConsumer) {
+        this.blockConsumer = blockConsumer;
         return this;
     }
 
@@ -120,7 +120,7 @@ public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatch
                 txProducer.connect();
                 txConsumer.connect(this);
             } else {
-                preBlConsumer.connect(this);
+                blockConsumer.connect(this);
             }
             isConnected = true;
         }
@@ -139,7 +139,7 @@ public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatch
             if (isLeader) {
                 txConsumer.start();
             } else {
-                preBlConsumer.start();
+                blockConsumer.start();
             }
         } catch (Exception e) {
 
@@ -166,7 +166,7 @@ public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatch
             this.txProducer.close();
             this.txConsumer.close();
         } else {
-            this.preBlConsumer.close();
+            this.blockConsumer.close();
         }
     }
 
@@ -180,7 +180,7 @@ public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatch
                     syncIndex = 0L;
                     this.blockIndex.getAndIncrement();
                     LOGGER.info("propose new block for timer");
-                    eventProducer.publish(ExchangeEntityFactory.newBlockInstance());
+                    eventProducer.publish(ExchangeEntityFactory.newProposeInstance());
                 } else {
                     if (syncIndex == 0) { // 收到第一个交易
                         // 需要判断是否需要进行定时任务
@@ -196,12 +196,12 @@ public class DefaultMsgQueueMessageDispatcher implements MsgQueueMessageDispatch
                         syncIndex = 0L;
                         this.blockIndex.getAndIncrement();
                         LOGGER.info("propose new block for txs");
-                        eventProducer.publish(ExchangeEntityFactory.newBlockInstance());
+                        eventProducer.publish(ExchangeEntityFactory.newProposeInstance());
                     }
                 }
             } else {
                 LOGGER.info("receive new block");
-                eventProducer.publish(ExchangeEntityFactory.newPreBlockInstance(event.getEntity()));
+                eventProducer.publish(ExchangeEntityFactory.newBlockInstance(event.getEntity()));
             }
         } catch (Exception e) {
             LOGGER.info("dispatcher error", e);

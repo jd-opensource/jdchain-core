@@ -46,9 +46,9 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
     // todo 暂不处理队列溢出导致的OOM
     private final ExecutorService blockEventExecutor = Executors.newFixedThreadPool(10);
 
-    private MsgQueueProducer blProducer;
+    private MsgQueueProducer txResultProducer;
 
-    private MsgQueueProducer preBlProducer;
+    private MsgQueueProducer blockProducer;
 
     private int nodeId;
 
@@ -71,13 +71,13 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
         return this;
     }
 
-    public MsgQueueMessageExecutor setBlProducer(MsgQueueProducer blProducer) {
-        this.blProducer = blProducer;
+    public MsgQueueMessageExecutor setTxResultProducer(MsgQueueProducer txResultProducer) {
+        this.txResultProducer = txResultProducer;
         return this;
     }
 
-    public MsgQueueMessageExecutor setPreBlProducer(MsgQueueProducer preBlProducer) {
-        this.preBlProducer = preBlProducer;
+    public MsgQueueMessageExecutor setBlockProducer(MsgQueueProducer blockProducer) {
+        this.blockProducer = blockProducer;
         return this;
     }
 
@@ -112,8 +112,8 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
             // 设置基础消息ID
             messageId.set(((int) latestStateId + 1) * txSizePerBlock);
             if (isLeader) {
-                blProducer.connect();
-                preBlProducer.connect();
+                txResultProducer.connect();
+                blockProducer.connect();
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -125,9 +125,9 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
     public void onEvent(EventEntity<ExchangeEventInnerEntity> event, long sequence, boolean endOfBatch) throws Exception {
         ExchangeEventInnerEntity entity = event.getEntity();
         if (entity != null) {
-            if (entity.getType() == ExchangeType.PREBLOCK) {
+            if (entity.getType() == ExchangeType.BLOCK) {
                 process(event.getEntity());
-            } else if (entity.getType() == ExchangeType.BLOCK || entity.getType() == ExchangeType.EMPTY) {
+            } else if (entity.getType() == ExchangeType.PROPOSE || entity.getType() == ExchangeType.EMPTY) {
                 if (!exchangeEvents.isEmpty()) {
                     process(exchangeEvents);
                     exchangeEvents.clear();
@@ -155,7 +155,7 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
                             byte[] serializeBytes = MessageConvertUtil.serializeTxBlockedEvent(txBlockedEvent);
                             // 通过消息队列发送该消息
                             try {
-                                this.blProducer.publish(serializeBytes);
+                                this.txResultProducer.publish(serializeBytes);
                             } catch (Exception e) {
                                 LOGGER.error("publish block event message exception {}", e.getMessage());
                             }
@@ -196,7 +196,7 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
             messageHandle.commitBatch(consensusContext);
             if (isLeader) {
                 // 领导者节点向follower同步区块
-                this.preBlProducer.publish(MessageConvertUtil.serializeBlockTxs(new BlockEvent(snapshot.getId(), snapshot.getTimestamp(), snapshot.getSnapshot(), messageEvents)));
+                this.blockProducer.publish(MessageConvertUtil.serializeBlockTxs(new BlockEvent(snapshot.getId(), snapshot.getTimestamp(), snapshot.getSnapshot(), messageEvents)));
             }
         } catch (Exception e) {
             // todo 需要处理应答码

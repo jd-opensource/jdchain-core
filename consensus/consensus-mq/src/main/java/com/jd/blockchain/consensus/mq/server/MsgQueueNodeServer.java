@@ -53,7 +53,7 @@ public class MsgQueueNodeServer implements NodeServer {
 
     private int txSizePerBlock = 1000;
 
-    private long maxDelayMilliSecondsPerBlock = 1000;
+    private long maxDelayMilliSecondsPerBlock = 100;
 
     private MsgQueueServerSettings serverSettings;
 
@@ -109,22 +109,22 @@ public class MsgQueueNodeServer implements NodeServer {
 
         String server = networkSettings.getServer(),
                 txTopic = networkSettings.getTxTopic(),
-                blTopic = networkSettings.getBlTopic(),
-                preBlTopic = networkSettings.getPreBlTopic(),
+                txResultTopic = networkSettings.getTxResultTopic(),
+                blockTopic = networkSettings.getBlockTopic(),
                 msgTopic = networkSettings.getMsgTopic();
 
-        MsgQueueProducer blProducer = MsgQueueFactory.newProducer(nodeId, server, blTopic, true),
-                preBlProducer = MsgQueueFactory.newProducer(nodeId, server, preBlTopic, true),
-                txProducer = MsgQueueFactory.newProducer(nodeId, server, txTopic, true),
+        MsgQueueProducer txResultProducer = MsgQueueFactory.newProducer(nodeId, server, txResultTopic, false),
+                blockProducer = MsgQueueFactory.newProducer(nodeId, server, blockTopic, true),
+                txProducer = MsgQueueFactory.newProducer(nodeId, server, txTopic, false),
                 msgProducer = MsgQueueFactory.newProducer(server, msgTopic, false);
 
-        MsgQueueConsumer txConsumer = MsgQueueFactory.newConsumer(nodeId, server, txTopic, true),
-                preBlConsumer = MsgQueueFactory.newConsumer(nodeId, server, preBlTopic, true),
+        MsgQueueConsumer txConsumer = MsgQueueFactory.newConsumer(nodeId, server, txTopic, false),
+                blockConsumer = MsgQueueFactory.newConsumer(nodeId, server, blockTopic, true),
                 msgConsumer = MsgQueueFactory.newConsumer(server, msgTopic, false);
 
-        initMessageExecutor(blProducer, preBlProducer, realmName);
+        initMessageExecutor(txResultProducer, blockProducer, realmName);
 
-        initDispatcher(txProducer, txConsumer, preBlConsumer);
+        initDispatcher(txProducer, txConsumer, blockConsumer);
 
         initExtendExecutor(msgProducer, msgConsumer);
 
@@ -201,12 +201,12 @@ public class MsgQueueNodeServer implements NodeServer {
         }
     }
 
-    private void initMessageExecutor(MsgQueueProducer blProducer, MsgQueueProducer preBlProducer, final String realmName) {
+    private void initMessageExecutor(MsgQueueProducer txResultProducer, MsgQueueProducer blockProducer, final String realmName) {
         messageExecutor = new MsgQueueMessageExecutor()
                 .setRealmName(realmName)
                 .setMessageHandle(messageHandle)
-                .setBlProducer(blProducer)
-                .setPreBlProducer(preBlProducer)
+                .setTxResultProducer(txResultProducer)
+                .setBlockProducer(blockProducer)
                 .setIsLeader(isLeader())
                 .setNodeId(nodeId)
                 .setStateMachineReplicator(stateMachineReplicator)
@@ -215,11 +215,11 @@ public class MsgQueueNodeServer implements NodeServer {
         ;
     }
 
-    private void initDispatcher(MsgQueueProducer txProducer, MsgQueueConsumer txConsumer, MsgQueueConsumer preBlConsumer) {
+    private void initDispatcher(MsgQueueProducer txProducer, MsgQueueConsumer txConsumer, MsgQueueConsumer blockConsumer) {
         dispatcher = new DefaultMsgQueueMessageDispatcher(txSizePerBlock, maxDelayMilliSecondsPerBlock)
                 .setTxProducer(txProducer)
                 .setTxConsumer(txConsumer)
-                .setPreBlConsumer(preBlConsumer)
+                .setBlockConsumer(blockConsumer)
                 .setIsLeader(isLeader())
                 .setEventHandler(messageExecutor)
         ;

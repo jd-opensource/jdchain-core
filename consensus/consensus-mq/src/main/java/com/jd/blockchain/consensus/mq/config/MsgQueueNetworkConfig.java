@@ -10,8 +10,6 @@ package com.jd.blockchain.consensus.mq.config;
 
 import com.jd.blockchain.consensus.mq.settings.MsgQueueNetworkSettings;
 
-import java.lang.reflect.Method;
-
 /**
  *
  * @author shaozhuguang
@@ -25,11 +23,11 @@ public class MsgQueueNetworkConfig implements MsgQueueNetworkSettings {
 
     private String txTopic;
 
-    private String blTopic;
+    private String txResultTopic;
 
     private String msgTopic;
 
-    private String preBlTopic;
+    private String blockTopic;
 
     public MsgQueueNetworkConfig setServer(String server) {
         this.server = server;
@@ -41,8 +39,8 @@ public class MsgQueueNetworkConfig implements MsgQueueNetworkSettings {
         return this;
     }
 
-    public MsgQueueNetworkConfig setBlTopic(String blTopic) {
-        this.blTopic = blTopic;
+    public MsgQueueNetworkConfig setTxResultTopic(String txResultTopic) {
+        this.txResultTopic = txResultTopic;
         return this;
     }
 
@@ -51,8 +49,8 @@ public class MsgQueueNetworkConfig implements MsgQueueNetworkSettings {
         return this;
     }
 
-    public MsgQueueNetworkConfig setPreBlTopic(String preBlTopic) {
-        this.preBlTopic = preBlTopic;
+    public MsgQueueNetworkConfig setBlockTopic(String blockTopic) {
+        this.blockTopic = blockTopic;
         return this;
     }
 
@@ -67,8 +65,8 @@ public class MsgQueueNetworkConfig implements MsgQueueNetworkSettings {
     }
 
     @Override
-    public String getBlTopic() {
-        return blTopic;
+    public String getTxResultTopic() {
+        return txResultTopic;
     }
 
     @Override
@@ -77,7 +75,7 @@ public class MsgQueueNetworkConfig implements MsgQueueNetworkSettings {
     }
 
     @Override
-    public String getPreBlTopic() {
-        return preBlTopic;
+    public String getBlockTopic() {
+        return blockTopic;
     }
 }

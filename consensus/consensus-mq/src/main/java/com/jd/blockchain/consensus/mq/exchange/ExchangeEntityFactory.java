@@ -17,12 +17,12 @@ package com.jd.blockchain.consensus.mq.exchange;
 
 public class ExchangeEntityFactory {
 
-    public static ExchangeEventInnerEntity newBlockInstance() {
-        return new ExchangeEventInnerEntity(ExchangeType.BLOCK);
+    public static ExchangeEventInnerEntity newProposeInstance() {
+        return new ExchangeEventInnerEntity(ExchangeType.PROPOSE);
     }
 
-    public static ExchangeEventInnerEntity newPreBlockInstance(byte[] txs) {
-        return new ExchangeEventInnerEntity(ExchangeType.PREBLOCK, txs);
+    public static ExchangeEventInnerEntity newBlockInstance(byte[] txs) {
+        return new ExchangeEventInnerEntity(ExchangeType.BLOCK, txs);
     }
 
     public static ExchangeEventInnerEntity newEmptyInstance() {

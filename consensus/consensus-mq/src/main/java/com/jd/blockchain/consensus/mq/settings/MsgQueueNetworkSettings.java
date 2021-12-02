@@ -29,11 +29,11 @@ public interface MsgQueueNetworkSettings {
     String getTxTopic();
 
     @DataField(order = 2, primitiveType = PrimitiveType.TEXT)
-    String getBlTopic();
+    String getTxResultTopic();
 
     @DataField(order = 3, primitiveType = PrimitiveType.TEXT)
     String getMsgTopic();
 
     @DataField(order = 4, primitiveType = PrimitiveType.TEXT)
-    String getPreBlTopic();
+    String getBlockTopic();
 }

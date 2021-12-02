@@ -30,7 +30,6 @@ import com.jd.blockchain.consensus.mq.producer.MsgQueueProducer;
 import com.jd.blockchain.consensus.mq.util.MessageConvertUtil;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/12/12
  * @since 1.0.0
@@ -42,10 +41,6 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
 
     private final ExecutorService messageExecutorArray = Executors.newFixedThreadPool(10);
 
-//    private final ExecutorService blockExecutor = Executors.newSingleThreadExecutor();
-//
-//    private final ExecutorService extendExecutor = Executors.newSingleThreadExecutor();
-
     private final Map<String, MessageListener> messageListeners = new ConcurrentHashMap<>();
 
     private final BlockEventHandler blockEventHandler = new BlockEventHandler();
@@ -56,7 +51,7 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
 
     private MsgQueueProducer msgProducer;
 
-    private MsgQueueConsumer blConsumer;
+    private MsgQueueConsumer txResultConsumer;
 
     private MsgQueueConsumer msgConsumer;
 
@@ -72,8 +67,8 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
         return this;
     }
 
-    public DefaultMessageTransmitter setBlConsumer(MsgQueueConsumer blConsumer) {
-        this.blConsumer = blConsumer;
+    public DefaultMessageTransmitter setTxResultConsumer(MsgQueueConsumer txResultConsumer) {
+        this.txResultConsumer = txResultConsumer;
         return this;
     }
 
@@ -109,17 +104,15 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
     }
 
     @Override
-    public void connect() throws Exception{
+    public void connect() throws Exception {
         if (!isConnected) {
             this.txProducer.connect();
-            this.blConsumer.connect(blockEventHandler);
+            this.txResultConsumer.connect(blockEventHandler);
             this.msgProducer.connect();
             this.msgConsumer.connect(extendEventHandler);
             isConnected = true;
-            blConsumer.start();
+            txResultConsumer.start();
             msgConsumer.start();
-//            blockConsumerListening();
-//            extendConsumerListening();
         }
     }
 
@@ -132,7 +125,7 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
     public void close() {
         try {
             txProducer.close();
-            blConsumer.close();
+            txResultConsumer.close();
             msgProducer.close();
             msgConsumer.close();
             isConnected = false;

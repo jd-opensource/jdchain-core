@@ -44,17 +44,17 @@ import utils.io.FileUtils;
 
 public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilder {
 
-	private static final String DEFAULT_TOPIC_TX = "tx-topic";
+	private static final String DEFAULT_TOPIC_TX = "tx";
 
-	private static final String DEFAULT_TOPIC_BL = "bl-topic";
+	private static final String DEFAULT_TOPIC_TX_RESULT = "tx-result";
 
-	private static final String DEFAULT_TOPIC_BL_PRE = "pre-bl-topic";
+	private static final String DEFAULT_TOPIC_BLOCK = "block";
 
-	private static final String DEFAULT_TOPIC_MSG = "msg-topic";
+	private static final String DEFAULT_TOPIC_MSG = "msg";
 
 	private static final int DEFAULT_TXSIZE = 1000;
 
-	private static final int DEFAULT_MAXDELAY = 1000;
+	private static final int DEFAULT_MAXDELAY = 100;
 
 	/**
 	 *
@@ -75,9 +75,9 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 
 	public static final String MSG_QUEUE_TOPIC_TX = "system.msg.queue.topic.tx";
 
-	public static final String MSG_QUEUE_TOPIC_BL = "system.msg.queue.topic.bl";
+	public static final String MSG_QUEUE_TOPIC_TX_RESULT = "system.msg.queue.topic.tx-result";
 
-	public static final String MSG_QUEUE_TOPIC_BL_PRE = "system.msg.queue.topic.bl.pre";
+	public static final String MSG_QUEUE_TOPIC_BLOCK = "system.msg.queue.topic.block";
 
 	public static final String MSG_QUEUE_TOPIC_MSG = "system.msg.queue.topic.msg";
 
@@ -112,8 +112,8 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 			throw new IllegalArgumentException(String.format("Property[%s] is empty!", MSG_QUEUE_SERVER));
 		}
 		networkConfig.setServer(server).setTxTopic(initProp(resolvingProps, MSG_QUEUE_TOPIC_TX, DEFAULT_TOPIC_TX))
-				.setBlTopic(initProp(resolvingProps, MSG_QUEUE_TOPIC_BL, DEFAULT_TOPIC_BL))
-				.setPreBlTopic(initProp(resolvingProps, MSG_QUEUE_TOPIC_BL_PRE, DEFAULT_TOPIC_BL_PRE))
+				.setTxResultTopic(initProp(resolvingProps, MSG_QUEUE_TOPIC_TX_RESULT, DEFAULT_TOPIC_TX_RESULT))
+				.setBlockTopic(initProp(resolvingProps, MSG_QUEUE_TOPIC_BLOCK, DEFAULT_TOPIC_BLOCK))
 				.setMsgTopic(initProp(resolvingProps, MSG_QUEUE_TOPIC_MSG, DEFAULT_TOPIC_MSG));
 
 		MsgQueueBlockConfig blockConfig = new MsgQueueBlockConfig()
@@ -190,17 +190,17 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 		}
 		props.setProperty(MSG_QUEUE_TOPIC_TX, txTopic);
 
-		String blTopic = networkSettings.getBlTopic();
-		if (blTopic == null || blTopic.length() <= 0) {
-			blTopic = DEFAULT_TOPIC_BL;
+		String txResultTopic = networkSettings.getTxResultTopic();
+		if (txResultTopic == null || txResultTopic.length() <= 0) {
+			txResultTopic = DEFAULT_TOPIC_TX_RESULT;
 		}
-		props.setProperty(MSG_QUEUE_TOPIC_BL, blTopic);
+		props.setProperty(MSG_QUEUE_TOPIC_TX_RESULT, txResultTopic);
 
-		String preBlTopic = networkSettings.getPreBlTopic();
-		if (preBlTopic == null || preBlTopic.length() <= 0) {
-			preBlTopic = DEFAULT_TOPIC_BL_PRE;
+		String blockTopic = networkSettings.getBlockTopic();
+		if (blockTopic == null || blockTopic.length() <= 0) {
+			blockTopic = DEFAULT_TOPIC_BLOCK;
 		}
-		props.setProperty(MSG_QUEUE_TOPIC_BL_PRE, preBlTopic);
+		props.setProperty(MSG_QUEUE_TOPIC_BLOCK, blockTopic);
 
 		String msgTopic = networkSettings.getMsgTopic();
 		if (msgTopic == null || msgTopic.length() <= 0) {
@@ -220,32 +220,6 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 		}
 		
 		return props;
-
-//        int serversNum = PropertiesUtils.getInt(props, SERVER_NUM_KEY);
-//        if (serversNum > 0) {
-//            for (int i = 0; i < serversNum; i++) {
-//                int id = i;
-//                String keyOfPubkey = nodeKey(PUBKEY_PATTERN, id);
-//                props.remove(keyOfPubkey);
-//
-//                String keyOfHost = nodeKey(CONSENSUS_HOST_PATTERN, id);
-//                props.remove(keyOfHost);
-//            }
-//        }
-//
-//        NodeSettings[] nodesSettings = consensusSettings.getNodes();
-//        serversNum = nodesSettings.length;
-//        props.setProperty(SERVER_NUM_KEY, serversNum + "");
-//
-//        for (int i = 0; i < serversNum; i++) {
-//            MsgQueueNodeSettings mqns = (MsgQueueNodeSettings) nodesSettings[i];
-//            int id = i;
-//            String keyOfPubkey = nodeKey(PUBKEY_PATTERN, id);
-//            props.setProperty(keyOfPubkey, mqns.getPubKey().toBase58());
-//
-//            String keyOfHost = nodeKey(CONSENSUS_HOST_PATTERN, id);
-//            props.setProperty(keyOfHost, mqns.getAddress() == null ? "" : mqns.getAddress());
-//        }
 	}
 
 	@Override

@@ -46,18 +46,18 @@ public class MsgQueueConsensusClient implements ConsensusClient {
     public void init() {
         String server = msgQueueNetworkSettings.getServer();
         String txTopic = msgQueueNetworkSettings.getTxTopic();
-        String blTopic = msgQueueNetworkSettings.getBlTopic();
+        String txResultTopic = msgQueueNetworkSettings.getTxResultTopic();
         String msgTopic = msgQueueNetworkSettings.getMsgTopic();
 
-        MsgQueueProducer txProducer = MsgQueueFactory.newProducer(server, txTopic, true);
+        MsgQueueProducer txProducer = MsgQueueFactory.newProducer(server, txTopic, false);
         MsgQueueProducer msgProducer = MsgQueueFactory.newProducer(server, msgTopic, false);
-        MsgQueueConsumer blConsumer = MsgQueueFactory.newConsumer(server, blTopic, true);
+        MsgQueueConsumer txResultConsumer = MsgQueueFactory.newConsumer(server, txResultTopic, false);
         MsgQueueConsumer msgConsumer = MsgQueueFactory.newConsumer(server, msgTopic, false);
 
         transmitter = new DefaultMessageTransmitter()
                 .setTxProducer(txProducer)
                 .setMsgProducer(msgProducer)
-                .setBlConsumer(blConsumer)
+                .setTxResultConsumer(txResultConsumer)
                 .setMsgConsumer(msgConsumer)
         ;
     }
