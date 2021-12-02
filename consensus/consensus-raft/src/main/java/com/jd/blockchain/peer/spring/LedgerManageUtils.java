@@ -20,12 +20,14 @@ public class LedgerManageUtils implements ApplicationContextAware {
         return applicationContext.getBean(LedgerManager.class);
     }
 
-
     public static LedgerRepository getLedgerRepository(String ledgerHash) {
         HashDigest ledgerHashDigest = Crypto.resolveAsHashDigest(Base58Utils.decode(ledgerHash));
         return getLedgerManager().getLedger(ledgerHashDigest);
     }
 
+    public static LedgerRepository getLedgerRepository(HashDigest ledgerHash) {
+        return getLedgerManager().getLedger(ledgerHash);
+    }
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {

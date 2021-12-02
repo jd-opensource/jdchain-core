@@ -15,6 +15,7 @@
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
         <ledger.database.version>${parent.version}</ledger.database.version>
+        <sdk.base>${parent.version}</sdk.base>
         <jraft.version>1.3.8</jraft.version>
     </properties>
 
@@ -43,6 +44,19 @@
             <groupId>com.alipay.sofa</groupId>
             <artifactId>jraft-core</artifactId>
             <version>${jraft.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.jd.httpservice</groupId>
+            <artifactId>httpservice-agent</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.jd.httpservice</groupId>
+            <artifactId>httpservice-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.jd.blockchain</groupId>
+            <artifactId>sdk-base</artifactId>
+            <version>${sdk.base}</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>

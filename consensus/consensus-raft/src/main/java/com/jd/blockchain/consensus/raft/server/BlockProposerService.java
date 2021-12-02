@@ -35,7 +35,7 @@ public class BlockProposerService implements BlockProposer, BlockCommitCallback 
         try {
             proposeBlock.setProposalTimestamp(System.currentTimeMillis());
             proposeBlock.setTxs(txs);
-
+            //todo: 使用latestProposalBlock减少账本查询
             if (proposalBlockMap.isEmpty()) {
                 LedgerBlock latestBlock = ledgerRepository.retrieveLatestBlock();
                 proposeBlock.setPreBlockHash(latestBlock.getHash().toBase58());

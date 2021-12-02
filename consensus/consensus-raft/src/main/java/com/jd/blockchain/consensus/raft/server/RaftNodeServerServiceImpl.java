@@ -2,6 +2,7 @@ package com.jd.blockchain.consensus.raft.server;
 
 import com.alipay.sofa.jraft.Closure;
 import com.alipay.sofa.jraft.Status;
+import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.entity.Task;
 import com.alipay.sofa.jraft.error.RaftError;
@@ -94,23 +95,44 @@ public class RaftNodeServerServiceImpl implements RaftNodeServerService {
     }
 
     @Override
-    public void handleParticipantNodeChangeRequest(ParticipantNodeChangeRequest request, Closure done) {
-        applyRequest(request, (RpcResponseClosure) done, (req, closure) -> {
-            PeerId changePeer = PeerId.parsePeer(String.format("%s:%d", request.getNodeHost(), request.getNodePort()));
-            boolean isAdd = request.getChangeType() == ParticipantNodeChangeRequest.ChangeType.ADD;
-            if (isAdd) {
-                nodeServer.getNode().addPeer(changePeer, done);
-            } else {
-                nodeServer.getNode().removePeer(changePeer, done);
-            }
-        });
-    }
-
-    @Override
     public void publishBlockEvent() {
         if (nodeServer.isLeader()) {
             this.submitTxQueue.publishEvent((event, sequence) -> event.setBlockEvent(true));
         }
+    }
+
+    @Override
+    public void addParticipantNode(ParticipantNodeAddRequest request, Closure done) {
+        applyRequest(request, (RpcResponseClosure) done, (req, closure) -> {
+            PeerId changePeer = PeerId.parsePeer(String.format("%s:%d", request.getHost(), request.getPort()));
+            nodeServer.getNode().addPeer(changePeer, done);
+            done.run(Status.OK());
+        });
+    }
+
+    @Override
+    public void removeParticipantNode(ParticipantNodeRemoveRequest request, Closure done) {
+        applyRequest(request, (RpcResponseClosure) done, (req, closure) -> {
+            PeerId changePeer = PeerId.parsePeer(String.format("%s:%d", request.getHost(), request.getPort()));
+            nodeServer.getNode().removePeer(changePeer, done);
+            done.run(Status.OK());
+        });
+    }
+
+    @Override
+    public void transferParticipantNode(ParticipantNodeTransferRequest request, Closure done) {
+        applyRequest(request, (RpcResponseClosure) done, (req, closure) -> {
+            PeerId removePeer = PeerId.parsePeer(String.format("%s:%d", request.getPreHost(), request.getPrePort()));
+            PeerId addPeer = PeerId.parsePeer(String.format("%s:%d", request.getNewHost(), request.getNewHost()));
+            List<PeerId> peerIds = nodeServer.getNode().listPeers();
+            peerIds.remove(removePeer);
+            peerIds.add(addPeer);
+
+            nodeServer.getNode().changePeers(new Configuration(peerIds), done);
+
+            done.run(Status.OK());
+        });
+
     }
 
 

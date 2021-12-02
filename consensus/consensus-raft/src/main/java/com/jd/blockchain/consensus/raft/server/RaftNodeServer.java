@@ -14,22 +14,22 @@ import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.raft.RaftConsensusProvider;
 import com.jd.blockchain.consensus.raft.config.RaftConfig;
 import com.jd.blockchain.consensus.raft.consensus.*;
-import com.jd.blockchain.consensus.raft.rpc.ParticipantNodeChangeRequestProcessor;
-import com.jd.blockchain.consensus.raft.rpc.SubmitTxRequestProcessor;
+import com.jd.blockchain.consensus.raft.rpc.*;
 import com.jd.blockchain.consensus.raft.settings.RaftNodeSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftServerSettings;
-import com.jd.blockchain.peer.spring.LedgerManageUtils;
 import com.jd.blockchain.consensus.service.Communication;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.NodeState;
 import com.jd.blockchain.ledger.core.LedgerRepository;
+import com.jd.blockchain.peer.spring.LedgerManageUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.concurrent.AsyncFuture;
 import utils.concurrent.CompletableAsyncFuture;
 
 import java.io.File;
+import java.util.concurrent.Executor;
 
 public class RaftNodeServer implements NodeServer {
 
@@ -97,7 +97,8 @@ public class RaftNodeServer implements NodeServer {
         this.blockCommitter = new BlockCommitService(this.realmName, this.messageHandle, ledgerRepository);
         this.blockCommitter.registerCallBack((BlockCommitCallback) blockProposer);
 
-        this.stateMachine = new RaftConsensusStateMachine(this.blockCommitter, this.blockSerializer, ledgerRepository);
+        //todo
+        this.stateMachine = new RaftConsensusStateMachine(this,this.blockCommitter, this.blockSerializer, null,ledgerRepository);
         this.nodeOptions.setFsm(stateMachine);
 
         this.clientAuthencationService = new RaftClientAuthenticationService(this);
@@ -205,8 +206,13 @@ public class RaftNodeServer implements NodeServer {
 
     private void register(RpcServer rpcServer) {
         this.rpcServer = rpcServer;
-        rpcServer.registerProcessor(new SubmitTxRequestProcessor(this.raftNodeServerService));
-        rpcServer.registerProcessor(new ParticipantNodeChangeRequestProcessor(this.raftNodeServerService));
+        Executor executor = JRaftUtils.createExecutor("RPC-PROCESSOR-EXECUTORS-", this.nodeOptions.getRpcProcessorThreadPoolSize());
+        rpcServer.registerProcessor(new SubmitTxRequestProcessor(this.raftNodeServerService, executor));
+        rpcServer.registerProcessor(new ParticipantNodeAddRequestProcessor(this.raftNodeServerService, executor));
+        rpcServer.registerProcessor(new ParticipantNodeRemoveRequestProcessor(this.raftNodeServerService, executor));
+        rpcServer.registerProcessor(new ParticipantNodeTransferRequestProcessor(this.raftNodeServerService, executor));
+        rpcServer.registerProcessor(new QueryLeaderRequestProcessor(this.raftNodeServerService, executor));
+        rpcServer.registerProcessor(new QueryManagerPortRequestProcessor(this.raftNodeServerService, executor));
     }
 
 

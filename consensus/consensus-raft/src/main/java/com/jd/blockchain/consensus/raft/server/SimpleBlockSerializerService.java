@@ -17,7 +17,7 @@ public class SimpleBlockSerializerService implements BlockSerializer {
         try {
             return SerializerManager.getSerializer(SerializerManager.Hessian2).serialize(block);
         } catch (CodecException e) {
-            LOGGER.error("serialize txs error", e);
+            LOGGER.error("serialize block error", e);
             throw new RuntimeException(e);
         }
     }
@@ -25,7 +25,7 @@ public class SimpleBlockSerializerService implements BlockSerializer {
     @Override
     public Block deserialize(byte[] blockBytes) {
         try {
-            return SerializerManager.getSerializer(SerializerManager.Hessian2).deserialize(blockBytes, LIST_BYTE_CLASS_NAME);
+            return SerializerManager.getSerializer(SerializerManager.Hessian2).deserialize(blockBytes, Block.class.getName());
         } catch (CodecException e) {
             LOGGER.error("deserialize blockBytes error", e);
             throw new RuntimeException(e);

@@ -245,6 +245,9 @@ class ParticipantActive implements Runnable {
     @CommandLine.Option(names = "--consensus-port", required = true, description = "Set the participant consensus port.", scope = CommandLine.ScopeType.INHERIT)
     int consensusPort;
 
+    @CommandLine.Option(names = "--consensus-storage", required = false, description = "Set the participant consensus storage. (raft consensus needed)", scope = CommandLine.ScopeType.INHERIT)
+    String consensusStorage;
+
     @CommandLine.Option(names = "--consensus-secure", description = "Whether to open the secure connection for consensus.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
     boolean consensusSecure;
 
@@ -286,6 +289,7 @@ class ParticipantActive implements Runnable {
         params.add(new BasicNameValuePair("ledgerHash", ledger));
         params.add(new BasicNameValuePair("consensusHost", host));
         params.add(new BasicNameValuePair("consensusPort", consensusPort + ""));
+        params.add(new BasicNameValuePair("consensusStorage", consensusStorage + ""));
         params.add(new BasicNameValuePair("consensusSecure", consensusSecure + ""));
         params.add(new BasicNameValuePair("remoteManageHost", synHost));
         params.add(new BasicNameValuePair("remoteManagePort", synPort + ""));
@@ -325,6 +329,9 @@ class ParticipantUpdate implements Runnable {
     @CommandLine.Option(names = "--consensus-port", required = true, description = "Set the participant consensus port.", scope = CommandLine.ScopeType.INHERIT)
     int consensusPort;
 
+    @CommandLine.Option(names = "--consensus-storage", required = false, description = "Set the participant consensus storage. (raft consensus needed)", scope = CommandLine.ScopeType.INHERIT)
+    String consensusStorage;
+
     @CommandLine.Option(names = "--consensus-secure", description = "Whether to open the secure connection for consensus.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
     boolean consensusSecure;
 
@@ -357,6 +364,7 @@ class ParticipantUpdate implements Runnable {
         params.add(new BasicNameValuePair("ledgerHash", ledger));
         params.add(new BasicNameValuePair("consensusHost", consensusHost));
         params.add(new BasicNameValuePair("consensusPort", consensusPort + ""));
+        params.add(new BasicNameValuePair("consensusStorage", consensusStorage + ""));
         params.add(new BasicNameValuePair("consensusSecure", consensusSecure + ""));
         params.add(new BasicNameValuePair("shutdown", shutdown + ""));
         httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));

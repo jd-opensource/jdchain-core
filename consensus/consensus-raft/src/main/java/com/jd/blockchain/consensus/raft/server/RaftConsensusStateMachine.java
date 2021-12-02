@@ -6,15 +6,13 @@ import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.core.StateMachineAdapter;
 import com.alipay.sofa.jraft.entity.LeaderChangeContext;
+import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.error.RaftException;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.Utils;
-import com.jd.blockchain.consensus.raft.consensus.Block;
-import com.jd.blockchain.consensus.raft.consensus.BlockCommittedException;
-import com.jd.blockchain.consensus.raft.consensus.BlockCommitter;
-import com.jd.blockchain.consensus.raft.consensus.BlockSerializer;
+import com.jd.blockchain.consensus.raft.consensus.*;
 import com.jd.blockchain.consensus.raft.util.LoggerUtils;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.core.LedgerRepository;
@@ -29,20 +27,22 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RaftConsensusStateMachine.class);
 
+    private RaftNodeServer nodeServer;
     private BlockCommitter committer;
     private BlockSerializer serializer;
+    private BlockSyncer blockSyncer;
     private LedgerRepository ledgerRepository;
 
     private final AtomicBoolean isLeader = new AtomicBoolean(false);
-    private volatile long term = -1;
-    private volatile String leaderIp = "unknown";
 
     private volatile long currentBlockHeight;
 
-    public RaftConsensusStateMachine(BlockCommitter committer, BlockSerializer serializer,LedgerRepository ledgerRepository) {
+    public RaftConsensusStateMachine(RaftNodeServer nodeServer, BlockCommitter committer, BlockSerializer serializer, BlockSyncer blockSyncer, LedgerRepository ledgerRepository) {
+        this.nodeServer = nodeServer;
         this.committer = committer;
         this.serializer = serializer;
         this.ledgerRepository = ledgerRepository;
+        this.blockSyncer = blockSyncer;
     }
 
     public void onStart() {
@@ -77,7 +77,7 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
                         }
                     } catch (BlockCommittedException bce) {
                         //ignore
-                        LoggerUtils.debugIfEnabled(LOGGER, "block committed,  ignore it", bce);
+                        LoggerUtils.debugIfEnabled(LOGGER, "block committed: {},  ignore it", bce.getMessage());
                     }
 
                 } catch (Throwable e) {
@@ -149,9 +149,16 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
                 return true;
             }
 
-            this.currentBlockHeight = snapshotHeight;
-            //TODO: 校验当前账本高度， 若高度不一致，则向leader节点账本请求最新数据
+            if (snapshotHeight > this.currentBlockHeight) {
+                try {
+                    catchUp(snapshotHeight);
+                } catch (BlockSyncException e) {
+                    LOGGER.error("node sync block error, please check db data");
+                    throw new IllegalStateException(e);
+                }
+            }
 
+            this.currentBlockHeight = snapshotHeight;
 
             return true;
         } catch (final IOException e) {
@@ -162,10 +169,19 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
 
     }
 
+    private void catchUp(long maxHeight) throws BlockSyncException {
+        while (this.currentBlockHeight < maxHeight) {
+            PeerId leader = nodeServer.getLeader();
+            boolean result = blockSyncer.sync(null, this.currentBlockHeight + 1);
+            if (result) {
+                this.currentBlockHeight++;
+            }
+        }
+    }
+
     @Override
     public void onLeaderStart(final long term) {
         super.onLeaderStart(term);
-        this.term = term;
         this.isLeader.set(true);
     }
 
@@ -177,8 +193,8 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
 
     @Override
     public void onStartFollowing(LeaderChangeContext ctx) {
-        this.term = ctx.getTerm();
-        this.leaderIp = ctx.getLeaderId().getEndpoint().toString();
+        super.onStartFollowing(ctx);
+        this.isLeader.set(false);
     }
 
     @Override
@@ -189,18 +205,8 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
     @Override
     public void onStopFollowing(LeaderChangeContext ctx) {
         super.onStopFollowing(ctx);
-        this.term = -1;
         this.isLeader.set(false);
-        this.leaderIp = null;
     }
-
-    @Override
-    public void onConfigurationCommitted(Configuration conf) {
-        super.onConfigurationCommitted(conf);
-        //todo publish peers change topic
-
-    }
-
 
 
     public boolean isLeader() {

@@ -9,7 +9,6 @@ import com.lmax.disruptor.dsl.ProducerType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +21,8 @@ import java.util.concurrent.locks.ReentrantLock;
 public class MessageBusComponent implements MessageBus {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageBusComponent.class);
+
+    private static final int DEFAULT_EXECUTOR_THREAD_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
     private volatile boolean closed;
     private ReentrantLock lock;
@@ -59,7 +60,7 @@ public class MessageBusComponent implements MessageBus {
 
             if (!subcribeMap.containsKey(topic)) {
                 subcribeMap.put(topic, new CopyOnWriteArrayList<>());
-                executorMap.put(topic, Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2));
+                executorMap.put(topic, Executors.newFixedThreadPool(DEFAULT_EXECUTOR_THREAD_SIZE));
             }
 
             List<Subcriber> subscribeList = subcribeMap.get(topic);
@@ -120,7 +121,7 @@ public class MessageBusComponent implements MessageBus {
 
             this.messageQueue.publishEvent(translator);
         } catch (final Exception e) {
-            LOGGER.error("Fail to apply task.", e);
+            LOGGER.error("fail to publish message.", e);
         }
     }
 
