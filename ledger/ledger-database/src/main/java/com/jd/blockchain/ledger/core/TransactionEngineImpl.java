@@ -1,13 +1,15 @@
 package com.jd.blockchain.ledger.core;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.springframework.beans.factory.annotation.Autowired;
-
+import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.ledger.LedgerTransaction;
+import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.service.TransactionBatchProcess;
 import com.jd.blockchain.service.TransactionEngine;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TransactionEngineImpl implements TransactionEngine {
 
@@ -25,6 +27,62 @@ public class TransactionEngineImpl implements TransactionEngine {
 	public TransactionEngineImpl(LedgerService ledgerService, OperationHandleRegisteration opHdlRegs) {
 		this.ledgerService = ledgerService;
 		this.opHdlRegs = opHdlRegs;
+	}
+
+	public int getTxsNumByHeight(HashDigest ledgerHash, int height) {
+
+		LedgerRepository ledgerRepo = ledgerService.getLedger(ledgerHash);
+
+		if (height == 0) {
+			return (int)ledgerRepo.getTransactionSet(ledgerRepo.getBlock(height)).getTotalCount();
+		} else if (height > 0) {
+			return  (int)ledgerRepo.getTransactionSet(ledgerRepo.getBlock(height)).getTotalCount() - (int)ledgerRepo.getTransactionSet(ledgerRepo.getBlock(height - 1)).getTotalCount();
+		} else {
+			throw new IllegalArgumentException("[TransactionEngineImpl] getTxsNumByHeight height exception!");
+		}
+	}
+
+	public byte[][] getTxsByHeight(HashDigest ledgerHash, int height, int currHeightCommandsNum) {
+
+		int lastHeightCommandsTotal = -1;
+
+		byte[][] commands = new byte[currHeightCommandsNum][];
+
+		LedgerRepository ledgerRepo = ledgerService.getLedger(ledgerHash);
+
+		if (height == 0) {
+			lastHeightCommandsTotal = 0;
+		} else if (height > 0) {
+			lastHeightCommandsTotal = (int) ledgerRepo.getTransactionSet(ledgerRepo.getBlock(height - 1)).getTotalCount();
+		} else {
+			throw new IllegalArgumentException("[TransactionEngineImpl] getTxsByHeight height exception!");
+		}
+
+		for (int i = 0; i < currHeightCommandsNum; i++) {
+
+			LedgerTransaction[] ledgerTransactions = ledgerRepo.getTransactionSet(ledgerRepo.getBlock(height)).getTransactions(lastHeightCommandsTotal + i , 1);
+			commands[i] = BinaryProtocol.encode(ledgerTransactions[0].getRequest(), TransactionRequest.class);
+
+		}
+
+		return commands;
+
+	}
+
+	public byte[] getSnapshotByHeight(HashDigest ledgerHash, int height) {
+
+		LedgerRepository ledgerRepo = ledgerService.getLedger(ledgerHash);
+
+		return ledgerRepo.getBlock(height).getHash().toBytes();
+
+	}
+
+	public long getTimestampByHeight(HashDigest ledgerHash, int height) {
+
+		LedgerRepository ledgerRepo = ledgerService.getLedger(ledgerHash);
+
+		return ledgerRepo.getBlock(height).getTimestamp();
+
 	}
 
 	@Override

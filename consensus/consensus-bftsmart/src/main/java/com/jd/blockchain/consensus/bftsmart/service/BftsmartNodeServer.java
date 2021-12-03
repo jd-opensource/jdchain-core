@@ -1,23 +1,14 @@
 package com.jd.blockchain.consensus.bftsmart.service;
 
-import java.io.ByteArrayOutputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.TreeMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.commons.collections4.map.LRUMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.util.NumberUtils;
-
+import bftsmart.consensus.app.BatchAppResultImpl;
+import bftsmart.reconfiguration.util.HostsConfig;
+import bftsmart.reconfiguration.util.TOMConfiguration;
+import bftsmart.reconfiguration.views.NodeNetwork;
+import bftsmart.reconfiguration.views.View;
+import bftsmart.tom.MessageContext;
+import bftsmart.tom.ReplicaConfiguration;
+import bftsmart.tom.ServiceReplica;
+import bftsmart.tom.server.defaultservices.DefaultRecoverable;
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.BlockStateSnapshot;
 import com.jd.blockchain.consensus.ClientAuthencationService;
@@ -33,7 +24,6 @@ import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.MonitorService;
 import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.ServerSettings;
-import com.jd.blockchain.consensus.service.StateHandle;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 import com.jd.blockchain.consensus.service.StateSnapshot;
 import com.jd.blockchain.crypto.Crypto;
@@ -43,34 +33,36 @@ import com.jd.blockchain.ledger.TransactionResponse;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.runtime.RuntimeConstant;
 import com.jd.blockchain.transaction.TxResponseMessage;
-
-import bftsmart.consensus.app.BatchAppResultImpl;
-import bftsmart.reconfiguration.util.HostsConfig;
-import bftsmart.reconfiguration.util.TOMConfiguration;
-import bftsmart.reconfiguration.views.NodeNetwork;
-import bftsmart.reconfiguration.views.View;
-import bftsmart.tom.MessageContext;
-import bftsmart.tom.ReplicaConfiguration;
-import bftsmart.tom.ReplyContextMessage;
-import bftsmart.tom.ServiceReplica;
-import bftsmart.tom.server.defaultservices.DefaultRecoverable;
+import org.apache.commons.collections4.map.LRUMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.NumberUtils;
 import utils.PropertiesUtils;
 import utils.StringUtils;
+import utils.codec.Base58Utils;
 import utils.concurrent.AsyncFuture;
 import utils.concurrent.CompletableAsyncFuture;
 import utils.io.BytesUtils;
 import utils.io.Storage;
-import utils.net.SSLMode;
 import utils.net.SSLSecurity;
 import utils.serialize.binary.BinarySerializeUtils;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.TreeMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer {
 
 	public static final int MAX_SERVER_ID = 1000;
 
 	private static Logger LOGGER = LoggerFactory.getLogger(BftsmartNodeServer.class);
-
-	private List<StateHandle> stateHandles = new CopyOnWriteArrayList<>();
 
 	private final Map<String, BftsmartConsensusMessageContext> contexts = Collections
 			.synchronizedMap(new LRUMap<>(1024));
@@ -360,7 +352,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		String batchId = messageHandle.beginBatch(context);
 		context.setBatchId(batchId);
 		try {
-			StateSnapshot preStateSnapshot = messageHandle.getStateSnapshot(context);
+			StateSnapshot preStateSnapshot = messageHandle.getLatestStateSnapshot(realmName);
 			if (preStateSnapshot instanceof BlockStateSnapshot) {
 				BlockStateSnapshot preBlockStateSnapshot = (BlockStateSnapshot) preStateSnapshot;
 				long preBlockTimestamp = preBlockStateSnapshot.getTimestamp();
@@ -394,31 +386,52 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	 * start
 	 *
 	 */
+//	private byte[][] appExecuteDiffBatch(byte[][] commands, MessageContext[] msgCtxs) {
+//
+//		int manageConsensusId = msgCtxs[0].getConsensusId();
+//		long timestamp = msgCtxs[0].getTimestamp();
+//		List<byte[]> manageConsensusCmds = new ArrayList<>();
+//
+//		int index = 0;
+//		for (MessageContext msgCtx : msgCtxs) {
+//			// 对于commands中包含多个batch时的考虑处理，目前设计中commands仅包含一个批次
+//			if (msgCtx.getConsensusId() == manageConsensusId) {
+//				manageConsensusCmds.add(commands[index]);
+//			} else {
+//				// 达到结块标准，需要进行结块并应答
+//				block(manageConsensusCmds, timestamp);
+//				// 重置链表和共识ID
+//				manageConsensusCmds = new ArrayList<>();
+//				manageConsensusId = msgCtx.getConsensusId();
+//				timestamp = msgCtx.getTimestamp();
+//				manageConsensusCmds.add(commands[index]);
+//			}
+//			index++;
+//		}
+//		// 结束时，肯定有最后一个结块请求未处理
+//		if (!manageConsensusCmds.isEmpty()) {
+//			block(manageConsensusCmds, timestamp);
+//		}
+//		return null;
+//
+//	}
+
+	/**
+	 *
+	 * Local peer has cid diff with remote peer, used by state transfer when peer
+	 * start
+	 * simple version
+	 */
 	private byte[][] appExecuteDiffBatch(byte[][] commands, MessageContext[] msgCtxs) {
 
-		int manageConsensusId = msgCtxs[0].getConsensusId();
-		long timestamp = msgCtxs[0].getTimestamp();
 		List<byte[]> manageConsensusCmds = new ArrayList<>();
 
-		int index = 0;
-		for (MessageContext msgCtx : msgCtxs) {
-			if (msgCtx.getConsensusId() == manageConsensusId) {
-				manageConsensusCmds.add(commands[index]);
-			} else {
-				// 达到结块标准，需要进行结块并应答
-				block(manageConsensusCmds, timestamp);
-				// 重置链表和共识ID
-				manageConsensusCmds = new ArrayList<>();
-				manageConsensusId = msgCtx.getConsensusId();
-				timestamp = msgCtx.getTimestamp();
-				manageConsensusCmds.add(commands[index]);
-			}
-			index++;
+		for (int index = 0; index < commands.length; index++) {
+			manageConsensusCmds.add(commands[index]);
 		}
-		// 结束时，肯定有最后一个结块请求未处理
-		if (!manageConsensusCmds.isEmpty()) {
-			block(manageConsensusCmds, timestamp);
-		}
+
+		block(manageConsensusCmds, msgCtxs[0].getTimestamp());
+
 		return null;
 
 	}
@@ -445,9 +458,8 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 	 * was moved to the consensus stage 2 and 3, in order to guaranteed ledger
 	 * consistency
 	 */
-	@Override
-	public byte[][] appExecuteBatch(byte[][] commands, MessageContext[] msgCtxs, boolean fromConsensus,
-			List<ReplyContextMessage> replyList) {
+//	@Override
+//	public byte[][] appExecuteBatch(byte[][] commands, MessageContext[] msgCtxs, boolean fromConsensus) {
 
 //        if (replyList == null || replyList.size() == 0) {
 //            throw new IllegalArgumentException();
@@ -483,15 +495,15 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 //        if (!manageConsensusCmds.isEmpty()) {
 //            blockAndReply(manageConsensusCmds, manageReplyMsgs);
 //        }
-		return null;
-	}
+//		return null;
+//	}
 
 	/**
 	 *
 	 * Block and reply are moved to consensus completion stage
 	 *
 	 */
-	private void blockAndReply(List<byte[]> manageConsensusCmds, List<ReplyContextMessage> replyList) {
+//	private void blockAndReply(List<byte[]> manageConsensusCmds, List<ReplyContextMessage> replyList) {
 //        consensusBatchId = messageHandle.beginBatch(realmName);
 //        List<AsyncFuture<byte[]>> asyncFutureLinkedList = new ArrayList<>(manageConsensusCmds.size());
 //        try {
@@ -534,7 +546,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 //                replyIndex++;
 //            }
 //        });
-	}
+//	}
 
 	/**
 	 * Used by consensus write phase, pre compute new block hash
@@ -564,7 +576,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 				contexts.put(batchId, context);
 				stateHolder.batchingID = batchId;
 				// 获取前置区块快照状态
-				preStateSnapshot = messageHandle.getStateSnapshot(context);
+				preStateSnapshot = messageHandle.getLatestStateSnapshot(realmName);
 				if (preStateSnapshot instanceof BlockStateSnapshot) {
 					BlockStateSnapshot preBlockStateSnapshot = (BlockStateSnapshot) preStateSnapshot;
 					long preBlockTimestamp = preBlockStateSnapshot.getTimestamp();
@@ -592,7 +604,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 				}
 
 				// 创世区块的状态快照
-				genisStateSnapshot = messageHandle.getGenesisStateSnapshot(context);
+				genisStateSnapshot = messageHandle.getGenesisStateSnapshot(realmName);
 				for (byte[] txContent : commands) {
 					AsyncFuture<byte[]> asyncFuture = messageHandle.processOrdered(msgId++, txContent, context);
 					asyncFutureLinkedList.add(asyncFuture);
@@ -738,18 +750,30 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		}
 	}
 
-	// notice
 	@Override
-	public byte[] getSnapshot() {
-		LOGGER.debug("------- GetSnapshot...[replica.id=" + this.getId() + "]");
+	public int getCommandsNumByCid(int cid) {
+		return messageHandle.getCommandsNumByCid(realmName, cid);
+	}
 
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		BytesUtils.writeInt(stateHandles.size(), out);
-		for (StateHandle stateHandle : stateHandles) {
-			// TODO: 测试代码；
-			return stateHandle.takeSnapshot();
-		}
-		return out.toByteArray();
+	@Override
+	public byte[][] getCommandsByCid(int cid, int currCidCommandsNum) {
+		return messageHandle.getCommandsByCid(realmName, cid, currCidCommandsNum);
+	}
+
+	@Override
+	public long getTimestampByCid(int cid) {
+		return messageHandle.getTimestampByCid(realmName, cid);
+	}
+
+	// 获得checkpoint检查点处的状态快照：区块哈希
+	@Override
+	public byte[] getCheckPointSnapshot(int cid) {
+
+		byte[] checkPointSnapshot = messageHandle.getSnapshotByHeight(realmName, cid);
+
+		LOGGER.info("------- GetCheckPointSnapshot...replica.id= {}, checkPointSnapshot = {}", this.getId(), Base58Utils.encode(checkPointSnapshot));
+
+        return checkPointSnapshot;
 	}
 
 	@Override
