@@ -21,14 +21,18 @@ import com.jd.blockchain.consensus.service.Communication;
 import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.NodeServer;
 import com.jd.blockchain.consensus.service.NodeState;
+import com.jd.blockchain.crypto.Crypto;
+import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.core.LedgerRepository;
 import com.jd.blockchain.peer.spring.LedgerManageUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.codec.Base58Utils;
 import utils.concurrent.AsyncFuture;
 import utils.concurrent.CompletableAsyncFuture;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executor;
 
 public class RaftNodeServer implements NodeServer {
@@ -41,6 +45,7 @@ public class RaftNodeServer implements NodeServer {
     private static final Logger LOGGER = LoggerFactory.getLogger(RaftNodeServer.class);
 
     private String realmName;
+    private HashDigest ledgerHashDigest;
     private PeerId selfPeerId;
     private RaftServerSettings serverSettings;
 
@@ -62,6 +67,7 @@ public class RaftNodeServer implements NodeServer {
     private BlockProposer blockProposer;
     private BlockCommitter blockCommitter;
     private BlockVerifier blockVerifier;
+    private BlockSyncer blockSyncer;
     private BlockSerializer blockSerializer;
 
     private volatile boolean isStart;
@@ -72,6 +78,7 @@ public class RaftNodeServer implements NodeServer {
 
     public RaftNodeServer(String realmName, RaftServerSettings serverSettings, MessageHandle messageHandler) {
         this.realmName = realmName;
+        this.ledgerHashDigest = Crypto.resolveAsHashDigest(Base58Utils.decode(realmName));
         this.serverSettings = serverSettings;
         this.messageHandle = messageHandler;
     }
@@ -88,19 +95,6 @@ public class RaftNodeServer implements NodeServer {
             this.configuration.addPeer(selfPeerId);
         }
 
-        this.nodeOptions = initNodeOptions(raftServerSettings);
-        this.nodeOptions.setInitialConf(this.configuration);
-
-        LedgerRepository ledgerRepository = LedgerManageUtils.getLedgerRepository(this.realmName);
-        this.blockSerializer = new SimpleBlockSerializerService();
-        this.blockProposer = new BlockProposerService(this, ledgerRepository);
-        this.blockCommitter = new BlockCommitService(this.realmName, this.messageHandle, ledgerRepository);
-        this.blockCommitter.registerCallBack((BlockCommitCallback) blockProposer);
-
-        //todo
-        this.stateMachine = new RaftConsensusStateMachine(this,this.blockCommitter, this.blockSerializer, null,ledgerRepository);
-        this.nodeOptions.setFsm(stateMachine);
-
         this.clientAuthencationService = new RaftClientAuthenticationService(this);
 
         CliOptions cliOptions = new CliOptions();
@@ -110,6 +104,19 @@ public class RaftNodeServer implements NodeServer {
 
         this.raftClientService = (CliClientServiceImpl) ((CliServiceImpl) RaftServiceFactory.createAndInitCliService(cliOptions)).getCliClientService();
         this.rpcClient = this.raftClientService.getRpcClient();
+
+        this.nodeOptions = initNodeOptions(raftServerSettings);
+        this.nodeOptions.setInitialConf(this.configuration);
+
+        LedgerRepository ledgerRepository = LedgerManageUtils.getLedgerRepository(this.ledgerHashDigest);
+        this.blockSerializer = new SimpleBlockSerializerService();
+        this.blockProposer = new BlockProposerService(this, ledgerRepository);
+        this.blockCommitter = new BlockCommitService(this.realmName, this.messageHandle, ledgerRepository);
+        this.blockCommitter.registerCallBack((BlockCommitCallback) blockProposer);
+
+        this.blockSyncer = new BlockSyncService(ledgerRepository, this.rpcClient, this.serverSettings.getRaftNetworkSettings().getRpcRequestTimeoutMs());
+        this.stateMachine = new RaftConsensusStateMachine(this, this.blockCommitter, this.blockSerializer, this.blockSyncer, ledgerRepository);
+        this.nodeOptions.setFsm(stateMachine);
     }
 
     private PeerId nodeSettingsToPeerId(NodeSettings nodeSettings) {
@@ -198,11 +205,9 @@ public class RaftNodeServer implements NodeServer {
         return raftNode.isLeader();
     }
 
-    //todo 修改为从Routetable中获取
     public PeerId getLeader() {
-        return raftNode.getLeaderId();
+        return raftNode == null ? RouteTable.getInstance().selectLeader(this.realmName) : raftNode.getLeaderId();
     }
-
 
     private void register(RpcServer rpcServer) {
         this.rpcServer = rpcServer;
@@ -212,11 +217,12 @@ public class RaftNodeServer implements NodeServer {
         rpcServer.registerProcessor(new ParticipantNodeRemoveRequestProcessor(this.raftNodeServerService, executor));
         rpcServer.registerProcessor(new ParticipantNodeTransferRequestProcessor(this.raftNodeServerService, executor));
         rpcServer.registerProcessor(new QueryLeaderRequestProcessor(this.raftNodeServerService, executor));
-        rpcServer.registerProcessor(new QueryManagerPortRequestProcessor(this.raftNodeServerService, executor));
+        rpcServer.registerProcessor(new QueryManagerInfoRequestProcessor(this.raftNodeServerService, executor));
+        rpcServer.registerProcessor(new QueryParticipantsNodeRequestProcessor(this.raftNodeServerService, executor));
     }
 
 
-    private void refreshRouteTable() {
+    public void refreshRouteTable() {
 
         if (this.isStop) {
             return;
@@ -308,4 +314,9 @@ public class RaftNodeServer implements NodeServer {
             throw new RuntimeException(e.getMessage(), e);
         }
     }
+
+    public HashDigest getLedgerHashDigest() {
+        return this.ledgerHashDigest;
+    }
+
 }

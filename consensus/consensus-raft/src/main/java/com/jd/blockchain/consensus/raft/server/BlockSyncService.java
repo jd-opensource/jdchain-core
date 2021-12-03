@@ -2,13 +2,16 @@ package com.jd.blockchain.consensus.raft.server;
 
 import com.alipay.sofa.jraft.rpc.RpcClient;
 import com.alipay.sofa.jraft.util.Endpoint;
-import com.google.common.primitives.Ints;
 import com.jd.blockchain.consensus.raft.consensus.BlockSyncException;
 import com.jd.blockchain.consensus.raft.consensus.BlockSyncer;
-import com.jd.blockchain.consensus.raft.rpc.QueryManagerPortRequest;
+import com.jd.blockchain.consensus.raft.rpc.QueryManagerInfoRequest;
+import com.jd.blockchain.consensus.raft.rpc.QueryManagerInfoRequestProcessor;
 import com.jd.blockchain.consensus.raft.rpc.RpcResponse;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.ledger.BlockRollbackException;
+import com.jd.blockchain.ledger.LedgerBlock;
+import com.jd.blockchain.ledger.LedgerTransaction;
+import com.jd.blockchain.ledger.LedgerTransactions;
 import com.jd.blockchain.ledger.core.*;
 import com.jd.blockchain.sdk.proxy.HttpBlockchainBrowserService;
 import com.jd.blockchain.service.TransactionBatchResultHandle;
@@ -28,35 +31,44 @@ public class BlockSyncService implements BlockSyncer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BlockSyncService.class);
 
-    private HashDigest ledger;
     private LedgerRepository repository;
     private RpcClient rpcClient;
     private long requestTimeoutMs;
 
-    public BlockSyncService(HashDigest ledger, LedgerRepository repository, RpcClient rpcClient, long requestTimeoutMs) {
-        this.ledger = ledger;
+    public BlockSyncService(LedgerRepository repository, RpcClient rpcClient, long requestTimeoutMs) {
         this.repository = repository;
         this.rpcClient = rpcClient;
         this.requestTimeoutMs = requestTimeoutMs;
     }
 
-    public boolean sync(String consensusHost, int consensusPort, long height) throws BlockSyncException {
-        boolean syncResult = true;
+    @Override
+    public ManagerInfo getConsensusNodeManagerInfo(String consensusHost, int consensusPort) {
         try {
-            QueryManagerPortRequest request = new QueryManagerPortRequest();
+            QueryManagerInfoRequest request = new QueryManagerInfoRequest();
             RpcResponse response = (RpcResponse) rpcClient.invokeSync(new Endpoint(consensusHost, consensusPort), request, requestTimeoutMs);
 
-            if (!response.isSuccess()) {
+            QueryManagerInfoRequestProcessor.ManagerInfoResponse infoResponse = QueryManagerInfoRequestProcessor.ManagerInfoResponse.fromBytes(response.getResult());
+            return new ManagerInfo(infoResponse.getManagerPort(), infoResponse.isManagerSSLEnabled());
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage(), e);
+        }
+        return null;
+    }
+
+    public boolean sync(String consensusHost, int consensusPort, HashDigest ledger, long height) throws BlockSyncException {
+        boolean syncResult = true;
+        try {
+            ManagerInfo managerInfo = getConsensusNodeManagerInfo(consensusHost, consensusPort);
+            if (managerInfo == null) {
+                LOGGER.error("query {}:{}'s manager info is null", consensusHost, consensusPort);
                 return false;
             }
 
-            int managerPort = Ints.fromByteArray(response.getResult());
-            ServiceEndpoint remoteEndpoint = new ServiceEndpoint(consensusHost, managerPort, false); //todo
-
+            ServiceEndpoint remoteEndpoint = new ServiceEndpoint(consensusHost, managerInfo.getManagerPort(), managerInfo.isSslEnabled());
             try (ServiceConnection httpConnection = ServiceConnectionManager.connect(remoteEndpoint)) {
                 HttpBlockchainBrowserService queryService = HttpServiceAgent.createService(HttpBlockchainBrowserService.class, httpConnection, null);
                 LedgerBlock block = queryService.getBlock(ledger, height);
-                sync(queryService, block);
+                sync(queryService, ledger, block);
             }
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
@@ -66,7 +78,7 @@ public class BlockSyncService implements BlockSyncer {
         return syncResult;
     }
 
-    private void sync(HttpBlockchainBrowserService queryService, LedgerBlock block) {
+    private void sync(HttpBlockchainBrowserService queryService, HashDigest ledger, LedgerBlock block) {
         OperationHandleRegisteration opReg = new DefaultOperationHandleRegisteration();
         TransactionBatchProcessor batchProcessor = new TransactionBatchProcessor(repository, opReg);
         List<LedgerTransaction> transactions = getAdditionalTransactions(queryService, ledger, block.getHeight());
@@ -115,16 +127,7 @@ public class BlockSyncService implements BlockSyncer {
             }
         }
         return txs;
-
     }
 
-    @Override
-    public ParticipantNode findParticipantNode() {
-        return null;
-    }
 
-    @Override
-    public boolean sync(ParticipantNode node, long height) throws BlockSyncException {
-        return false;
-    }
 }

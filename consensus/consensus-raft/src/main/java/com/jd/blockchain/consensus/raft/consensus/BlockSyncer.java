@@ -1,11 +1,37 @@
 package com.jd.blockchain.consensus.raft.consensus;
 
-import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.crypto.HashDigest;
 
 public interface BlockSyncer {
 
-    ParticipantNode findParticipantNode();
+    ManagerInfo getConsensusNodeManagerInfo(String consensusHost, int consensusPort);
 
-    boolean sync(ParticipantNode node, long height) throws BlockSyncException;
+    boolean sync(String consensusHost, int consensusPort, HashDigest ledger, long height) throws BlockSyncException;
 
+
+    class ManagerInfo {
+        private int managerPort;
+        private boolean sslEnabled;
+
+        public ManagerInfo(int managerPort, boolean sslEnabled) {
+            this.managerPort = managerPort;
+            this.sslEnabled = sslEnabled;
+        }
+
+        public int getManagerPort() {
+            return managerPort;
+        }
+
+        public void setManagerPort(int managerPort) {
+            this.managerPort = managerPort;
+        }
+
+        public boolean isSslEnabled() {
+            return sslEnabled;
+        }
+
+        public void setSslEnabled(boolean sslEnabled) {
+            this.sslEnabled = sslEnabled;
+        }
+    }
 }

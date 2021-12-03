@@ -2,7 +2,7 @@ package com.jd.blockchain.consensus.raft.rpc;
 
 import java.io.Serializable;
 
-public class QueryCurrentParticipantNodeRequest implements Serializable {
+public class QueryParticipantsNodeRequest implements Serializable {
     private static final long serialVersionUID = 5619373098318874151L;
 
     private String ledgerHash;

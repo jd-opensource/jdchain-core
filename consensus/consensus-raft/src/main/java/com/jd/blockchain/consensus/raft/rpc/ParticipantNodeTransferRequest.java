@@ -10,7 +10,7 @@ public class ParticipantNodeTransferRequest implements Serializable {
 
     private int prePort;
 
-    private int newHost;
+    private String newHost;
 
     private int newPort;
 
@@ -30,11 +30,11 @@ public class ParticipantNodeTransferRequest implements Serializable {
         this.prePort = prePort;
     }
 
-    public int getNewHost() {
+    public String getNewHost() {
         return newHost;
     }
 
-    public void setNewHost(int newHost) {
+    public void setNewHost(String newHost) {
         this.newHost = newHost;
     }
 

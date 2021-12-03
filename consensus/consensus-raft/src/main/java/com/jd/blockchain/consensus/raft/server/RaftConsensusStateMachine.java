@@ -3,7 +3,6 @@ package com.jd.blockchain.consensus.raft.server;
 import com.alipay.sofa.jraft.Closure;
 import com.alipay.sofa.jraft.Iterator;
 import com.alipay.sofa.jraft.Status;
-import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.core.StateMachineAdapter;
 import com.alipay.sofa.jraft.entity.LeaderChangeContext;
 import com.alipay.sofa.jraft.entity.PeerId;
@@ -22,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RaftConsensusStateMachine extends StateMachineAdapter {
 
@@ -34,8 +34,7 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
     private LedgerRepository ledgerRepository;
 
     private final AtomicBoolean isLeader = new AtomicBoolean(false);
-
-    private volatile long currentBlockHeight;
+    private AtomicLong currentBlockHeight = new AtomicLong(1);
 
     public RaftConsensusStateMachine(RaftNodeServer nodeServer, BlockCommitter committer, BlockSerializer serializer, BlockSyncer blockSyncer, LedgerRepository ledgerRepository) {
         this.nodeServer = nodeServer;
@@ -47,7 +46,7 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
 
     public void onStart() {
         LedgerBlock ledgerBlock = ledgerRepository.retrieveLatestBlock();
-        this.currentBlockHeight = ledgerBlock.getHeight();
+        this.currentBlockHeight.set(ledgerBlock.getHeight());
     }
 
     @Override
@@ -73,7 +72,7 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
                     try {
                         boolean result = committer.commitBlock(block, closure);
                         if (result) {
-                            currentBlockHeight = block.getHeight();
+                            this.currentBlockHeight.set(block.getHeight());
                         }
                     } catch (BlockCommittedException bce) {
                         //ignore
@@ -104,7 +103,7 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
 
     @Override
     public void onSnapshotSave(SnapshotWriter writer, Closure done) {
-        long height = this.currentBlockHeight;
+        long height = this.currentBlockHeight.get();
 
         Utils.runInThread(() -> {
             final RaftSnapshotFile snapshot = new RaftSnapshotFile(writer.getPath());
@@ -143,22 +142,20 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
         try {
             RaftSnapshotFile.RaftSnapshotData load = raftSnapshotFile.load();
             long snapshotHeight = load.getHeight();
-
-            if (snapshotHeight <= this.currentBlockHeight) {
-                LOGGER.warn("snapshot height: {} less than current block height: {}, ignore it", snapshotHeight, this.currentBlockHeight);
+            long currentBlockHeight = this.currentBlockHeight.get();
+            if (snapshotHeight <= currentBlockHeight) {
+                LOGGER.warn("snapshot height: {} less than current block height: {}, ignore it", snapshotHeight, currentBlockHeight);
                 return true;
             }
 
-            if (snapshotHeight > this.currentBlockHeight) {
-                try {
-                    catchUp(snapshotHeight);
-                } catch (BlockSyncException e) {
-                    LOGGER.error("node sync block error, please check db data");
-                    throw new IllegalStateException(e);
-                }
+            try {
+                catchUp(snapshotHeight);
+            } catch (BlockSyncException e) {
+                LOGGER.error("node sync block error, please install latest db data");
+                throw new IllegalStateException(e);
             }
 
-            this.currentBlockHeight = snapshotHeight;
+            this.currentBlockHeight.set(snapshotHeight);
 
             return true;
         } catch (final IOException e) {
@@ -170,11 +167,20 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
     }
 
     private void catchUp(long maxHeight) throws BlockSyncException {
-        while (this.currentBlockHeight < maxHeight) {
-            PeerId leader = nodeServer.getLeader();
-            boolean result = blockSyncer.sync(null, this.currentBlockHeight + 1);
+        while (this.currentBlockHeight.get() < maxHeight) {
+            PeerId leader = null;
+            if (nodeServer.getNode() == null) {
+                // 当本地快照与本地账本不一致时，需连接Leader节点进行同步, 此时本地节点尚无leader节点信息, 需要通过客户端进行同步
+                nodeServer.refreshRouteTable();
+            }
+            leader = nodeServer.getLeader();
+            if (leader == null) {
+                throw new BlockSyncException("raft group not ready, current leader is none. retry it.");
+            }
+
+            boolean result = blockSyncer.sync(leader.getIp(), leader.getPort(), nodeServer.getLedgerHashDigest(), this.currentBlockHeight.get() + 1);
             if (result) {
-                this.currentBlockHeight++;
+                this.currentBlockHeight.incrementAndGet();
             }
         }
     }

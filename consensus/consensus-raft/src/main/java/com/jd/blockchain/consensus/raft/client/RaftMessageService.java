@@ -12,27 +12,34 @@ import com.alipay.sofa.jraft.rpc.RpcResponseClosureAdapter;
 import com.alipay.sofa.jraft.rpc.impl.cli.CliClientServiceImpl;
 import com.alipay.sofa.jraft.util.Endpoint;
 import com.google.protobuf.ProtocolStringList;
+import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.MessageService;
+import com.jd.blockchain.consensus.NodeNetworkAddress;
+import com.jd.blockchain.consensus.NodeNetworkAddresses;
 import com.jd.blockchain.consensus.Replica;
 import com.jd.blockchain.consensus.manage.ConsensusManageService;
 import com.jd.blockchain.consensus.manage.ConsensusView;
 import com.jd.blockchain.consensus.raft.config.RaftReplica;
 import com.jd.blockchain.consensus.raft.manager.RaftConsensusView;
+import com.jd.blockchain.consensus.raft.rpc.QueryManagerInfoRequest;
+import com.jd.blockchain.consensus.raft.rpc.QueryManagerInfoRequestProcessor;
 import com.jd.blockchain.consensus.raft.rpc.RpcResponse;
 import com.jd.blockchain.consensus.raft.rpc.SubmitTxRequest;
 import com.jd.blockchain.consensus.raft.settings.RaftClientSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftConsensusSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftNetworkSettings;
 import com.jd.blockchain.consensus.raft.util.LoggerUtils;
+import com.jd.blockchain.consensus.service.MonitorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.concurrent.AsyncFuture;
 import utils.concurrent.CompletableAsyncFuture;
 import utils.net.NetworkAddress;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class RaftMessageService implements MessageService, ConsensusManageService {
@@ -45,6 +52,7 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
     private long lastLeaderUpdateTimestamp;
     private ReentrantLock lock = new ReentrantLock();
     private ScheduledExecutorService refreshLeaderExecutorService;
+    private Executor monitorExecutor;
 
     private CliClientServiceImpl clientService;
     private Configuration configuration;
@@ -77,6 +85,7 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
         }
 
         this.refreshLeaderExecutorService = Executors.newSingleThreadScheduledExecutor();
+        this.monitorExecutor = JRaftUtils.createExecutor("RAFT-CLIENT-MONITOR", Runtime.getRuntime().availableProcessors());
     }
 
     public void init() {
@@ -175,9 +184,69 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
 
     @Override
     public AsyncFuture<byte[]> sendUnordered(byte[] message) {
-        //todo
         ensureConnected();
+        if (Arrays.equals(MonitorService.LOAD_MONITOR, message)) {
+            return refreshAndQueryPeersManagerInfo();
+        }
         return new CompletableAsyncFuture<>();
+    }
+
+    private AsyncFuture<byte[]> refreshAndQueryPeersManagerInfo() {
+        refresh();
+        Configuration configuration = RouteTable.getInstance().getConfiguration(this.groupId);
+        List<PeerId> peerIds = configuration.listPeers();
+
+        return CompletableAsyncFuture.callAsync((Callable<byte[]>) () -> {
+            try {
+                List<MonitorNodeNetwork> monitorNodeNetworkList = queryPeersManagerInfo(peerIds);
+                MonitorNodeNetwork[] monitorNodeNetworks = monitorNodeNetworkList.toArray(new MonitorNodeNetwork[]{});
+                MonitorNodeNetworkAddresses addresses = new MonitorNodeNetworkAddresses(monitorNodeNetworks);
+                return BinaryProtocol.encode(addresses, NodeNetworkAddresses.class);
+            } catch (Exception e) {
+                LOGGER.error("refreshAndQueryPeersManagerInfo error", e);
+            }
+            return null;
+        }, monitorExecutor);
+    }
+
+    private List<MonitorNodeNetwork> queryPeersManagerInfo(List<PeerId> peerIds) throws InterruptedException {
+
+        final List<MonitorNodeNetwork> nodeNetworkList = new ArrayList<>(peerIds.size());
+        CountDownLatch countDownLatch = new CountDownLatch(peerIds.size());
+        QueryManagerInfoRequest infoRequest = new QueryManagerInfoRequest();
+
+        for (PeerId peerId : peerIds) {
+            try {
+                clientService.getRpcClient().invokeAsync(peerId.getEndpoint(), infoRequest, (o, e) -> {
+                    try {
+                        if (e != null) {
+                            LoggerUtils.errorIfEnabled(LOGGER, "queryPeersManagerInfo error, peer id: {}", peerId, e);
+                        } else {
+                            RpcResponse response = (RpcResponse) o;
+                            QueryManagerInfoRequestProcessor.ManagerInfoResponse managerInfoResponse =
+                                    QueryManagerInfoRequestProcessor.ManagerInfoResponse.fromBytes(response.getResult());
+
+                            MonitorNodeNetwork monitorNodeNetwork = new MonitorNodeNetwork(
+                                    managerInfoResponse.getHost(),
+                                    managerInfoResponse.getConsensusPort(),
+                                    managerInfoResponse.getManagerPort(),
+                                    managerInfoResponse.isConsensusSSLEnabled(),
+                                    managerInfoResponse.isManagerSSLEnabled()
+                            );
+
+                            nodeNetworkList.add(monitorNodeNetwork);
+                        }
+                    } finally {
+                        countDownLatch.countDown();
+                    }
+                }, this.rpcTimeoutMs);
+            } catch (Exception e) {
+                countDownLatch.countDown();
+            }
+        }
+
+        countDownLatch.await(this.rpcTimeoutMs * peerIds.size(), TimeUnit.MILLISECONDS);
+        return nodeNetworkList;
     }
 
 
@@ -275,4 +344,86 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
     public boolean isConnected() {
         return this.leader != null && clientService.isConnected(this.leader.getEndpoint());
     }
+
+    static class MonitorNodeNetworkAddresses implements NodeNetworkAddresses {
+        private NodeNetworkAddress[] nodeNetworkAddresses = null;
+
+        public MonitorNodeNetworkAddresses() {
+        }
+
+        public MonitorNodeNetworkAddresses(NodeNetworkAddress[] nodeNetworkAddresses) {
+            this.nodeNetworkAddresses = nodeNetworkAddresses;
+        }
+
+        @Override
+        public NodeNetworkAddress[] getNodeNetworkAddresses() {
+            return nodeNetworkAddresses;
+        }
+    }
+
+    static class MonitorNodeNetwork implements NodeNetworkAddress {
+
+        String host;
+        int consensusPort;
+        int monitorPort;
+        boolean consensusSecure;
+        boolean monitorSecure;
+
+        public MonitorNodeNetwork() {
+        }
+
+        public MonitorNodeNetwork(String host, int consensusPort, int monitorPort, boolean consensusSecure, boolean monitorSecure) {
+            this.host = host;
+            this.consensusPort = consensusPort;
+            this.monitorPort = monitorPort;
+            this.consensusSecure = consensusSecure;
+            this.monitorSecure = monitorSecure;
+        }
+
+        @Override
+        public String getHost() {
+            return host;
+        }
+
+        @Override
+        public int getConsensusPort() {
+            return consensusPort;
+        }
+
+        @Override
+        public int getMonitorPort() {
+            return monitorPort;
+        }
+
+        @Override
+        public boolean isConsensusSecure() {
+            return consensusSecure;
+        }
+
+        @Override
+        public boolean isMonitorSecure() {
+            return monitorSecure;
+        }
+
+        public void setHost(String host) {
+            this.host = host;
+        }
+
+        public void setConsensusPort(int consensusPort) {
+            this.consensusPort = consensusPort;
+        }
+
+        public void setMonitorPort(int monitorPort) {
+            this.monitorPort = monitorPort;
+        }
+
+        public void setConsensusSecure(boolean consensusSecure) {
+            this.consensusSecure = consensusSecure;
+        }
+
+        public void setMonitorSecure(boolean monitorSecure) {
+            this.monitorSecure = monitorSecure;
+        }
+    }
+
 }

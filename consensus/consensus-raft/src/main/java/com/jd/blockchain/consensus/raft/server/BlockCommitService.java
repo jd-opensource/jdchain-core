@@ -2,13 +2,11 @@ package com.jd.blockchain.consensus.raft.server;
 
 import com.alipay.sofa.jraft.Status;
 import com.jd.blockchain.consensus.raft.consensus.Block;
-
 import com.jd.blockchain.consensus.raft.consensus.BlockCommitCallback;
 import com.jd.blockchain.consensus.raft.consensus.BlockCommittedException;
 import com.jd.blockchain.consensus.raft.consensus.BlockCommitter;
 import com.jd.blockchain.consensus.raft.util.LoggerUtils;
 import com.jd.blockchain.consensus.service.MessageHandle;
-import com.jd.blockchain.consensus.service.StateSnapshot;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.core.LedgerRepository;
@@ -18,7 +16,6 @@ import utils.concurrent.AsyncFuture;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import java.util.Optional;
 
 public class BlockCommitService implements BlockCommitter {
@@ -46,6 +43,7 @@ public class BlockCommitService implements BlockCommitter {
         }
 
         if (latestBlock.getHeight() + 1 != block.getHeight()) {
+            //todo: triger catchup ?
             LOGGER.error("commit block ignore. expect height:{}, latest block: {}", block.getHeight(), latestBlock.getHeight());
             return false;
         }
