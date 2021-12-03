@@ -6,6 +6,7 @@ import com.jd.blockchain.consensus.NodeNetworkAddress;
 import com.jd.blockchain.consensus.bftsmart.service.BftsmartNodeState;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.ledger.BlockRollbackException;
+import com.jd.blockchain.ledger.ConsensusTypeUpdateOperation;
 import com.jd.blockchain.ledger.IdentityMode;
 import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.ledger.core.UserAccount;
@@ -220,6 +221,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         DataContractRegistry.register(ParticipantRegisterOperation.class);
         DataContractRegistry.register(ParticipantStateUpdateOperation.class);
         DataContractRegistry.register(ConsensusSettingsUpdateOperation.class);
+        DataContractRegistry.register(ConsensusTypeUpdateOperation.class);
 
         DataContractRegistry.register(ActionResponse.class);
 

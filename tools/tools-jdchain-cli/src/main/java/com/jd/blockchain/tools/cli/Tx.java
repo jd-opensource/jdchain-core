@@ -37,6 +37,7 @@ import com.jd.blockchain.transaction.UserRolesAuthorizer;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 import utils.Bytes;
+import utils.PropertiesUtils;
 import utils.StringUtils;
 import utils.codec.Base58Utils;
 import utils.io.BytesUtils;
@@ -44,10 +45,14 @@ import utils.io.FileUtils;
 import utils.net.SSLSecurity;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
@@ -82,6 +87,7 @@ import java.util.concurrent.atomic.AtomicLong;
                 TxSign.class,
                 TxSend.class,
                 TxTestKV.class,
+                TxSwitchConsensus.class,
                 CommandLine.HelpCommand.class
         }
 )
@@ -1155,6 +1161,61 @@ class TxContractAccountPermission implements Runnable {
                     System.out.printf("update contract: [%s] permission\n", address);
                 } else {
                     System.err.printf("update contract permission failed: [%s]!%n", response.getExecutionState());
+                }
+            }
+        }
+    }
+}
+
+@CommandLine.Command(name = "switch-consensus", mixinStandardHelpOptions = true, header = "Switch consensus type.")
+class TxSwitchConsensus implements Runnable {
+
+    @CommandLine.Option(names = "--type", required = true, description = "New consensus type", scope = CommandLine.ScopeType.INHERIT)
+    String type;
+
+    @CommandLine.Option(names = "--file", required = true, description = "Set new consensus config file", scope = CommandLine.ScopeType.INHERIT)
+    String config;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        Properties properties;
+        String providerName = null;
+
+        if (StringUtils.isEmpty(type) || StringUtils.isEmpty(config)) {
+            System.err.println("both type and config file path are empty!");
+            return;
+        }
+
+        TransactionTemplate txTemp = txCommand.newTransaction();
+
+        try (InputStream in = new FileInputStream(new File(config))) {
+            properties = FileUtils.readProperties(in);
+        } catch (IOException e) {
+            throw new IllegalStateException(e.getMessage(), e);
+        }
+
+        if (type.equals("bft")) {
+            providerName = "com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider";
+        } else if (type.equals("raft")) {
+            providerName = "com.jd.blockchain.consensus.raft.RaftConsensusProvider";
+        } else if (type.equals("mq")) {
+            providerName = "com.jd.blockchain.consensus.mq.MsgQueueConsensusProvider";
+        }
+        txTemp.switchSettings().update(providerName, PropertiesUtils.getOrderedValues(properties));
+        PreparedTransaction ptx = txTemp.prepare();
+        String txFile = txCommand.export(ptx);
+        if (null != txFile) {
+            System.err.println("export transaction success: " + txFile);
+        } else {
+            if (txCommand.sign(ptx)) {
+                TransactionResponse response = ptx.commit();
+                if (response.isSuccess()) {
+                    System.out.println("switch consensus type success");
+                } else {
+                    System.err.printf("switch consensus type failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }

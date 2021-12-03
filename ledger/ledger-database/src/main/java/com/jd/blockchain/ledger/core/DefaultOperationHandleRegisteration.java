@@ -42,6 +42,8 @@ public class DefaultOperationHandleRegisteration implements OperationHandleRegis
 
 		registerDefaultHandle(new ConsensusSettingsUpdateOperationHandle());
 
+		registerDefaultHandle(new ConsensusTypeUpdateOperationHandle());
+
 		registerDefaultHandle(new EventAccountRegisterOperationHandle());
 
 		registerDefaultHandle(new EventPublishOperationHandle());
