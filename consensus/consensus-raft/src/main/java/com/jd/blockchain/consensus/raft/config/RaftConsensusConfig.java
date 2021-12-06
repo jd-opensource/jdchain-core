@@ -4,6 +4,7 @@ import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftConsensusSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftNetworkSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftSettings;
+import utils.Property;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +41,24 @@ public class RaftConsensusConfig extends PropertyConfig implements RaftConsensus
         this.nodeSettingsList = oldRaftConsensusConfig.getNodeSettingsList();
         this.networkSettings = oldRaftConsensusConfig.getNetworkSettings();
         this.raftSettings = oldRaftConsensusConfig.getRaftSettings();
+    }
+
+
+    //适配前端获取共识属性方法
+    public Property[] getSystemConfigs() {
+
+        List<Property> propertyList = new ArrayList<>();
+
+        this.convert().forEach((k, v) -> propertyList.add(new Property((String) k, (String) v)));
+        if (this.networkSettings != null) {
+            ((RaftNetworkConfig) this.networkSettings).convert().forEach((k, v) -> propertyList.add(new Property((String) k, (String) v)));
+        }
+
+        if (this.raftSettings != null) {
+            ((RaftConfig) this.raftSettings).convert().forEach((k, v) -> propertyList.add(new Property((String) k, (String) v)));
+        }
+
+        return propertyList.toArray(new Property[propertyList.size()]);
     }
 
     @Override

@@ -36,14 +36,43 @@ public interface IParticipantManagerService {
         return String.format(pattern, id);
     }
 
+    /**
+     * 共识最小节点数
+     */
     int minConsensusNodes();
 
+    /**
+     * 获取共识自定义配置属性
+     */
     Properties getCustomProperties(ParticipantContext context);
 
+    /**
+     * 组装新增共识节点属性
+     *
+     * @param address
+     * @param activePubKey
+     * @param activeID
+     * @param customProperties
+     */
     Property[] createActiveProperties(NetworkAddress address, PubKey activePubKey, int activeID, Properties customProperties);
 
+    /**
+     * 组装更新共识节点属性
+     *
+     * @param address
+     * @param activePubKey
+     * @param activeID
+     * @param customProperties
+     */
     Property[] createUpdateProperties(NetworkAddress address, PubKey activePubKey, int activeID, Properties customProperties);
 
+    /**
+     * 组装删除共识节点属性
+     *
+     * @param deActivePubKey
+     * @param deActiveID
+     * @param customProperties
+     */
     Property[] createDeactiveProperties(PubKey deActivePubKey, int deActiveID, Properties customProperties);
 
     /**
@@ -55,7 +84,7 @@ public interface IParticipantManagerService {
 
     /**
      * 使用共识原语管理共识节点
-     * */
+     */
     WebResponse applyConsensusGroupNodeChange(ParticipantContext context,
                                               ParticipantNode node,
                                               @Nullable NetworkAddress changeNetworkAddress,

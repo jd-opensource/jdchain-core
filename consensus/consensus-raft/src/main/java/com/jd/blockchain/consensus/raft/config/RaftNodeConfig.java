@@ -20,6 +20,17 @@ public class RaftNodeConfig extends PropertyConfig implements RaftNodeSettings {
 
     private NetworkAddress networkAddress;
 
+    public RaftNodeConfig() {
+    }
+
+    public RaftNodeConfig(int id, String address, PubKey pubKey, String raftPath, NetworkAddress networkAddress) {
+        this.id = id;
+        this.address = address;
+        this.pubKey = pubKey;
+        this.raftPath = raftPath;
+        this.networkAddress = networkAddress;
+    }
+
     public void init(Properties props, Replica replica) {
         this.setId(replica.getId());
         this.setAddress(replica.getAddress().toBase58());

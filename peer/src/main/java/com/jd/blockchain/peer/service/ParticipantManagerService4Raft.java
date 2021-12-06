@@ -250,7 +250,7 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
         clientService.init(cliOptions);
 
         context.setProperty(RPC_CLIENT, clientService);
-        context.setProperty("rpc_quest_timeout_ms", networkSettings.getRpcRequestTimeoutMs() * 2);
+        context.setProperty(RPC_QUEST_TIMEOUT_MS, networkSettings.getRpcRequestTimeoutMs() * 2);
 
         return clientService;
     }
