@@ -49,6 +49,7 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
     private MsgQueueProducer txResultProducer;
     private MsgQueueProducer blockProducer;
     private int nodeId;
+    private boolean singleNode;
     private boolean isLeader;
     private String realmName;
     private MessageHandle messageHandle;
@@ -76,8 +77,9 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
         return this;
     }
 
-    public MsgQueueMessageExecutor setNodeId(int nodeId) {
+    public MsgQueueMessageExecutor setNodeId(int nodeId, boolean singleNode) {
         this.nodeId = nodeId;
+        this.singleNode = singleNode;
         return this;
     }
 
@@ -103,7 +105,9 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
             messageId.set(((int) latestStateId + 1) * txSizePerBlock);
             if (isLeader) {
                 txResultProducer.connect();
-                blockProducer.connect();
+                if (!singleNode) {
+                    blockProducer.connect();
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -171,7 +175,7 @@ public class MsgQueueMessageExecutor implements EventHandler<EventEntity<Exchang
             consensusContext.setTimestamp(System.currentTimeMillis());
             StateSnapshot snapshot = messageHandle.completeBatch(consensusContext);
             messageHandle.commitBatch(consensusContext);
-            if (isLeader) {
+            if (isLeader && !singleNode) {
                 // 领导者节点向follower同步区块
                 this.blockProducer.publish(MessageConvertor.serializeBlockTxs(new BlockMessage(snapshot.getId(), snapshot.getTimestamp(), snapshot.getSnapshot(), txMessages)));
             }

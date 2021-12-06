@@ -8,24 +8,19 @@
  */
 package com.jd.blockchain.consensus.mq.server;
 
-import java.util.concurrent.Executors;
-
 import com.jd.blockchain.consensus.ClientAuthencationService;
 import com.jd.blockchain.consensus.mq.MsgQueueConsensusProvider;
 import com.jd.blockchain.consensus.mq.consumer.MsgQueueConsumer;
 import com.jd.blockchain.consensus.mq.factory.MsgQueueFactory;
 import com.jd.blockchain.consensus.mq.producer.MsgQueueProducer;
 import com.jd.blockchain.consensus.mq.settings.*;
-import com.jd.blockchain.consensus.service.Communication;
-import com.jd.blockchain.consensus.service.MessageHandle;
-import com.jd.blockchain.consensus.service.NodeServer;
-import com.jd.blockchain.consensus.service.NodeState;
-import com.jd.blockchain.consensus.service.StateMachineReplicate;
-
+import com.jd.blockchain.consensus.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.concurrent.AsyncFuture;
 import utils.concurrent.CompletableAsyncFuture;
+
+import java.util.concurrent.Executors;
 
 /**
  * @author shaozhuguang
@@ -60,6 +55,7 @@ public class MsgQueueNodeServer implements NodeServer {
     private boolean isRunning;
 
     private int nodeId;
+    private boolean singleNode;
 
     public MsgQueueNodeServer setMessageHandle(MessageHandle messageHandle) {
         this.messageHandle = messageHandle;
@@ -86,14 +82,8 @@ public class MsgQueueNodeServer implements NodeServer {
         return this;
     }
 
-    public MsgQueueNodeServer setServerSettings(MsgQueueServerSettings serverSettings) {
-        this.serverSettings = serverSettings;
-        this.manageService = new MsgQueueConsensusManageService()
-                .setConsensusSettings(serverSettings.getConsensusSettings());
-        return this;
-    }
-
     public MsgQueueNodeServer init() {
+        this.singleNode = serverSettings.getConsensusSettings().getNodes().length == 1;
         MsgQueueNodeSettings currentNodeSettings = serverSettings.getMsgQueueNodeSettings();
         String realmName = this.serverSettings.getRealmName();
         MsgQueueBlockSettings blockSettings = this.serverSettings.getBlockSettings();
@@ -133,7 +123,7 @@ public class MsgQueueNodeServer implements NodeServer {
 
     private boolean isLeader() {
         // TODO imuge 此处暂时使用简单等于0判断是否为领导者
-        return nodeId == 0;
+        return singleNode || nodeId == 0;
     }
 
     @Override
@@ -149,6 +139,13 @@ public class MsgQueueNodeServer implements NodeServer {
     @Override
     public MsgQueueServerSettings getServerSettings() {
         return serverSettings;
+    }
+
+    public MsgQueueNodeServer setServerSettings(MsgQueueServerSettings serverSettings) {
+        this.serverSettings = serverSettings;
+        this.manageService = new MsgQueueConsensusManageService()
+                .setConsensusSettings(serverSettings.getConsensusSettings());
+        return this;
     }
 
     @Override
@@ -208,7 +205,7 @@ public class MsgQueueNodeServer implements NodeServer {
                 .setTxResultProducer(txResultProducer)
                 .setBlockProducer(blockProducer)
                 .setIsLeader(isLeader())
-                .setNodeId(nodeId)
+                .setNodeId(nodeId, singleNode)
                 .setStateMachineReplicator(stateMachineReplicator)
                 .setTxSizePerBlock(txSizePerBlock)
                 .init()
