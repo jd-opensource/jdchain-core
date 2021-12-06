@@ -10,6 +10,9 @@ import java.util.Map;
 
 public final class ParticipantContext {
 
+    public static final String HASH_ALG_PROP = "HASH_ALG";
+    public static final String ENDPOINT_SIGNER_PROP = "ENDPOINT_SIGNER";
+
     private static final ThreadLocal<ParticipantContext> THREAD_LOCAL_CONTEXT = new ThreadLocal<>();
 
     private Map<String, Object> properties = new HashMap<>();

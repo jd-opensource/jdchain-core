@@ -163,6 +163,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
     private static final String STORAGE_CONSENSUS = "consensus";
 
+
     private static Logger LOGGER = LoggerFactory.getLogger(ManagementController.class);
 
     public String DEFAULT_DIR = "";
@@ -792,6 +793,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     participantService,
                     ledgerSecurities.get(ledgerHash));
             context.setProperty(IParticipantManagerService.RAFT_CONSENSUS_NODE_STORAGE , consensusStorage);
+            context.setProperty(ParticipantContext.HASH_ALG_PROP, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
+            context.setProperty(ParticipantContext.ENDPOINT_SIGNER_PROP, new AsymmetricKeypair(ledgerKeypairs.get(ledgerHash).getPubKey(),
+                    ledgerKeypairs.get(ledgerHash).getPrivKey()));
 
             // 检查节点信息
             ParticipantNode addNode = getCurrentNode(ledgerAdminInfo, ledgerCurrNodes.get(ledgerHash).getAddress().toString());
@@ -864,6 +868,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     participantService,
                     ledgerSecurities.get(ledgerHash));
             context.setProperty(IParticipantManagerService.RAFT_CONSENSUS_NODE_STORAGE , consensusStorage);
+            context.setProperty(ParticipantContext.HASH_ALG_PROP, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
+            context.setProperty(ParticipantContext.ENDPOINT_SIGNER_PROP, new AsymmetricKeypair(ledgerKeypairs.get(ledgerHash).getPubKey(),
+                    ledgerKeypairs.get(ledgerHash).getPrivKey()));
 
             // 检查节点信息
             ParticipantNode updateNode = getCurrentNode(ledgerAdminInfo, ledgerCurrNodes.get(ledgerHash).getAddress().toString());
@@ -1080,7 +1087,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     currentProvider,
                     participantService,
                     ledgerSecurities.get(ledgerHash));
-
+            context.setProperty(ParticipantContext.HASH_ALG_PROP, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
+            context.setProperty(ParticipantContext.ENDPOINT_SIGNER_PROP, new AsymmetricKeypair(ledgerKeypairs.get(ledgerHash).getPubKey(),
+                    ledgerKeypairs.get(ledgerHash).getPrivKey()));
+            
             Properties customProperties = participantService.getCustomProperties(context);
 
             // 由本节点准备交易
@@ -1364,22 +1374,22 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
     }
 
-    // 在指定的账本上准备一笔reconfig操作交易
-    private TransactionRequest prepareReconfigTx(HashDigest ledgerHash) {
-
-        TxBuilder txbuilder = new TxBuilder(ledgerHash, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
-
-        // This transaction contains one reconfig op
-        txbuilder.reconfigs().record();
-
-        TransactionRequestBuilder reqBuilder = txbuilder.prepareRequest();
-
-        reqBuilder.signAsEndpoint(new AsymmetricKeypair(ledgerKeypairs.get(ledgerHash).getPubKey(),
-                ledgerKeypairs.get(ledgerHash).getPrivKey()));
-
-        return reqBuilder.buildRequest();
-
-    }
+//    // 在指定的账本上准备一笔reconfig操作交易
+//    private TransactionRequest prepareReconfigTx(HashDigest ledgerHash) {
+//
+//        TxBuilder txbuilder = new TxBuilder(ledgerHash, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
+//
+//        // This transaction contains one reconfig op
+//        txbuilder.reconfigs().record();
+//
+//        TransactionRequestBuilder reqBuilder = txbuilder.prepareRequest();
+//
+//        reqBuilder.signAsEndpoint(new AsymmetricKeypair(ledgerKeypairs.get(ledgerHash).getPubKey(),
+//                ledgerKeypairs.get(ledgerHash).getPrivKey()));
+//
+//        return reqBuilder.buildRequest();
+//
+//    }
 
     // 加载本参与方的公私钥对身份信息
     private AsymmetricKeypair loadIdentity(ParticipantNode currentNode, BindingConfig bindingConfig) {
@@ -1474,48 +1484,48 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         }
 
     }
-    
-    // 通知原有的共识网络更新共识的视图ID
-    private View updateView(LedgerRepository ledgerRepository, NetworkAddress networkAddress, SSLSecurity security,
-                            ParticipantUpdateType participantUpdateType, Properties systemConfig, int viewId, List<NodeSettings> origConsensusNodes) {
-        ParticipantNode currNode = ledgerCurrNodes.get(ledgerRepository.getHash());
 
-        LOGGER.info("ManagementController start updateView operation!");
-
-        try {
-            ServiceProxy peerProxy = createPeerProxy(systemConfig, viewId, origConsensusNodes, security);
-
-            Reconfiguration reconfiguration = new Reconfiguration(peerProxy.getProcessId(), peerProxy);
-
-            if (participantUpdateType == ParticipantUpdateType.ACTIVE) {
-                // addServer的第一个参数指待加入共识的新参与方的编号
-                reconfiguration.addServer(currNode.getId(), networkAddress);
-            } else if (participantUpdateType == ParticipantUpdateType.DEACTIVE) {
-                // 参数为待移除共识节点的id
-                reconfiguration.removeServer(currNode.getId());
-            } else if (participantUpdateType == ParticipantUpdateType.UPDATE) {
-                // 共识参数修改，先移除后添加
-                reconfiguration.removeServer(currNode.getId());
-                reconfiguration.addServer(currNode.getId(), networkAddress);
-            } else {
-                throw new IllegalArgumentException("op type error!");
-            }
-            
-            // 把交易作为reconfig操作的扩展信息携带，目的是为了让该操作上链，便于后续跟踪；
-            reconfiguration.addExtendInfo(BinaryProtocol.encode(prepareReconfigTx(ledgerRepository.getHash()), TransactionRequest.class));
-
-            // 执行更新目标共识网络的视图ID
-            ReconfigureReply reconfigureReply = reconfiguration.execute();
-
-            peerProxy.close();
-
-            // 返回新视图
-            return reconfigureReply.getView();
-
-        } catch (Exception e) {
-            throw new ViewUpdateException("view update fail exception!", e);
-        }
-    }
+//    // 通知原有的共识网络更新共识的视图ID
+//    private View updateView(LedgerRepository ledgerRepository, NetworkAddress networkAddress, SSLSecurity security,
+//                            ParticipantUpdateType participantUpdateType, Properties systemConfig, int viewId, List<NodeSettings> origConsensusNodes) {
+//        ParticipantNode currNode = ledgerCurrNodes.get(ledgerRepository.getHash());
+//
+//        LOGGER.info("ManagementController start updateView operation!");
+//
+//        try {
+//            ServiceProxy peerProxy = createPeerProxy(systemConfig, viewId, origConsensusNodes, security);
+//
+//            Reconfiguration reconfiguration = new Reconfiguration(peerProxy.getProcessId(), peerProxy);
+//
+//            if (participantUpdateType == ParticipantUpdateType.ACTIVE) {
+//                // addServer的第一个参数指待加入共识的新参与方的编号
+//                reconfiguration.addServer(currNode.getId(), networkAddress);
+//            } else if (participantUpdateType == ParticipantUpdateType.DEACTIVE) {
+//                // 参数为待移除共识节点的id
+//                reconfiguration.removeServer(currNode.getId());
+//            } else if (participantUpdateType == ParticipantUpdateType.UPDATE) {
+//                // 共识参数修改，先移除后添加
+//                reconfiguration.removeServer(currNode.getId());
+//                reconfiguration.addServer(currNode.getId(), networkAddress);
+//            } else {
+//                throw new IllegalArgumentException("op type error!");
+//            }
+//
+//            // 把交易作为reconfig操作的扩展信息携带，目的是为了让该操作上链，便于后续跟踪；
+//            reconfiguration.addExtendInfo(BinaryProtocol.encode(prepareReconfigTx(ledgerRepository.getHash()), TransactionRequest.class));
+//
+//            // 执行更新目标共识网络的视图ID
+//            ReconfigureReply reconfigureReply = reconfiguration.execute();
+//
+//            peerProxy.close();
+//
+//            // 返回新视图
+//            return reconfigureReply.getView();
+//
+//        } catch (Exception e) {
+//            throw new ViewUpdateException("view update fail exception!", e);
+//        }
+//    }
 
     private TransactionRequest addNodeSigner(TransactionRequest txRequest) {
         TxRequestMessage txMessage = new TxRequestMessage(txRequest);

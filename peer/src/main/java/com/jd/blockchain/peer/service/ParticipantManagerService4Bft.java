@@ -13,9 +13,12 @@ import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
+import com.jd.blockchain.crypto.AsymmetricKeypair;
+import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.peer.web.ManagementController;
+import com.jd.blockchain.transaction.TxBuilder;
 import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.httpservice.utils.web.WebResponse;
 import org.slf4j.Logger;
@@ -285,6 +288,9 @@ public class ParticipantManagerService4Bft implements IParticipantManagerService
                 throw new IllegalArgumentException("op type error!");
             }
 
+            // 把交易作为reconfig操作的扩展信息携带，目的是为了让该操作上链，便于后续跟踪；
+            reconfiguration.addExtendInfo(BinaryProtocol.encode(prepareReconfigTx(), TransactionRequest.class));
+
             // 执行更新目标共识网络的视图ID
             ReconfigureReply reconfigureReply = reconfiguration.execute();
 
@@ -296,5 +302,24 @@ public class ParticipantManagerService4Bft implements IParticipantManagerService
         } catch (Exception e) {
             throw new ViewUpdateException("view update fail exception!", e);
         }
+    }
+
+    // 在指定的账本上准备一笔reconfig操作交易
+    private TransactionRequest prepareReconfigTx() {
+
+        ParticipantContext context = ParticipantContext.context();
+
+        HashDigest ledgerHash = context.ledgerHash();
+        TxBuilder txbuilder = new TxBuilder(ledgerHash, (Short) context.getProperty(ParticipantContext.HASH_ALG_PROP));
+
+        // This transaction contains one reconfig op
+        txbuilder.reconfigs().record();
+
+        TransactionRequestBuilder reqBuilder = txbuilder.prepareRequest();
+
+        reqBuilder.signAsEndpoint((AsymmetricKeypair) context.getProperty(ParticipantContext.ENDPOINT_SIGNER_PROP));
+
+        return reqBuilder.buildRequest();
+
     }
 }
