@@ -1,55 +1,9 @@
 package com.jd.blockchain.peer.ledger.service.utils;
 
 
-import com.jd.blockchain.ledger.AccountPermissionSetOperation;
-import com.jd.blockchain.ledger.BlockchainIdentity;
-import com.jd.blockchain.ledger.BlockchainIdentityData;
-import com.jd.blockchain.ledger.BytesDataList;
-import com.jd.blockchain.ledger.BytesValue;
-import com.jd.blockchain.ledger.ConsensusReconfigOperation;
-import com.jd.blockchain.ledger.ConsensusSettingsUpdateOperation;
-import com.jd.blockchain.ledger.ContractCodeDeployOperation;
-import com.jd.blockchain.ledger.ContractEventSendOperation;
-import com.jd.blockchain.ledger.ContractStateUpdateOperation;
-import com.jd.blockchain.ledger.DataAccountKVSetOperation;
-import com.jd.blockchain.ledger.DataAccountRegisterOperation;
-import com.jd.blockchain.ledger.EventAccountRegisterOperation;
-import com.jd.blockchain.ledger.EventPublishOperation;
-import com.jd.blockchain.ledger.GenesisUser;
-import com.jd.blockchain.ledger.GenesisUserConfig;
-import com.jd.blockchain.ledger.IdentityMode;
-import com.jd.blockchain.ledger.LedgerInitOperation;
-import com.jd.blockchain.ledger.Operation;
-import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.ParticipantRegisterOperation;
-import com.jd.blockchain.ledger.ParticipantStateUpdateOperation;
-import com.jd.blockchain.ledger.RolesConfigureOperation;
-import com.jd.blockchain.ledger.RootCAUpdateOperation;
-import com.jd.blockchain.ledger.TypedValue;
-import com.jd.blockchain.ledger.UserAuthorizeOperation;
-import com.jd.blockchain.ledger.UserCAUpdateOperation;
-import com.jd.blockchain.ledger.UserRegisterOperation;
-import com.jd.blockchain.ledger.UserStateUpdateOperation;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.json.CryptoConfigInfo;
-import com.jd.blockchain.transaction.AccountPermissionSetOpTemplate;
-import com.jd.blockchain.transaction.ConsensusParticipantData;
-import com.jd.blockchain.transaction.ConsensusReconfigOpTemplate;
-import com.jd.blockchain.transaction.ConsensusSettingsUpdateOpTemplate;
-import com.jd.blockchain.transaction.ContractCodeDeployOpTemplate;
-import com.jd.blockchain.transaction.ContractEventSendOpTemplate;
-import com.jd.blockchain.transaction.ContractStateUpdateOpTemplate;
-import com.jd.blockchain.transaction.DataAccountKVSetOpTemplate;
-import com.jd.blockchain.transaction.DataAccountRegisterOpTemplate;
-import com.jd.blockchain.transaction.EventAccountRegisterOpTemplate;
-import com.jd.blockchain.transaction.EventPublishOpTemplate;
-import com.jd.blockchain.transaction.LedgerInitData;
-import com.jd.blockchain.transaction.LedgerInitOpTemplate;
-import com.jd.blockchain.transaction.ParticipantRegisterOpTemplate;
-import com.jd.blockchain.transaction.ParticipantStateUpdateOpTemplate;
-import com.jd.blockchain.transaction.RootCAUpdateOpTemplate;
-import com.jd.blockchain.transaction.UserCAUpdateOpTemplate;
-import com.jd.blockchain.transaction.UserRegisterOpTemplate;
-import com.jd.blockchain.transaction.UserStateUpdateOpTemplate;
+import com.jd.blockchain.transaction.*;
 
 /**
  * Operation接口包装工厂
