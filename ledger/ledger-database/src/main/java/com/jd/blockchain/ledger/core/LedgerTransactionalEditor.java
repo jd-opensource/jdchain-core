@@ -623,7 +623,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	 *
 	 */
 	private static class LedgerTransactionContextImpl implements LedgerTransactionContext {
-		private Logger logger = LoggerFactory.getLogger(LedgerTransactionalEditor.class);
+		private static final Logger logger = LoggerFactory.getLogger(LedgerTransactionalEditor.class);
 
 		private LedgerTransactionalEditor ledgerEditor;
 
