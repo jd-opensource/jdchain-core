@@ -132,6 +132,12 @@ class ParticipantRegister implements Runnable {
         for (int i = 0; i < ledgers.length; i++) {
             System.out.printf("%-7s\t%s%n", i, ledgers[i]);
         }
+
+        if(ledgers.length == 1){
+            System.out.printf("> 0 (use default ledger)%n");
+            return ledgers[0];
+        }
+
         int selectedIndex = ScannerUtils.readRangeInt(0, ledgers.length - 1);
         return ledgers[selectedIndex];
     }
@@ -289,7 +295,7 @@ class ParticipantActive implements Runnable {
         params.add(new BasicNameValuePair("ledgerHash", ledger));
         params.add(new BasicNameValuePair("consensusHost", host));
         params.add(new BasicNameValuePair("consensusPort", consensusPort + ""));
-        params.add(new BasicNameValuePair("consensusStorage", consensusStorage + ""));
+        params.add(new BasicNameValuePair("consensusStorage", consensusStorage));
         params.add(new BasicNameValuePair("consensusSecure", consensusSecure + ""));
         params.add(new BasicNameValuePair("remoteManageHost", synHost));
         params.add(new BasicNameValuePair("remoteManagePort", synPort + ""));

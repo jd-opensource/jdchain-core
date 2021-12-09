@@ -21,7 +21,7 @@ public class BlockProposerServiceTest {
     public void testProposalBlock() {
 
         RaftNodeServer server = new RaftNodeServer(null, null, null);
-        BlockProposerService proposer = new BlockProposerService(server, mockLedgerRepository);
+        BlockProposerService proposer = new BlockProposerService(mockLedgerRepository);
 
         Block b1 = proposer.proposeBlock(Lists.newArrayList(new byte[][]{}));
 
@@ -31,29 +31,30 @@ public class BlockProposerServiceTest {
         Block b5 = proposer.proposeBlock(Lists.newArrayList(new byte[][]{}));
         Block b6 = proposer.proposeBlock(Lists.newArrayList(new byte[][]{}));
 
-        b1.setCurrentBlockHash("b1");
+        b1.setCurrentBlockHash(Crypto.resolveAsHashDigest(Base58Utils.decode("b1")));
         proposer.commitCallBack(b1, true);
 
-        b2.setCurrentBlockHash("b2");
+        b2.setCurrentBlockHash(Crypto.resolveAsHashDigest(Base58Utils.decode("b2")));
         proposer.commitCallBack(b2, true);
 
-        b3.setCurrentBlockHash("b3");
+        b3.setCurrentBlockHash(Crypto.resolveAsHashDigest(Base58Utils.decode("b3")));
         proposer.commitCallBack(b3, false);
 
-        b4.setCurrentBlockHash("b4");
+        b4.setCurrentBlockHash(Crypto.resolveAsHashDigest(Base58Utils.decode("b4")));
         proposer.commitCallBack(b4, true);
 
-        b5.setCurrentBlockHash("b5");
+        b5.setCurrentBlockHash(Crypto.resolveAsHashDigest(Base58Utils.decode("b5")));
         proposer.commitCallBack(b5, false);
 
-        b6.setCurrentBlockHash("b6");
+        b6.setCurrentBlockHash(Crypto.resolveAsHashDigest(Base58Utils.decode("b6")));
         proposer.commitCallBack(b6, true);
 
 
     }
 
 
-    LedgerRepository mockLedgerRepository = new LedgerRepository() {
+    public static LedgerRepository mockLedgerRepository = new LedgerRepository() {
+
         @Override
         public LedgerEditor createNextBlock() {
             return null;

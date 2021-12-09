@@ -27,6 +27,7 @@ import utils.net.NetworkAddress;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -40,6 +41,7 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
     private static final int MAX_RETRY_TIMES = 3;
     private static final String RPC_QUEST_TIMEOUT_MS = "rpc_quest_timeout_ms";
     private static final String RPC_CLIENT = "rpc_client";
+    private static final int SLEEP_MS = 2 * 1000;
 
     @Override
     public int minConsensusNodes() {
@@ -57,8 +59,8 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
     public Property[] createActiveProperties(NetworkAddress address, PubKey activePubKey, int activeID, Properties customProperties) {
 
         String raftPath = customProperties.getProperty(RAFT_PATH_KEY);
-        if (Strings.isNullOrEmpty(raftPath)) {
-            throw new IllegalStateException("raft path is missing");
+        if (Strings.isNullOrEmpty(raftPath) || "null".equals(raftPath)) {
+            throw new IllegalStateException("raft path is missing, --consensus-storage required");
         }
 
         List<Property> properties = new ArrayList<>();
@@ -67,7 +69,7 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
         properties.add(new Property(keyOfNode("system.server.%d.network.port", activeID), String.valueOf(address.getPort())));
         properties.add(new Property(keyOfNode("system.server.%d.network.secure", activeID), String.valueOf(address.isSecure())));
         properties.add(new Property(keyOfNode("system.server.%d.raft.path", activeID), raftPath));
-        properties.add(new Property(keyOfNode("system.server.%s.pubkey", activeID), activePubKey.toBase58()));
+        properties.add(new Property(keyOfNode("system.server.%d.pubkey", activeID), activePubKey.toBase58()));
         properties.add(new Property("participant.op", "active"));
         properties.add(new Property("active.participant.id", String.valueOf(activeID)));
 
@@ -99,13 +101,10 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
         SubmitTxRequest submitTxRequest = new SubmitTxRequest();
         submitTxRequest.setTx(BinaryProtocol.encode(txRequest, TransactionRequest.class));
 
-        //todo choose nodes
-        RaftNodeSettings nodeSettings = (RaftNodeSettings) origConsensusNodes.get(0);
-        Endpoint remoteEndpoint = new Endpoint(nodeSettings.getNetworkAddress().getHost(), nodeSettings.getNetworkAddress().getPort());
+        RpcResponse rpcResponse = shuffleInvoke(context, origConsensusNodes, submitTxRequest);
+        LOGGER.info("submit node state change tx response: {}", rpcResponse);
 
-        RpcResponse rpcResponse = invoke(context, remoteEndpoint, submitTxRequest);
-
-        TxResponseMessage responseMessage = null;
+        TxResponseMessage responseMessage;
         if (!rpcResponse.isSuccess()) {
             responseMessage = new TxResponseMessage();
             responseMessage.setExecutionState(TransactionState.TIMEOUT);
@@ -124,7 +123,7 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
     @Override
     public WebResponse applyConsensusGroupNodeChange(ParticipantContext context,
                                                      ParticipantNode node,
-                                                     @Nullable NetworkAddress changeNetworkAddress,
+                                                     @Nullable NetworkAddress changeConsensusNodeAddress,
                                                      List<NodeSettings> origConsensusNodes,
                                                      ManagementController.ParticipantUpdateType type) {
         if (origConsensusNodes.isEmpty()) {
@@ -132,17 +131,31 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
         }
 
         try {
+            //等待raft节点服务完全启动
+            if (changeConsensusNodeAddress != null) {
+                boolean nodeStarted = waitConsensusNodeStarted(context, changeConsensusNodeAddress);
+                if (!nodeStarted) {
+                    /*
+                     * 共识节点启动异常后， 需要先解决异常问题， 然后重启节点。重启之后步骤如下
+                     * a. 调用deactive命令删除该共识节点
+                     * b. 停止该节点， 拷贝最新账本数据
+                     * c. 重启该节点
+                     * d. 执行active命令激活节点
+                     * e. 执行更新等命令
+                     * */
+                    return WebResponse.createFailureResult(-1, "raft node may be start failed, check and restart it");
+                }
+            }
 
             RaftNodeSettings origNodeSettings = findOrigNodeSetting(node, origConsensusNodes);
-            Object request = buildNodeRequest(origNodeSettings, changeNetworkAddress, type);
+            Object request = buildNodeRequest(origNodeSettings, changeConsensusNodeAddress, type);
             if (request == null) {
                 throw new IllegalStateException("unsupported operate type " + type.name());
             }
 
-            RaftNodeSettings nodeSettings = (RaftNodeSettings) origConsensusNodes.get(0);
-            Endpoint remoteEndpoint = new Endpoint(nodeSettings.getNetworkAddress().getHost(), nodeSettings.getNetworkAddress().getPort());
+            RpcResponse rpcResponse = shuffleInvoke(context, origConsensusNodes, request);
+            LOGGER.info("apply consensus group change response: {}", rpcResponse);
 
-            RpcResponse rpcResponse = invoke(context, remoteEndpoint, request);
             if (!rpcResponse.isSuccess()) {
                 return WebResponse.createFailureResult(-1, rpcResponse.getErrorMessage());
             }
@@ -154,48 +167,42 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
 
     }
 
+
     private Object buildNodeRequest(RaftNodeSettings origNodeSettings, NetworkAddress changeNetworkAddress, ManagementController.ParticipantUpdateType type) {
 
-        if (type == ManagementController.ParticipantUpdateType.ACTIVE) {
+        switch (type) {
+            case ACTIVE:
+                if (changeNetworkAddress == null) {
+                    throw new IllegalStateException("active node network is empty");
+                }
+                ParticipantNodeAddRequest addRequest = new ParticipantNodeAddRequest();
+                addRequest.setHost(changeNetworkAddress.getHost());
+                addRequest.setPort(changeNetworkAddress.getPort());
+                return addRequest;
+            case UPDATE:
+                if (origNodeSettings == null || changeNetworkAddress == null) {
+                    throw new IllegalStateException("update node not found in settings or node network is empty");
+                }
 
-            if (changeNetworkAddress == null) {
-                throw new IllegalStateException("active node network is empty");
-            }
+                ParticipantNodeTransferRequest transferRequest = new ParticipantNodeTransferRequest();
+                transferRequest.setPreHost(origNodeSettings.getNetworkAddress().getHost());
+                transferRequest.setPrePort(origNodeSettings.getNetworkAddress().getPort());
+                transferRequest.setNewHost(changeNetworkAddress.getHost());
+                transferRequest.setNewPort(changeNetworkAddress.getPort());
 
-            ParticipantNodeAddRequest addRequest = new ParticipantNodeAddRequest();
-            addRequest.setHost(changeNetworkAddress.getHost());
-            addRequest.setPort(changeNetworkAddress.getPort());
-            return addRequest;
+                return transferRequest;
+            case DEACTIVE:
+                if (origNodeSettings == null) {
+                    throw new IllegalStateException("deActive node not found in settings");
+                }
+
+                ParticipantNodeRemoveRequest removeRequest = new ParticipantNodeRemoveRequest();
+                removeRequest.setHost(origNodeSettings.getNetworkAddress().getHost());
+                removeRequest.setPort(origNodeSettings.getNetworkAddress().getPort());
+                return removeRequest;
+            default:
+                return null;
         }
-
-        if (type == ManagementController.ParticipantUpdateType.DEACTIVE) {
-
-            if (origNodeSettings == null) {
-                throw new IllegalStateException("deActive node not found in settings");
-            }
-
-            ParticipantNodeRemoveRequest removeRequest = new ParticipantNodeRemoveRequest();
-            removeRequest.setHost(origNodeSettings.getNetworkAddress().getHost());
-            removeRequest.setPort(origNodeSettings.getNetworkAddress().getPort());
-            return removeRequest;
-        }
-
-        if (type == ManagementController.ParticipantUpdateType.UPDATE) {
-
-            if (origNodeSettings == null || changeNetworkAddress == null) {
-                throw new IllegalStateException("update node not found in settings or node network is empty");
-            }
-
-            ParticipantNodeTransferRequest transferRequest = new ParticipantNodeTransferRequest();
-            transferRequest.setPreHost(origNodeSettings.getNetworkAddress().getHost());
-            transferRequest.setPrePort(origNodeSettings.getNetworkAddress().getPort());
-            transferRequest.setNewHost(changeNetworkAddress.getHost());
-            transferRequest.setNewPort(changeNetworkAddress.getPort());
-
-            return transferRequest;
-        }
-
-        return null;
     }
 
     private RaftNodeSettings findOrigNodeSetting(ParticipantNode node, List<NodeSettings> origConsensusNodes) {
@@ -216,10 +223,26 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
         }
     }
 
+    private RpcResponse shuffleInvoke(ParticipantContext context, List<NodeSettings> origConsensusNodes, Object request) {
+        Collections.shuffle(origConsensusNodes);
+
+        for (NodeSettings nodeSettings : origConsensusNodes) {
+            RaftNodeSettings raftNodeSettings = (RaftNodeSettings) nodeSettings;
+            Endpoint remoteEndpoint = new Endpoint(raftNodeSettings.getNetworkAddress().getHost(), raftNodeSettings.getNetworkAddress().getPort());
+            CliClientServiceImpl cliClientService = createRpcClient(context);
+
+            if (cliClientService.connect(remoteEndpoint)) {
+                return invoke(context, remoteEndpoint, request);
+            }
+        }
+
+        return RpcResponse.fail(-1, "not found connected nodes");
+    }
+
     private RpcResponse invoke(ParticipantContext context, Endpoint endpoint, Object request) {
         RpcResponse response = null;
         try {
-            RpcClient client = ((CliClientServiceImpl) context.getProperty(RPC_CLIENT)).getRpcClient();
+            RpcClient client = createRpcClient(context).getRpcClient();
             int timeoutMs = (int) context.getProperty(RPC_QUEST_TIMEOUT_MS);
             response = (RpcResponse) client.invokeSync(endpoint, request, timeoutMs);
         } catch (Exception e) {
@@ -255,5 +278,24 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
         return clientService;
     }
 
+    private boolean waitConsensusNodeStarted(ParticipantContext context, NetworkAddress changeConsensusNodeAddress) {
+        CliClientServiceImpl rpcClient = createRpcClient(context);
+        Endpoint changeNode = new Endpoint(changeConsensusNodeAddress.getHost(), changeConsensusNodeAddress.getPort());
+        int i = 0;
+        while (i <= MAX_RETRY_TIMES) {
+            i++;
+            try {
+                Thread.sleep(SLEEP_MS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            if (rpcClient.connect(changeNode)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
 }

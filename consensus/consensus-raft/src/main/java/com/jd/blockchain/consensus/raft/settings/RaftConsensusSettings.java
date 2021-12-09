@@ -23,10 +23,13 @@ public interface RaftConsensusSettings extends ConsensusViewSettings {
     @DataField(order = 4, primitiveType = PrimitiveType.INT32)
     int getSnapshotIntervalSec();
 
-    @DataField(order = 5, refContract = true)
-    RaftNetworkSettings getNetworkSettings();
+    @DataField(order = 5, primitiveType = PrimitiveType.INT32)
+    int getRefreshConfigurationMs();
 
     @DataField(order = 6, refContract = true)
+    RaftNetworkSettings getNetworkSettings();
+
+    @DataField(order = 7, refContract = true)
     RaftSettings getRaftSettings();
 
 }

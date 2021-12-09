@@ -3,25 +3,31 @@ package com.jd.blockchain.consensus.raft.config;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftConsensusSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftNetworkSettings;
+import com.jd.blockchain.consensus.raft.settings.RaftNodeSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftSettings;
 import utils.Property;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class RaftConsensusConfig extends PropertyConfig implements RaftConsensusSettings {
 
     @ConfigProperty("system.server.block.max.num")
-    private int maxTxsPerBlock;
+    private int maxTxsPerBlock = 100;
 
     @ConfigProperty("system.server.block.max.bytes")
-    private int maxBlockBytes;
+    private int maxBlockBytes = 4 * 1024 * 1024;
 
     @ConfigProperty("system.server.election.timeout")
-    private int electionTimeoutMs;
+    private int electionTimeoutMs = 5000;
 
     @ConfigProperty("system.server.snapshot.interval")
-    private int snapshotIntervalSec;
+    private int snapshotIntervalSec = 1800;
+
+    @ConfigProperty("system.client.configuration.refresh.interval")
+    private int refreshConfigurationMs = 60 * 1000;
 
     private List<NodeSettings> nodeSettingsList = new ArrayList<>();
 
@@ -41,6 +47,19 @@ public class RaftConsensusConfig extends PropertyConfig implements RaftConsensus
         this.nodeSettingsList = oldRaftConsensusConfig.getNodeSettingsList();
         this.networkSettings = oldRaftConsensusConfig.getNetworkSettings();
         this.raftSettings = oldRaftConsensusConfig.getRaftSettings();
+    }
+
+    public RaftConsensusConfig(RaftConsensusSettings raftConsensusSettings) {
+        super();
+        this.maxBlockBytes = raftConsensusSettings.getMaxBlockBytes();
+        this.maxBlockBytes = raftConsensusSettings.getMaxBlockBytes();
+        this.electionTimeoutMs = raftConsensusSettings.getElectionTimeoutMs();
+        this.snapshotIntervalSec = raftConsensusSettings.getSnapshotIntervalSec();
+        this.nodeSettingsList = Arrays.stream(raftConsensusSettings.getNodes())
+                .map(n -> new RaftNodeConfig((RaftNodeSettings) n))
+                .collect(Collectors.toList());
+        this.networkSettings = new RaftNetworkConfig(raftConsensusSettings.getNetworkSettings());
+        this.raftSettings = new RaftConfig(raftConsensusSettings.getRaftSettings());
     }
 
 
@@ -91,6 +110,15 @@ public class RaftConsensusConfig extends PropertyConfig implements RaftConsensus
     @Override
     public int getSnapshotIntervalSec() {
         return snapshotIntervalSec;
+    }
+
+    @Override
+    public int getRefreshConfigurationMs() {
+        return refreshConfigurationMs;
+    }
+
+    public void setRefreshConfigurationMs(int refreshConfigurationMs) {
+        this.refreshConfigurationMs = refreshConfigurationMs;
     }
 
     public void setSnapshotIntervalSec(int snapshotIntervalSec) {

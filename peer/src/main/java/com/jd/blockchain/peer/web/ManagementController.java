@@ -815,12 +815,12 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                 return WebResponse.createSuccessResult("participant already in CONSENSUS state!");
             }
 
-            NetworkAddress addNodeNetInfo = new NetworkAddress(consensusHost, consensusPort, consensusSecure);
+            NetworkAddress addConsensusNodeAddress = new NetworkAddress(consensusHost, consensusPort, consensusSecure);
             ServiceEndpoint remoteEndpoint = new ServiceEndpoint(new NetworkAddress(remoteManageHost, remoteManagePort, remoteManageSecure));
             remoteEndpoint.setSslSecurity(ledgerSecurities.get(ledgerHash));
 
             LOGGER.info("active participant {}:{}!", consensusHost, consensusPort);
-            return activeParticipant(context, addNode, addNodeNetInfo, shutdown, remoteEndpoint);
+            return activeParticipant(context, addNode, addConsensusNodeAddress, shutdown, remoteEndpoint);
         } catch (Exception e) {
             LOGGER.error(String.format("activate participant %s:%d failed!", consensusHost, consensusPort), e);
             return WebResponse.createFailureResult(-1, "activate participant failed! " + e.getMessage());
@@ -889,10 +889,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                 return WebResponse.createFailureResult(-1, "participant not in CONSENSUS state!");
             }
 
-            NetworkAddress updateNodeNetInfo = new NetworkAddress(consensusHost, consensusPort, consensusSecure);
+            NetworkAddress updateConsensusNodeAddress = new NetworkAddress(consensusHost, consensusPort, consensusSecure);
 
             LOGGER.info("update participant {}:{}", consensusHost, consensusPort);
-            return updateParticipant(context, updateNode, updateNodeNetInfo, shutdown);
+            return updateParticipant(context, updateNode, updateConsensusNodeAddress, shutdown);
         } catch (Exception e) {
             LOGGER.error(String.format("update participant %s:%d failed!", consensusHost, consensusPort), e);
             return WebResponse.createFailureResult(-1, "update participant failed! " + e.getMessage());
@@ -904,7 +904,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
     private WebResponse activeParticipant(ParticipantContext context,
                                           ParticipantNode node,
-                                          NetworkAddress networkAddress,
+                                          NetworkAddress addConsensusNodeAddress,
                                           boolean shutdown,
                                           ServiceEndpoint remoteEndpoint) {
 
@@ -914,7 +914,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
         Properties customProperties = participantService.getCustomProperties(context);
         // 由本节点准备交易
-        TransactionRequest txRequest = prepareActiveTx(ledgerHash, node, networkAddress, customProperties);
+        TransactionRequest txRequest = prepareActiveTx(ledgerHash, node, addConsensusNodeAddress, customProperties);
         // 为交易添加本节点的签名信息，防止无法通过安全策略检查
         txRequest = addNodeSigner(txRequest);
 
@@ -930,7 +930,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                 }
 
                 //使用共识原语变更节点
-                WebResponse webResponse = participantService.applyConsensusGroupNodeChange(context, ledgerCurrNodes.get(ledgerHash), networkAddress, origConsensusNodes, ParticipantUpdateType.ACTIVE);
+                WebResponse webResponse = participantService.applyConsensusGroupNodeChange(context, ledgerCurrNodes.get(ledgerHash), addConsensusNodeAddress, origConsensusNodes, ParticipantUpdateType.ACTIVE);
                 if(!webResponse.isSuccess()){
                     return webResponse;
                 }
@@ -945,12 +945,12 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
             }
         }
 
-        return WebResponse.createFailureResult(null);
+        return WebResponse.createFailureResult(remoteTxResponse.getExecutionState().CODE, remoteTxResponse.getExecutionState().toString());
     }
 
     private WebResponse updateParticipant(ParticipantContext context,
                                           ParticipantNode node,
-                                          NetworkAddress networkAddress,
+                                          NetworkAddress updateConsensusNodeAddress,
                                           boolean shutdown) {
 
         HashDigest ledgerHash = context.ledgerHash();
@@ -959,7 +959,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
         Properties customProperties = participantService.getCustomProperties(context);
         // 由本节点准备交易
-        TransactionRequest txRequest = prepareUpdateTx(ledgerHash, node, networkAddress, customProperties);
+        TransactionRequest txRequest = prepareUpdateTx(ledgerHash, node, updateConsensusNodeAddress, customProperties);
 
         // 为交易添加本节点的签名信息，防止无法通过安全策略检查
         txRequest = addNodeSigner(txRequest);
@@ -976,9 +976,16 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
         // 保证原有共识网络账本状态与共识协议的视图更新信息一致
         try{
+
+            waitUtilReachHeight(remoteTxResponse.getBlockHeight(), ledgerRepo);
+
+            if(participantService.startServerBeforeApplyNodeChange()){
+                setupServer(ledgerRepo, false);
+            }
+
             WebResponse webResponse = participantService.applyConsensusGroupNodeChange(context,
                     ledgerCurrNodes.get(ledgerHash),
-                    networkAddress,
+                    updateConsensusNodeAddress,
                     origConsensusNodes,
                     ParticipantUpdateType.UPDATE);
 
@@ -991,8 +998,21 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     "commit tx to orig consensus, tx execute succ but view update failed, please restart all nodes and copy database for new participant node!");
         }
 
-        setupServer(ledgerRepo, shutdown);
+        if(!participantService.startServerBeforeApplyNodeChange()){
+            setupServer(ledgerRepo, shutdown);
+        }
+
         return WebResponse.createSuccessResult(null);
+    }
+
+    private void waitUtilReachHeight(long blockHeight, LedgerRepository ledgerRepo) {
+        for(;;){
+            LedgerBlock ledgerBlock = ledgerRepo.retrieveLatestBlock();
+            if(ledgerBlock.getHeight() >= blockHeight){
+                return;
+            }
+            Thread.yield();
+        }
     }
 
     /**
@@ -1322,13 +1342,13 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
     // 在指定的账本上准备一笔激活参与方状态及系统配置参数的操作
     private TransactionRequest prepareActiveTx(HashDigest ledgerHash, ParticipantNode node,
-                                               NetworkAddress networkAddress, Properties customProperties) {
+                                               NetworkAddress addConsensusNodeAddress, Properties customProperties) {
 
         int activeID = node.getId();
 
         // organize system config properties
         Property[] properties = ParticipantContext.context().participantService()
-                .createActiveProperties(networkAddress, node.getPubKey(), activeID, customProperties);
+                .createActiveProperties(addConsensusNodeAddress, node.getPubKey(), activeID, customProperties);
 
         TxBuilder txbuilder = new TxBuilder(ledgerHash, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
 
@@ -1349,13 +1369,13 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
     // 在指定的账本上准备一笔激活参与方状态及系统配置参数的操作
     private TransactionRequest prepareUpdateTx(HashDigest ledgerHash, ParticipantNode node,
-                                               NetworkAddress networkAddress, Properties customProperties) {
+                                               NetworkAddress updateConsensusNodeAddress, Properties customProperties) {
 
         int activeID = node.getId();
 
         // organize system config properties
         Property[] properties = ParticipantContext.context().participantService()
-                .createUpdateProperties(networkAddress, node.getPubKey(), activeID, customProperties);
+                .createUpdateProperties(updateConsensusNodeAddress, node.getPubKey(), activeID, customProperties);
 
         TxBuilder txbuilder = new TxBuilder(ledgerHash, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
 

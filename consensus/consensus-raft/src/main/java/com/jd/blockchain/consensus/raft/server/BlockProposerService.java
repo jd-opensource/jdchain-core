@@ -3,6 +3,7 @@ package com.jd.blockchain.consensus.raft.server;
 import com.jd.blockchain.consensus.raft.consensus.Block;
 import com.jd.blockchain.consensus.raft.consensus.BlockCommitCallback;
 import com.jd.blockchain.consensus.raft.consensus.BlockProposer;
+import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.core.LedgerRepository;
 
@@ -14,17 +15,13 @@ import java.util.concurrent.locks.ReentrantLock;
 public class BlockProposerService implements BlockProposer, BlockCommitCallback {
 
     private TreeMap<Long, Block> proposalBlockMap = new TreeMap<>();
-
     private Block latestProposalBlock;
-
-    private RaftNodeServer nodeServer;
 
     private LedgerRepository ledgerRepository;
 
     private static final ReentrantLock lock = new ReentrantLock();
 
-    public BlockProposerService(RaftNodeServer nodeServer, LedgerRepository ledgerRepository) {
-        this.nodeServer = nodeServer;
+    public BlockProposerService(LedgerRepository ledgerRepository) {
         this.ledgerRepository = ledgerRepository;
     }
 
@@ -38,7 +35,7 @@ public class BlockProposerService implements BlockProposer, BlockCommitCallback 
             //todo: 使用latestProposalBlock减少账本查询
             if (proposalBlockMap.isEmpty()) {
                 LedgerBlock latestBlock = ledgerRepository.retrieveLatestBlock();
-                proposeBlock.setPreBlockHash(latestBlock.getHash().toBase58());
+                proposeBlock.setPreBlockHash(latestBlock.getHash());
                 proposeBlock.setHeight(latestBlock.getHeight() + 1);
             } else {
                 proposeBlock.setHeight(latestProposalBlock.getHeight() + +1);
@@ -55,7 +52,13 @@ public class BlockProposerService implements BlockProposer, BlockCommitCallback 
 
     @Override
     public boolean canPropose() {
-        return nodeServer.isLeader();
+        return RaftNodeServerContext.getInstance().isLeader(this.ledgerRepository.getHash());
+    }
+
+    @Override
+    public void clear() {
+        proposalBlockMap.clear();
+        latestProposalBlock = null;
     }
 
     @Override

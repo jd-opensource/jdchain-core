@@ -1,5 +1,6 @@
 package com.jd.blockchain.consensus.raft;
 
+import com.google.common.base.Strings;
 import com.jd.blockchain.consensus.ConsensusSettingsBuilder;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
@@ -13,10 +14,7 @@ import utils.io.BytesUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 public class RaftConsensusSettingsBuilder implements ConsensusSettingsBuilder {
 
@@ -76,17 +74,17 @@ public class RaftConsensusSettingsBuilder implements ConsensusSettingsBuilder {
 
         Properties properties = new Properties();
 
-        RaftConsensusConfig raftConsensusSettings = (RaftConsensusConfig) settings;
-        PropertiesUtils.mergeFrom(properties, raftConsensusSettings.convert());
+        RaftConsensusConfig raftConsensusConfig = new RaftConsensusConfig((RaftConsensusSettings) settings);
 
-        for (NodeSettings nodeSettings : raftConsensusSettings.getNodes()) {
+        PropertiesUtils.mergeFrom(properties, raftConsensusConfig.convert());
+        for (NodeSettings nodeSettings : raftConsensusConfig.getNodes()) {
             PropertiesUtils.mergeFrom(properties, ((RaftNodeConfig) nodeSettings).convert());
         }
 
-        RaftConfig raftConfig = (RaftConfig) raftConsensusSettings.getRaftSettings();
+        RaftConfig raftConfig = (RaftConfig) raftConsensusConfig.getRaftSettings();
         PropertiesUtils.mergeFrom(properties, raftConfig.convert());
 
-        RaftNetworkConfig raftNetworkConfig = (RaftNetworkConfig) raftConsensusSettings.getNetworkSettings();
+        RaftNetworkConfig raftNetworkConfig = (RaftNetworkConfig) raftConsensusConfig.getNetworkSettings();
         PropertiesUtils.mergeFrom(properties, raftNetworkConfig.convert());
 
         return properties;
@@ -130,7 +128,62 @@ public class RaftConsensusSettingsBuilder implements ConsensusSettingsBuilder {
 
     @Override
     public ConsensusViewSettings updateSettings(ConsensusViewSettings oldConsensusSettings, Properties newProps) {
-        //todo
-        return null;
+
+        if (newProps == null) {
+            throw new IllegalArgumentException("updateSettings parameters error!");
+        }
+
+        RaftConsensusConfig raftConsensusConfig = new RaftConsensusConfig((RaftConsensusSettings)oldConsensusSettings);
+
+        RaftConfig raftConfig = (RaftConfig) raftConsensusConfig.getRaftSettings();
+        RaftNetworkConfig raftNetworkConfig = (RaftNetworkConfig) raftConsensusConfig.getNetworkSettings();
+
+        RaftNodeConfig activeNode = getActiveOrUpdateNode(newProps);
+        RaftNodeConfig deActiveNode = getDeActiveNode(newProps);
+
+        Iterator<NodeSettings> iterator = raftConsensusConfig.getNodeSettingsList().iterator();
+        while (iterator.hasNext()){
+            RaftNodeConfig nodeConfig = (RaftNodeConfig) iterator.next();
+            if(deActiveNode != null && deActiveNode.getId() == nodeConfig.getId()){
+                iterator.remove();
+            }
+            //update node step
+            if(activeNode != null && activeNode.getId() == nodeConfig.getId()){
+                iterator.remove();
+            }
+        }
+
+        if (activeNode != null) {
+            raftConsensusConfig.getNodeSettingsList().add(activeNode);
+        }
+
+        raftConsensusConfig.init(newProps);
+        raftConfig.init(newProps);
+        raftNetworkConfig.init(newProps);
+
+        return raftConsensusConfig;
     }
+
+    private RaftNodeConfig getActiveOrUpdateNode(Properties newProps) {
+        String activeId = PropertiesUtils.getOptionalProperty(newProps, "active.participant.id");
+        if (Strings.isNullOrEmpty(activeId)) {
+            return null;
+        }
+
+        RaftNodeConfig raftNodeConfig = new RaftNodeConfig();
+        raftNodeConfig.init(newProps, Integer.parseInt(activeId));
+        return raftNodeConfig;
+    }
+
+    private RaftNodeConfig getDeActiveNode(Properties newProps) {
+        String deActiveId = PropertiesUtils.getOptionalProperty(newProps, "deactive.participant.id");
+        if (Strings.isNullOrEmpty(deActiveId)) {
+            return null;
+        }
+        RaftNodeConfig raftNodeConfig = new RaftNodeConfig();
+        raftNodeConfig.setId(Integer.parseInt(deActiveId));
+        return raftNodeConfig;
+    }
+
+
 }

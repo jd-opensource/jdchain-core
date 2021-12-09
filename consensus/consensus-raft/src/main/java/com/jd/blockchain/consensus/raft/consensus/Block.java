@@ -1,5 +1,7 @@
 package com.jd.blockchain.consensus.raft.consensus;
 
+import com.jd.blockchain.crypto.HashDigest;
+
 import java.io.Serializable;
 import java.util.List;
 
@@ -13,10 +15,10 @@ public class Block implements Serializable {
 
     private List<byte[]> txs;
 
-    private String preBlockHash;
+    private HashDigest preBlockHash;
 
     //todo
-    private String currentBlockHash;
+    private HashDigest currentBlockHash;
 
     public long getHeight() {
         return height;
@@ -34,19 +36,19 @@ public class Block implements Serializable {
         this.txs = txs;
     }
 
-    public String getPreBlockHash() {
+    public HashDigest getPreBlockHash() {
         return preBlockHash;
     }
 
-    public void setPreBlockHash(String preBlockHash) {
+    public void setPreBlockHash(HashDigest preBlockHash) {
         this.preBlockHash = preBlockHash;
     }
 
-    public String getCurrentBlockHash() {
+    public HashDigest getCurrentBlockHash() {
         return currentBlockHash;
     }
 
-    public void setCurrentBlockHash(String currentBlockHash) {
+    public void setCurrentBlockHash(HashDigest currentBlockHash) {
         this.currentBlockHash = currentBlockHash;
     }
 

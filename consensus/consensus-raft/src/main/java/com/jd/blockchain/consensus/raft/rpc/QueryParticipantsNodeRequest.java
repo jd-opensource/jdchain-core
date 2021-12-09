@@ -14,4 +14,11 @@ public class QueryParticipantsNodeRequest implements Serializable {
     public void setLedgerHash(String ledgerHash) {
         this.ledgerHash = ledgerHash;
     }
+
+    @Override
+    public String toString() {
+        return "QueryParticipantsNodeRequest{" +
+                "ledgerHash='" + ledgerHash + '\'' +
+                '}';
+    }
 }

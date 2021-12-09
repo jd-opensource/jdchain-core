@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 public class SimpleBlockSerializerService implements BlockSerializer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SimpleBlockSerializerService.class);
-    private static final String LIST_BYTE_CLASS_NAME = "[B";
 
     @Override
     public byte[] serialize(Block block) {

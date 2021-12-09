@@ -1,6 +1,7 @@
 package com.jd.blockchain.consensus.raft.rpc;
 
 import com.alipay.sofa.jraft.Status;
+import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.rpc.RpcContext;
 import com.alipay.sofa.jraft.rpc.RpcProcessor;
 import com.jd.blockchain.consensus.raft.server.RaftNodeServerService;
@@ -34,10 +35,16 @@ public abstract class BaseRpcProcessor<T> implements RpcProcessor<T> {
             }
         };
 
-        processRequest(request, done);
+        try {
+            processRequest(request, done);
+        } catch (Exception e) {
+            LOGGER.error("process request error", e);
+            done.run(new Status(RaftError.EREQUEST, e.getMessage()));
+        }
+
     }
 
-    protected abstract void processRequest(T request, RpcResponseClosure done);
+    protected abstract void processRequest(T request, RpcResponseClosure done) throws Exception;
 
     @Override
     public String interest() {

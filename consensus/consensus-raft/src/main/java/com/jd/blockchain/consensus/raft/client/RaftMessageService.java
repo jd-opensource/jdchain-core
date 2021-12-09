@@ -38,6 +38,7 @@ import utils.net.NetworkAddress;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -47,18 +48,23 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
     private static final Logger LOGGER = LoggerFactory.getLogger(RaftMessageService.class);
     private static final int MAX_RETRY_TIMES = 3;
 
-    private String groupId;
-    private PeerId leader;
-    private long lastLeaderUpdateTimestamp;
-    private ReentrantLock lock = new ReentrantLock();
-    private ScheduledExecutorService refreshLeaderExecutorService;
-    private Executor monitorExecutor;
+    private final ReentrantLock lock = new ReentrantLock();
+    private final String groupId;
 
-    private CliClientServiceImpl clientService;
+    private PeerId leader;
     private Configuration configuration;
+    private long lastLeaderUpdateTimestamp;
+    private long lastConfigurationUpdateTimestamp;
+
+    private final ScheduledExecutorService refreshLeaderExecutorService;
+    private final Executor monitorExecutor;
+    private final CliClientServiceImpl clientService;
 
     private final int rpcTimeoutMs;
     private final int refreshLeaderMs;
+    private final int refreshConfigurationMs;
+
+    private volatile boolean isStart;
 
     public RaftMessageService(String groupId, RaftClientSettings settings) {
 
@@ -67,6 +73,7 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
 
         this.rpcTimeoutMs = networkSettings.getRpcRequestTimeoutMs();
         this.refreshLeaderMs = consensusSettings.getElectionTimeoutMs();
+        this.refreshConfigurationMs = consensusSettings.getRefreshConfigurationMs();
 
         CliOptions cliOptions = new CliOptions();
         cliOptions.setRpcConnectTimeoutMs(networkSettings.getRpcConnectTimeoutMs());
@@ -84,7 +91,7 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
             this.configuration.addPeer(PeerId.parsePeer(currentPeer));
         }
 
-        this.refreshLeaderExecutorService = Executors.newSingleThreadScheduledExecutor();
+        this.refreshLeaderExecutorService = Executors.newSingleThreadScheduledExecutor(JRaftUtils.createThreadFactory("RAFT-REFRESH-LEADER"));
         this.monitorExecutor = JRaftUtils.createExecutor("RAFT-CLIENT-MONITOR", Runtime.getRuntime().availableProcessors());
     }
 
@@ -92,29 +99,41 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
         RouteTable.getInstance().updateConfiguration(groupId, configuration);
         refresh();
         refreshLeaderExecutorService.scheduleAtFixedRate(this::refresh, refreshLeaderMs, refreshLeaderMs, TimeUnit.MILLISECONDS);
+        isStart = true;
     }
 
     private void refresh() {
         lock.lock();
         try {
-            if (System.currentTimeMillis() - this.lastLeaderUpdateTimestamp < refreshLeaderMs) {
-                return;
-            }
-
-            RouteTable.getInstance().refreshLeader(this.clientService, this.groupId, this.rpcTimeoutMs);
-            RouteTable.getInstance().refreshConfiguration(this.clientService, this.groupId, this.rpcTimeoutMs);
-
-            PeerId peerId = RouteTable.getInstance().selectLeader(this.groupId);
-            if (peerId != null && !peerId.equals(this.leader)) {
-                LoggerUtils.infoIfEnabled(LOGGER, "leader changed. from {} to {}", this.leader, peerId);
-                this.leader = peerId;
-                this.lastLeaderUpdateTimestamp = System.currentTimeMillis();
-            }
+            refreshLeader();
+            refreshConfiguration();
         } catch (Exception e) {
             LOGGER.error("refresh raft client config error", e);
         } finally {
             lock.unlock();
         }
+    }
+
+    private void refreshConfiguration() throws TimeoutException, InterruptedException {
+        if (System.currentTimeMillis() - this.lastConfigurationUpdateTimestamp < this.refreshConfigurationMs) {
+            return;
+        }
+        RouteTable.getInstance().refreshConfiguration(this.clientService, this.groupId, this.rpcTimeoutMs);
+        this.configuration = RouteTable.getInstance().getConfiguration(this.groupId);
+        this.lastConfigurationUpdateTimestamp = System.currentTimeMillis();
+    }
+
+    private void refreshLeader() throws TimeoutException, InterruptedException {
+        if (System.currentTimeMillis() - this.lastLeaderUpdateTimestamp < this.refreshLeaderMs) {
+            return;
+        }
+        RouteTable.getInstance().refreshLeader(this.clientService, this.groupId, this.rpcTimeoutMs);
+        PeerId peerId = RouteTable.getInstance().selectLeader(this.groupId);
+        if (peerId != null && !peerId.equals(this.leader)) {
+            LoggerUtils.infoIfEnabled(LOGGER, "leader changed. from {} to {}", this.leader, peerId);
+            this.leader = peerId;
+        }
+        this.lastLeaderUpdateTimestamp = System.currentTimeMillis();
     }
 
 
@@ -130,6 +149,15 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
             throw new RaftClientRequestException(e);
         }
         return asyncFuture;
+    }
+
+    @Override
+    public AsyncFuture<byte[]> sendUnordered(byte[] message) {
+        ensureConnected();
+        if (Arrays.equals(MonitorService.LOAD_MONITOR, message)) {
+            return queryPeersManagerInfo();
+        }
+        return new CompletableAsyncFuture<>();
     }
 
     private void sendRequest(Endpoint endpoint, SubmitTxRequest txRequest, int retry, CompletableAsyncFuture<byte[]> asyncFuture)
@@ -177,22 +205,17 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
 
 
     private void ensureConnected() {
+
+        if (!isStart) {
+            throw new IllegalStateException("Client has closed");
+        }
+
         if (!isConnected()) {
             throw new IllegalStateException("Client has not connected to the leader nodes!");
         }
     }
 
-    @Override
-    public AsyncFuture<byte[]> sendUnordered(byte[] message) {
-        ensureConnected();
-        if (Arrays.equals(MonitorService.LOAD_MONITOR, message)) {
-            return refreshAndQueryPeersManagerInfo();
-        }
-        return new CompletableAsyncFuture<>();
-    }
-
-    private AsyncFuture<byte[]> refreshAndQueryPeersManagerInfo() {
-        refresh();
+    private AsyncFuture<byte[]> queryPeersManagerInfo() {
         Configuration configuration = RouteTable.getInstance().getConfiguration(this.groupId);
         List<PeerId> peerIds = configuration.listPeers();
 
@@ -211,7 +234,7 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
 
     private List<MonitorNodeNetwork> queryPeersManagerInfo(List<PeerId> peerIds) throws InterruptedException {
 
-        final List<MonitorNodeNetwork> nodeNetworkList = new ArrayList<>(peerIds.size());
+        final List<MonitorNodeNetwork> nodeNetworkList = Collections.synchronizedList(new ArrayList<>(peerIds.size()));
         CountDownLatch countDownLatch = new CountDownLatch(peerIds.size());
         QueryManagerInfoRequest infoRequest = new QueryManagerInfoRequest();
 
@@ -220,7 +243,7 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
                 clientService.getRpcClient().invokeAsync(peerId.getEndpoint(), infoRequest, (o, e) -> {
                     try {
                         if (e != null) {
-                            LoggerUtils.errorIfEnabled(LOGGER, "queryPeersManagerInfo error, peer id: {}", peerId, e);
+                            LoggerUtils.errorIfEnabled(LOGGER, "queryPeersManagerInfo response error, peer id: {}", peerId, e);
                         } else {
                             RpcResponse response = (RpcResponse) o;
                             QueryManagerInfoRequestProcessor.ManagerInfoResponse managerInfoResponse =
@@ -236,11 +259,14 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
 
                             nodeNetworkList.add(monitorNodeNetwork);
                         }
+                    } catch (Exception exception) {
+                        LoggerUtils.errorIfEnabled(LOGGER, "handle queryPeersManagerInfo response error", e);
                     } finally {
                         countDownLatch.countDown();
                     }
                 }, this.rpcTimeoutMs);
             } catch (Exception e) {
+                LOGGER.error("queryPeersManagerInfo error", e);
                 countDownLatch.countDown();
             }
         }
@@ -339,6 +365,12 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
         if (this.clientService != null) {
             this.clientService.shutdown();
         }
+
+        if (this.monitorExecutor != null) {
+            ((ExecutorService) monitorExecutor).shutdown();
+        }
+
+        isStart = false;
     }
 
     public boolean isConnected() {
