@@ -1,5 +1,6 @@
 package com.jd.blockchain.consensus.raft.client;
 
+import com.google.common.base.Strings;
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.consensus.ClientCredential;
@@ -72,7 +73,12 @@ public class RaftConsensusClientFactory implements ClientFactory, ManageClientFa
 
     @Override
     public ClientSettings buildClientSettings(ClientIncomingSettings incomingSettings, SSLSecurity sslSecurity) {
-        //todo
+        if (sslSecurity != null && !Strings.isNullOrEmpty(sslSecurity.getTrustStore())) {
+            System.getProperties().setProperty("bolt.client.ssl.enable", "true");
+            System.getProperties().setProperty("bolt.client.ssl.keystore", sslSecurity.getTrustStore());
+            System.getProperties().setProperty("bolt.client.ssl.keystore.password", sslSecurity.getTrustStorePassword());
+            System.getProperties().setProperty("bolt.client.ssl.keystore.type", sslSecurity.getTrustStoreType());
+        }
         return buildClientSettings(incomingSettings);
     }
 

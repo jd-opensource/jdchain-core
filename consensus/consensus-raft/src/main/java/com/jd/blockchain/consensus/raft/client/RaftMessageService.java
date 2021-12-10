@@ -66,6 +66,10 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
 
     private volatile boolean isStart;
 
+    private final List<MonitorNodeNetwork> monitorNodeNetworks = new CopyOnWriteArrayList<>();
+    private volatile boolean isReloadMonitorNode = true;
+    private final Object monitorLock = new Object();
+
     public RaftMessageService(String groupId, RaftClientSettings settings) {
 
         RaftConsensusSettings consensusSettings = (RaftConsensusSettings) settings.getViewSettings();
@@ -119,8 +123,13 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
             return;
         }
         RouteTable.getInstance().refreshConfiguration(this.clientService, this.groupId, this.rpcTimeoutMs);
+        Configuration old = this.configuration;
         this.configuration = RouteTable.getInstance().getConfiguration(this.groupId);
         this.lastConfigurationUpdateTimestamp = System.currentTimeMillis();
+        this.isReloadMonitorNode = true;
+//        if (!old.equals(this.configuration)) {
+//            this.isReloadMonitorNode = true;
+//        }
     }
 
     private void refreshLeader() throws TimeoutException, InterruptedException {
@@ -234,45 +243,59 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
 
     private List<MonitorNodeNetwork> queryPeersManagerInfo(List<PeerId> peerIds) throws InterruptedException {
 
-        final List<MonitorNodeNetwork> nodeNetworkList = Collections.synchronizedList(new ArrayList<>(peerIds.size()));
-        CountDownLatch countDownLatch = new CountDownLatch(peerIds.size());
-        QueryManagerInfoRequest infoRequest = new QueryManagerInfoRequest();
-
-        for (PeerId peerId : peerIds) {
-            try {
-                clientService.getRpcClient().invokeAsync(peerId.getEndpoint(), infoRequest, (o, e) -> {
-                    try {
-                        if (e != null) {
-                            LoggerUtils.errorIfEnabled(LOGGER, "queryPeersManagerInfo response error, peer id: {}", peerId, e);
-                        } else {
-                            RpcResponse response = (RpcResponse) o;
-                            QueryManagerInfoRequestProcessor.ManagerInfoResponse managerInfoResponse =
-                                    QueryManagerInfoRequestProcessor.ManagerInfoResponse.fromBytes(response.getResult());
-
-                            MonitorNodeNetwork monitorNodeNetwork = new MonitorNodeNetwork(
-                                    managerInfoResponse.getHost(),
-                                    managerInfoResponse.getConsensusPort(),
-                                    managerInfoResponse.getManagerPort(),
-                                    managerInfoResponse.isConsensusSSLEnabled(),
-                                    managerInfoResponse.isManagerSSLEnabled()
-                            );
-
-                            nodeNetworkList.add(monitorNodeNetwork);
-                        }
-                    } catch (Exception exception) {
-                        LoggerUtils.errorIfEnabled(LOGGER, "handle queryPeersManagerInfo response error", e);
-                    } finally {
-                        countDownLatch.countDown();
-                    }
-                }, this.rpcTimeoutMs);
-            } catch (Exception e) {
-                LOGGER.error("queryPeersManagerInfo error", e);
-                countDownLatch.countDown();
-            }
+        if (!isReloadMonitorNode) {
+            return monitorNodeNetworks;
         }
 
-        countDownLatch.await(this.rpcTimeoutMs * peerIds.size(), TimeUnit.MILLISECONDS);
-        return nodeNetworkList;
+        synchronized (monitorLock) {
+            if (!isReloadMonitorNode) {
+                return monitorNodeNetworks;
+            }
+
+            final List<MonitorNodeNetwork> nodeNetworkList = Collections.synchronizedList(new ArrayList<>(peerIds.size()));
+            CountDownLatch countDownLatch = new CountDownLatch(peerIds.size());
+            QueryManagerInfoRequest infoRequest = new QueryManagerInfoRequest();
+
+            for (PeerId peerId : peerIds) {
+                try {
+                    clientService.getRpcClient().invokeAsync(peerId.getEndpoint(), infoRequest, (o, e) -> {
+                        try {
+                            if (e != null) {
+                                LoggerUtils.errorIfEnabled(LOGGER, "queryPeersManagerInfo response error, peer id: {}", peerId, e);
+                            } else {
+                                RpcResponse response = (RpcResponse) o;
+                                QueryManagerInfoRequestProcessor.ManagerInfoResponse managerInfoResponse =
+                                        QueryManagerInfoRequestProcessor.ManagerInfoResponse.fromBytes(response.getResult());
+
+                                MonitorNodeNetwork monitorNodeNetwork = new MonitorNodeNetwork(
+                                        managerInfoResponse.getHost(),
+                                        managerInfoResponse.getConsensusPort(),
+                                        managerInfoResponse.getManagerPort(),
+                                        managerInfoResponse.isConsensusSSLEnabled(),
+                                        managerInfoResponse.isManagerSSLEnabled()
+                                );
+
+                                nodeNetworkList.add(monitorNodeNetwork);
+                            }
+                        } catch (Exception exception) {
+                            LoggerUtils.errorIfEnabled(LOGGER, "handle queryPeersManagerInfo response error", e);
+                        } finally {
+                            countDownLatch.countDown();
+                        }
+                    }, this.rpcTimeoutMs);
+                } catch (Exception e) {
+                    LOGGER.error("queryPeersManagerInfo error", e);
+                    countDownLatch.countDown();
+                }
+            }
+
+            countDownLatch.await(this.rpcTimeoutMs * peerIds.size(), TimeUnit.MILLISECONDS);
+            monitorNodeNetworks.clear();
+            monitorNodeNetworks.addAll(nodeNetworkList);
+            isReloadMonitorNode = false;
+        }
+
+        return monitorNodeNetworks;
     }
 
 

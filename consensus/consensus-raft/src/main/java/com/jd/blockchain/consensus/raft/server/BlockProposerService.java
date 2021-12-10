@@ -3,9 +3,12 @@ package com.jd.blockchain.consensus.raft.server;
 import com.jd.blockchain.consensus.raft.consensus.Block;
 import com.jd.blockchain.consensus.raft.consensus.BlockCommitCallback;
 import com.jd.blockchain.consensus.raft.consensus.BlockProposer;
+import com.jd.blockchain.consensus.raft.util.LoggerUtils;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.core.LedgerRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,6 +16,8 @@ import java.util.TreeMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class BlockProposerService implements BlockProposer, BlockCommitCallback {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BlockProposerService.class);
 
     private TreeMap<Long, Block> proposalBlockMap = new TreeMap<>();
     private Block latestProposalBlock;
@@ -44,6 +49,7 @@ public class BlockProposerService implements BlockProposer, BlockCommitCallback 
             proposalBlockMap.put(proposeBlock.getHeight(), proposeBlock);
             latestProposalBlock = proposeBlock;
 
+            LoggerUtils.debugIfEnabled(LOGGER, "proposal cache size: {}, latest proposal height: {}", proposalBlockMap.size(), latestProposalBlock.getHeight());
         } finally {
             lock.unlock();
         }

@@ -32,6 +32,7 @@ public class RaftNodeServerServiceImpl implements RaftNodeServerService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RaftNodeServerServiceImpl.class);
     private static final int MAX_SUBMIT_RETRY_TIMES = 3;
+    public static final String PEER_FORMAT = "%s:%d";
 
     private RaftNodeServer nodeServer;
     private BlockProposer proposer;
@@ -105,7 +106,7 @@ public class RaftNodeServerServiceImpl implements RaftNodeServerService {
     @Override
     public void addParticipantNode(ParticipantNodeAddRequest request, Closure done) {
         applyRequest(request, (RpcResponseClosure) done, (req, closure) -> {
-            PeerId changePeer = PeerId.parsePeer(String.format("%s:%d", request.getHost(), request.getPort()));
+            PeerId changePeer = PeerId.parsePeer(String.format(PEER_FORMAT, request.getHost(), request.getPort()));
             nodeServer.getNode().addPeer(changePeer, new ParticipantResponseClosure(closure));
         });
     }
@@ -115,7 +116,7 @@ public class RaftNodeServerServiceImpl implements RaftNodeServerService {
     @Override
     public void removeParticipantNode(ParticipantNodeRemoveRequest request, Closure done) {
         applyRequest(request, (RpcResponseClosure) done, (req, closure) -> {
-            PeerId changePeer = PeerId.parsePeer(String.format("%s:%d", request.getHost(), request.getPort()));
+            PeerId changePeer = PeerId.parsePeer(String.format(PEER_FORMAT, request.getHost(), request.getPort()));
             nodeServer.getNode().removePeer(changePeer, new ParticipantResponseClosure(closure));
         });
     }
@@ -123,8 +124,8 @@ public class RaftNodeServerServiceImpl implements RaftNodeServerService {
     @Override
     public void transferParticipantNode(ParticipantNodeTransferRequest request, Closure done) {
         applyRequest(request, (RpcResponseClosure) done, (req, closure) -> {
-            PeerId removePeer = PeerId.parsePeer(String.format("%s:%d", request.getPreHost(), request.getPrePort()));
-            PeerId addPeer = PeerId.parsePeer(String.format("%s:%d", request.getNewHost(), request.getNewPort()));
+            PeerId removePeer = PeerId.parsePeer(String.format(PEER_FORMAT, request.getPreHost(), request.getPrePort()));
+            PeerId addPeer = PeerId.parsePeer(String.format(PEER_FORMAT, request.getNewHost(), request.getNewPort()));
             List<PeerId> peerIds = nodeServer.getNode().listPeers();
             peerIds.remove(removePeer);
             peerIds.add(addPeer);

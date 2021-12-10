@@ -14,12 +14,12 @@ import java.util.concurrent.Executor;
 
 public abstract class BaseRpcProcessor<T> implements RpcProcessor<T> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SubmitTxRequestProcessor.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(BaseRpcProcessor.class);
 
-    private RaftNodeServerService nodeServerService;
-    private Executor executor;
+    private final RaftNodeServerService nodeServerService;
+    private final Executor executor;
 
-    public BaseRpcProcessor(RaftNodeServerService nodeServerService, Executor executor) {
+    protected BaseRpcProcessor(RaftNodeServerService nodeServerService, Executor executor) {
         this.nodeServerService = nodeServerService;
         this.executor = executor;
     }

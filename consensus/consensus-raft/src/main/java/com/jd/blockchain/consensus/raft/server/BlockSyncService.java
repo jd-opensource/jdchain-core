@@ -32,28 +32,16 @@ public class BlockSyncService implements BlockSyncer, Subcriber {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BlockSyncService.class);
 
+    private final LedgerRepository repository;
+    private final RpcClient rpcClient;
+    private final long requestTimeoutMs;
+
     private volatile boolean isSyncing;
-    private LedgerRepository repository;
-    private RpcClient rpcClient;
-    private long requestTimeoutMs;
 
     public BlockSyncService(LedgerRepository repository, RpcClient rpcClient, long requestTimeoutMs) {
         this.repository = repository;
         this.rpcClient = rpcClient;
         this.requestTimeoutMs = requestTimeoutMs;
-    }
-
-    private ServiceEndpoint getConsensusNodeManagerInfo(Endpoint remoteEndpoint) {
-        try {
-            QueryManagerInfoRequest request = new QueryManagerInfoRequest();
-            RpcResponse response = (RpcResponse) rpcClient.invokeSync(remoteEndpoint, request, requestTimeoutMs);
-
-            QueryManagerInfoRequestProcessor.ManagerInfoResponse infoResponse = QueryManagerInfoRequestProcessor.ManagerInfoResponse.fromBytes(response.getResult());
-            return new ServiceEndpoint(remoteEndpoint.getIp(), infoResponse.getManagerPort(), infoResponse.isManagerSSLEnabled());
-        } catch (Exception e) {
-            LOGGER.error(e.getMessage(), e);
-        }
-        return null;
     }
 
     public void sync(ServiceEndpoint serviceEndpoint, HashDigest ledger, long height) throws BlockSyncException {
@@ -82,6 +70,19 @@ public class BlockSyncService implements BlockSyncer, Subcriber {
             throw new BlockSyncException("get peer manager info is null");
         }
         sync(consensusNodeManagerInfo, ledger, height);
+    }
+
+    private ServiceEndpoint getConsensusNodeManagerInfo(Endpoint remoteEndpoint) {
+        try {
+            QueryManagerInfoRequest request = new QueryManagerInfoRequest();
+            RpcResponse response = (RpcResponse) rpcClient.invokeSync(remoteEndpoint, request, requestTimeoutMs);
+
+            QueryManagerInfoRequestProcessor.ManagerInfoResponse infoResponse = QueryManagerInfoRequestProcessor.ManagerInfoResponse.fromBytes(response.getResult());
+            return new ServiceEndpoint(remoteEndpoint.getIp(), infoResponse.getManagerPort(), infoResponse.isManagerSSLEnabled());
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage(), e);
+        }
+        return null;
     }
 
     @Override

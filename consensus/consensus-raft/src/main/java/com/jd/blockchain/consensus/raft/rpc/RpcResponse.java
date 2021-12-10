@@ -96,7 +96,7 @@ public class RpcResponse implements Serializable {
     @Override
     public String toString() {
         return "RpcResponse{" +
-                "result=" + Arrays.toString(result) +
+                "result[size]=" + (result == null ? "null" : result.length) +
                 ", errorCode=" + errorCode +
                 ", errorMessage='" + errorMessage + '\'' +
                 ", success=" + success +

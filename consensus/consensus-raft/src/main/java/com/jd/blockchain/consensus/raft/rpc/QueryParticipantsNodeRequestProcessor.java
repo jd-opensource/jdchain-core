@@ -29,22 +29,6 @@ public class QueryParticipantsNodeRequestProcessor extends BaseRpcProcessor<Quer
         LedgerAdminInfo adminInfo = ledgerRepository.getAdminInfo(ledgerRepository.retrieveLatestBlock());
         ParticipantNode[] participants = adminInfo.getParticipants();
 
-//        RaftServerSettings serverSettings = getNodeServerService().getNodeServer().getServerSettings();
-//        PubKey pubKey = serverSettings.getRaftNodeSettings().getPubKey();
-//
-//        ParticipantNode currentNode = null;
-//        for (ParticipantNode participantNode : participants) {
-//            if (participantNode.getPubKey().equals(pubKey)) {
-//                currentNode = participantNode;
-//                break;
-//            }
-//        }
-//
-//        if (currentNode == null) {
-//            done.run(new Status(RaftError.EEXISTS, "not found participant node"));
-//            return;
-//        }
-
         done.setResponse(RpcResponse.success(BinaryProtocol.encode(participants)));
         done.run(Status.OK());
 

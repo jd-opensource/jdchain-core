@@ -28,13 +28,13 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RaftConsensusStateMachine.class);
 
-    private BlockCommitter committer;
-    private BlockSerializer serializer;
-    private BlockSyncer blockSyncer;
-    private LedgerRepository ledgerRepository;
+    private final BlockCommitter committer;
+    private final BlockSerializer serializer;
+    private final BlockSyncer blockSyncer;
+    private final LedgerRepository ledgerRepository;
 
     private final AtomicBoolean isLeader = new AtomicBoolean(false);
-    private AtomicLong currentBlockHeight = new AtomicLong(1);
+    private final AtomicLong currentBlockHeight = new AtomicLong(1);
 
     public RaftConsensusStateMachine(BlockCommitter committer, BlockSerializer serializer, BlockSyncer blockSyncer, LedgerRepository ledgerRepository) {
         this.committer = committer;
@@ -74,10 +74,8 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
                             this.currentBlockHeight.set(block.getHeight());
                         }
                     } catch (BlockCommittedException bce) {
-                        //ignore
-                        LoggerUtils.debugIfEnabled(LOGGER, "block committed: {},  ignore it", bce.getMessage());
+                        LOGGER.info("block height: {} committed,  ignore it", bce.getHeight());
                     }
-
                 } catch (Throwable e) {
                     LOGGER.error("apply state machine log index: {} term: {} , txList: {} error", iterator.getIndex(), iterator.getTerm(), block, e);
                     index++;
@@ -141,9 +139,9 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
         try {
             RaftSnapshotFile.RaftSnapshotData load = raftSnapshotFile.load();
             long snapshotHeight = load.getHeight();
-            long currentBlockHeight = this.currentBlockHeight.get();
-            if (snapshotHeight <= currentBlockHeight) {
-                LOGGER.warn("snapshot height: {} less than current block height: {}, ignore it", snapshotHeight, currentBlockHeight);
+            long blockHeight = this.currentBlockHeight.get();
+            if (snapshotHeight <= blockHeight) {
+                LOGGER.info("snapshot height: {} less than current block height: {}, ignore it", snapshotHeight, blockHeight);
                 return true;
             }
 
