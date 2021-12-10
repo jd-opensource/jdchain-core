@@ -88,6 +88,7 @@ import java.util.concurrent.atomic.AtomicLong;
                 TxSend.class,
                 TxTestKV.class,
                 TxSwitchConsensus.class,
+                TxSwitchHashAlgo.class,
                 CommandLine.HelpCommand.class
         }
 )
@@ -1216,6 +1217,42 @@ class TxSwitchConsensus implements Runnable {
                     System.out.println("switch consensus type success");
                 } else {
                     System.err.printf("switch consensus type failed: [%s]!%n", response.getExecutionState());
+                }
+            }
+        }
+    }
+}
+
+@CommandLine.Command(name = "switch-hash-algo", mixinStandardHelpOptions = true, header = "Switch crypto hash algo.")
+class TxSwitchHashAlgo implements Runnable {
+
+    @CommandLine.Option(names = "--hash-algo", required = true, description = "New crypto hash algo", scope = CommandLine.ScopeType.INHERIT)
+    String newHashAlgo;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+
+        if (StringUtils.isEmpty(newHashAlgo)) {
+            System.err.println("new hash algo is empty!");
+            return;
+        }
+
+        TransactionTemplate txTemp = txCommand.newTransaction();
+        txTemp.switchHashAlgo().update(newHashAlgo);
+        PreparedTransaction ptx = txTemp.prepare();
+        String txFile = txCommand.export(ptx);
+        if (null != txFile) {
+            System.err.println("export transaction success: " + txFile);
+        } else {
+            if (txCommand.sign(ptx)) {
+                TransactionResponse response = ptx.commit();
+                if (response.isSuccess()) {
+                    System.out.println("switch new hash algo success");
+                } else {
+                    System.err.printf("switch new hash algo failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }

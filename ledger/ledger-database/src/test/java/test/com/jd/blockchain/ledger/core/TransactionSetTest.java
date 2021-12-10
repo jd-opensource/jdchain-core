@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Random;
 
 import com.jd.blockchain.ledger.ConsensusTypeUpdateOperation;
+import com.jd.blockchain.ledger.CryptoHashAlgoUpdateOperation;
 import org.junit.Test;
 
 import com.jd.binaryproto.DataContractRegistry;
@@ -60,6 +61,7 @@ public class TransactionSetTest {
 		DataContractRegistry.register(ParticipantStateUpdateOperation.class);
 		DataContractRegistry.register(ConsensusSettingsUpdateOperation.class);
 		DataContractRegistry.register(ConsensusTypeUpdateOperation.class);
+		DataContractRegistry.register(CryptoHashAlgoUpdateOperation.class);
 	}
 
 	@Test
