@@ -1,6 +1,5 @@
 package com.jd.blockchain.consensus.raft.settings;
 
-import com.alipay.sofa.jraft.option.RaftOptions;
 import com.jd.binaryproto.DataContract;
 import com.jd.binaryproto.DataField;
 import com.jd.binaryproto.PrimitiveType;

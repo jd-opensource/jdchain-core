@@ -13,6 +13,7 @@ import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.Utils;
 import com.jd.blockchain.consensus.raft.consensus.*;
 import com.jd.blockchain.consensus.raft.util.LoggerUtils;
+import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.core.LedgerRepository;
 import org.slf4j.Logger;
@@ -27,7 +28,6 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RaftConsensusStateMachine.class);
 
-    private RaftNodeServer nodeServer;
     private BlockCommitter committer;
     private BlockSerializer serializer;
     private BlockSyncer blockSyncer;
@@ -36,8 +36,7 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
     private final AtomicBoolean isLeader = new AtomicBoolean(false);
     private AtomicLong currentBlockHeight = new AtomicLong(1);
 
-    public RaftConsensusStateMachine(RaftNodeServer nodeServer, BlockCommitter committer, BlockSerializer serializer, BlockSyncer blockSyncer, LedgerRepository ledgerRepository) {
-        this.nodeServer = nodeServer;
+    public RaftConsensusStateMachine(BlockCommitter committer, BlockSerializer serializer, BlockSyncer blockSyncer, LedgerRepository ledgerRepository) {
         this.committer = committer;
         this.serializer = serializer;
         this.ledgerRepository = ledgerRepository;
@@ -167,21 +166,20 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
     }
 
     private void catchUp(long maxHeight) throws BlockSyncException {
+        HashDigest ledger = ledgerRepository.getHash();
         while (this.currentBlockHeight.get() < maxHeight) {
             PeerId leader = null;
-            if (nodeServer.getNode() == null) {
+            if (RaftNodeServerContext.getInstance().getNode(ledger) == null) {
                 // 当本地快照与本地账本不一致时，需连接Leader节点进行同步, 此时本地节点尚无leader节点信息, 需要通过客户端进行同步
-                nodeServer.refreshRouteTable();
+                RaftNodeServerContext.getInstance().refreshRouteTable(ledger);
             }
-            leader = nodeServer.getLeader();
+            leader = RaftNodeServerContext.getInstance().getLeader(ledger);
             if (leader == null) {
                 throw new BlockSyncException("raft group not ready, current leader is none. retry it.");
             }
 
-            boolean result = blockSyncer.sync(leader.getIp(), leader.getPort(), nodeServer.getLedgerHashDigest(), this.currentBlockHeight.get() + 1);
-            if (result) {
-                this.currentBlockHeight.incrementAndGet();
-            }
+            blockSyncer.sync(leader.getEndpoint(), ledger, this.currentBlockHeight.get() + 1);
+            this.currentBlockHeight.incrementAndGet();
         }
     }
 
@@ -218,29 +216,5 @@ public class RaftConsensusStateMachine extends StateMachineAdapter {
     public boolean isLeader() {
         return isLeader.get();
     }
-//
-//    public PeerId getLeader() {
-//        if (node == null) {
-//            return null;
-//        }
-//
-//        if (node.isLeader()) {
-//            return node.getLeaderId();
-//        }
-//
-//        return RouteTable.getInstance().selectLeader(node.getGroupId());
-//    }
-
-//    private List<PeerId> allPeers() {
-//        if (node == null) {
-//            return Collections.emptyList();
-//        }
-//
-//        if (node.isLeader()) {
-//            return node.listPeers();
-//        }
-//
-//        return RouteTable.getInstance().getConfiguration(node.getGroupId()).getPeers();
-//    }
 
 }

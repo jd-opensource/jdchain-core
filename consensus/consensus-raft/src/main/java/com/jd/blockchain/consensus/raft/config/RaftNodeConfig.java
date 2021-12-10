@@ -2,14 +2,22 @@ package com.jd.blockchain.consensus.raft.config;
 
 import com.jd.blockchain.consensus.Replica;
 import com.jd.blockchain.consensus.raft.settings.RaftNodeSettings;
+import com.jd.blockchain.crypto.AddressEncoding;
+import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.PubKey;
 import utils.PropertiesUtils;
+import utils.codec.Base58Utils;
 import utils.net.NetworkAddress;
 
 import java.util.Properties;
 
 public class RaftNodeConfig extends PropertyConfig implements RaftNodeSettings {
 
+    public static final String SYSTEM_SERVER_D_NETWORK_SECURE = "system.server.%d.network.secure";
+    public static final String SYSTEM_SERVER_D_NETWORK_HOST = "system.server.%d.network.host";
+    public static final String SYSTEM_SERVER_D_NETWORK_PORT = "system.server.%d.network.port";
+    public static final String SYSTEM_SERVER_D_RAFT_PATH = "system.server.%d.raft.path";
+    public static final String SYSTEM_SERVER_D_PUBKEY = "system.server.%d.pubkey";
     private int id;
 
     private String address;
@@ -31,17 +39,36 @@ public class RaftNodeConfig extends PropertyConfig implements RaftNodeSettings {
         this.networkAddress = networkAddress;
     }
 
+    public RaftNodeConfig(RaftNodeSettings raftNodeSettings) {
+        this(raftNodeSettings.getId(), raftNodeSettings.getAddress(), raftNodeSettings.getPubKey(), raftNodeSettings.getRaftPath(), raftNodeSettings.getNetworkAddress());
+    }
+
     public void init(Properties props, Replica replica) {
         this.setId(replica.getId());
         this.setAddress(replica.getAddress().toBase58());
         this.setPubKey(replica.getPubKey());
 
-        boolean secure = PropertiesUtils.getBooleanOptional(props, String.format("system.server.%d.network.secure", replica.getId()), false);
-        String host = PropertiesUtils.getProperty(props, String.format("system.server.%d.network.host", replica.getId()), true);
-        int port = PropertiesUtils.getInt(props, String.format("system.server.%d.network.port", replica.getId()));
-        String path = PropertiesUtils.getProperty(props, String.format("system.server.%d.raft.path", replica.getId()), true);
+        boolean secure = PropertiesUtils.getBooleanOptional(props, String.format(SYSTEM_SERVER_D_NETWORK_SECURE, replica.getId()), false);
+        String host = PropertiesUtils.getProperty(props, String.format(SYSTEM_SERVER_D_NETWORK_HOST, replica.getId()), true);
+        int port = PropertiesUtils.getInt(props, String.format(SYSTEM_SERVER_D_NETWORK_PORT, replica.getId()));
+        String path = PropertiesUtils.getProperty(props, String.format(SYSTEM_SERVER_D_RAFT_PATH, replica.getId()), true);
 
         this.setRaftPath(path);
+        this.setNetworkAddress(new NetworkAddress(host, port, secure));
+    }
+
+    public void init(Properties props, int id) {
+        this.setId(id);
+        String host = props.getProperty(String.format(SYSTEM_SERVER_D_NETWORK_HOST, id));
+        int port = Integer.parseInt(props.getProperty(String.format(SYSTEM_SERVER_D_NETWORK_PORT, id)));
+        boolean secure = Boolean.parseBoolean(props.getProperty(String.format(SYSTEM_SERVER_D_NETWORK_SECURE, id)));
+        String raftPath = props.getProperty(String.format(SYSTEM_SERVER_D_RAFT_PATH, id));
+        byte[] pubKeyBytes = Base58Utils.decode(props.getProperty(String.format(SYSTEM_SERVER_D_PUBKEY, id)));
+        PubKey pubKey = Crypto.resolveAsPubKey(pubKeyBytes);
+
+        this.setAddress(AddressEncoding.generateAddress(pubKey).toBase58());
+        this.setPubKey(pubKey);
+        this.setRaftPath(raftPath);
         this.setNetworkAddress(new NetworkAddress(host, port, secure));
     }
 
@@ -49,10 +76,10 @@ public class RaftNodeConfig extends PropertyConfig implements RaftNodeSettings {
 
         Properties properties = new Properties();
 
-        setValue(properties, String.format("system.server.%d.network.host", this.getId()), this.getNetworkAddress().getHost());
-        setValue(properties, String.format("system.server.%d.network.port", this.getId()), this.getNetworkAddress().getPort());
-        setValue(properties, String.format("system.server.%d.network.secure", this.getId()), this.getNetworkAddress().isSecure());
-        setValue(properties, String.format("system.server.%d.raft.path", this.getId()), this.getRaftPath());
+        setValue(properties, String.format(SYSTEM_SERVER_D_NETWORK_HOST, this.getId()), this.getNetworkAddress().getHost());
+        setValue(properties, String.format(SYSTEM_SERVER_D_NETWORK_PORT, this.getId()), this.getNetworkAddress().getPort());
+        setValue(properties, String.format(SYSTEM_SERVER_D_NETWORK_SECURE, this.getId()), this.getNetworkAddress().isSecure());
+        setValue(properties, String.format(SYSTEM_SERVER_D_RAFT_PATH, this.getId()), this.getRaftPath());
 
         return properties;
     }

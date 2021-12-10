@@ -67,7 +67,7 @@ public class RaftReplica implements NetworkReplica {
         this.raftPath = raftPath;
     }
 
-    public String getPeerStr(){
+    public String getPeerStr() {
         return String.format("%s:%d", this.getNetworkAddress().getHost(), this.getNetworkAddress().getPort());
     }
 

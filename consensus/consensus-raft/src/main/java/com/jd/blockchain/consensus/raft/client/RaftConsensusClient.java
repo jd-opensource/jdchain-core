@@ -59,6 +59,7 @@ public class RaftConsensusClient implements ConsensusClient, ConsensusManageClie
         if (this.raftMessageService != null) {
             this.raftMessageService.close();
         }
+        this.raftMessageService = null;
     }
 
     @Override

@@ -14,6 +14,9 @@ import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.raft.RaftConsensusProvider;
 import com.jd.blockchain.consensus.raft.config.RaftConfig;
 import com.jd.blockchain.consensus.raft.consensus.*;
+import com.jd.blockchain.consensus.raft.msgbus.MessageBus;
+import com.jd.blockchain.consensus.raft.msgbus.MessageBusComponent;
+import com.jd.blockchain.consensus.raft.msgbus.Subcriber;
 import com.jd.blockchain.consensus.raft.rpc.*;
 import com.jd.blockchain.consensus.raft.settings.RaftNodeSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftServerSettings;
@@ -32,8 +35,9 @@ import utils.concurrent.AsyncFuture;
 import utils.concurrent.CompletableAsyncFuture;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executor;
+
+import static com.jd.blockchain.consensus.raft.msgbus.MessageBus.BLOCK_CATCH_UP_TOPIC;
 
 public class RaftNodeServer implements NodeServer {
 
@@ -69,6 +73,8 @@ public class RaftNodeServer implements NodeServer {
     private BlockVerifier blockVerifier;
     private BlockSyncer blockSyncer;
     private BlockSerializer blockSerializer;
+
+    private MessageBus messageBus;
 
     private volatile boolean isStart;
     private volatile boolean isStop;
@@ -109,14 +115,20 @@ public class RaftNodeServer implements NodeServer {
         this.nodeOptions.setInitialConf(this.configuration);
 
         LedgerRepository ledgerRepository = LedgerManageUtils.getLedgerRepository(this.ledgerHashDigest);
+
+        this.messageBus = new MessageBusComponent(raftServerSettings.getRaftSettings().getDisruptorBufferSize());
         this.blockSerializer = new SimpleBlockSerializerService();
-        this.blockProposer = new BlockProposerService(this, ledgerRepository);
-        this.blockCommitter = new BlockCommitService(this.realmName, this.messageHandle, ledgerRepository);
+        this.blockProposer = new BlockProposerService(ledgerRepository);
+        this.blockCommitter = new BlockCommitService(this.realmName, this.messageHandle, ledgerRepository, this.messageBus);
         this.blockCommitter.registerCallBack((BlockCommitCallback) blockProposer);
 
         this.blockSyncer = new BlockSyncService(ledgerRepository, this.rpcClient, this.serverSettings.getRaftNetworkSettings().getRpcRequestTimeoutMs());
-        this.stateMachine = new RaftConsensusStateMachine(this, this.blockCommitter, this.blockSerializer, this.blockSyncer, ledgerRepository);
+        messageBus.register(BLOCK_CATCH_UP_TOPIC, (Subcriber) this.blockSyncer);
+
+        this.stateMachine = new RaftConsensusStateMachine(this.blockCommitter, this.blockSerializer, this.blockSyncer, ledgerRepository);
         this.nodeOptions.setFsm(stateMachine);
+
+        RaftNodeServerContext.getInstance().init(this);
     }
 
     private PeerId nodeSettingsToPeerId(NodeSettings nodeSettings) {
@@ -162,6 +174,14 @@ public class RaftNodeServer implements NodeServer {
         if (raftGroupService != null) {
             raftGroupService.shutdown();
         }
+
+        if (messageBus != null) {
+            messageBus.close();
+        }
+
+        if(blockProposer != null){
+            blockProposer.clear();
+        }
     }
 
 
@@ -197,12 +217,12 @@ public class RaftNodeServer implements NodeServer {
 //                TimeUnit.MILLISECONDS
 //        );
 
-        LOGGER.info("node: {} is started", this.raftNode.getNodeId());
+        LOGGER.info("raft consensus node: {} is started", this.raftNode.getNodeId());
         return completableAsyncFuture;
     }
 
     public boolean isLeader() {
-        return raftNode.isLeader();
+        return raftNode != null && raftNode.isLeader();
     }
 
     public PeerId getLeader() {
@@ -288,7 +308,9 @@ public class RaftNodeServer implements NodeServer {
     public String[] getCurrentPeerEndpoints() {
 
         Configuration configuration = RouteTable.getInstance().getConfiguration(this.realmName);
-
+        if(configuration == null){
+            return null;
+        }
         return configuration.listPeers().stream()
                 .map(p -> p.getEndpoint().toString())
                 .toArray(String[]::new);

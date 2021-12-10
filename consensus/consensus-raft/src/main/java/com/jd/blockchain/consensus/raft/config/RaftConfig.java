@@ -21,7 +21,7 @@ public class RaftConfig extends PropertyConfig implements RaftSettings {
     private int maxElectionDelayMs = 1000;
 
     @ConfigProperty("system.raft.electionHeartbeatFactor")
-    private int electionHeartbeatFactor = 10;
+    private int electionHeartbeatFactor = 5;
 
     @ConfigProperty("system.raft.applyBatch")
     private int applyBatch = 32;
@@ -33,13 +33,45 @@ public class RaftConfig extends PropertyConfig implements RaftSettings {
     private boolean syncMeta = false;
 
     @ConfigProperty("system.raft.disruptorBufferSize")
-    private int disruptorBufferSize = 16384;
+    private int disruptorBufferSize = 163840;
 
     @ConfigProperty(value = "system.raft.replicatorPipeline", type = ConfigPropertyType.BOOLEAN)
     private boolean replicatorPipeline = true;
 
     @ConfigProperty("system.raft.maxReplicatorInflightMsgs")
     private int maxReplicatorInflightMsgs = 256;
+
+    public RaftConfig() {
+    }
+
+    public RaftConfig(int maxByteCountPerRpc, int maxEntriesSize, int maxBodySize, int maxAppendBufferSize, int maxElectionDelayMs,
+                      int electionHeartbeatFactor, int applyBatch, boolean sync, boolean syncMeta, int disruptorBufferSize,
+                      boolean replicatorPipeline, int maxReplicatorInflightMsgs) {
+        this.maxByteCountPerRpc = maxByteCountPerRpc;
+        this.maxEntriesSize = maxEntriesSize;
+        this.maxBodySize = maxBodySize;
+        this.maxAppendBufferSize = maxAppendBufferSize;
+        this.maxElectionDelayMs = maxElectionDelayMs;
+        this.electionHeartbeatFactor = electionHeartbeatFactor;
+        this.applyBatch = applyBatch;
+        this.sync = sync;
+        this.syncMeta = syncMeta;
+        this.disruptorBufferSize = disruptorBufferSize;
+        this.replicatorPipeline = replicatorPipeline;
+        this.maxReplicatorInflightMsgs = maxReplicatorInflightMsgs;
+    }
+
+    public RaftConfig(RaftSettings raftSettings) {
+        this(raftSettings.getMaxByteCountPerRpc(),
+                raftSettings.getMaxEntriesSize(),
+                raftSettings.getMaxBodySize(),
+                raftSettings.getMaxAppendBufferSize(),
+                raftSettings.getMaxElectionDelayMs(),
+                raftSettings.getElectionHeartbeatFactor(),
+                raftSettings.getApplyBatch(),raftSettings.isSync(),raftSettings.isSyncMeta(),
+                raftSettings.getDisruptorBufferSize(),
+                raftSettings.isReplicatorPipeline(),raftSettings.getMaxReplicatorInflightMsgs());
+    }
 
     public static RaftOptions buildRaftOptions(RaftSettings raftSettings) {
 

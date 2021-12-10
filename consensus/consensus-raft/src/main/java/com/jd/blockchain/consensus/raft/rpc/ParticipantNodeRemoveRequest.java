@@ -25,4 +25,12 @@ public class ParticipantNodeRemoveRequest implements Serializable {
     public void setPort(int port) {
         this.port = port;
     }
+
+    @Override
+    public String toString() {
+        return "ParticipantNodeRemoveRequest{" +
+                "host='" + host + '\'' +
+                ", port=" + port +
+                '}';
+    }
 }

@@ -148,10 +148,17 @@ public class Tx implements Runnable {
 
     HashDigest selectLedger() {
         HashDigest[] ledgers = getChainService().getLedgerHashs();
+
         System.out.printf("select ledger, input the index: %n%-7s\t%s%n", "INDEX", "LEDGER");
         for (int i = 0; i < ledgers.length; i++) {
             System.out.printf("%-7s\t%s%n", i, ledgers[i]);
         }
+
+        if(ledgers.length == 1){
+            System.out.printf("> 0 (use default ledger)%n");
+            return ledgers[0];
+        }
+
         int index = ScannerUtils.readRangeInt(0, ledgers.length - 1);
         return ledgers[index];
     }

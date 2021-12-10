@@ -45,4 +45,14 @@ public class ParticipantNodeTransferRequest implements Serializable {
     public void setNewPort(int newPort) {
         this.newPort = newPort;
     }
+
+    @Override
+    public String toString() {
+        return "ParticipantNodeTransferRequest{" +
+                "preHost='" + preHost + '\'' +
+                ", prePort=" + prePort +
+                ", newHost='" + newHost + '\'' +
+                ", newPort=" + newPort +
+                '}';
+    }
 }

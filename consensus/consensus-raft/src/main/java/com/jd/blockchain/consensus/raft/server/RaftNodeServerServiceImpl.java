@@ -1,6 +1,7 @@
 package com.jd.blockchain.consensus.raft.server;
 
 import com.alipay.sofa.jraft.Closure;
+import com.alipay.sofa.jraft.JRaftUtils;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.entity.PeerId;
@@ -105,23 +106,17 @@ public class RaftNodeServerServiceImpl implements RaftNodeServerService {
     public void addParticipantNode(ParticipantNodeAddRequest request, Closure done) {
         applyRequest(request, (RpcResponseClosure) done, (req, closure) -> {
             PeerId changePeer = PeerId.parsePeer(String.format("%s:%d", request.getHost(), request.getPort()));
-            nodeServer.getNode().addPeer(changePeer, done);
-
-            boolean containPeer = nodeServer.getNode().listPeers().contains(changePeer);
-            ((RpcResponseClosure) done).setResponse(containPeer ? RpcResponse.success(null) : RpcResponse.fail(-1, "add peers not contained"));
-            done.run(Status.OK());
+            nodeServer.getNode().addPeer(changePeer, new ParticipantResponseClosure(closure));
         });
     }
+
+
 
     @Override
     public void removeParticipantNode(ParticipantNodeRemoveRequest request, Closure done) {
         applyRequest(request, (RpcResponseClosure) done, (req, closure) -> {
             PeerId changePeer = PeerId.parsePeer(String.format("%s:%d", request.getHost(), request.getPort()));
-            nodeServer.getNode().removePeer(changePeer, done);
-
-            boolean containPeer = nodeServer.getNode().listPeers().contains(changePeer);
-            ((RpcResponseClosure) done).setResponse(!containPeer ? RpcResponse.success(null) : RpcResponse.fail(-1, "contain remove peers"));
-            done.run(Status.OK());
+            nodeServer.getNode().removePeer(changePeer, new ParticipantResponseClosure(closure));
         });
     }
 
@@ -134,11 +129,7 @@ public class RaftNodeServerServiceImpl implements RaftNodeServerService {
             peerIds.remove(removePeer);
             peerIds.add(addPeer);
 
-            nodeServer.getNode().changePeers(new Configuration(peerIds), done);
-
-            boolean containPeer = nodeServer.getNode().listPeers().contains(addPeer);
-            ((RpcResponseClosure) done).setResponse(containPeer ? RpcResponse.success(null) : RpcResponse.fail(-1, "add peers not contained"));
-            done.run(Status.OK());
+            nodeServer.getNode().changePeers(new Configuration(peerIds), new ParticipantResponseClosure(closure));
         });
 
     }
@@ -278,5 +269,24 @@ public class RaftNodeServerServiceImpl implements RaftNodeServerService {
 
     public RaftNodeServer getNodeServer() {
         return nodeServer;
+    }
+
+    static class ParticipantResponseClosure implements Closure {
+
+        private final RpcResponseClosure closure;
+
+        public ParticipantResponseClosure(RpcResponseClosure closure) {
+            this.closure = closure;
+        }
+
+        @Override
+        public void run(Status status) {
+            if(status.isOk()){
+                closure.setResponse(RpcResponse.success(null));
+            }else{
+                closure.setResponse(RpcResponse.fail(status.getCode(), status.getErrorMsg()));
+            }
+            closure.run(status);
+        }
     }
 }

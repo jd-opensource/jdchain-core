@@ -76,7 +76,9 @@ public interface IParticipantManagerService {
     Property[] createDeactiveProperties(PubKey deActivePubKey, int deActiveID, Properties customProperties);
 
     /**
-     * 提交节点状态变更交易
+     * 提交节点状态变更交易:
+     * a. ParticipantStateUpdateOperation: participant state update
+     * b. ConsensusSettingsUpdateOperation: consensus settings update
      */
     TransactionResponse submitNodeStateChangeTx(ParticipantContext context, TransactionRequest txRequest, List<NodeSettings> origConsensusNodes);
 
@@ -87,7 +89,7 @@ public interface IParticipantManagerService {
      */
     WebResponse applyConsensusGroupNodeChange(ParticipantContext context,
                                               ParticipantNode node,
-                                              @Nullable NetworkAddress changeNetworkAddress,
+                                              @Nullable NetworkAddress changeConsensusNodeAddress,
                                               List<NodeSettings> origConsensusNodes,
                                               ManagementController.ParticipantUpdateType type);
 }

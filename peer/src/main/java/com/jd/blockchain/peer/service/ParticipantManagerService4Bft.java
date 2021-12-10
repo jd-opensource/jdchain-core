@@ -224,7 +224,7 @@ public class ParticipantManagerService4Bft implements IParticipantManagerService
     @Override
     public WebResponse applyConsensusGroupNodeChange(ParticipantContext context,
                                                      ParticipantNode node,
-                                                     @Nullable NetworkAddress changeNetworkAddress,
+                                                     @Nullable NetworkAddress changeConsensusNodeAddress,
                                                      List<NodeSettings> origConsensusNodes,
                                                      ManagementController.ParticipantUpdateType type) {
 
@@ -233,7 +233,7 @@ public class ParticipantManagerService4Bft implements IParticipantManagerService
         SSLSecurity security = context.sslSecurity();
 
         try {
-            View newView = updateView(node, changeNetworkAddress, security, type, systemConfig, viewId, origConsensusNodes);
+            View newView = updateView(node, changeConsensusNodeAddress, security, type, systemConfig, viewId, origConsensusNodes);
             if(newView == null){
                 throw new IllegalStateException("client recv response timeout, consensus may be stalemate, please restart all nodes!");
             }

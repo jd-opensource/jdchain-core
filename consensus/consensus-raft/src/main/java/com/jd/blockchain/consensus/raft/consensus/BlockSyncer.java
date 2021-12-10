@@ -1,13 +1,16 @@
 package com.jd.blockchain.consensus.raft.consensus;
 
+import com.alipay.sofa.jraft.util.Endpoint;
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.httpservice.agent.ServiceEndpoint;
 
 public interface BlockSyncer {
 
-    ManagerInfo getConsensusNodeManagerInfo(String consensusHost, int consensusPort);
+    void sync(ServiceEndpoint serviceEndpoint, HashDigest ledger, long height) throws BlockSyncException;
 
-    boolean sync(String consensusHost, int consensusPort, HashDigest ledger, long height) throws BlockSyncException;
+    void sync(Endpoint peerEndpoint, HashDigest ledger, long height) throws BlockSyncException;
 
+    boolean isSyncing();
 
     class ManagerInfo {
         private int managerPort;
