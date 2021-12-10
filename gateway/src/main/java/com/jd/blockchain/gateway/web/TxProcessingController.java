@@ -4,6 +4,7 @@ import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.ledger.ContractCodeDeployOperation;
+import com.jd.blockchain.ledger.CryptoHashAlgoUpdateOperation;
 import com.jd.blockchain.ledger.Operation;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.sdk.service.ErrorTransactionResponse;
@@ -58,8 +59,9 @@ public class TxProcessingController implements TransactionService {
 				return new ErrorTransactionResponse(txRequest.getTransactionHash(), TransactionState.LEDGER_HASH_EMPTY);
 			}
 
-			// 校验合约
+			// 校验交易中部署合约的合法性，同时检验该交易是否包含更新账本配置环境的操作
 			Operation[] operations = txRequest.getTransactionContent().getOperations();
+			boolean ledgerSettingUpdate = false;
 			if (operations != null && operations.length > 0) {
 				for (Operation op : operations) {
 					if (ContractCodeDeployOperation.class.isAssignableFrom(op.getClass())) {
@@ -68,6 +70,8 @@ public class TxProcessingController implements TransactionService {
 						if (!CONTRACT_PROCESSOR.verify(contractCodeDeployOperation.getChainCode())) {
 							return new ErrorTransactionResponse(txRequest.getTransactionHash(), TransactionState.ILLEGAL_CONTRACT_CAR);
 						}
+					} else if (CryptoHashAlgoUpdateOperation.class.isAssignableFrom(op.getClass())) {
+						ledgerSettingUpdate = true;
 					}
 				}
 			}
@@ -92,6 +96,11 @@ public class TxProcessingController implements TransactionService {
 			LOGGER.info("[contentHash={}],before peerService.getTransactionService().process(txRequest)", txRequest.getTransactionHash());
 			TransactionResponse transactionResponse = peerService.getTransactionService(ledgerHash).process(txRequest);
 			LOGGER.info("[contentHash={}],after peerService.getTransactionService().process(txRequest)", txRequest.getTransactionHash());
+
+			// 如果属于账本环境更新的交易，应该触发网关对peer的重连操作以更新网关接入环境
+			if (ledgerSettingUpdate) {
+				peerConnector.reset(ledgerHash);
+			}
 
 			return transactionResponse;
 		} catch (ViewObsoleteException voe) {
