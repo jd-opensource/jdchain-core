@@ -813,7 +813,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 						status = Status.RUNNING;
 //                createProxyClient();
 						LOGGER.info(
-								"=============================== Replica started success! ===================================");
+								"=============================== Replica started success! node id = {}===================================", getId());
 						future.complete(null);
 					} catch (Exception e) {
 						status = Status.STOPPED;

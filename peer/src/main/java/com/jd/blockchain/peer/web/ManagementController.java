@@ -6,6 +6,7 @@ import com.jd.blockchain.consensus.NodeNetworkAddress;
 import com.jd.blockchain.consensus.bftsmart.service.BftsmartNodeState;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.ledger.BlockRollbackException;
+import com.jd.blockchain.ledger.ConsensusReconfigOperation;
 import com.jd.blockchain.ledger.ConsensusTypeUpdateOperation;
 import com.jd.blockchain.ledger.CryptoHashAlgoUpdateOperation;
 import com.jd.blockchain.ledger.IdentityMode;
@@ -223,6 +224,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         DataContractRegistry.register(ParticipantRegisterOperation.class);
         DataContractRegistry.register(ParticipantStateUpdateOperation.class);
         DataContractRegistry.register(ConsensusSettingsUpdateOperation.class);
+        DataContractRegistry.register(ConsensusReconfigOperation.class);
         DataContractRegistry.register(ConsensusTypeUpdateOperation.class);
 
         DataContractRegistry.register(CryptoHashAlgoUpdateOperation.class);
@@ -447,6 +449,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
             // find current node;
 
             for (ParticipantNode participantNode : ledgerAdminAccount.getParticipants()) {
+                LOGGER.debug("[!!!] ParticipantNode.getAddress().toString()= {}", participantNode.getAddress().toString());
+
                 if (participantNode.getAddress().toString().equals(bindingConfig.getParticipant().getAddress())) {
                     currentNode = participantNode;
                     break;

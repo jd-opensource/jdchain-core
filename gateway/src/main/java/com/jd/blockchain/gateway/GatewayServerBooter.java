@@ -10,6 +10,7 @@ import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.gateway.service.topology.LedgerPeersTopology;
+import com.jd.blockchain.ledger.ConsensusReconfigOperation;
 import com.jd.blockchain.ledger.ConsensusTypeUpdateOperation;
 import com.jd.blockchain.ledger.CryptoHashAlgoUpdateOperation;
 import org.slf4j.Logger;
@@ -277,6 +278,7 @@ public class GatewayServerBooter {
 		DataContractRegistry.register(EventPublishOperation.class);
 		DataContractRegistry.register(EventPublishOperation.EventEntry.class);
 		DataContractRegistry.register(ConsensusSettingsUpdateOperation.class);
+		DataContractRegistry.register(ConsensusReconfigOperation.class);
 		DataContractRegistry.register(ConsensusTypeUpdateOperation.class);
 		DataContractRegistry.register(CryptoHashAlgoUpdateOperation.class);
 

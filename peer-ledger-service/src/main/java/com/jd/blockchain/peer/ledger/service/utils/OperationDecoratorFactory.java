@@ -208,7 +208,7 @@ public class OperationDecoratorFactory {
      * @return
      */
     public static Operation decorateConsensusReconfigOperation(ConsensusReconfigOperation op) {
-        return new ConsensusReconfigOpTemplate();
+        return new ConsensusReconfigOpTemplate(op.getReconfigType());
     }
 
     /**

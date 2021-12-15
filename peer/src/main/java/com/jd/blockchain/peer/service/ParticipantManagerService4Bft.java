@@ -268,6 +268,8 @@ public class ParticipantManagerService4Bft implements IParticipantManagerService
 
         LOGGER.info("ManagementController start updateView operation!");
 
+        TransactionRequest reconfigRequest = null;
+
         try {
 
             ServiceProxy peerProxy = createPeerProxy(systemConfig, viewId, origConsensusNodes, security);
@@ -277,19 +279,22 @@ public class ParticipantManagerService4Bft implements IParticipantManagerService
             if (participantUpdateType == ManagementController.ParticipantUpdateType.ACTIVE) {
                 // addServer的第一个参数指待加入共识的新参与方的编号
                 reconfiguration.addServer(node.getId(), networkAddress);
+                reconfigRequest = prepareReconfigTx("active");
             } else if (participantUpdateType == ManagementController.ParticipantUpdateType.DEACTIVE) {
                 // 参数为待移除共识节点的id
                 reconfiguration.removeServer(node.getId());
+                reconfigRequest = prepareReconfigTx("deactive");
             } else if (participantUpdateType == ManagementController.ParticipantUpdateType.UPDATE) {
                 // 共识参数修改，先移除后添加
                 reconfiguration.removeServer(node.getId());
                 reconfiguration.addServer(node.getId(), networkAddress);
+                reconfigRequest = prepareReconfigTx("update");
             } else {
                 throw new IllegalArgumentException("op type error!");
             }
 
             // 把交易作为reconfig操作的扩展信息携带，目的是为了让该操作上链，便于后续跟踪；
-            reconfiguration.addExtendInfo(BinaryProtocol.encode(prepareReconfigTx(), TransactionRequest.class));
+            reconfiguration.addExtendInfo(BinaryProtocol.encode(reconfigRequest, TransactionRequest.class));
 
             // 执行更新目标共识网络的视图ID
             ReconfigureReply reconfigureReply = reconfiguration.execute();
@@ -305,7 +310,7 @@ public class ParticipantManagerService4Bft implements IParticipantManagerService
     }
 
     // 在指定的账本上准备一笔reconfig操作交易
-    private TransactionRequest prepareReconfigTx() {
+    private TransactionRequest prepareReconfigTx(String type) {
 
         ParticipantContext context = ParticipantContext.context();
 
@@ -313,7 +318,7 @@ public class ParticipantManagerService4Bft implements IParticipantManagerService
         TxBuilder txbuilder = new TxBuilder(ledgerHash, (Short) context.getProperty(ParticipantContext.HASH_ALG_PROP));
 
         // This transaction contains one reconfig op
-        txbuilder.reconfigs().record();
+        txbuilder.reconfigs().record(type);
 
         TransactionRequestBuilder reqBuilder = txbuilder.prepareRequest();
 

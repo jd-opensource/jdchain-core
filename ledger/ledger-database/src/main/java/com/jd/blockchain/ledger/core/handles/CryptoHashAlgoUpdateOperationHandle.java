@@ -26,9 +26,9 @@ import com.jd.blockchain.ledger.core.TransactionRequestExtension;
  * @Date: 2021/12/7 5:36 PM
  * Version 1.0
  */
-public class CryptoAlgoUpdateOperationHandle extends AbstractLedgerOperationHandle<CryptoHashAlgoUpdateOperation> {
+public class CryptoHashAlgoUpdateOperationHandle extends AbstractLedgerOperationHandle<CryptoHashAlgoUpdateOperation> {
 
-    public CryptoAlgoUpdateOperationHandle() {
+    public CryptoHashAlgoUpdateOperationHandle() {
         super(CryptoHashAlgoUpdateOperation.class);
     }
 
