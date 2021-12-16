@@ -2,16 +2,8 @@ package com.jd.blockchain.tools.cli;
 
 import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUtils;
-import com.jd.blockchain.crypto.AddressEncoding;
-import com.jd.blockchain.crypto.Crypto;
-import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.crypto.KeyGenUtils;
-import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.ledger.BlockchainIdentityData;
-import com.jd.blockchain.ledger.BlockchainKeypair;
-import com.jd.blockchain.ledger.PreparedTransaction;
-import com.jd.blockchain.ledger.TransactionResponse;
-import com.jd.blockchain.ledger.TransactionTemplate;
+import com.jd.blockchain.crypto.*;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.sdk.BlockchainService;
 import com.jd.blockchain.sdk.client.GatewayServiceFactory;
 import com.jd.httpservice.agent.ServiceConnectionManager;
@@ -53,32 +45,45 @@ import java.util.List;
 )
 public class Participant implements Runnable {
 
-    @CommandLine.Option(names = "--ssl.key-store", description = "Set ssl.key-store for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--ssl.key-store", description = "Set ssl.key-store for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String keyStore;
 
-    @CommandLine.Option(names = "--ssl.key-store-type", description = "Set ssl.key-store-type for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--ssl.key-store-type", description = "Set ssl.key-store-type for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String keyStoreType;
 
-    @CommandLine.Option(names = "--ssl.key-alias", description = "Set ssl.key-alias for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--ssl.key-alias", description = "Set ssl.key-alias for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String keyAlias;
 
-    @CommandLine.Option(names = "--ssl.key-store-password", description = "Set ssl.key-store-password for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--ssl.key-store-password", description = "Set ssl.key-store-password for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String keyStorePassword;
 
-    @CommandLine.Option(names = "--ssl.trust-store", description = "Set ssl.trust-store for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--ssl.trust-store", description = "Set ssl.trust-store for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String trustStore;
 
-    @CommandLine.Option(names = "--ssl.trust-store-password", description = "Set trust-store-password for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--ssl.trust-store-password", description = "Set trust-store-password for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String trustStorePassword;
 
-    @CommandLine.Option(names = "--ssl.trust-store-type", description = "Set ssl.trust-store-type for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--ssl.trust-store-type", description = "Set ssl.trust-store-type for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String trustStoreType;
+
+    @CommandLine.Option(names = "--ssl.protocol", description = "Set ssl.protocol for SSL.", scope = CommandLine.ScopeType.INHERIT)
+    String protocol;
+
+    @CommandLine.Option(names = "--ssl.enabled-protocols", description = "Set ssl.enabled-protocols for SSL.", scope = CommandLine.ScopeType.INHERIT)
+    String enabledProtocols;
+
+    @CommandLine.Option(names = "--ssl.ciphers", description = "Set ssl.ciphers for SSL.", scope = CommandLine.ScopeType.INHERIT)
+    String ciphers;
 
     @CommandLine.ParentCommand
     JDChainCli jdChainCli;
 
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;
+
+    SSLSecurity getSSLSecurity() {
+        return new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword, trustStore, trustStorePassword, trustStoreType, protocol, enabledProtocols, ciphers);
+    }
 
     @Override
     public void run() {
@@ -117,8 +122,7 @@ class ParticipantRegister implements Runnable {
     BlockchainService getChainService() {
         if (null == blockchainService) {
             if (gwSecure) {
-                blockchainService = GatewayServiceFactory.connect(gwHost, gwPort, gwSecure, new SSLSecurity(participant.keyStoreType, participant.keyStore, participant.keyAlias, participant.keyStorePassword,
-                        participant.trustStore, participant.trustStorePassword, participant.trustStoreType)).getBlockchainService();
+                blockchainService = GatewayServiceFactory.connect(gwHost, gwPort, gwSecure, participant.getSSLSecurity()).getBlockchainService();
             } else {
                 blockchainService = GatewayServiceFactory.connect(gwHost, gwPort, gwSecure).getBlockchainService();
             }
@@ -294,8 +298,7 @@ class ParticipantActive implements Runnable {
         httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
         ServiceEndpoint endpoint = new ServiceEndpoint(host, port, secure);
         if (secure) {
-            endpoint.setSslSecurity(new SSLSecurity(participant.keyStoreType, participant.keyStore, participant.keyAlias, participant.keyStorePassword,
-                    participant.trustStore, participant.trustStorePassword, participant.trustStoreType));
+            endpoint.setSslSecurity(participant.getSSLSecurity());
         } else {
             endpoint.setSslSecurity(new SSLSecurity());
         }
@@ -362,8 +365,7 @@ class ParticipantUpdate implements Runnable {
         httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
         ServiceEndpoint endpoint = new ServiceEndpoint(host, port, secure);
         if (secure) {
-            endpoint.setSslSecurity(new SSLSecurity(participant.keyStoreType, participant.keyStore, participant.keyAlias, participant.keyStorePassword,
-                    participant.trustStore, participant.trustStorePassword, participant.trustStoreType));
+            endpoint.setSslSecurity(participant.getSSLSecurity());
         } else {
             endpoint.setSslSecurity(new SSLSecurity());
         }
@@ -405,8 +407,7 @@ class ParticipantInactive implements Runnable {
             httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
             ServiceEndpoint endpoint = new ServiceEndpoint(host, port, secure);
             if (secure) {
-                endpoint.setSslSecurity(new SSLSecurity(participant.keyStoreType, participant.keyStore, participant.keyAlias, participant.keyStorePassword,
-                        participant.trustStore, participant.trustStorePassword, participant.trustStoreType));
+                endpoint.setSslSecurity(participant.getSSLSecurity());
             } else {
                 endpoint.setSslSecurity(new SSLSecurity());
             }

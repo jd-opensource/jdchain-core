@@ -203,8 +203,11 @@ public class GatewayServerBooter {
 		String trustStore = appCtx.getEnvironment().getProperty("server.ssl.trust-store");
 		String trustStorePassword = appCtx.getEnvironment().getProperty("server.ssl.trust-store-password");
 		String trustStoreType = appCtx.getEnvironment().getProperty("server.ssl.trust-store-type");
+		String protocol = appCtx.getEnvironment().getProperty("server.ssl.protocol");
+		String enabledProtocols = appCtx.getEnvironment().getProperty("server.ssl.enabled-protocols");
+		String ciphers = appCtx.getEnvironment().getProperty("server.ssl.ciphers");
 		// 网关连接PEER节点管理服务TLS配置
-		SSLSecurity manageSecurity = new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword, trustStore, trustStorePassword, trustStoreType);
+		SSLSecurity manageSecurity = new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword, trustStore, trustStorePassword, trustStoreType, protocol, enabledProtocols, ciphers);
 		// 网关连接PEER节点共识服务TLS配置
 		SSLSecurity consensusSecurity = manageSecurity;
 

@@ -32,6 +32,9 @@ public class LocalConfig {
 	public static final String LOCAL_PARTI_SSL_TRUST_STORE = "local.parti.ssl.trust-store";
 	public static final String LOCAL_PARTI_SSL_TRUST_STORE_PASSWORD = "local.parti.ssl.trust-store-password";
 	public static final String LOCAL_PARTI_SSL_TRUST_STORE_TYPE = "local.parti.ssl.trust-store-type";
+	public static final String LOCAL_PARTI_SSL_PROTOCOL = "local.parti.ssl.protocol";
+	public static final String LOCAL_PARTI_SSL_ENABLED_PROTOCOLS = "local.parti.ssl.enabled-protocols";
+	public static final String LOCAL_PARTI_SSL_CIPHERS = "local.parti.ssl.ciphers";
 
 	// 账本初始化完成后生成的"账本绑定配置文件"的输出目录；
 	public static final String LEDGER_BINDING_OUT = "ledger.binding.out";
@@ -117,6 +120,9 @@ public class LocalConfig {
 		conf.local.sslTrustStore = PropertiesUtils.getProperty(props, LOCAL_PARTI_SSL_TRUST_STORE, false);
 		conf.local.sslTrustStorePassword = PropertiesUtils.getProperty(props, LOCAL_PARTI_SSL_TRUST_STORE_PASSWORD, false);
 		conf.local.sslTrustStoreType = PropertiesUtils.getProperty(props, LOCAL_PARTI_SSL_TRUST_STORE_TYPE, false);
+		conf.local.sslProtocol = PropertiesUtils.getProperty(props, LOCAL_PARTI_SSL_PROTOCOL, false);
+		conf.local.sslEnabledProtocols = PropertiesUtils.getProperty(props, LOCAL_PARTI_SSL_ENABLED_PROTOCOLS, false);
+		conf.local.sslCiphers = PropertiesUtils.getProperty(props, LOCAL_PARTI_SSL_CIPHERS, false);
 
 		return conf;
 	}
@@ -149,6 +155,9 @@ public class LocalConfig {
 		private String sslTrustStore;
 		private String sslTrustStorePassword;
 		private String sslTrustStoreType;
+		private String sslProtocol;
+		private String sslEnabledProtocols;
+		private String sslCiphers;
 
 		public String getPubKeyString() {
 			return pubKeyString;
@@ -248,6 +257,30 @@ public class LocalConfig {
 
 		public void setSslTrustStoreType(String sslTrustStoreType) {
 			this.sslTrustStoreType = sslTrustStoreType;
+		}
+
+		public String getSslProtocol() {
+			return sslProtocol;
+		}
+
+		public void setSslProtocol(String sslProtocol) {
+			this.sslProtocol = sslProtocol;
+		}
+
+		public String getSslEnabledProtocols() {
+			return sslEnabledProtocols;
+		}
+
+		public void setSslEnabledProtocols(String sslEnabledProtocols) {
+			this.sslEnabledProtocols = sslEnabledProtocols;
+		}
+
+		public String getSslCiphers() {
+			return sslCiphers;
+		}
+
+		public void setSslCiphers(String sslCiphers) {
+			this.sslCiphers = sslCiphers;
 		}
 	}
 
