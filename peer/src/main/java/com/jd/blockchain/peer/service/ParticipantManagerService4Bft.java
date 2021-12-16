@@ -18,7 +18,9 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.peer.web.ManagementController;
+import com.jd.blockchain.transaction.SignatureUtils;
 import com.jd.blockchain.transaction.TxBuilder;
+import com.jd.blockchain.transaction.TxRequestMessage;
 import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.httpservice.utils.web.WebResponse;
 import org.slf4j.Logger;
@@ -312,6 +314,8 @@ public class ParticipantManagerService4Bft implements IParticipantManagerService
     // 在指定的账本上准备一笔reconfig操作交易
     private TransactionRequest prepareReconfigTx(String type) {
 
+        TransactionRequest reconfigTxRequest;
+
         ParticipantContext context = ParticipantContext.context();
 
         HashDigest ledgerHash = context.ledgerHash();
@@ -324,7 +328,13 @@ public class ParticipantManagerService4Bft implements IParticipantManagerService
 
         reqBuilder.signAsEndpoint((AsymmetricKeypair) context.getProperty(ParticipantContext.ENDPOINT_SIGNER_PROP));
 
-        return reqBuilder.buildRequest();
+        reconfigTxRequest = reqBuilder.buildRequest();
 
+        DigitalSignature nodeSigner = SignatureUtils.sign((Short) context.getProperty(ParticipantContext.HASH_ALG_PROP),
+                reconfigTxRequest.getTransactionContent(), (AsymmetricKeypair) context.getProperty(ParticipantContext.ENDPOINT_SIGNER_PROP));
+
+        ((TxRequestMessage)reconfigTxRequest).addNodeSignatures(nodeSigner);
+
+        return reconfigTxRequest;
     }
 }
