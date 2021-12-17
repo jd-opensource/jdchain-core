@@ -11,6 +11,9 @@ import com.jd.blockchain.ledger.ConsensusTypeUpdateOperation;
 import com.jd.blockchain.ledger.CryptoHashAlgoUpdateOperation;
 import com.jd.blockchain.ledger.IdentityMode;
 import com.jd.blockchain.ledger.AccountState;
+import com.jd.blockchain.ledger.LedgerDataStructure;
+import com.jd.blockchain.ledger.core.MerkleTreeSimple;
+import com.jd.blockchain.ledger.core.TransactionSet;
 import com.jd.blockchain.ledger.core.UserAccount;
 import com.jd.blockchain.peer.service.IParticipantManagerService;
 import com.jd.blockchain.peer.service.ParticipantContext;
@@ -575,6 +578,55 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
             LOGGER.error(errMsg, e);
             throw new BusinessException(errMsg);
         }
+    }
+
+    /**
+     * KV类型的账本数据库支持检验账本区块内交易是否被篡改
+     *
+     * @return
+     */
+    @RequestMapping(path = "/monitor/ledger/antitamper/{ledgerHash}/{blockHeight}", method = RequestMethod.GET)
+    public boolean verifyLedgerTampered(@PathVariable("ledgerHash") String base58LedgerHash, @PathVariable("blockHeight") long blockHeight) {
+
+        HashDigest ledgerHash = Crypto.resolveAsHashDigest(Base58Utils.decode(base58LedgerHash));
+
+        LedgerRepository ledgerRepo = (LedgerRepository) ledgerQuerys.get(ledgerHash);
+
+        if (ledgerKeypairs.get(ledgerHash) == null) {
+            LOGGER.info("ledger hash not exist!");
+            return false;
+        }
+        if (ledgerRepo.retrieveLatestBlock().getHeight() < blockHeight || blockHeight < 1) {
+            LOGGER.info("blockHeight parameter invalid!");
+            return false;
+        }
+
+        if (ledgerRepo.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
+            LOGGER.info("MERKLE_TREE type ledger database not support anti tamper verify!");
+            return false;
+        }
+        TransactionSet currTransactionSet = ledgerRepo.getTransactionSet(ledgerRepo.getBlock(blockHeight));
+        int currentHeightTxTotalNums = (int) ledgerRepo.getTransactionSet(ledgerRepo.getBlock(blockHeight)).getTotalCount();
+
+        TransactionSet lastTransactionSet = null;
+        int lastHeightTxTotalNums = 0;
+
+        lastTransactionSet = ledgerRepo.getTransactionSet(ledgerRepo.getBlock(blockHeight - 1));
+        lastHeightTxTotalNums = (int) lastTransactionSet.getTotalCount();
+
+        // 取当前高度的增量交易数，在增量交易里进行查找
+        int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
+
+        ArrayList<HashDigest> transactions = new ArrayList<>();
+
+        for (int i = 0; i < currentHeightTxNums; i++) {
+            transactions.add(currTransactionSet.getTransactions(lastHeightTxTotalNums + i, 1)[0].getRequest().getTransactionHash());
+        }
+
+        HashDigest computeTxSetRootHash = new MerkleTreeSimple(Crypto.getHashFunction(ledgerRepo.getAdminInfo().getSettings().getCryptoSetting().getHashAlgorithm()), lastTransactionSet.getRootHash(), transactions).root();
+
+
+        return computeTxSetRootHash.toBase58().equals(currTransactionSet.getRootHash().toBase58());
     }
 
     /**
