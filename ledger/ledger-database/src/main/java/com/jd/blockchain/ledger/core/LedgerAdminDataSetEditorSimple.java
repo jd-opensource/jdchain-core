@@ -141,6 +141,10 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 		this.metadata = new LedgerMetadataInfo();
 		this.metadata.setSeed(initSetting.getLedgerSeed());
 		this.metadata.setLedgerStructureVersion(initSetting.getLedgerStructureVersion());
+		this.metadata.setIdentityMode(initSetting.getIdentityMode());
+		this.metadata.setLedgerCertificates(initSetting.getLedgerCertificates());
+		this.metadata.setLedgerStructureVersion(initSetting.getLedgerStructureVersion());
+		this.metadata.setGenesisUsers(initSetting.getGenesisUsers());
 		// 新配置；
 		this.settings = new LedgerConfiguration(initSetting.getConsensusProvider(), initSetting.getConsensusSettings(),
 				initSetting.getCryptoSetting());
