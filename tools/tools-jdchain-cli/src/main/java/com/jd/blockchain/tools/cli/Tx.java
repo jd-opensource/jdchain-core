@@ -3,37 +3,11 @@ package com.jd.blockchain.tools.cli;
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUtils;
-import com.jd.blockchain.crypto.AddressEncoding;
-import com.jd.blockchain.crypto.Crypto;
-import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.crypto.KeyGenUtils;
-import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.ledger.AccountState;
-import com.jd.blockchain.ledger.BlockchainIdentity;
-import com.jd.blockchain.ledger.BlockchainIdentityData;
-import com.jd.blockchain.ledger.BlockchainKeyGenerator;
-import com.jd.blockchain.ledger.BlockchainKeypair;
-import com.jd.blockchain.ledger.BytesDataList;
-import com.jd.blockchain.ledger.BytesValue;
-import com.jd.blockchain.ledger.DigitalSignature;
-import com.jd.blockchain.ledger.Event;
-import com.jd.blockchain.ledger.LedgerPermission;
-import com.jd.blockchain.ledger.PreparedTransaction;
-import com.jd.blockchain.ledger.RolesPolicy;
-import com.jd.blockchain.ledger.SystemEvent;
-import com.jd.blockchain.ledger.TransactionPermission;
-import com.jd.blockchain.ledger.TransactionRequest;
-import com.jd.blockchain.ledger.TransactionResponse;
-import com.jd.blockchain.ledger.TransactionTemplate;
-import com.jd.blockchain.ledger.TypedValue;
+import com.jd.blockchain.crypto.*;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.sdk.client.GatewayBlockchainServiceProxy;
 import com.jd.blockchain.sdk.client.GatewayServiceFactory;
-import com.jd.blockchain.transaction.AccountPermissionSetOperationBuilder;
-import com.jd.blockchain.transaction.RolePrivilegeConfigurer;
-import com.jd.blockchain.transaction.SignatureUtils;
-import com.jd.blockchain.transaction.TransactionService;
-import com.jd.blockchain.transaction.TxRequestMessage;
-import com.jd.blockchain.transaction.UserRolesAuthorizer;
+import com.jd.blockchain.transaction.*;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 import utils.Bytes;
@@ -98,26 +72,35 @@ public class Tx implements Runnable {
     @CommandLine.Option(names = "--gw-secure", description = "Secure of the gateway service.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
     boolean gwSecure;
 
-    @CommandLine.Option(names = "--ssl.key-store", description = "Set ssl.key-store for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--ssl.key-store", description = "Set ssl.key-store for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String keyStore;
 
-    @CommandLine.Option(names = "--ssl.key-store-type", description = "Set ssl.key-store-type for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--ssl.key-store-type", description = "Set ssl.key-store-type for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String keyStoreType;
 
-    @CommandLine.Option(names = "--ssl.key-alias", description = "Set ssl.key-alias for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--ssl.key-alias", description = "Set ssl.key-alias for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String keyAlias;
 
-    @CommandLine.Option(names = "--ssl.key-store-password", description = "Set ssl.key-store-password for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--ssl.key-store-password", description = "Set ssl.key-store-password for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String keyStorePassword;
 
-    @CommandLine.Option(names = "--ssl.trust-store", description = "Set ssl.trust-store for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--ssl.trust-store", description = "Set ssl.trust-store for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String trustStore;
 
-    @CommandLine.Option(names = "--ssl.trust-store-password", description = "Set trust-store-password for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--ssl.trust-store-password", description = "Set trust-store-password for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String trustStorePassword;
 
-    @CommandLine.Option(names = "--ssl.trust-store-type", description = "Set ssl.trust-store-type for TLS.", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--ssl.trust-store-type", description = "Set ssl.trust-store-type for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String trustStoreType;
+
+    @CommandLine.Option(names = "--ssl.protocol", description = "Set ssl.protocol for SSL.", scope = CommandLine.ScopeType.INHERIT)
+    String protocol;
+
+    @CommandLine.Option(names = "--ssl.enabled-protocols", description = "Set ssl.enabled-protocols for SSL.", scope = CommandLine.ScopeType.INHERIT)
+    String enabledProtocols;
+
+    @CommandLine.Option(names = "--ssl.ciphers", description = "Set ssl.ciphers for SSL.", scope = CommandLine.ScopeType.INHERIT)
+    String ciphers;
 
     @CommandLine.Option(names = "--export", description = "Transaction export directory", scope = CommandLine.ScopeType.INHERIT)
     String export;
@@ -131,7 +114,7 @@ public class Tx implements Runnable {
         if (null == blockchainService) {
             if (gwSecure) {
                 blockchainService = (GatewayBlockchainServiceProxy) GatewayServiceFactory.connect(gwHost, gwPort, gwSecure, new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword,
-                        trustStore, trustStorePassword, trustStoreType)).getBlockchainService();
+                        trustStore, trustStorePassword, trustStoreType, protocol, enabledProtocols, ciphers)).getBlockchainService();
             } else {
                 blockchainService = (GatewayBlockchainServiceProxy) GatewayServiceFactory.connect(gwHost, gwPort, gwSecure).getBlockchainService();
             }

@@ -320,6 +320,9 @@ public class LedgerInitCommand {
 		bindingConf.getParticipant().setSslTrustStore(localConfig.getLocal().getSslTrustStore());
 		bindingConf.getParticipant().setSslTrustStorePassword(localConfig.getLocal().getSslTrustStorePassword());
 		bindingConf.getParticipant().setSslTrustStoreType(localConfig.getLocal().getSslTrustStoreType());
+		bindingConf.getParticipant().setProtocol(localConfig.getLocal().getSslProtocol());
+		bindingConf.getParticipant().setEnabledProtocols(localConfig.getLocal().getSslEnabledProtocols());
+		bindingConf.getParticipant().setCiphers(localConfig.getLocal().getSslCiphers());
 
 		bindingConf.getDbConnection().setConnectionUri(localConfig.getStoragedDb().getUri());
 		bindingConf.getDbConnection().setPassword(localConfig.getStoragedDb().getPassword());

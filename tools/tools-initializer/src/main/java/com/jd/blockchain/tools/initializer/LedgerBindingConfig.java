@@ -54,6 +54,9 @@ public class LedgerBindingConfig {
 	public static final String PARTI_SSL_TRUST_STORE = "ssl.trust-store";
 	public static final String PARTI_SSL_TRUST_STORE_PASSWORD = "ssl.trust-store-password";
 	public static final String PARTI_SSL_TRUST_STORE_TYPE = "ssl.trust-store-type";
+	public static final String PARTI_SSL_PROTOCOL = "ssl.protocol";
+	public static final String PARTI_SSL_ENABLED_PROTOCOLS = "ssl.enabled-protocols";
+	public static final String PARTI_SSL_CIPHERS = "ssl.ciphers";
 
 	// DB Connection Config Key Prefix;
 	public static final String DB_PREFIX = "db.";
@@ -143,6 +146,9 @@ public class LedgerBindingConfig {
 		String partiSslTrustStore = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_TRUST_STORE);
 		String partiSslTrustStorePassword = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_TRUST_STORE_PASSWORD);
 		String partiSslTrustStoreType = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_TRUST_STORE_TYPE);
+		String partiSslProtocol = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_PROTOCOL);
+		String partiSslEnabledProtocols = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_ENABLED_PROTOCOLS);
+		String partiSslCiphers = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_CIPHERS);
 
 		writeLine(builder, "#账本的当前共识参与方的节点地址 Address；");
 		writeLine(builder, "%s=%s", partiAddressKey, stringOf(binding.getParticipant().getAddress()));
@@ -162,6 +168,9 @@ public class LedgerBindingConfig {
 		writeLine(builder, "%s=%s", partiSslTrustStore, stringOf(binding.getParticipant().getSslTrustStore()));
 		writeLine(builder, "%s=%s", partiSslTrustStorePassword, stringOf(binding.getParticipant().getSslTrustStorePassword()));
 		writeLine(builder, "%s=%s", partiSslTrustStoreType, stringOf(binding.getParticipant().getSslTrustStoreType()));
+		writeLine(builder, "%s=%s", partiSslProtocol, stringOf(binding.getParticipant().getProtocol()));
+		writeLine(builder, "%s=%s", partiSslEnabledProtocols, stringOf(binding.getParticipant().getEnabledProtocols()));
+		writeLine(builder, "%s=%s", partiSslCiphers, stringOf(binding.getParticipant().getCiphers()));
 		writeLine(builder);
 	}
 
@@ -285,6 +294,9 @@ public class LedgerBindingConfig {
 		String partiSslTrustStore = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_TRUST_STORE);
 		String partiSslTrustStorePassword = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_TRUST_STORE_PASSWORD);
 		String partiSslTrustStoreType = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_TRUST_STORE_TYPE);
+		String partiSslProtocol = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_PROTOCOL);
+		String partiSslEnabledProtocols = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_ENABLED_PROTOCOLS);
+		String partiSslCiphers = String.join(ATTR_SEPERATOR, ledgerPrefix, PARTI_SSL_CIPHERS);
 
 		binding.participant.address = getProperty(props, partiAddrKey, true);
 		binding.participant.name = getProperty(props, partiNameKey, true);
@@ -299,8 +311,12 @@ public class LedgerBindingConfig {
 		binding.participant.sslTrustStore = getProperty(props, partiSslTrustStore, false);
 		binding.participant.sslTrustStorePassword = getProperty(props, partiSslTrustStorePassword, false);
 		binding.participant.sslTrustStoreType = getProperty(props, partiSslTrustStoreType, false);
+		binding.participant.protocol = getProperty(props, partiSslProtocol, false);
+		binding.participant.enabledProtocols = getProperty(props, partiSslEnabledProtocols, false);
+		binding.participant.ciphers = getProperty(props, partiSslCiphers, false);
 		binding.setSslSecurity(new SSLSecurity(binding.participant.sslKeyStoreType, binding.participant.sslKeyStore, binding.participant.sslKeyAlias, binding.participant.sslKeyStorePassword,
-				binding.participant.sslTrustStore, binding.participant.sslTrustStorePassword, binding.participant.sslTrustStoreType));
+				binding.participant.sslTrustStore, binding.participant.sslTrustStorePassword, binding.participant.sslTrustStoreType,
+				binding.participant.protocol, binding.participant.enabledProtocols, binding.participant.ciphers));
 
 		if (binding.participant.pkPath == null && binding.participant.pk == null) {
 			throw new IllegalArgumentException(
@@ -432,6 +448,9 @@ public class LedgerBindingConfig {
 		private String sslTrustStore;
 		private String sslTrustStorePassword;
 		private String sslTrustStoreType;
+		private String protocol;
+		private String enabledProtocols;
+		private String ciphers;
 
 		public String getName() {
 			return name;
@@ -527,6 +546,30 @@ public class LedgerBindingConfig {
 
 		public void setSslTrustStoreType(String sslTrustStoreType) {
 			this.sslTrustStoreType = sslTrustStoreType;
+		}
+
+		public String getProtocol() {
+			return protocol;
+		}
+
+		public void setProtocol(String protocol) {
+			this.protocol = protocol;
+		}
+
+		public String getEnabledProtocols() {
+			return enabledProtocols;
+		}
+
+		public void setEnabledProtocols(String enabledProtocols) {
+			this.enabledProtocols = enabledProtocols;
+		}
+
+		public String getCiphers() {
+			return ciphers;
+		}
+
+		public void setCiphers(String ciphers) {
+			this.ciphers = ciphers;
 		}
 	}
 
