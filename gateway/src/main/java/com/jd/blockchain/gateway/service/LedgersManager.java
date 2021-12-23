@@ -44,7 +44,6 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
     @Autowired
     private Storage runtimeStorage;
 
-    private LedgerPeersTopologyStorage topologyStorage;
     private EventListener eventListener;
 
     // 账本服务列表
@@ -52,58 +51,30 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
 
     private ReadWriteLock ledgersLock = new ReentrantReadWriteLock();
 
-    // 是否存储拓扑信息
-    private boolean storeTopology = false;
-    // 是否动态感知拓扑信息
-    private boolean awareTopology = true;
-    // peer管理服务TLS配置信息
-    private SSLSecurity manageSslSecurity;
-    // peer共识服务TLS配置信息
-    private SSLSecurity consensusSslSecurity;
+    // 连接管理上下文
+    private LedgersManagerContext context;
 
     private volatile boolean running;
 
     public LedgersManager() {
     }
 
-    public void init(AsymmetricKeypair keyPair, GatewayConfigProperties config) {
-        this.storeTopology = config.isStoreTopology();
-        this.awareTopology = config.isAwareTopology();
-        init(config.masterPeerAddress(), keyPair);
-    }
-
     public void init(AsymmetricKeypair keyPair, SSLSecurity manageSslSecurity, SSLSecurity consensusSslSecurity, GatewayConfigProperties config) {
-        this.storeTopology = config.isStoreTopology();
-        this.awareTopology = config.isAwareTopology();
-        this.manageSslSecurity = manageSslSecurity;
-        this.consensusSslSecurity = consensusSslSecurity;
-        init(config.masterPeerAddress(), keyPair);
-    }
-
-    public void init(NetworkAddress address, AsymmetricKeypair keyPair, boolean storeTopology) {
-        this.storeTopology = storeTopology;
-        init(address, keyPair);
-    }
-
-    private void init(NetworkAddress address, AsymmetricKeypair keyPair) {
-        this.running = true;
-        if (storeTopology) {
-            this.topologyStorage = newLedgerPeersTopologyStorage();
-        }
-
+        this.context = new LedgersManagerContext(keyPair, config, clientManager, credentialProvider, newLedgerPeersTopologyStorage(config.isStoreTopology()), manageSslSecurity, consensusSslSecurity);
+        running = true;
         ledgersLock.writeLock().lock();
         try {
             // 是否开启拓扑存储
-            if (!storeTopology) {
+            if (!config.isStoreTopology()) {
                 // 未开启拓扑存储，使用配置文件初始化
-                init(address, keyPair, -1);
+                init(config.masterPeerAddress(), keyPair, -1);
             } else {
-                Set<String> ledgers = topologyStorage.getLedgers();
+                Set<String> ledgers = context.getTopologyStorage().getLedgers();
                 if (ledgers.size() == 0) {
                     // 存储的拓扑为空，使用配置文件初始化
-                    init(address, keyPair, -1);
+                    init(config.masterPeerAddress(), keyPair, -1);
                 } else {
-                    initWithStorage(address, keyPair, ledgers);
+                    initWithStorage(config.masterPeerAddress(), keyPair, ledgers);
                 }
             }
         } finally {
@@ -111,8 +82,12 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
         }
     }
 
-    public LedgerPeersTopologyStorage newLedgerPeersTopologyStorage() {
-        return new LedgerPeersTopologyStorage(runtimeStorage);
+    public LedgerPeersTopologyStorage newLedgerPeersTopologyStorage(boolean storeTopology) {
+        if (storeTopology) {
+            return new LedgerPeersTopologyStorage(runtimeStorage);
+        }
+
+        return null;
     }
 
     /**
@@ -129,7 +104,7 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
         // 存储拓扑中身份信息只包含配置文件中的身份信息
         boolean configKeyPairSameInStorage = true;
         for (String ledger : ledgersInStorage) {
-            LedgerPeersTopology topology = topologyStorage.getTopology(ledger);
+            LedgerPeersTopology topology = context.getTopologyStorage().getTopology(ledger);
             if (null == topology.getPeerAddresses()) {
                 continue;
             }
@@ -225,7 +200,7 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
         ledgersLock.writeLock().lock();
         try {
             for (String ledgerHash : ledgers) {
-                LedgerPeersTopology topology = topologyStorage.getTopology(ledgerHash);
+                LedgerPeersTopology topology = context.getTopologyStorage().getTopology(ledgerHash);
                 if (null != topology) {
                     if (null == topology.getPubKey() || null == topology.getPrivKey()) {
                         continue;
@@ -254,7 +229,7 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
     }
 
     public HashDigest[] getLedgers(AsymmetricKeypair keyPair, NetworkAddress peerAddress) {
-        try (PeerBlockchainServiceFactory factory = PeerBlockchainServiceFactory.connect(keyPair, peerAddress, manageSslSecurity, consensusSslSecurity, credentialProvider, clientManager)) {
+        try (PeerBlockchainServiceFactory factory = PeerBlockchainServiceFactory.connect(keyPair, peerAddress, context.getManageSslSecurity(), context.getConsensusSslSecurity(), credentialProvider, clientManager)) {
             return factory.getLedgerHashs();
         } catch (Exception e) {
             logger.error("Get ledgers from {} error", peerAddress, e);
@@ -371,9 +346,9 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
     public LedgerPeersManager newLedgerPeersManager(HashDigest ledger, AsymmetricKeypair keyPair, NetworkAddress[] peerAddresses) {
         LedgerPeerConnectionManager[] peerConnectionServices = new LedgerPeerConnectionManager[peerAddresses.length];
         for (int i = 0; i < peerAddresses.length; i++) {
-            peerConnectionServices[i] = new LedgerPeerConnectionManager(ledger, peerAddresses[i], manageSslSecurity, consensusSslSecurity, keyPair, credentialProvider, clientManager, this);
+            peerConnectionServices[i] = new LedgerPeerConnectionManager(ledger, peerAddresses[i], context, this);
         }
-        return new LedgerPeersManager(ledger, peerConnectionServices, manageSslSecurity, consensusSslSecurity, keyPair, credentialProvider, clientManager, this, topologyStorage, awareTopology);
+        return new LedgerPeersManager(ledger, peerConnectionServices, context, this);
     }
 
     @Override

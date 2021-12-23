@@ -43,6 +43,12 @@ public class GatewayConfigProperties {
 	public static final String TOPOLOGY_STORE = "topology.store";
 	// 开启动态感知，默认true 1.5.0版本新增
 	public static final String TOPOLOGY_AWARE = "topology.aware";
+	// 共识节点自动感知间隔（毫秒），0及负值表示仅感知一次
+	public static final String TOPOLOGY_AWARE_INTERVAL = "topology.aware.interval";
+	// 节点连接心跳（毫秒），及时感知连接有效性，0及负值表示关闭
+	public static final String PEER_CONNECTION_PIN = "peer.connection.pin";
+	// 节点连接认证（毫秒），及时感知连接合法性，0及负值表示关闭。对于不存在节点变更的场景可关闭
+	public static final String PEER_CONNECTION_AUTH = "peer.connection.auth";
 
 	// 数据检索服务URL地址
 	public static final String DATA_RETRIEVAL_URL="data.retrieval.url";
@@ -73,6 +79,9 @@ public class GatewayConfigProperties {
 	private boolean consensusSecure;
 	private boolean storeTopology;
 	private boolean awareTopology;
+	private int awareTopologyInterval;
+	private int peerConnectionPin;
+	private int peerConnectionAuth;
 
 	private String dataRetrievalUrl;
 	private String schemaRetrievalUrl;
@@ -167,6 +176,10 @@ public class GatewayConfigProperties {
 
 		configProps.setStoreTopology(getBoolean(props, TOPOLOGY_STORE, false));
 		configProps.setAwareTopology(getBoolean(props, TOPOLOGY_AWARE, false, true));
+		configProps.setAwareTopologyInterval(getInt(props, TOPOLOGY_AWARE_INTERVAL, false));
+
+		configProps.setPeerConnectionPin(getInt(props, PEER_CONNECTION_PIN, false));
+		configProps.setPeerConnectionAuth(getInt(props, PEER_CONNECTION_AUTH, false));
 
 		String dataRetrievalUrl = getProperty(props, DATA_RETRIEVAL_URL, false);
 		configProps.dataRetrievalUrl = dataRetrievalUrl;
@@ -265,7 +278,32 @@ public class GatewayConfigProperties {
 	public void setAwareTopology(boolean awareTopology) {
 		this.awareTopology = awareTopology;
 	}
-// ------------------------------------------------------------
+
+	public int getAwareTopologyInterval() {
+		return awareTopologyInterval;
+	}
+
+	public void setAwareTopologyInterval(int awareTopologyInterval) {
+		this.awareTopologyInterval = awareTopologyInterval;
+	}
+
+	public int getPeerConnectionPin() {
+		return peerConnectionPin;
+	}
+
+	public void setPeerConnectionPin(int peerConnectionPin) {
+		this.peerConnectionPin = peerConnectionPin;
+	}
+
+	public int getPeerConnectionAuth() {
+		return peerConnectionAuth;
+	}
+
+	public void setPeerConnectionAuth(int peerConnectionAuth) {
+		this.peerConnectionAuth = peerConnectionAuth;
+	}
+
+	// ------------------------------------------------------------
 
 	public static class ProviderConfig {
 		List<String> providers = new ArrayList<>();
