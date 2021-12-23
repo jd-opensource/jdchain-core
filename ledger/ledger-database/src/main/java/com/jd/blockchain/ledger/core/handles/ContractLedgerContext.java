@@ -75,6 +75,7 @@ import com.jd.blockchain.transaction.UserStateUpdateOpTemplate;
 import com.jd.blockchain.transaction.UserUpdateOperationBuilder;
 import utils.ArrayUtils;
 import utils.Bytes;
+import utils.StringUtils;
 
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -776,10 +777,12 @@ public class ContractLedgerContext implements LedgerContext {
 
         @Override
         public AccountPermissionSetOperationBuilder role(String role) {
-            op = new AccountPermissionSetOpTemplate(address, accountType);
-            op.setRole(role);
-            derivedOperations.add(op);
-            opHandleContext.handle(op);
+            if(!StringUtils.isEmpty(role)) {
+                op = new AccountPermissionSetOpTemplate(address, accountType);
+                op.setRole(role.toUpperCase());
+                derivedOperations.add(op);
+                opHandleContext.handle(op);
+            }
             return this;
         }
     }
