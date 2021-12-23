@@ -12,6 +12,8 @@ import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.gateway.service.topology.LedgerPeersTopology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.misc.Signal;
+import sun.misc.SignalHandler;
 import utils.net.SSLSecurity;
 import org.apache.commons.io.FileUtils;
 import org.springframework.boot.SpringApplication;
@@ -65,7 +67,7 @@ import utils.BaseConstant;
 import utils.StringUtils;
 import utils.reflection.TypeUtils;
 
-public class GatewayServerBooter {
+public class GatewayServerBooter implements SignalHandler {
 
 	private static final String DEFAULT_GATEWAY_PROPS = "application-gw.properties";
 
@@ -139,6 +141,7 @@ public class GatewayServerBooter {
 			// 启动服务器；
 			LOGGER.info("Starting web server......");
 			GatewayServerBooter booter = new GatewayServerBooter(configProps, springConfigLocation);
+			Signal.handle(new Signal("TERM"), booter);
 			booter.start();
 		} catch (Exception e) {
 			LOGGER.error("Gateway start error", e);
@@ -218,8 +221,6 @@ public class GatewayServerBooter {
 		LedgersManager peerConnector = appCtx.getBean(LedgersManager.class);
 
 		peerConnector.init(defaultKeyPair, manageSecurity, consensusSecurity, config);
-
-		LOGGER.info("Peer {} is connected success!", config.masterPeerAddress().toString());
 	}
 
 	public synchronized void close() {
@@ -298,5 +299,15 @@ public class GatewayServerBooter {
 		DataContractRegistry.register(LedgerTransactions.class);
 
 		DataContractRegistry.register(LedgerPeersTopology.class);
+	}
+
+	@Override
+	public void handle(Signal signal) {
+		if(signal.getName().equals("TERM")) {
+			if(null != appCtx) {
+				appCtx.getBean(LedgersManager.class).stop();
+			}
+		}
+		close();
 	}
 }

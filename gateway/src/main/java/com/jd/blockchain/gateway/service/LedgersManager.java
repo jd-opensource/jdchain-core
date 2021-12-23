@@ -61,6 +61,8 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
     // peer共识服务TLS配置信息
     private SSLSecurity consensusSslSecurity;
 
+    private volatile boolean running;
+
     public LedgersManager() {
     }
 
@@ -84,6 +86,7 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
     }
 
     private void init(NetworkAddress address, AsymmetricKeypair keyPair) {
+        this.running = true;
         if (storeTopology) {
             this.topologyStorage = newLedgerPeersTopologyStorage();
         }
@@ -173,7 +176,7 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
         HashDigest[] ledgers = null;
         // 网关初始化时，初始连接失败或者无可访问账本，将持续定时轮询等待
         int count = 0;
-        while (count <= retryTimes || retryTimes < 0) {
+        while (running && (count <= retryTimes || retryTimes < 0)) {
             ledgers = getLedgers(keyPair, address);
             if (null != ledgers && ledgers.length > 0) {
                 break;
@@ -387,5 +390,9 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
         } finally {
             ledgersLock.writeLock().unlock();
         }
+    }
+
+    public void stop() {
+        this.running = false;
     }
 }
