@@ -135,7 +135,6 @@ public class EventCacheHandle implements EventCache {
             } finally {
                 lock.unlock();
             }
-            this.maxBlockHeight = maxBlockHeight;
         }
 
         long maxBlockHeight() {
