@@ -163,6 +163,9 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
     }
 
     public synchronized void startTimerTask() {
+        // 存储拓扑信息
+        storeTopology(new LedgerPeerApiServicesTopology(ledger, context.getKeyPair(), connections.keySet()));
+
         // 所有连接启动定时任务
         for (LedgerPeerConnectionManager manager : connections.values()) {
             manager.startTimerTask();
@@ -171,12 +174,10 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
         if (context.isAwareTopology()) {
             // 启动定期拓扑感知
             if (context.getTopologyAwareInterval() <= 0) {
-                executorService.execute(() -> updateTopologyTask());
+                executorService.schedule(() -> updateTopologyTask(), 3000, TimeUnit.MILLISECONDS);
             } else {
                 executorService.scheduleWithFixedDelay(() -> updateTopologyTask(), 500, context.getTopologyAwareInterval(), TimeUnit.MILLISECONDS);
             }
-        } else {
-            storeTopology(new LedgerPeerApiServicesTopology(ledger, context.getKeyPair(), connections.keySet()));
         }
     }
 
@@ -184,19 +185,6 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
      * 查询拓扑，更新共识节点连接
      */
     private void updateTopologyTask() {
-
-        // 拓扑结构写入磁盘
-        if (null != context.getTopologyStorage()) {
-            connectionsLock.readLock().lock();
-            try {
-                LedgerPeersTopology topology = new LedgerPeerApiServicesTopology(ledger, context.getKeyPair(), connections.keySet());
-                storeTopology(topology);
-                logger.debug("Store topology {}", topology);
-            } finally {
-                connectionsLock.readLock().unlock();
-            }
-        }
-
         // 统计未认证连接数量，并关闭所有连接均为未认证的账本-连接拓扑管理
         int unAuthorizedSize = 0;
         connectionsLock.writeLock().lock();
@@ -226,6 +214,16 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
         if (null != addresses) {
             // 更新连接
             updatePeers(addresses, false);
+        }
+
+        // 拓扑结构写入磁盘
+        if (context.isStoreTopology()) {
+            connectionsLock.readLock().lock();
+            try {
+                storeTopology(new LedgerPeerApiServicesTopology(ledger, context.getKeyPair(), connections.keySet()));
+            } finally {
+                connectionsLock.readLock().unlock();
+            }
         }
     }
 
@@ -265,7 +263,7 @@ public class LedgerPeersManager implements LedgerPeerConnectionListener {
     }
 
     private void storeTopology(LedgerPeersTopology topology) {
-        if (null != context.getTopologyStorage()) {
+        if (context.isStoreTopology()) {
             try {
                 context.getTopologyStorage().setTopology(ledger.toBase58(), topology);
                 logger.debug("Store topology {}", topology);

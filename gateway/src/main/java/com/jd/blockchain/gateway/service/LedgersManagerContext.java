@@ -86,6 +86,10 @@ public class LedgersManagerContext {
         return this.configProperties.isAwareTopology();
     }
 
+    public boolean isStoreTopology() {
+        return this.configProperties.isStoreTopology();
+    }
+
     public int getTopologyAwareInterval() {
         return this.configProperties.getAwareTopologyInterval();
     }

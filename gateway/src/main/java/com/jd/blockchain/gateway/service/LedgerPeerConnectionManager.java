@@ -94,6 +94,9 @@ public class LedgerPeerConnectionManager {
     }
 
     public NodeNetworkAddresses loadMonitors() {
+        if(!connected()) {
+            connectTask();
+        }
         return connected() ? blockchainServiceFactory.getMonitorServiceMap().get(ledger).loadMonitors() : null;
     }
 
