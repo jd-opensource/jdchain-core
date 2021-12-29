@@ -11,7 +11,6 @@ package com.jd.blockchain.consensus.mq.config;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueNetworkSettings;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/12/12
  * @since 1.0.0
@@ -20,18 +19,25 @@ import com.jd.blockchain.consensus.mq.settings.MsgQueueNetworkSettings;
 public class MsgQueueNetworkConfig implements MsgQueueNetworkSettings {
 
     private String server;
-
     private String txTopic;
-
     private String txResultTopic;
-
-    private String msgTopic;
-
     private String blockTopic;
+    private String msgTopic;
+    private String msgResultTopic;
+
+    @Override
+    public String getServer() {
+        return server;
+    }
 
     public MsgQueueNetworkConfig setServer(String server) {
         this.server = server;
         return this;
+    }
+
+    @Override
+    public String getTxTopic() {
+        return txTopic;
     }
 
     public MsgQueueNetworkConfig setTxTopic(String txTopic) {
@@ -39,14 +45,29 @@ public class MsgQueueNetworkConfig implements MsgQueueNetworkSettings {
         return this;
     }
 
+    @Override
+    public String getTxResultTopic() {
+        return txResultTopic;
+    }
+
     public MsgQueueNetworkConfig setTxResultTopic(String txResultTopic) {
         this.txResultTopic = txResultTopic;
         return this;
     }
 
+    @Override
+    public String getMsgTopic() {
+        return msgTopic;
+    }
+
     public MsgQueueNetworkConfig setMsgTopic(String msgTopic) {
         this.msgTopic = msgTopic;
         return this;
+    }
+
+    @Override
+    public String getBlockTopic() {
+        return blockTopic;
     }
 
     public MsgQueueNetworkConfig setBlockTopic(String blockTopic) {
@@ -55,27 +76,12 @@ public class MsgQueueNetworkConfig implements MsgQueueNetworkSettings {
     }
 
     @Override
-    public String getServer() {
-        return server;
+    public String getMsgResultTopic() {
+        return msgResultTopic;
     }
 
-    @Override
-    public String getTxTopic() {
-        return txTopic;
-    }
-
-    @Override
-    public String getTxResultTopic() {
-        return txResultTopic;
-    }
-
-    @Override
-    public String getMsgTopic() {
-        return msgTopic;
-    }
-
-    @Override
-    public String getBlockTopic() {
-        return blockTopic;
+    public MsgQueueNetworkConfig setMsgResultTopic(String msgResultTopic) {
+        this.msgResultTopic = msgResultTopic;
+        return this;
     }
 }

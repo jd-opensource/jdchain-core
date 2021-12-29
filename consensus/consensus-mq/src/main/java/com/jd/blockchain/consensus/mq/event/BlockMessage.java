@@ -1,8 +1,9 @@
 package com.jd.blockchain.consensus.mq.event;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class BlockMessage {
+public class BlockMessage implements Serializable {
 
     private long height;
     private long timestamp;

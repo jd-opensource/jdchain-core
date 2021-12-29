@@ -26,21 +26,21 @@ public class MessageConvertor {
         return DigestUtils.md5DigestAsHex(src);
     }
 
-    public static TxResultMessage convertBytesToTxResultEvent(byte[] txResult) {
+    public static ResultMessage convertBytesToResultEvent(byte[] txResult) {
         try {
-            return convertStringToTxResultEvent(new String(txResult, defaultCharsetName));
+            return convertStringToResultEvent(new String(txResult, defaultCharsetName));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static TxResultMessage convertStringToTxResultEvent(String txResult) {
-        return JSON.parseObject(txResult, TxResultMessage.class);
+    public static ResultMessage convertStringToResultEvent(String txResult) {
+        return JSON.parseObject(txResult, ResultMessage.class);
     }
 
-    public static byte[] serializeTxResultEvent(TxResultMessage txResultMessage) {
+    public static byte[] serializeResultEvent(ResultMessage resultMessage) {
         try {
-            return JSON.toJSONString(txResultMessage).getBytes(defaultCharsetName);
+            return JSON.toJSONString(resultMessage).getBytes(defaultCharsetName);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -59,6 +59,38 @@ public class MessageConvertor {
     public static BlockMessage convertBytesToBlockTxs(byte[] bytes) {
         try {
             return JSON.parseObject(new String(bytes, defaultCharsetName), BlockMessage.class);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] serializeExtendMessage(ExtendMessage extendMessage) {
+        try {
+           return JSON.toJSONString(extendMessage).getBytes(defaultCharsetName);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static ExtendMessage convertBytesToExtendMessage(byte[] bytes) {
+        try {
+            return JSON.parseObject(new String(bytes, defaultCharsetName), ExtendMessage.class);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] serializeExtendMessageResult(ExtendMessageResult result) {
+        try {
+            return JSON.toJSONString(result).getBytes(defaultCharsetName);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static ExtendMessageResult convertBytesExtendMessageResult(byte[] bytes) {
+        try {
+            return JSON.parseObject(new String(bytes, defaultCharsetName), ExtendMessageResult.class);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

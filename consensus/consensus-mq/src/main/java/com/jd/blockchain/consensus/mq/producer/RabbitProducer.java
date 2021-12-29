@@ -12,9 +12,9 @@ import com.jd.blockchain.consensus.mq.factory.RabbitFactory;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-
 import com.rabbitmq.client.MessageProperties;
-import utils.ConsoleUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -27,6 +27,8 @@ import java.util.List;
  */
 
 public class RabbitProducer implements MsgQueueProducer {
+
+    private static final Logger logger = LoggerFactory.getLogger(RabbitProducer.class);
 
     // 主要操作时发送JMQ请求
     private Channel channel;
@@ -54,7 +56,7 @@ public class RabbitProducer implements MsgQueueProducer {
         connection = factory.newConnection();
         channel = connection.createChannel();
         channel.exchangeDeclare(this.exchangeName, "fanout", durable);
-        ConsoleUtils.info("[*] RabbitProducer[%s, %s] connect success !!!", this.server, this.exchangeName);
+        logger.info("[*] RabbitProducer[{}, {}] connect success !!!", this.server, this.exchangeName);
     }
 
     @Override

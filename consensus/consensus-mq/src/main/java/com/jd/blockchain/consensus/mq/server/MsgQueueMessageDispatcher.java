@@ -11,18 +11,7 @@ package com.jd.blockchain.consensus.mq.server;
 
 import java.io.Closeable;
 
-/**
- *
- * @author shaozhuguang
- * @create 2018/12/12
- * @since 1.0.0
- */
-
 public interface MsgQueueMessageDispatcher extends Runnable, Closeable {
 
-    void init();
-
     void connect() throws Exception;
-
-    void stop() throws Exception;
 }

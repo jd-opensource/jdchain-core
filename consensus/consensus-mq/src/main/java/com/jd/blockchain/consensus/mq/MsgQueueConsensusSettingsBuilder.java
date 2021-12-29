@@ -10,8 +10,11 @@ package com.jd.blockchain.consensus.mq;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
+import com.jd.blockchain.crypto.Crypto;
 import org.springframework.core.io.ClassPathResource;
 
 import com.jd.blockchain.consensus.ConsensusViewSettings;
@@ -32,6 +35,7 @@ import com.jd.blockchain.crypto.PubKey;
 
 import utils.Bytes;
 import utils.PropertiesUtils;
+import utils.codec.Base58Utils;
 import utils.io.BytesUtils;
 import utils.io.FileUtils;
 
@@ -51,6 +55,8 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 	private static final String DEFAULT_TOPIC_BLOCK = "block";
 
 	private static final String DEFAULT_TOPIC_MSG = "msg";
+
+	private static final String DEFAULT_TOPIC_MSG_RESULT = "msg-result";
 
 	private static final int DEFAULT_TXSIZE = 1000;
 
@@ -80,6 +86,8 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 	public static final String MSG_QUEUE_TOPIC_BLOCK = "system.msg.queue.topic.block";
 
 	public static final String MSG_QUEUE_TOPIC_MSG = "system.msg.queue.topic.msg";
+
+	public static final String MSG_QUEUE_TOPIC_MSG_RESULT = "system.msg.queue.topic.msg-result";
 
 	public static final String MSG_QUEUE_BLOCK_TXSIZE = "system.msg.queue.block.txsize";
 
@@ -114,7 +122,8 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 		networkConfig.setServer(server).setTxTopic(initProp(resolvingProps, MSG_QUEUE_TOPIC_TX, DEFAULT_TOPIC_TX))
 				.setTxResultTopic(initProp(resolvingProps, MSG_QUEUE_TOPIC_TX_RESULT, DEFAULT_TOPIC_TX_RESULT))
 				.setBlockTopic(initProp(resolvingProps, MSG_QUEUE_TOPIC_BLOCK, DEFAULT_TOPIC_BLOCK))
-				.setMsgTopic(initProp(resolvingProps, MSG_QUEUE_TOPIC_MSG, DEFAULT_TOPIC_MSG));
+				.setMsgTopic(initProp(resolvingProps, MSG_QUEUE_TOPIC_MSG, DEFAULT_TOPIC_MSG))
+				.setMsgResultTopic(initProp(resolvingProps, MSG_QUEUE_TOPIC_MSG_RESULT, DEFAULT_TOPIC_MSG_RESULT));
 
 		MsgQueueBlockConfig blockConfig = new MsgQueueBlockConfig()
 				.setTxSizePerBlock(initProp(resolvingProps, MSG_QUEUE_BLOCK_TXSIZE, DEFAULT_TXSIZE))
@@ -208,6 +217,12 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 		}
 		props.setProperty(MSG_QUEUE_TOPIC_MSG, msgTopic);
 
+		String msgResultTopic = networkSettings.getMsgResultTopic();
+		if (msgResultTopic == null || msgResultTopic.length() <= 0) {
+			msgResultTopic = DEFAULT_TOPIC_MSG_RESULT;
+		}
+		props.setProperty(MSG_QUEUE_TOPIC_MSG_RESULT, msgResultTopic);
+
 		MsgQueueBlockSettings blockSettings = consensusSettings.getBlockSettings();
 		if (blockSettings == null) {
 			props.setProperty(MSG_QUEUE_BLOCK_TXSIZE, DEFAULT_TXSIZE + "");
@@ -218,13 +233,57 @@ public class MsgQueueConsensusSettingsBuilder implements ConsensusSettingsBuilde
 			props.setProperty(MSG_QUEUE_BLOCK_TXSIZE, txSize + "");
 			props.setProperty(MSG_QUEUE_BLOCK_MAXDELAY, maxDelay + "");
 		}
-		
+
+		NodeSettings[] nodes = consensusSettings.getNodes();
+		props.setProperty(SERVER_NUM_KEY, nodes.length + "");
+		for (int i = 0; i < nodes.length; i++) {
+			props.setProperty(nodeKey(PUBKEY_PATTERN, i), nodes[i].getPubKey().toString());
+		}
+
 		return props;
 	}
 
 	@Override
 	public ConsensusViewSettings updateSettings(ConsensusViewSettings oldConsensusSettings, Properties newProps) {
-		return null;
+		String op = newProps.getProperty("participant.op");
+		int id = Integer.valueOf(newProps.getProperty("participant.id"));
+		String pubkeyBase58 = newProps.getProperty("system.server."+ id +".pubkey");
+		PubKey pubkey = Crypto.resolveAsPubKey(Base58Utils.decode(pubkeyBase58));
+		Bytes address = AddressEncoding.generateAddress(pubkey);
+
+		MsgQueueConsensusSettings consensusSettings = (MsgQueueConsensusSettings) oldConsensusSettings;
+		NodeSettings[] nodes = consensusSettings.getNodes();
+		List<MsgQueueNodeConfig> mqNodes = new ArrayList<>();
+		boolean needAdd = true;
+		for(NodeSettings settings : nodes) {
+			MsgQueueNodeSettings node = (MsgQueueNodeSettings) settings;
+			if(node.getPubKey().equals(pubkey)) {
+				if(op.equals("deactive")) {
+					needAdd = false;
+					continue;
+				}
+			} else {
+				MsgQueueNodeConfig nodeConfig = new MsgQueueNodeConfig();
+				nodeConfig.setAddress(node.getAddress());
+				nodeConfig.setPubKey(node.getPubKey());
+				nodeConfig.setId(node.getId());
+				mqNodes.add(nodeConfig);
+			}
+		}
+		if(needAdd) {
+			MsgQueueNodeConfig nodeConfig = new MsgQueueNodeConfig();
+			nodeConfig.setAddress(address.toString());
+			nodeConfig.setId(id);
+			nodeConfig.setPubKey(pubkey);
+			mqNodes.add(nodeConfig);
+		}
+		MsgQueueConsensusConfig newSettings = new MsgQueueConsensusConfig();
+		newSettings.setBlockSettings(consensusSettings.getBlockSettings());
+		newSettings.setNetworkSettings(consensusSettings.getNetworkSettings());
+		for(MsgQueueNodeConfig node : mqNodes) {
+			newSettings.addNodeSettings(node);
+		}
+		return newSettings;
 	}
 
 	private String initProp(Properties resolvingProps, String key, String defaultVal) {

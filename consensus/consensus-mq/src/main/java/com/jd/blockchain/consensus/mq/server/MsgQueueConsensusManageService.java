@@ -1,20 +1,8 @@
-/**
- * Copyright: Copyright 2016-2020 JD.COM All Right Reserved
- * FileName: com.jd.blockchain.mq.server.MsgQueueConsensusManageService
- * Author: shaozhuguang
- * Department: 区块链研发部
- * Date: 2018/12/12 下午1:46
- * Description:
- */
 package com.jd.blockchain.consensus.mq.server;
 
-import java.util.Arrays;
-
-import com.jd.binaryproto.DataContractRegistry;
-import com.jd.blockchain.consensus.ClientCredential;
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.ClientAuthencationService;
-import com.jd.blockchain.consensus.ConsensusSecurityException;
+import com.jd.blockchain.consensus.ClientCredential;
 import com.jd.blockchain.consensus.mq.client.MQCredentialInfo;
 import com.jd.blockchain.consensus.mq.config.MsgQueueClientIncomingConfig;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueClientIncomingSettings;
@@ -23,45 +11,33 @@ import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.crypto.SignatureFunction;
 
-/**
- *
- * @author shaozhuguang
- * @create 2018/12/12
- * @since 1.0.0
- */
-
 public class MsgQueueConsensusManageService implements ClientAuthencationService {
 
-	private MsgQueueConsensusSettings consensusSettings;
+    private MsgQueueConsensusSettings consensusSettings;
 
-	public MsgQueueConsensusManageService setConsensusSettings(MsgQueueConsensusSettings consensusSettings) {
-		this.consensusSettings = consensusSettings;
-		return this;
-	}
+    public MsgQueueConsensusManageService setConsensusSettings(MsgQueueConsensusSettings consensusSettings) {
+        this.consensusSettings = consensusSettings;
+        return this;
+    }
 
-	@Override
-	public MsgQueueClientIncomingSettings authencateIncoming(ClientCredential authId)
-			throws ConsensusSecurityException {
-		boolean isLegal = isLegal(authId);
-		if (isLegal) {
-			MsgQueueClientIncomingSettings mqcis = new MsgQueueClientIncomingConfig().setPubKey(authId.getPubKey())
-					.setClientId(clientId(null)).setConsensusSettings(this.consensusSettings)
-					.setSessionCredential(authId.getSessionCredential());
-			return mqcis;
-		}
-		return null;
-	}
+    @Override
+    public MsgQueueClientIncomingSettings authencateIncoming(ClientCredential authId) {
+        if (isLegal(authId)) {
+            return new MsgQueueClientIncomingConfig().setPubKey(authId.getPubKey())
+                    .setClientId(clientId(null)).setConsensusSettings(this.consensusSettings)
+                    .setSessionCredential(authId.getSessionCredential());
+        }
+        return null;
+    }
 
-	private int clientId(byte[] identityInfo) {
-		// todo
+    private int clientId(byte[] identityInfo) {
+        return 0;
+    }
 
-		return 0;
-	}
-
-	public boolean isLegal(ClientCredential authId) {
-		PubKey pubKey = authId.getPubKey();
-		byte[] identityInfo = BinaryProtocol.encode(authId.getSessionCredential(), MQCredentialInfo.class);
-		SignatureFunction signatureFunction = Crypto.getSignatureFunction(pubKey.getAlgorithm());
-		return signatureFunction.verify(authId.getSignature(), pubKey, identityInfo);
-	}
+    public boolean isLegal(ClientCredential authId) {
+        PubKey pubKey = authId.getPubKey();
+        byte[] identityInfo = BinaryProtocol.encode(authId.getSessionCredential(), MQCredentialInfo.class);
+        SignatureFunction signatureFunction = Crypto.getSignatureFunction(pubKey.getAlgorithm());
+        return signatureFunction.verify(authId.getSignature(), pubKey, identityInfo);
+    }
 }

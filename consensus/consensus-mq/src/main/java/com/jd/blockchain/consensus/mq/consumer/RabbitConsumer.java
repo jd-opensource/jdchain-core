@@ -75,10 +75,11 @@ public class RabbitConsumer implements MsgQueueConsumer {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope,
                                        AMQP.BasicProperties properties, byte[] body) {
-                // 此处将收到的消息加入队列即可
                 try {
-                    msgQueueHandler.handle(body);
-                    channel.basicAck(envelope.getDeliveryTag(), false);
+                    if (null != msgQueueHandler) {
+                        msgQueueHandler.handle(body);
+                        channel.basicAck(envelope.getDeliveryTag(), false);
+                    }
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }

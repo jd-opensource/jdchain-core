@@ -14,7 +14,6 @@ import com.jd.binaryproto.PrimitiveType;
 import com.jd.blockchain.consts.DataCodes;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/12/12
  * @since 1.0.0
@@ -36,4 +35,7 @@ public interface MsgQueueNetworkSettings {
 
     @DataField(order = 4, primitiveType = PrimitiveType.TEXT)
     String getBlockTopic();
+
+    @DataField(order = 5, primitiveType = PrimitiveType.TEXT)
+    String getMsgResultTopic();
 }

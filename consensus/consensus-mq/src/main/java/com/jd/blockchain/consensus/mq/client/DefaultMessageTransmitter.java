@@ -11,9 +11,9 @@ package com.jd.blockchain.consensus.mq.client;
 import com.jd.blockchain.consensus.MessageService;
 import com.jd.blockchain.consensus.mq.consumer.MsgQueueConsumer;
 import com.jd.blockchain.consensus.mq.consumer.MsgQueueHandler;
-import com.jd.blockchain.consensus.mq.event.TxResultMessage;
-import com.jd.blockchain.consensus.mq.producer.MsgQueueProducer;
 import com.jd.blockchain.consensus.mq.event.MessageConvertor;
+import com.jd.blockchain.consensus.mq.event.ResultMessage;
+import com.jd.blockchain.consensus.mq.producer.MsgQueueProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.concurrent.AsyncFuture;
@@ -31,11 +31,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @since 1.0.0
  */
 
-public class DefaultMessageTransmitter implements MessageTransmitter, MessageService {
+public class DefaultMessageTransmitter implements MessageTransmitter, MessageService, AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultMessageTransmitter.class);
 
-    private final ExecutorService messageExecutorArray = Executors.newFixedThreadPool(10);
+    private final ExecutorService messageExecutor = Executors.newFixedThreadPool(10);
 
     private final Map<String, MessageListener> messageListeners = new ConcurrentHashMap<>();
 
@@ -49,7 +49,7 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
 
     private MsgQueueConsumer txResultConsumer;
 
-    private MsgQueueConsumer msgConsumer;
+    private MsgQueueConsumer msgResultConsumer;
 
     private boolean isConnected = false;
 
@@ -68,47 +68,53 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
         return this;
     }
 
-    public DefaultMessageTransmitter setMsgConsumer(MsgQueueConsumer msgConsumer) {
-        this.msgConsumer = msgConsumer;
+    public DefaultMessageTransmitter setMsgResultConsumer(MsgQueueConsumer msgResultConsumer) {
+        this.msgResultConsumer = msgResultConsumer;
         return this;
     }
 
     @Override
     public AsyncFuture<byte[]> sendOrdered(byte[] message) {
-
-        AsyncFuture<byte[]> messageFuture;
-
         try {
             publishMessage(txProducer, message);
-            messageFuture = messageHandle(message);
+            return messageHandle(message);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        return messageFuture;
     }
 
     @Override
     public AsyncFuture<byte[]> sendUnordered(byte[] message) {
-        AsyncFuture<byte[]> messageFuture;
         try {
             publishMessage(msgProducer, message);
-            messageFuture = messageHandle(message);
+            return messageHandle(message);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        return messageFuture;
     }
 
     @Override
     public void connect() throws Exception {
         if (!isConnected) {
-            this.txProducer.connect();
-            this.txResultConsumer.connect(blockMsgQueueHandler);
-            this.msgProducer.connect();
-            this.msgConsumer.connect(extendMsgQueueHandler);
+            if (null != txProducer) {
+                this.txProducer.connect();
+            }
+            if (null != txResultConsumer) {
+                this.txResultConsumer.connect(blockMsgQueueHandler);
+            }
+            if (null != msgProducer) {
+                this.msgProducer.connect();
+            }
+            if (null != msgResultConsumer) {
+                this.msgResultConsumer.connect(extendMsgQueueHandler);
+            }
+            if (null != txResultConsumer) {
+                txResultConsumer.start();
+            }
+            if (null != msgResultConsumer) {
+                msgResultConsumer.start();
+            }
             isConnected = true;
-            txResultConsumer.start();
-            msgConsumer.start();
         }
     }
 
@@ -120,10 +126,18 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
     @Override
     public void close() {
         try {
-            txProducer.close();
-            txResultConsumer.close();
-            msgProducer.close();
-            msgConsumer.close();
+            if (null != txProducer) {
+                txProducer.close();
+            }
+            if (null != txResultConsumer) {
+                txResultConsumer.close();
+            }
+            if (null != msgProducer) {
+                msgProducer.close();
+            }
+            if (null != msgResultConsumer) {
+                msgResultConsumer.close();
+            }
             isConnected = false;
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -131,11 +145,9 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
     }
 
     private AsyncFuture<byte[]> messageHandle(byte[] message) throws Exception {
-//      异步回调
-//      需要监听MQ结块的应答
-//      首先需要一个Consumer，在子类已实现
-        AsyncFuture<byte[]> messageFuture = registerMessageListener(MessageConvertor.messageKey(message));
-        return messageFuture;
+        String msgKey = MessageConvertor.messageKey(message);
+        LOGGER.debug("register tx result listener, key: {}", msgKey);
+        return registerMessageListener(msgKey);
     }
 
     private AsyncFuture<byte[]> registerMessageListener(String messageKey) {
@@ -143,14 +155,6 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
         MessageListener messageListener = new MessageListener(messageKey, future);
         messageListener.addListener();
         return future;
-    }
-
-    private boolean isTxBlockedEventNeedManage(final TxResultMessage txResultMessage) {
-        if (this.messageListeners.isEmpty()) {
-            return false;
-        }
-        return messageListeners.containsKey(txResultMessage.getKey());
-        // 无须处理区块高度
     }
 
     private class MessageListener {
@@ -173,9 +177,9 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
             }
         }
 
-        public void received(final TxResultMessage txResultMessage) {
+        public void received(final ResultMessage resultMessage) {
             // 期望是false，假设是false则设置为true，成功的情况下表示是第一次
-            byte[] txResp = txResultMessage.getResponse();
+            byte[] txResp = resultMessage.getResult();
             if (txResp != null) {
                 if (isDeal.compareAndSet(false, true)) {
                     //生成对应的交易应答
@@ -184,35 +188,28 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
             }
         }
 
-        public void received(final byte[] message) {
-            // 期望是false，假设是false则设置为true，成功的情况下表示是第一次
-            if (message != null) {
-                if (isDeal.compareAndSet(false, true)) {
-                    //生成对应的交易应答
-                    future.complete(message);
-                }
-            }
-        }
+
     }
 
     public class BlockMsgQueueHandler implements MsgQueueHandler {
 
         @Override
         public void handle(byte[] msg) {
-            messageExecutorArray.execute(() -> {
+            messageExecutor.execute(() -> {
                 if (!messageListeners.isEmpty()) {
-                    TxResultMessage txResultMessage = MessageConvertor.convertBytesToTxResultEvent(msg);
-                    if (txResultMessage != null) {
-                        String txKey = txResultMessage.getKey();
-                        LOGGER.debug("receive tx result message, key: {}", txKey);
-                        // 需要判断该区块是否需要处理
-                        if (isTxBlockedEventNeedManage(txResultMessage)) {
-                            MessageListener txListener = messageListeners.get(txKey);
-                            if (txListener != null) {
-                                txListener.received(txResultMessage);
-                                messageListeners.remove(txKey);
+                    try {
+                        ResultMessage resultMessage = MessageConvertor.convertBytesToResultEvent(msg);
+                        if (resultMessage != null) {
+                            String msgKey = resultMessage.getKey();
+                            LOGGER.debug("receive tx result message, key: {}", msgKey);
+                            MessageListener listener = messageListeners.get(msgKey);
+                            if (listener != null) {
+                                messageListeners.remove(msgKey);
+                                listener.received(resultMessage);
                             }
                         }
+                    } catch (Exception e) {
+                        LOGGER.error("handle tx result message error", e);
                     }
                 }
             });
@@ -223,13 +220,21 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
 
         @Override
         public void handle(byte[] msg) {
-            messageExecutorArray.execute(() -> {
-                String messageKey = MessageConvertor.messageKey(msg);
-                if (messageListeners.containsKey(messageKey)) {
-                    MessageListener txListener = messageListeners.get(messageKey);
-                    if (txListener != null) {
-                        txListener.received(msg);
-                        messageListeners.remove(messageKey);
+            messageExecutor.execute(() -> {
+                if (!messageListeners.isEmpty()) {
+                    try {
+                        ResultMessage resultMessage = MessageConvertor.convertBytesToResultEvent(msg);
+                        if (resultMessage != null) {
+                            String msgKey = resultMessage.getKey();
+                            LOGGER.debug("receive extend result message, key: {}", msgKey);
+                            MessageListener listener = messageListeners.get(msgKey);
+                            if (listener != null) {
+                                messageListeners.remove(msgKey);
+                                listener.received(resultMessage);
+                            }
+                        }
+                    } catch (Exception e) {
+                        LOGGER.error("handle extend result message error", e);
                     }
                 }
             });
