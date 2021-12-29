@@ -194,14 +194,14 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 		}
 		Bytes dataKey = encodeDataKey(key);
 
-		long newVersion;
-		if (datasetType == SimpleDatasetType.TX) {
-			newVersion = setTxTypeValue(dataKey, value);
-		} else {
-			newVersion = setNoneTypeValue(dataKey, value, version);
-		}
+//		long newVersion;
+//		if (datasetType == SimpleDatasetType.TX) {
+//			newVersion = setTxTypeValue(dataKey, value);
+//		} else {
+//			newVersion = setNoneTypeValue(dataKey, value, version);
+//		}
 
-		return newVersion;
+		return setNoneTypeValue(dataKey, value, version);
 	}
 
 	@Override
@@ -215,24 +215,24 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 		}
 		Bytes dataKey = encodeDataKey(key);
 
-		long newVersion;
-		if (datasetType == SimpleDatasetType.TX) {
-			newVersion = setTxTypeValue(dataKey, value);
-		} else {
-			newVersion = setNoneTypeValue(dataKey, value, -1);
-		}
+//		long newVersion;
+//		if (datasetType == SimpleDatasetType.TX) {
+//			newVersion = setTxTypeValue(dataKey, value);
+//		} else {
+//			newVersion = setNoneTypeValue(dataKey, value, -1);
+//		}
 
-		return newVersion;
+		return setNoneTypeValue(dataKey, value, -1);
 	}
 
-	// 对于交易，只有一个版本，不再做多余的查询
-	private long setTxTypeValue(Bytes key, byte[] value) {
-		long newVersion = valueStorage.set(key, value, -1);
-		if (newVersion < 0) {
-			return -1;
-		}
-		return newVersion;
-	}
+//	// 对于交易，只有一个版本，不再做多余的查询
+//	private long setTxTypeValue(Bytes key, byte[] value) {
+//		long newVersion = valueStorage.set(key, value, -1);
+//		if (newVersion < 0) {
+//			return -1;
+//		}
+//		return newVersion;
+//	}
 
 
 	private long setNoneTypeValue(Bytes key, byte[] value, long version) {
