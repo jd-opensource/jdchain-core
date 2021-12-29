@@ -11,6 +11,7 @@ import com.jd.blockchain.transaction.*;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 import utils.Bytes;
+import utils.GmSSLProvider;
 import utils.StringUtils;
 import utils.codec.Base58Utils;
 import utils.io.BytesUtils;
@@ -102,6 +103,9 @@ public class Tx implements Runnable {
     @CommandLine.Option(names = "--ssl.ciphers", description = "Set ssl.ciphers for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String ciphers;
 
+    @CommandLine.Option(names = "--ssl.host-verifier", defaultValue = "NO-OP",description = "Set host verifier for SSL. NO-OP or Default", scope = CommandLine.ScopeType.INHERIT)
+    String hostNameVerifier;
+
     @CommandLine.Option(names = "--export", description = "Transaction export directory", scope = CommandLine.ScopeType.INHERIT)
     String export;
 
@@ -113,8 +117,9 @@ public class Tx implements Runnable {
     GatewayBlockchainServiceProxy getChainService() {
         if (null == blockchainService) {
             if (gwSecure) {
+                GmSSLProvider.enableGMSupport(protocol);
                 blockchainService = (GatewayBlockchainServiceProxy) GatewayServiceFactory.connect(gwHost, gwPort, gwSecure, new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword,
-                        trustStore, trustStorePassword, trustStoreType, protocol, enabledProtocols, ciphers)).getBlockchainService();
+                        trustStore, trustStorePassword, trustStoreType, protocol, enabledProtocols, ciphers, hostNameVerifier)).getBlockchainService();
             } else {
                 blockchainService = (GatewayBlockchainServiceProxy) GatewayServiceFactory.connect(gwHost, gwPort, gwSecure).getBlockchainService();
             }

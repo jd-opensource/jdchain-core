@@ -14,6 +14,7 @@ import com.jd.blockchain.consensus.service.NodeServerFactory;
 import com.jd.blockchain.consensus.service.ServerSettings;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
 
+import utils.GmSSLProvider;
 import utils.io.Storage;
 import utils.net.NetworkAddress;
 import utils.net.SSLSecurity;
@@ -51,6 +52,8 @@ public class BftsmartNodeServerFactory implements NodeServerFactory {
 		serverSettings.setReplicaSettings(currentNodeSetting);
 		serverSettings.setConsensusSettings((BftsmartConsensusViewSettings) viewSettings);
 		serverSettings.setSslSecurity(sslSecurity);
+
+		GmSSLProvider.enableGMSupport(sslSecurity.getProtocol());
 
 		return serverSettings;
 	}

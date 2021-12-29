@@ -30,6 +30,10 @@
 			<artifactId>utils-common</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>com.jd.utils</groupId>
+			<artifactId>utils-sm-tls</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-pool2</artifactId>
 		</dependency>
@@ -60,6 +64,7 @@
 			<version>${framework.version}</version>
 			<scope>test</scope>
 		</dependency>
+
 	</dependencies>
 
 
