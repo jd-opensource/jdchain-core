@@ -34,6 +34,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.jd.blockchain.metrics.LedgerMetrics;
+import io.micrometer.core.instrument.MeterRegistry;
+
 /**
  * @author huanghaiquan
  *
@@ -43,6 +46,9 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 
 	@Autowired
 	private TransactionEngine txEngine;
+
+	@Autowired
+	private MeterRegistry meterRegistry;
 
 	// todo 当账本很多的时候，可能存在内存溢出的问题
 	private final Map<String, RealmProcessor> realmProcessorMap = new ConcurrentHashMap<>();
@@ -198,6 +204,7 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 		HashDigest ledgerHash = Crypto.resolveAsHashDigest(hashBytes);
 		realmProcessor.realmName = realmName;
 		realmProcessor.ledgerHash = ledgerHash;
+		realmProcessor.metrics = new LedgerMetrics(realmName, meterRegistry);
 		return realmProcessor;
 	}
 
@@ -230,6 +237,8 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 
 		String realmName;
 
+		private LedgerMetrics metrics;
+
 		public String getRealmName() {
 			return realmName;
 		}
@@ -260,7 +269,7 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 					txResponseMap = new ConcurrentHashMap<>();
 				}
 				if (txBatchProcess == null) {
-					txBatchProcess = txEngine.createNextBatch(ledgerHash);
+					txBatchProcess = txEngine.createNextBatch(ledgerHash, metrics);
 				}
 			} finally {
 				realmLock.unlock();
