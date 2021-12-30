@@ -1,5 +1,6 @@
 package com.jd.blockchain.tools.cli;
 
+import com.google.common.collect.ImmutableMap;
 import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUsage;
 import com.jd.blockchain.ca.CertificateUtils;
@@ -36,10 +37,14 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import picocli.CommandLine;
 import utils.StringUtils;
+import utils.certs.CertsHelper;
+import utils.certs.SM2Util;
+import utils.certs.SmCertMarker;
 import utils.io.FileUtils;
 
 import java.io.*;
 import java.math.BigInteger;
+import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -449,7 +454,7 @@ class CARenew implements Runnable {
 @CommandLine.Command(name = "test", mixinStandardHelpOptions = true, header = "Create certificates for a testnet.")
 class CATest implements Runnable {
 
-    @CommandLine.Option(names = {"-a", "--algorithm"}, required = true, description = "Crypto algorithm", defaultValue = "ED25519")
+    @CommandLine.Option(names = {"-a", "--algorithm"}, required = true, description = "Crypto algorithm. defaultValue: ED25519. Use `-a GMSSL` generate GMSSL certs`", defaultValue = "ED25519")
     String algorithm;
 
     @CommandLine.Option(names = "--nodes", required = true, description = "Node size", defaultValue = "4")
@@ -493,6 +498,26 @@ class CATest implements Runnable {
             if (StringUtils.isEmpty(password)) {
                 password = caCli.scanValue("password for all private keys");
             }
+
+            if ("GMSSL".equalsIgnoreCase(algorithm)) {
+                //生成国密测试证书
+                File gmsslHome = new File(caCli.getCaHome() + File.separator + "sm2");
+                gmsslHome.mkdirs();
+
+                long expireTime = 10L * 365 * 24 * 60 * 60 * 1000;
+
+                CertsHelper.buildSMCaTestCerts(gmsslHome, nodes, gws, users, expireTime, password,
+                        ImmutableMap.of(BCStyle.O, organization,
+                                BCStyle.C, country,
+                                BCStyle.ST, province,
+                                BCStyle.L, locality,
+                                BCStyle.EmailAddress, email
+                        ));
+
+                System.out.println("create test gmssl certificates in [" + caCli.getCaHome() + "] success");
+                return;
+            }
+
             // 初始化公私钥对 root,peer[0~nodes-1],user[1~users]
             PrivKey issuerPrivKey = null;
             X509Certificate issuerCrt = null;
