@@ -1,5 +1,6 @@
 package com.jd.blockchain.tools.cli;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUsage;
@@ -38,13 +39,10 @@ import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import picocli.CommandLine;
 import utils.StringUtils;
 import utils.certs.CertsHelper;
-import utils.certs.SM2Util;
-import utils.certs.SmCertMarker;
 import utils.io.FileUtils;
 
 import java.io.*;
 import java.math.BigInteger;
-import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -484,6 +482,9 @@ class CATest implements Runnable {
     @CommandLine.Option(names = "--email", required = true, description = "Email address")
     String email;
 
+    @CommandLine.Option(names = "--out", required = false, description = "certs out path")
+    String outPath;
+
     @CommandLine.ParentCommand
     private CA caCli;
 
@@ -500,13 +501,19 @@ class CATest implements Runnable {
             }
 
             if ("GMSSL".equalsIgnoreCase(algorithm)) {
+
+                String sm2CertsOutPath = caCli.getCaHome() + File.separator + "sm2";
+                if(!Strings.isNullOrEmpty(outPath)){
+                    sm2CertsOutPath = outPath;
+                }
+
                 //生成国密测试证书
-                File gmsslHome = new File(caCli.getCaHome() + File.separator + "sm2");
+                File gmsslHome = new File(sm2CertsOutPath);
                 gmsslHome.mkdirs();
 
                 long expireTime = 10L * 365 * 24 * 60 * 60 * 1000;
 
-                CertsHelper.buildSMCaTestCerts(gmsslHome, nodes, gws, users, expireTime, password,
+                CertsHelper.makeSMCaTestCerts(gmsslHome, nodes, gws, users, expireTime, password,
                         ImmutableMap.of(BCStyle.O, organization,
                                 BCStyle.C, country,
                                 BCStyle.ST, province,
@@ -514,7 +521,7 @@ class CATest implements Runnable {
                                 BCStyle.EmailAddress, email
                         ));
 
-                System.out.println("create test gmssl certificates in [" + caCli.getCaHome() + "] success");
+                System.out.println("create test gmssl certificates in [" + gmsslHome.getAbsolutePath() + "] success");
                 return;
             }
 

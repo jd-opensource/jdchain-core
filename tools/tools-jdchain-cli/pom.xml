@@ -78,6 +78,12 @@
                             <classpathPrefix>../libs</classpathPrefix>
                             <useUniqueVersions>false</useUniqueVersions>
                         </manifest>
+                        <manifestEntries>
+                            <Class-Path>../libs/gmssl_ah-1.0-SNAPSHOT.jar ../libs/gmssl_provider.jar</Class-Path>
+                        </manifestEntries>
+<!--                        <manifestEntries>-->
+<!--                            <Class-Path>../libs/gmssl_provider.jar</Class-Path>-->
+<!--                        </manifestEntries>-->
                     </archive>
                 </configuration>
             </plugin>
