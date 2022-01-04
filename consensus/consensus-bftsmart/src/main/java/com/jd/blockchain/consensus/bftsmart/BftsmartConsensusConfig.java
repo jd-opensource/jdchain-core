@@ -4,7 +4,7 @@ import com.jd.binaryproto.DataContractRegistry;
 
 import utils.Property;
 
-public class BftsmartConsensusConfig implements BftsmartConsensusViewSettings {
+public class  BftsmartConsensusConfig implements BftsmartConsensusViewSettings {
 
 	private Property[] bftsmartSystemConfig;
 

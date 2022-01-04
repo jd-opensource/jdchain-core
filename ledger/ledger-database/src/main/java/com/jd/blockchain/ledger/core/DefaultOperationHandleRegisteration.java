@@ -42,6 +42,12 @@ public class DefaultOperationHandleRegisteration implements OperationHandleRegis
 
 		registerDefaultHandle(new ConsensusSettingsUpdateOperationHandle());
 
+		registerDefaultHandle(new ConsensusReconfigOperationHandle());
+
+		registerDefaultHandle(new ConsensusTypeUpdateOperationHandle());
+
+		registerDefaultHandle(new CryptoHashAlgoUpdateOperationHandle());
+
 		registerDefaultHandle(new EventAccountRegisterOperationHandle());
 
 		registerDefaultHandle(new EventPublishOperationHandle());

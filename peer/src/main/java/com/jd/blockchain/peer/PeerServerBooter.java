@@ -9,6 +9,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.jd.blockchain.ledger.ConsensusReconfigOperation;
+import com.jd.blockchain.ledger.ConsensusTypeUpdateOperation;
+import com.jd.blockchain.ledger.CryptoHashAlgoUpdateOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -359,6 +362,9 @@ public class PeerServerBooter {
 		DataContractRegistry.register(EventPublishOperation.class);
 		DataContractRegistry.register(EventPublishOperation.EventEntry.class);
 		DataContractRegistry.register(ConsensusSettingsUpdateOperation.class);
+		DataContractRegistry.register(ConsensusReconfigOperation.class);
+		DataContractRegistry.register(ConsensusTypeUpdateOperation.class);
+		DataContractRegistry.register(CryptoHashAlgoUpdateOperation.class);
 //		DataContractRegistry.register(TransactionPermission.class);
 //		DataContractRegistry.register(LedgerPermission.class);
 //		DataContractRegistry.register(RolesPolicy.class);
