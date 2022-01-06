@@ -3,10 +3,7 @@ package com.jd.blockchain.ledger.core.handles;
 import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.service.classic.ClassicAlgorithm;
 import com.jd.blockchain.crypto.service.sm.SMAlgorithm;
-import com.jd.blockchain.ledger.CryptoHashAlgoUpdateOperation;
-import com.jd.blockchain.ledger.LedgerDataStructure;
-import com.jd.blockchain.ledger.LedgerPermission;
-import com.jd.blockchain.ledger.LedgerSettings;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.CryptoConfig;
 import com.jd.blockchain.ledger.core.EventManager;
 import com.jd.blockchain.ledger.core.LedgerAdminDataSet;
@@ -59,6 +56,8 @@ public class CryptoHashAlgoUpdateOperationHandle extends AbstractLedgerOperation
             newCryptoAlgorithm = ClassicAlgorithm.RIPEMD160;
         } else if (op.getHashAlgoName().toUpperCase().equals("SM3")) {
             newCryptoAlgorithm = SMAlgorithm.SM3;
+        }else {
+            throw new CryptoHashAlgoUnSupportException(String.format("Not Support Algorithm: %s", op.getHashAlgoName()));
         }
 
         if (newCryptoAlgorithm.name().equals(origledgerSetting.getCryptoSetting().getHashAlgorithm())) {

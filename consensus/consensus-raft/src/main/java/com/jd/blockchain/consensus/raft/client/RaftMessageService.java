@@ -397,7 +397,11 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
     }
 
     public boolean isConnected() {
-        return this.leader != null && clientService.isConnected(this.leader.getEndpoint());
+        if(this.leader != null){
+            clientService.connect(this.leader.getEndpoint());
+        }
+
+        return this.leader != null &&   clientService.isConnected(this.leader.getEndpoint());
     }
 
     static class MonitorNodeNetworkAddresses implements NodeNetworkAddresses {

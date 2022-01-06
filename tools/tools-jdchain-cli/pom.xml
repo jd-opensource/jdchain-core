@@ -57,6 +57,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-nop</artifactId>
+            <version>1.7.25</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.jd.utils</groupId>
             <artifactId>utils-sm-tls</artifactId>
             <version>${utils.version}</version>
@@ -81,9 +87,6 @@
                         <manifestEntries>
                             <Class-Path>../libs/gmssl_ah-1.0-SNAPSHOT.jar ../libs/gmssl_provider.jar</Class-Path>
                         </manifestEntries>
-<!--                        <manifestEntries>-->
-<!--                            <Class-Path>../libs/gmssl_provider.jar</Class-Path>-->
-<!--                        </manifestEntries>-->
                     </archive>
                 </configuration>
             </plugin>

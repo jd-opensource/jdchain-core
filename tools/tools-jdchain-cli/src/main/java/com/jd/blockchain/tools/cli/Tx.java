@@ -426,7 +426,7 @@ class TxUserStateUpdate implements Runnable {
     @CommandLine.Option(names = "--address", required = true, description = "User address", scope = CommandLine.ScopeType.INHERIT)
     String address;
 
-    @CommandLine.Option(names = "--state", required = true, description = "User state，Optional values: FREEZE,NORMAL,REVOKE", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--state", required = true, description = "User state, Optional values: FREEZE,NORMAL,REVOKE", scope = CommandLine.ScopeType.INHERIT)
     AccountState state;
 
     @CommandLine.ParentCommand
@@ -767,7 +767,7 @@ class TxContractStateUpdate implements Runnable {
     @CommandLine.Option(names = "--address", required = true, description = "Contract address", scope = CommandLine.ScopeType.INHERIT)
     String address;
 
-    @CommandLine.Option(names = "--state", required = true, description = "Contract state，Optional values: FREEZE,NORMAL,REVOKE", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--state", required = true, description = "Contract state, Optional values: FREEZE,NORMAL,REVOKE", scope = CommandLine.ScopeType.INHERIT)
     AccountState state;
 
     @CommandLine.ParentCommand

@@ -54,9 +54,15 @@ public class OperationDecoratorFactory {
             return decorateAccountPermissionSetOperation((AccountPermissionSetOperation) op);
         } else if (op instanceof ConsensusTypeUpdateOperation) {
             return decorateConsensusTypeUpdateOperation((ConsensusTypeUpdateOperation) op);
+        } else if (op instanceof CryptoHashAlgoUpdateOperation){
+            return decorateCryptoHashAlgoUpdateOperation((CryptoHashAlgoUpdateOperation)op);
         }
 
         return null;
+    }
+
+    private static Operation decorateCryptoHashAlgoUpdateOperation(CryptoHashAlgoUpdateOperation op) {
+        return new CryptoHashAlgoUpdateOpTemplate(op.getHashAlgoName());
     }
 
     private static Operation decorateConsensusTypeUpdateOperation(ConsensusTypeUpdateOperation op) {
