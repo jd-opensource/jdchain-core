@@ -1166,7 +1166,7 @@ class TxContractAccountPermission implements Runnable {
 @CommandLine.Command(name = "switch-consensus", mixinStandardHelpOptions = true, header = "Switch consensus type.")
 class TxSwitchConsensus implements Runnable {
 
-    @CommandLine.Option(names = "--type", required = true, description = "New consensus type", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--type", required = true, description = "New consensus type. Options: `bft`,`raft`,`mq`", scope = CommandLine.ScopeType.INHERIT)
     String type;
 
     @CommandLine.Option(names = "--file", required = true, description = "Set new consensus config file", scope = CommandLine.ScopeType.INHERIT)
@@ -1193,12 +1193,15 @@ class TxSwitchConsensus implements Runnable {
             throw new IllegalStateException(e.getMessage(), e);
         }
 
-        if (type.equals("bft")) {
+        if (type.equalsIgnoreCase("bft")) {
             providerName = "com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider";
-        } else if (type.equals("raft")) {
+        } else if (type.equalsIgnoreCase("raft")) {
             providerName = "com.jd.blockchain.consensus.raft.RaftConsensusProvider";
-        } else if (type.equals("mq")) {
+        } else if (type.equalsIgnoreCase("mq")) {
             providerName = "com.jd.blockchain.consensus.mq.MsgQueueConsensusProvider";
+        }else {
+            System.err.printf("not support consensus type: %s, select `bft`, `raft` or `mq`%n", type);
+            return;
         }
         txTemp.switchSettings().update(providerName, PropertiesUtils.getOrderedValues(properties));
         PreparedTransaction ptx = txTemp.prepare();

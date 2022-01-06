@@ -132,7 +132,7 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
 //        }
     }
 
-    private void refreshLeader() throws TimeoutException, InterruptedException {
+    private synchronized void refreshLeader() throws TimeoutException, InterruptedException {
         if (System.currentTimeMillis() - this.lastLeaderUpdateTimestamp < this.refreshLeaderMs) {
             return;
         }
@@ -397,11 +397,16 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
     }
 
     public boolean isConnected() {
-        if(this.leader != null){
-            clientService.connect(this.leader.getEndpoint());
+
+        if (this.leader == null) {
+            return false;
         }
 
-        return this.leader != null &&   clientService.isConnected(this.leader.getEndpoint());
+        if (clientService.isConnected(this.leader.getEndpoint())) {
+            return true;
+        }
+
+        return clientService.connect(this.leader.getEndpoint());
     }
 
     static class MonitorNodeNetworkAddresses implements NodeNetworkAddresses {

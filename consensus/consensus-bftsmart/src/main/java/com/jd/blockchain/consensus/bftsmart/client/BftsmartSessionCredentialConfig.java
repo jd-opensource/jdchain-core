@@ -1,5 +1,6 @@
 package com.jd.blockchain.consensus.bftsmart.client;
 
+import com.jd.blockchain.consensus.ConsensusTypeEnum;
 import com.jd.blockchain.consensus.bftsmart.BftsmartSessionCredential;
 
 public class BftsmartSessionCredentialConfig implements BftsmartSessionCredential {
@@ -33,5 +34,10 @@ public class BftsmartSessionCredentialConfig implements BftsmartSessionCredentia
 
 	public static BftsmartSessionCredential createEmptyCredential() {
 		return new BftsmartSessionCredentialConfig(-1, 0, System.currentTimeMillis());
+	}
+
+	@Override
+	public int consensusProviderType() {
+		return ConsensusTypeEnum.BFT.getCode();
 	}
 }

@@ -9,7 +9,7 @@ import com.jd.blockchain.consts.DataCodes;
 @DataContract(code = DataCodes.CONSENSUS_RAFT_CLIENT_CREDENTIAL_INFO)
 public interface RaftSessionCredential extends SessionCredential {
 
-	@DataField(order = 0, primitiveType = PrimitiveType.BYTES)
+	@DataField(order = 1, primitiveType = PrimitiveType.BYTES)
 	byte[] getInfo();
 
 }
