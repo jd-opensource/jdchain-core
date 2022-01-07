@@ -58,7 +58,7 @@ public class RaftNodeServerFactory implements NodeServerFactory {
             return  settingsConfig;
         }
 
-        //TODO TLS适配
+        //TLS适配
         boolean enableTLS = false;
         RaftNodeSettings raftNodeConfig = (RaftNodeSettings) currentNodeSettings;
         if(raftNodeConfig.getNetworkAddress().isSecure() && !Strings.isNullOrEmpty(sslSecurity.getKeyStore())){
@@ -71,31 +71,42 @@ public class RaftNodeServerFactory implements NodeServerFactory {
         }
 
         //Node节点作为服务端时， 配置私钥信息
-        System.getProperties().setProperty("bolt.server.ssl.enable", "true");
-        System.getProperties().setProperty("bolt.server.ssl.keystore", sslSecurity.getKeyStore());
-        System.getProperties().setProperty("bolt.server.ssl.keystore.password", sslSecurity.getKeyStorePassword());
-        System.getProperties().setProperty("bolt.server.ssl.keystore.type", sslSecurity.getKeyStoreType());
-        System.getProperties().setProperty("bolt.ssl.protocol", nullToEmpty(sslSecurity.getProtocol()));
+        setSystemProperty("bolt.ssl.protocol", sslSecurity.getProtocol());
+        setSystemProperty("bolt.server.ssl.enable", "true");
+        setSystemProperty("bolt.server.ssl.keystore", sslSecurity.getKeyStore());
+        setSystemProperty("bolt.server.ssl.keystore.password", sslSecurity.getKeyStorePassword());
+        setSystemProperty("bolt.server.ssl.keystore.type", sslSecurity.getKeyStoreType());
+
         if(sslSecurity.getEnabledProtocols() != null){
-            System.getProperties().setProperty("bolt.ssl.enabled-protocols", String.join(",", sslSecurity.getEnabledProtocols()));
+            setSystemProperty("bolt.ssl.enabled-protocols", String.join(",", sslSecurity.getEnabledProtocols()));
         }
 
         if(sslSecurity.getCiphers() != null){
-            System.getProperties().setProperty("bolt.ssl.ciphers", String.join(",", sslSecurity.getCiphers()));
+            setSystemProperty("bolt.ssl.ciphers", String.join(",", sslSecurity.getCiphers()));
         }
+
+        //raft共识服务端开启TLS后，raft连接客户端也需开启TLS请求
+        setSystemProperty("bolt.client.ssl.enable", "true");
+
 
         //Node节点配置信任证书，以及作为客户端链接其他节点时的信任证书
         if(!Strings.isNullOrEmpty(sslSecurity.getTrustStore())){
             //服务端配置: 此时服务端有keystore, truststore， 此时开启双向认证
-            System.getProperties().setProperty("bolt.server.ssl.clientAuth", "true");
-            System.getProperties().setProperty("bolt.client.ssl.enable", "true");
-            System.getProperties().setProperty("bolt.client.ssl.keystore", sslSecurity.getTrustStore());
-            System.getProperties().setProperty("bolt.client.ssl.keystore.password", sslSecurity.getTrustStorePassword());
-            System.getProperties().setProperty("bolt.client.ssl.keystore.type", sslSecurity.getTrustStoreType());
+            setSystemProperty("bolt.server.ssl.clientAuth", "true");
+            setSystemProperty("bolt.client.ssl.keystore", sslSecurity.getTrustStore());
+            setSystemProperty("bolt.client.ssl.keystore.password", sslSecurity.getTrustStorePassword());
+            setSystemProperty("bolt.client.ssl.keystore.type", sslSecurity.getTrustStoreType());
         }
 
         return settingsConfig;
     }
+
+    private void setSystemProperty(String key, String value){
+        if(value != null){
+            System.getProperties().setProperty(key, value);
+        }
+    }
+
 
     private String nullToEmpty(String str){
         if(str == null){

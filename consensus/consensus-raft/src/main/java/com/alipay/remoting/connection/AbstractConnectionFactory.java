@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.security.KeyStore;
 import java.security.SecureRandom;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -274,16 +275,37 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory {
     private SslContext initSSLContext() {
         InputStream in = null;
         try {
+
+            String serverSslAlgorithm = configuration.option(BoltServerOption.SRV_SSL_KMF_ALGO);
+            if (serverSslAlgorithm == null) {
+                serverSslAlgorithm = RpcConfigManager.server_ssl_kmf_algorithm();
+            }
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance(serverSslAlgorithm);
+
+            String sslAlgorithm = configuration.option(BoltClientOption.CLI_SSL_TMF_ALGO);
+            if (sslAlgorithm == null) {
+                sslAlgorithm = RpcConfigManager.client_ssl_tmf_algorithm();
+            }
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(sslAlgorithm);
+
+            String sslKeyStore = configuration.option(BoltClientOption.CLI_SSL_KEYSTORE);
+            if (sslKeyStore == null) {
+                sslKeyStore = RpcConfigManager.client_ssl_keystore();
+            }
+
+            if(sslKeyStore == null){
+                kmf = null;
+                tmf = null;
+                return SslContextBuilder.forClient().keyManager(kmf).trustManager(tmf).build();
+            }
+
             String sslKeyStoreType = configuration.option(BoltClientOption.CLI_SSL_KEYSTORE_TYPE);
             if (sslKeyStoreType == null) {
                 // fixme: remove in next version
                 sslKeyStoreType = RpcConfigManager.client_ssl_keystore_type();
             }
             KeyStore ks = KeyStore.getInstance(sslKeyStoreType);
-            String sslKeyStore = configuration.option(BoltClientOption.CLI_SSL_KEYSTORE);
-            if (sslKeyStore == null) {
-                sslKeyStore = RpcConfigManager.client_ssl_keystore();
-            }
+
             in = new FileInputStream(sslKeyStore);
             String keyStorePass = configuration.option(BoltClientOption.CLI_SSL_KEYSTORE_PASS);
             if (keyStorePass == null) {
@@ -291,17 +313,9 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory {
             }
             char[] passChs = keyStorePass.toCharArray();
             ks.load(in, passChs);
-            String serverSslAlgorithm = configuration.option(BoltServerOption.SRV_SSL_KMF_ALGO);
-            if (serverSslAlgorithm == null) {
-                serverSslAlgorithm = RpcConfigManager.server_ssl_kmf_algorithm();
-            }
-            KeyManagerFactory kmf = KeyManagerFactory.getInstance(serverSslAlgorithm);
+
             kmf.init(ks, passChs);
-            String sslAlgorithm = configuration.option(BoltClientOption.CLI_SSL_TMF_ALGO);
-            if (sslAlgorithm == null) {
-                sslAlgorithm = RpcConfigManager.client_ssl_tmf_algorithm();
-            }
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(sslAlgorithm);
+
             tmf.init(ks);
 
             return SslContextBuilder.forClient().keyManager(kmf).trustManager(tmf).build();
@@ -318,16 +332,38 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory {
 
         InputStream in = null;
         try {
-            String sslKeyStoreType = configuration.option(BoltClientOption.CLI_SSL_KEYSTORE_TYPE);
-            if (sslKeyStoreType == null) {
-                // fixme: remove in next version
-                sslKeyStoreType = RpcConfigManager.client_ssl_keystore_type();
-            }
-            KeyStore ks = KeyStore.getInstance(sslKeyStoreType);
+            SSLContext sslContext = SSLContext.getInstance(protocol);
             String sslKeyStore = configuration.option(BoltClientOption.CLI_SSL_KEYSTORE);
             if (sslKeyStore == null) {
                 sslKeyStore = RpcConfigManager.client_ssl_keystore();
             }
+
+            if(sslKeyStore == null){
+                sslContext.init(null, new TrustManager[]{new X509TrustManager(){
+                    @Override
+                    public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+
+                    }
+
+                    @Override
+                    public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+
+                    }
+
+                    @Override
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return new X509Certificate[0];
+                    }
+                }}, new SecureRandom());
+                return sslContext;
+            }
+
+            String sslKeyStoreType = configuration.option(BoltClientOption.CLI_SSL_KEYSTORE_TYPE);
+            if (sslKeyStoreType == null) {
+                sslKeyStoreType = RpcConfigManager.client_ssl_keystore_type();
+            }
+            KeyStore ks = KeyStore.getInstance(sslKeyStoreType);
+
             in = new FileInputStream(sslKeyStore);
             String keyStorePass = configuration.option(BoltClientOption.CLI_SSL_KEYSTORE_PASS);
             if (keyStorePass == null) {
@@ -339,7 +375,7 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory {
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             tmf.init(ks);
 
-            SSLContext sslContext = SSLContext.getInstance(protocol);
+
             sslContext.init(null, tmf.getTrustManagers(), new SecureRandom());
 
             return sslContext;

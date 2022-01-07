@@ -518,12 +518,7 @@ public class RpcServer extends AbstractRemotingServer {
     public TrustManagerFactory getTrustManagerFactory() {
         InputStream in = null;
         try {
-            String sslKeyStoreType = option(BoltClientOption.CLI_SSL_KEYSTORE_TYPE);
-            if (sslKeyStoreType == null) {
-                sslKeyStoreType = RpcConfigManager.client_ssl_keystore_type();
-            }
 
-            KeyStore ks = KeyStore.getInstance(sslKeyStoreType);
             String sslKeyStore = option(BoltClientOption.CLI_SSL_KEYSTORE);
             if (sslKeyStore == null) {
                 sslKeyStore = RpcConfigManager.client_ssl_keystore();
@@ -532,6 +527,13 @@ public class RpcServer extends AbstractRemotingServer {
             if (sslKeyStore == null) {
                 return null;
             }
+
+            String sslKeyStoreType = option(BoltClientOption.CLI_SSL_KEYSTORE_TYPE);
+            if (sslKeyStoreType == null) {
+                sslKeyStoreType = RpcConfigManager.client_ssl_keystore_type();
+            }
+
+            KeyStore ks = KeyStore.getInstance(sslKeyStoreType);
 
             in = new FileInputStream(sslKeyStore);
             String keyStorePass = option(BoltClientOption.CLI_SSL_KEYSTORE_PASS);

@@ -67,6 +67,13 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.alipay.sofa</groupId>
+            <artifactId>bola_ext</artifactId>
+            <version>1.6.4</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/lib/bola_ext-1.6.4.jar</systemPath>
+        </dependency>
     </dependencies>
 
     <build>
