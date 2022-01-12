@@ -1224,7 +1224,7 @@ class TxSwitchConsensus implements Runnable {
 @CommandLine.Command(name = "switch-hash-algo", mixinStandardHelpOptions = true, header = "Switch crypto hash algo.")
 class TxSwitchHashAlgo implements Runnable {
 
-    @CommandLine.Option(names = "--hash-algo", required = true, description = "New crypto hash algo", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--hash-algo", required = true, description = "New crypto hash algo. Options:'SHA256','RIPEMD160','SM3'", scope = CommandLine.ScopeType.INHERIT)
     String newHashAlgo;
 
     @CommandLine.ParentCommand
