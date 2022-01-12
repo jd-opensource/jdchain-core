@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
  * 共识节点连接
  */
 public class LedgerPeerConnectionManager {
+    // ping 定时周期，秒
+    public static final int PING_INTERVAL = 2000;
     private static final Logger logger = LoggerFactory.getLogger(LedgerPeerConnectionManager.class);
     private ScheduledExecutorService executorService;
 
@@ -94,7 +96,7 @@ public class LedgerPeerConnectionManager {
     }
 
     public NodeNetworkAddresses loadMonitors() {
-        if(!connected()) {
+        if (!connected()) {
             connectTask();
         }
         return connected() ? blockchainServiceFactory.getMonitorServiceMap().get(ledger).loadMonitors() : null;
@@ -103,19 +105,17 @@ public class LedgerPeerConnectionManager {
     public synchronized void startTimerTask() {
         int randomDelay = new Random().nextInt(500);
         // 启动有效性检测或重连
-        if (context.getPeerConnectionPin() > 0) {
-            executorService.scheduleWithFixedDelay(() -> {
-                try {
-                    if (connected()) {
-                        pingTask();
-                    } else {
-                        connectTask();
-                    }
-                } catch (Exception e) {
-                    logger.error("Ping or Reconnect {}-{} error", ledger, peerAddress, e);
+        executorService.scheduleWithFixedDelay(() -> {
+            try {
+                if (connected()) {
+                    pingTask();
+                } else {
+                    connectTask();
                 }
-            }, randomDelay, context.getPeerConnectionPin(), TimeUnit.MILLISECONDS);
-        }
+            } catch (Exception e) {
+                logger.error("Ping or Reconnect {}-{} error", ledger, peerAddress, e);
+            }
+        }, randomDelay, context.getPeerConnectionPin() > 0 ? context.getPeerConnectionPin() : PING_INTERVAL, TimeUnit.MILLISECONDS);
 
         // 认证线程
         if (context.getPeerConnectionAuth() > 0) {
