@@ -48,7 +48,7 @@ class SmSslCustomizer implements TomcatConnectorCustomizer {
     @Override
     public void customize(Connector connector) {
         Http11NioProtocol protocol = (Http11NioProtocol) connector.getProtocolHandler();
-        protocol.setSslImplementationName("utils.tomcat.ssl.GMSSLImplementation");
+        protocol.setSslImplementationName("utils.tomcat.ssl.GMJSSEImplementation");
         protocol.setDisableUploadTimeout(false);
     }
 }
