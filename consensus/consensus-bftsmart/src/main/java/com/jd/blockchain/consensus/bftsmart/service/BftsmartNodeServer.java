@@ -184,6 +184,7 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		HostsConfig outerHostConfig = BinarySerializeUtils.deserialize(BinarySerializeUtils.serialize(hostConfig));
 		Properties sysConfClone = (Properties) systemsConfig.clone();
 		int port = hostConfig.getPort(id);
+		boolean isSecure = hostConfig.isSecure(id);
 //        hostConfig.add(id, DEFAULT_BINDING_HOST, port);
 
 		// if peer-startup.sh set up the -DhostIp=xxx, then get it;
@@ -196,8 +197,9 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		boolean monitorSecure = RuntimeConstant.isMonitorSecure();
 		String preHostIp = System.getProperty("hostIp");
 		if (!StringUtils.isEmpty(preHostIp)) {
-			hostConfig.add(id, preHostIp, port, monitorPort, false, monitorSecure);
+			hostConfig.add(id, preHostIp, port, monitorPort, isSecure, monitorSecure);
 			LOGGER.info("###peer-startup.sh###,set up the -DhostIp=" + preHostIp);
+			LOGGER.info("###peer-startup.sh###,isSecure=" + isSecure);
 		}
 
 		// 调整视图中的本节点端口号
