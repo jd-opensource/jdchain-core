@@ -2,6 +2,7 @@ package com.jd.blockchain.storage.service.impl.rocksdb;
 
 import java.io.IOException;
 
+import com.jd.blockchain.storage.service.CacheConfig;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -19,7 +20,7 @@ public class RocksDBConnection implements DbConnection {
 
 	private RocksDBStorageService storage;
 
-	public RocksDBConnection(String dbPath, Options options) {
+	public RocksDBConnection(String dbPath, Options options, CacheConfig cacheConfig) {
 		try {
 			String parentDir = FileUtils.getParent(dbPath);
 			if (!FileUtils.existDirectory(parentDir)) {
@@ -29,7 +30,7 @@ public class RocksDBConnection implements DbConnection {
 		} catch (RocksDBException e) {
 			throw new IllegalStateException(e.getMessage(), e);
 		}
-		this.storage = new RocksDBStorageService(db);
+		this.storage = new RocksDBStorageService(db, cacheConfig);
 	}
 
 	@Override

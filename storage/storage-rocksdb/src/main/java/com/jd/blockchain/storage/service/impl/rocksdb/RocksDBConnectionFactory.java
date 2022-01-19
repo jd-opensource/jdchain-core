@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 
 import javax.annotation.PreDestroy;
 
+import com.jd.blockchain.storage.service.CacheConfig;
 import org.rocksdb.*;
 
 import com.jd.blockchain.storage.service.DbConnection;
@@ -45,10 +46,11 @@ public class RocksDBConnectionFactory implements DbConnectionFactory {
 			throw new IllegalArgumentException(
 					String.format("Not supported db connection string with scheme \"%s\"!", dbUri.getScheme()));
 		}
-
+		CacheConfig cacheConfig = new CacheConfig(dbUri);
 		String uriHead = dbPrefix();
 		int beginIndex = dbConnectionString.indexOf(uriHead);
-		String dbPath = dbConnectionString.substring(beginIndex + uriHead.length());
+		int tailIndex = dbConnectionString.indexOf("?");
+		String dbPath = dbConnectionString.substring(beginIndex + uriHead.length(), tailIndex > -1 ? tailIndex : dbConnectionString.length());
 
 		RocksDBConnection conn = connections.get(dbPath);
 		if (conn != null) {
@@ -57,7 +59,7 @@ public class RocksDBConnectionFactory implements DbConnectionFactory {
 
 		Options options = initOptions();
 
-		conn = new RocksDBConnection(dbPath, options);
+		conn = new RocksDBConnection(dbPath, options, cacheConfig);
 		connections.put(dbPath, conn);
 
 		return conn;
