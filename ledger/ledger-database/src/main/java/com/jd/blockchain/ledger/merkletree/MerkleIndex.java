@@ -56,4 +56,8 @@ public interface MerkleIndex {
 	 */
 	@DataField(order = 3, primitiveType = PrimitiveType.BYTES, list = true)
 	HashDigest[] getChildHashs();
+
+	static MerkleIndex[] newArray(int length) {
+		return new MerkleIndex[length];
+	}
 }

@@ -15,4 +15,7 @@ public interface HashBucketEntry {
 	@DataField(order = 1, refContract = true, list = true)
 	KeyIndex[] getKeySet();
 
+	static HashBucketEntry[] newArray(int length) {
+		return new HashBucketEntry[length];
+	}
 }

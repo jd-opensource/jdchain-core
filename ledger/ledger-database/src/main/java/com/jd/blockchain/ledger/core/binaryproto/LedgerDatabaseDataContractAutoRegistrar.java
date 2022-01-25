@@ -22,9 +22,9 @@ public class LedgerDatabaseDataContractAutoRegistrar implements DataContractAuto
 		DataContractRegistry.register(MerkleLeaf.class);
 		DataContractRegistry.register(MerklePath.class);
 		DataContractRegistry.register(MerkleKey.class);
-		DataContractRegistry.register(MerkleIndex.class);
+		DataContractRegistry.register(MerkleIndex.class, MerkleIndex::newArray);
 		DataContractRegistry.register(KeyIndex.class);
-		DataContractRegistry.register(HashBucketEntry.class);
+		DataContractRegistry.register(HashBucketEntry.class, HashBucketEntry::newArray);
 		DataContractRegistry.register(LedgerInitProposal.class);
 		DataContractRegistry.register(LedgerInitDecision.class);
 		DataContractRegistry.register(CryptoProvider.class);
