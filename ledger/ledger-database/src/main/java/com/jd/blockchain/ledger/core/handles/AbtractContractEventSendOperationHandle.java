@@ -1,20 +1,13 @@
 package com.jd.blockchain.ledger.core.handles;
 
-import com.jd.blockchain.ledger.AccountState;
-import com.jd.blockchain.ledger.ContractDoesNotExistException;
-import com.jd.blockchain.ledger.ContractExecuteException;
-import com.jd.blockchain.ledger.IllegalAccountStateException;
-import com.jd.blockchain.ledger.DataPermissionType;
+import com.jd.blockchain.contract.jvm.JVMContractRuntimeConfig;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.MultiLedgerQueryService;
 import org.springframework.stereotype.Service;
 
 import com.jd.blockchain.contract.LocalContractEventContext;
 import com.jd.blockchain.contract.engine.ContractCode;
-import com.jd.blockchain.ledger.BytesValue;
-import com.jd.blockchain.ledger.ContractEventSendOperation;
-import com.jd.blockchain.ledger.Operation;
-import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.core.ContractAccount;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.MultiIDsPolicy;
@@ -84,8 +77,11 @@ public abstract class AbtractContractEventSendOperationHandle implements Operati
 			throw new IllegalAccountStateException("Can not call contract[" + contract.getAddress() + "] in "+ contract.getState() +" state.");
 		}
 
+		ContractLedgerQueryService ledgerQueryService = new ContractLedgerQueryService(ledger);
+		LedgerMetadata_V2 metadata = (LedgerMetadata_V2)ledgerQueryService.getLedgerMetadata();
+
 		// 创建合约的账本上下文实例；
-		ContractLedgerContext ledgerContext = new ContractLedgerContext(opHandleContext, new ContractLedgerQueryService(ledger), new MultiLedgerQueryService(ledger));
+		ContractLedgerContext ledgerContext = new ContractLedgerContext(opHandleContext, ledgerQueryService, new MultiLedgerQueryService(ledger));
 		UncommittedLedgerQueryService uncommittedLedgerQueryService = new UncommittedLedgerQueryService(transactionContext);
 
 		// 执行权限校验
@@ -93,7 +89,10 @@ public abstract class AbtractContractEventSendOperationHandle implements Operati
 
 		// 创建合约上下文;
 		LocalContractEventContext localContractEventContext = new LocalContractEventContext(
-				request.getTransactionContent().getLedgerHash(), contract.getAddress(), contractOP.getEvent());
+				request.getTransactionContent().getLedgerHash(),
+				metadata.getContractRuntimeConfig(),
+				contract.getAddress(),
+				contractOP.getEvent());
 		localContractEventContext.setArgs(contractOP.getArgs()).setTransactionRequest(request)
 				.setLedgerContext(ledgerContext).setVersion(contract.getChainCodeVersion())
 				.setUncommittedLedgerContext(uncommittedLedgerQueryService);
