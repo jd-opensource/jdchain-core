@@ -5,6 +5,8 @@ import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.contract.EventProcessingAware;
 import com.jd.blockchain.contract.engine.ContractCode;
 import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.runtime.RuntimeContext;
+import com.jd.blockchain.runtime.RuntimeSecurityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.ReflectionUtils;
@@ -81,11 +83,11 @@ public abstract class AbstractContractCode implements ContractCode {
                 throw new ContractException("Contract parameters wrong!", e);
             }
             ContractRuntimeConfig contractRuntimeConfig = eventContext.getContractRuntimeConfig();
-			// 判断存在合约运行时配置
+            // 判断存在合约运行时配置
             if (null != contractRuntimeConfig) {
                 ExecutorService executor = Executors.newSingleThreadExecutor();
                 try {
-                    Future<Object> future = executor.submit(() -> ReflectionUtils.invokeMethod(handleMethod, contractInstance, args));
+                    Future<Object> future = executor.submit(() -> securityInvoke(handleMethod, contractInstance, args));
                     retn = future.get(contractRuntimeConfig.getTimeout(), TimeUnit.MILLISECONDS);
                 } catch (Exception e) {
                     String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]! --%s",
@@ -95,8 +97,8 @@ public abstract class AbstractContractCode implements ContractCode {
                     executor.shutdown();
                 }
             } else {
-				retn = ReflectionUtils.invokeMethod(handleMethod, contractInstance, args);
-			}
+                retn = securityInvoke(handleMethod, contractInstance, args);
+            }
         } catch (LedgerException e) {
             error = e;
         } catch (Throwable e) {
@@ -121,6 +123,20 @@ public abstract class AbstractContractCode implements ContractCode {
 
         BytesValue retnBytes = BytesValueEncoding.encodeSingle(retn, returnType);
         return retnBytes;
+    }
+
+    private Object securityInvoke(Method handleMethod, Object contractInstance, Object[] args) {
+        RuntimeSecurityManager securityManager = RuntimeContext.get().getSecurityManager();
+        try {
+            if (null != securityManager) {
+                securityManager.enable();
+            }
+            return ReflectionUtils.invokeMethod(handleMethod, contractInstance, args);
+        } finally {
+            if (null != securityManager) {
+                securityManager.disable();
+            }
+        }
     }
 
     protected abstract Object getContractInstance();
