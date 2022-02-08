@@ -13,10 +13,7 @@ import com.alipay.sofa.jraft.rpc.impl.cli.CliClientServiceImpl;
 import com.alipay.sofa.jraft.util.Endpoint;
 import com.google.protobuf.ProtocolStringList;
 import com.jd.binaryproto.BinaryProtocol;
-import com.jd.blockchain.consensus.MessageService;
-import com.jd.blockchain.consensus.NodeNetworkAddress;
-import com.jd.blockchain.consensus.NodeNetworkAddresses;
-import com.jd.blockchain.consensus.Replica;
+import com.jd.blockchain.consensus.*;
 import com.jd.blockchain.consensus.manage.ConsensusManageService;
 import com.jd.blockchain.consensus.manage.ConsensusView;
 import com.jd.blockchain.consensus.raft.config.RaftReplica;
@@ -28,6 +25,7 @@ import com.jd.blockchain.consensus.raft.rpc.SubmitTxRequest;
 import com.jd.blockchain.consensus.raft.settings.RaftClientSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftConsensusSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftNetworkSettings;
+import com.jd.blockchain.consensus.raft.settings.RaftNodeSettings;
 import com.jd.blockchain.consensus.raft.util.LoggerUtils;
 import com.jd.blockchain.consensus.service.MonitorService;
 import org.slf4j.Logger;
@@ -92,7 +90,18 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
         this.groupId = groupId;
         this.configuration = new Configuration();
         for (String currentPeer : settings.getCurrentPeers()) {
+            LOGGER.info("ledger: {} add peer: {}", groupId, currentPeer);
             this.configuration.addPeer(PeerId.parsePeer(currentPeer));
+        }
+
+        NodeSettings[] nodeSettings = settings.getViewSettings().getNodes();
+        for (NodeSettings nodeSetting : nodeSettings) {
+            RaftNodeSettings raftNodeSettings = (RaftNodeSettings) nodeSetting;
+            PeerId peerId = new PeerId(raftNodeSettings.getNetworkAddress().getHost(), raftNodeSettings.getNetworkAddress().getPort());
+            if (!this.configuration.contains(peerId)) {
+                LOGGER.info("ledger: {} add peer: {}", groupId, peerId);
+                this.configuration.addPeer(peerId);
+            }
         }
 
         this.refreshLeaderExecutorService = Executors.newSingleThreadScheduledExecutor(JRaftUtils.createThreadFactory("RAFT-REFRESH-LEADER"));
@@ -122,26 +131,44 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
         if (System.currentTimeMillis() - this.lastConfigurationUpdateTimestamp < this.refreshConfigurationMs) {
             return;
         }
-        RouteTable.getInstance().refreshConfiguration(this.clientService, this.groupId, this.rpcTimeoutMs);
-        Configuration old = this.configuration;
-        this.configuration = RouteTable.getInstance().getConfiguration(this.groupId);
+        Status status = RouteTable.getInstance().refreshConfiguration(this.clientService, this.groupId, this.rpcTimeoutMs);
+        if (!status.isOk()) {
+            LOGGER.warn("refreshConfiguration failed. reason: {}", status.getErrorMsg());
+        } else {
+            Configuration changedConfiguration = RouteTable.getInstance().getConfiguration(this.groupId);
+            if (!changedConfiguration.isEmpty()) {
+                Configuration include = new Configuration();
+                Configuration exclude = new Configuration();
+
+                changedConfiguration.diff(this.configuration, include, exclude);
+
+                if (!include.isEmpty() || !exclude.isEmpty()) {
+                    LOGGER.info("configuration changed from: {} to {}", this.configuration, changedConfiguration);
+                    this.configuration = changedConfiguration;
+                }
+            }
+        }
+
         this.lastConfigurationUpdateTimestamp = System.currentTimeMillis();
         this.isReloadMonitorNode = true;
-//        if (!old.equals(this.configuration)) {
-//            this.isReloadMonitorNode = true;
-//        }
+
     }
 
     private synchronized void refreshLeader() throws TimeoutException, InterruptedException {
         if (System.currentTimeMillis() - this.lastLeaderUpdateTimestamp < this.refreshLeaderMs) {
             return;
         }
-        RouteTable.getInstance().refreshLeader(this.clientService, this.groupId, this.rpcTimeoutMs);
-        PeerId peerId = RouteTable.getInstance().selectLeader(this.groupId);
-        if (peerId != null && !peerId.equals(this.leader)) {
-            LoggerUtils.infoIfEnabled(LOGGER, "leader changed. from {} to {}", this.leader, peerId);
-            this.leader = peerId;
+        Status status = RouteTable.getInstance().refreshLeader(this.clientService, this.groupId, this.rpcTimeoutMs);
+        if (!status.isOk()) {
+            LOGGER.warn("refreshLeader failed. reason: {}", status.getErrorMsg());
+        } else {
+            PeerId peerId = RouteTable.getInstance().selectLeader(this.groupId);
+            if (peerId != null && !peerId.equals(this.leader)) {
+                LoggerUtils.infoIfEnabled(LOGGER, "leader changed. from {} to {}", this.leader, peerId);
+                this.leader = peerId;
+            }
         }
+
         this.lastLeaderUpdateTimestamp = System.currentTimeMillis();
     }
 

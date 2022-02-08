@@ -1,11 +1,9 @@
 package com.jd.blockchain.consensus.raft.client;
 
-import com.google.common.base.Strings;
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.consensus.ClientCredential;
 import com.jd.blockchain.consensus.ClientIncomingSettings;
-import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.SessionCredential;
 import com.jd.blockchain.consensus.client.ClientFactory;
 import com.jd.blockchain.consensus.client.ClientSettings;
@@ -77,7 +75,6 @@ public class RaftConsensusClientFactory implements ClientFactory, ManageClientFa
         }
 
         ClientSettings clientSettings = new RaftClientConfig((RaftClientIncomingSettings) incomingSettings);
-
         if (sslSecurity == null) {
             return clientSettings;
         }
@@ -106,8 +103,8 @@ public class RaftConsensusClientFactory implements ClientFactory, ManageClientFa
         return buildClientSettings(incomingSettings);
     }
 
-    private void setSystemProperty(String key, String value){
-        if(value != null){
+    private void setSystemProperty(String key, String value) {
+        if (value != null) {
             System.getProperties().setProperty(key, value);
         }
     }

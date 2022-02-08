@@ -156,4 +156,18 @@ public class RaftConsensusConfig extends PropertyConfig implements RaftConsensus
         this.networkSettings = networkSettings;
     }
 
+
+    @Override
+    public String toString() {
+        return "RaftConsensusConfig{" +
+                "maxTxsPerBlock=" + maxTxsPerBlock +
+                ", maxBlockBytes=" + maxBlockBytes +
+                ", electionTimeoutMs=" + electionTimeoutMs +
+                ", snapshotIntervalSec=" + snapshotIntervalSec +
+                ", refreshConfigurationMs=" + refreshConfigurationMs +
+                ", nodeSettingsList=" + nodeSettingsList +
+                ", networkSettings=" + networkSettings +
+                ", raftSettings=" + raftSettings +
+                '}';
+    }
 }

@@ -74,7 +74,8 @@ public class GatewayConsensusClientManager implements ConsensusClientManager {
             return oldCredential.getClientId() != newCredential.getClientId()
                     || oldCredential.getClientIdRange() != newCredential.getClientIdRange();
         } else if (client instanceof RaftConsensusClient) {
-            return !client.isConnected();
+//            return !((RaftConsensusClient)client).isInit();
+            return !((RaftConsensusClient)client).isConnected();
         }
         return true;
     }

@@ -7,6 +7,8 @@ import com.jd.blockchain.consensus.raft.settings.RaftClientIncomingSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftConsensusSettings;
 import com.jd.blockchain.crypto.PubKey;
 
+import java.util.Arrays;
+
 public class RaftClientIncomingConfig implements RaftClientIncomingSettings {
 
     private int clientId;
@@ -78,5 +80,16 @@ public class RaftClientIncomingConfig implements RaftClientIncomingSettings {
     @Override
     public SessionCredential getCredential() {
         return sessionCredential;
+    }
+
+    @Override
+    public String toString() {
+        return "RaftClientIncomingConfig{" +
+                "clientId=" + clientId +
+                ", pubKey=" + pubKey +
+                ", currentPeers=" + Arrays.toString(currentPeers) +
+                ", consensusSettings=" + consensusSettings +
+                ", sessionCredential=" + sessionCredential +
+                '}';
     }
 }
