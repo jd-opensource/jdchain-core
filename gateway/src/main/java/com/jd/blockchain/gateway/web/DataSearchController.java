@@ -42,7 +42,7 @@ public class DataSearchController {
 		return AddressEncoding.generateAddress(pubKey).toBase58();
 	}
 
-	@RequestMapping(method = RequestMethod.GET, value = "ledgers/{ledgerHash}/**/search")
+	@RequestMapping(method = RequestMethod.GET, value = "ledgers/{ledgerHash}/*/*/search")
 	public Object dataRetrieval(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
 								HttpServletRequest request,
 								@RequestParam(name = "keyword") String keyword) {

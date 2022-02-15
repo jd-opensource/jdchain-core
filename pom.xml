@@ -42,7 +42,6 @@
 		<module>peer-ledger-service</module>
 		<module>peer-web-server</module>
 		<module>peer</module>
-		<module>manager</module>
 		<module>tools</module>
 	</modules>
 
