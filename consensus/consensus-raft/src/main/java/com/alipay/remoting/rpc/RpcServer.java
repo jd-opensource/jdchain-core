@@ -22,6 +22,7 @@ import java.net.InetSocketAddress;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +34,7 @@ import com.alipay.remoting.*;
 import com.alipay.remoting.config.BoltClientOption;
 import com.alipay.remoting.config.BoltGenericOption;
 import com.alipay.remoting.config.BoltServerOption;
+import io.netty.handler.ssl.util.SimpleTrustManagerFactory;
 import org.apache.tomcat.jni.SSL;
 import org.slf4j.Logger;
 
@@ -447,7 +449,42 @@ public class RpcServer extends AbstractRemotingServer {
             //todo 使用truststore配置
             TrustManagerFactory tmf = getTrustManagerFactory();
 
-            return SslContextBuilder.forServer(kmf).trustManager(tmf).build();
+            if(tmf == null){
+                return SslContextBuilder.forServer(kmf).trustManager(new SimpleTrustManagerFactory() {
+                    @Override
+                    protected void engineInit(KeyStore keyStore) throws Exception {
+
+                    }
+
+                    @Override
+                    protected void engineInit(ManagerFactoryParameters managerFactoryParameters) throws Exception {
+
+                    }
+
+                    @Override
+                    protected TrustManager[] engineGetTrustManagers() {
+                        return new TrustManager[]{new X509TrustManager() {
+                            @Override
+                            public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+
+                            }
+
+                            @Override
+                            public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+
+                            }
+
+                            @Override
+                            public X509Certificate[] getAcceptedIssuers() {
+                                return new X509Certificate[0];
+                            }
+                        }};
+                    }
+                }).build();
+            }else {
+                return SslContextBuilder.forServer(kmf).trustManager(tmf).build();
+            }
+
         } catch (Exception e) {
             logger.error("Fail to init SSL context for server.", e);
             throw new IllegalStateException("Fail to init SSL context", e);

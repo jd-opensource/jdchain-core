@@ -32,6 +32,7 @@ import com.alipay.remoting.config.BoltGenericOption;
 import com.alipay.remoting.config.BoltServerOption;
 import com.alipay.remoting.config.Configuration;
 import com.alipay.remoting.ExtendedNettyChannelHandler;
+import io.netty.handler.ssl.util.SimpleTrustManagerFactory;
 import org.slf4j.Logger;
 
 import com.alipay.remoting.Connection;
@@ -296,7 +297,38 @@ public abstract class AbstractConnectionFactory implements ConnectionFactory {
             if(sslKeyStore == null){
                 kmf = null;
                 tmf = null;
-                return SslContextBuilder.forClient().keyManager(kmf).trustManager(tmf).build();
+                return SslContextBuilder.forClient().keyManager(kmf).trustManager(new SimpleTrustManagerFactory(){
+
+                    @Override
+                    protected void engineInit(KeyStore keyStore) throws Exception {
+
+                    }
+
+                    @Override
+                    protected void engineInit(ManagerFactoryParameters managerFactoryParameters) throws Exception {
+
+                    }
+
+                    @Override
+                    protected TrustManager[] engineGetTrustManagers() {
+                        return new TrustManager[]{new X509TrustManager() {
+                            @Override
+                            public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+
+                            }
+
+                            @Override
+                            public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+
+                            }
+
+                            @Override
+                            public X509Certificate[] getAcceptedIssuers() {
+                                return new X509Certificate[0];
+                            }
+                        }};
+                    }
+                }).build();
             }
 
             String sslKeyStoreType = configuration.option(BoltClientOption.CLI_SSL_KEYSTORE_TYPE);
