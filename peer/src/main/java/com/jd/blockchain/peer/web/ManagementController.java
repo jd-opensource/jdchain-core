@@ -1066,8 +1066,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
     private void waitUtilReachHeight(long blockHeight, LedgerRepository ledgerRepo) {
         for(;;){
-            LedgerBlock ledgerBlock = ledgerRepo.retrieveLatestBlock();
-            if(ledgerBlock.getHeight() >= blockHeight){
+            long latestBlockHeight = ledgerRepo.retrieveLatestBlockHeight();
+            if(latestBlockHeight >= blockHeight){
                 return;
             }
             Thread.yield();

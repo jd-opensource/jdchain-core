@@ -22,8 +22,10 @@ import com.jd.httpservice.utils.web.WebResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import utils.GmSSLProvider;
 import utils.Property;
 import utils.net.NetworkAddress;
+import utils.net.SSLSecurity;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -262,6 +264,19 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
         RaftConsensusSettings consensusSetting = (RaftConsensusSettings) getConsensusSetting(context);
         RaftNetworkSettings networkSettings = consensusSetting.getNetworkSettings();
 
+        SSLSecurity sslSecurity = context.sslSecurity();
+        //启用TLS
+        if(sslSecurity != null && sslSecurity.getKeyStore() != null){
+            setSystemProperty("bolt.client.ssl.enable", "true");
+            setSystemProperty("bolt.client.ssl.keystore", sslSecurity.getTrustStore());
+            setSystemProperty("bolt.client.ssl.keystore.password", sslSecurity.getTrustStorePassword());
+            setSystemProperty("bolt.client.ssl.keystore.type", sslSecurity.getTrustStoreType() == null ? "JKS" : sslSecurity.getTrustStoreType());
+
+            if (GmSSLProvider.isGMSSL(sslSecurity.getProtocol())) {
+                System.getProperties().setProperty("bolt.ssl.protocol", GmSSLProvider.GMTLS);
+            }
+        }
+
         CliOptions cliOptions = new CliOptions();
         cliOptions.setRpcConnectTimeoutMs(networkSettings.getRpcConnectTimeoutMs());
         cliOptions.setRpcDefaultTimeout(networkSettings.getRpcDefaultTimeoutMs());
@@ -296,6 +311,12 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
         }
 
         return false;
+    }
+
+    private void setSystemProperty(String key, String value) {
+        if (value != null) {
+            System.getProperties().setProperty(key, value);
+        }
     }
 
 }
