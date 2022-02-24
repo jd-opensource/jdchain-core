@@ -836,7 +836,15 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                 return WebResponse.createFailureResult(-1, "ledger hash not exist!");
             }
 
+            ServiceEndpoint remoteEndpoint = new ServiceEndpoint(new NetworkAddress(remoteManageHost, remoteManagePort, remoteManageSecure));
+
             LedgerRepository ledgerRepo = (LedgerRepository) ledgerQuerys.get(ledgerHash);
+
+            WebResponse webResponse = checkLedgerDiff(ledgerHash, ledgerRepo, ledgerRepo.retrieveLatestBlock(), remoteEndpoint);
+            if (!(webResponse.isSuccess())) {
+                return webResponse;
+            }
+
             LedgerAdminInfo ledgerAdminInfo = ledgerRepo.getAdminInfo(ledgerRepo.retrieveLatestBlock());
 
             String currentProvider = ledgerAdminInfo.getSettings().getConsensusProvider();
@@ -875,7 +883,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
             }
 
             NetworkAddress addConsensusNodeAddress = new NetworkAddress(consensusHost, consensusPort, consensusSecure);
-            ServiceEndpoint remoteEndpoint = new ServiceEndpoint(new NetworkAddress(remoteManageHost, remoteManagePort, remoteManageSecure));
             remoteEndpoint.setSslSecurity(ledgerSecurities.get(ledgerHash));
 
             LOGGER.info("active participant {}:{}!", consensusHost, consensusPort);
@@ -1319,8 +1326,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
     }
 
     private boolean replayTransaction(LedgerRepository ledgerRepository, ParticipantNode node, ServiceEndpoint endpoint) {
-        long height = ledgerRepository.getLatestBlock().getHeight();
-        HashDigest ledgerHash = ledgerRepository.getLatestBlock().getLedgerHash();
+        long height = ledgerRepository.retrieveLatestBlock().getHeight();
+        HashDigest ledgerHash = ledgerRepository.retrieveLatestBlock().getLedgerHash();
         TransactionBatchResultHandle handle = null;
         OperationHandleRegisteration opReg = new DefaultOperationHandleRegisteration();
         try (ServiceConnection httpConnection = ServiceConnectionManager.connect(endpoint)) {
@@ -1330,6 +1337,20 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                 TransactionBatchProcessor batchProcessor = new TransactionBatchProcessor(ledgerRepository, opReg);
                 try {
                     height++;
+                    long remoteLatestBlockHeight = queryService.getLedger(ledgerHash)
+                            .getLatestBlockHeight();
+
+                    // fix endpoint write block to database slow bug, that lead to active node failed!
+                    int count = 0;
+                    while ((remoteLatestBlockHeight < height) && (count < 600)) {
+                        Thread.sleep(1000);
+                        remoteLatestBlockHeight = queryService.getLedger(ledgerHash).getLatestBlockHeight();
+                        count++;
+                    }
+                    if (remoteLatestBlockHeight < height) {
+                        throw new IllegalStateException("Remote endpoint block height exception!");
+                    }
+
                     LedgerBlock block = queryService.getBlock(ledgerHash, height);
                     // 获取区块内的增量交易
                     List<LedgerTransaction> transactions = getAdditionalTransactions(queryService, ledgerHash, (int) height);

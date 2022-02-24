@@ -10,6 +10,7 @@ import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerSettings;
 import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.ParticipantNodeState;
 import com.jd.blockchain.ledger.core.EventManager;
 import com.jd.blockchain.ledger.core.LedgerAdminDataSet;
 import com.jd.blockchain.ledger.core.LedgerAdminDataSetEditor;
@@ -24,6 +25,8 @@ import com.jd.blockchain.ledger.core.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
 import utils.Bytes;
 import utils.PropertiesUtils;
+
+import java.util.ArrayList;
 
 /**
  * @Author: zhangshuang
@@ -53,13 +56,17 @@ public class ConsensusTypeUpdateOperationHandle extends AbstractLedgerOperationH
         int participantCount = (int) adminAccountDataSet.getParticipantDataset().getParticipantCount();
         ParticipantNode[] participantNodes = adminAccountDataSet.getAdminSettings().getParticipants();
 
-        Replica[] replicas = new Replica[participantCount];
+        ArrayList<Replica> replicas = new ArrayList<>();
+
         for (int i = 0; i < participantCount; i++) {
-            replicas[i] = new ReplicaImpl(participantNodes[i].getId(), participantNodes[i].getAddress(), participantNodes[i].getName(), participantNodes[i].getPubKey());
+            if (participantNodes[i].getParticipantNodeState() == ParticipantNodeState.CONSENSUS) {
+                Replica replica = new ReplicaImpl(participantNodes[i].getId(), participantNodes[i].getAddress(), participantNodes[i].getName(), participantNodes[i].getPubKey());
+                replicas.add(replica);
+            }
         }
 
         //create new consensus settings according to properties config
-        ConsensusViewSettings newConsensusSettings = provider.getSettingsFactory().getConsensusSettingsBuilder().createSettings(PropertiesUtils.createProperties(op.getProperties()), replicas);
+        ConsensusViewSettings newConsensusSettings = provider.getSettingsFactory().getConsensusSettingsBuilder().createSettings(PropertiesUtils.createProperties(op.getProperties()), replicas.toArray(new Replica[replicas.size()]));
 
         if (previousBlockDataset.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
             LedgerSettings ledgerSetting = new LedgerConfiguration(op.getProviderName(), new Bytes(provider.getSettingsFactory().getConsensusSettingsEncoder().encode(newConsensusSettings)),
