@@ -73,7 +73,7 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 
 		try {
 			// 将反编译chainCode
-			String mainClassJava = CONTRACT_PROCESSOR.decompileEntranceClass(chainCodeBytes);
+			String mainClassJava = CONTRACT_PROCESSOR.decompileEntranceClass(chainCodeBytes, contractInfo.getLang());
 			contractSettings.setChainCode(mainClassJava);
 		} catch (Exception e) {
 			// 打印日志

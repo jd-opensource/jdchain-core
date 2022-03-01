@@ -1,111 +1,74 @@
 package com.jd.blockchain.contract.jvm;
 
-import java.lang.reflect.Method;
-
+import com.jd.blockchain.contract.ContractEventContext;
+import com.jd.blockchain.contract.engine.ContractCode;
+import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractExecuteException;
 import com.jd.blockchain.ledger.LedgerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.ReflectionUtils;
-
-import com.jd.blockchain.contract.ContractEventContext;
-import com.jd.blockchain.contract.ContractException;
-import com.jd.blockchain.contract.EventProcessingAware;
-import com.jd.blockchain.contract.engine.ContractCode;
-import com.jd.blockchain.ledger.BytesValue;
-import com.jd.blockchain.ledger.BytesValueEncoding;
-import com.jd.blockchain.ledger.BytesValueList;
-
 import utils.Bytes;
 
 /**
  * @author huanghaiquan
- *
  */
 public abstract class AbstractContractCode implements ContractCode {
-	private static final Logger LOGGER = LoggerFactory.getLogger(AbstractContractCode.class);
-	private Bytes address;
-	private long version;
+    protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractContractCode.class);
+    private Bytes address;
+    private long version;
 
-	private ContractDefinition contractDefinition;
+    public AbstractContractCode(Bytes address, long version) {
+        this.address = address;
+        this.version = version;
+    }
 
-	public AbstractContractCode(Bytes address, long version, ContractDefinition contractDefinition) {
-		this.address = address;
-		this.version = version;
-		this.contractDefinition = contractDefinition;
-	}
+    @Override
+    public Bytes getAddress() {
+        return address;
+    }
 
-	public ContractDefinition getContractDefinition() {
-		return contractDefinition;
-	}
+    @Override
+    public long getVersion() {
+        return version;
+    }
 
-	@Override
-	public Bytes getAddress() {
-		return address;
-	}
+    @Override
+    public BytesValue processEvent(ContractEventContext eventContext) {
+        Object retn = null;
+        LedgerException error = null;
+        Object contractInstance = null;
+        try {
+            contractInstance = getContractInstance();
+            // 执行预处理;
+            beforeEvent(contractInstance, eventContext);
 
-	@Override
-	public long getVersion() {
-		return version;
-	}
+            // 合约方法执行
+            retn = doProcessEvent(contractInstance, eventContext);
 
-	@Override
-	public BytesValue processEvent(ContractEventContext eventContext) {
-		EventProcessingAware evtProcAwire = null;
-		Object retn = null;
-		Method handleMethod = null;
-		LedgerException error = null;
-		try {
-			// 执行预处理;
-			Object contractInstance = getContractInstance();
-			if (contractInstance instanceof EventProcessingAware) {
-				evtProcAwire = (EventProcessingAware) contractInstance;
-			}
+        } catch (LedgerException e) {
+            error = e;
+        } catch (Throwable e) {
+            String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]! --%s",
+                    eventContext.getEvent(), address.toString(), e.getMessage());
+            error = new ContractExecuteException(errorMessage, e);
+        }
 
-			if (evtProcAwire != null) {
-				evtProcAwire.beforeEvent(eventContext);
-			}
+        try {
+            postEvent(contractInstance, eventContext, error);
+        } catch (Throwable e) {
+            throw new ContractExecuteException("Error occurred while posting contract event!", e);
+        }
+        if (error != null) {
+            throw error;
+        }
+        return (BytesValue) retn;
+    }
 
-			// 反序列化参数；
-			handleMethod = contractDefinition.getType().getHandleMethod(eventContext.getEvent());
+    protected abstract Object getContractInstance();
 
-			if (handleMethod == null) {
-				throw new ContractException(
-						String.format("Contract[%s:%s] has no handle method to handle event[%s]!", address.toString(),
-								contractDefinition.getType().getName(), eventContext.getEvent()));
-			}
-			
-			BytesValueList bytesValues = eventContext.getArgs();
-			Object[] args = BytesValueEncoding.decode(bytesValues, handleMethod.getParameterTypes());
-			
-			retn = ReflectionUtils.invokeMethod(handleMethod, contractInstance, args);
-			
-		} catch (LedgerException e) {
-			error = e;
-		} catch (Throwable e) {
-			String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]! --%s",
-					eventContext.getEvent(), address.toString(), e.getMessage());
-			error = new ContractExecuteException(errorMessage, e);
-		}
+    protected abstract void beforeEvent(Object contractInstance, ContractEventContext eventContext);
 
-		if (evtProcAwire != null) {
-			try {
-				evtProcAwire.postEvent(eventContext, error);
-			} catch (Throwable e) {
-				String errorMessage = "Error occurred while posting contract event! --" + e.getMessage();
-				LOGGER.error(errorMessage, e);
-				throw new ContractExecuteException(errorMessage);
-			}
-		}
-		if (error != null) {
-			// Rethrow error;
-			throw error;
-		}
+    protected abstract BytesValue doProcessEvent(Object contractInstance, ContractEventContext eventContext);
 
-		BytesValue retnBytes = BytesValueEncoding.encodeSingle(retn, handleMethod.getReturnType());
-		return retnBytes;
-	}
-
-	protected abstract Object getContractInstance();
-
+    protected abstract void postEvent(Object contractInstance, ContractEventContext eventContext, LedgerException error);
 }

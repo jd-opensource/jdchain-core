@@ -30,6 +30,18 @@
 			<artifactId>spring-boot-starter-log4j2</artifactId>
 			<optional>true</optional>
 		</dependency>
+		<dependency>
+			<groupId>org.graalvm.js</groupId>
+			<artifactId>js</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.graalvm.js</groupId>
+			<artifactId>js-scriptengine</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.graalvm.truffle</groupId>
+			<artifactId>truffle-api</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

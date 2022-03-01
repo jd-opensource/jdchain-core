@@ -58,20 +58,6 @@ public class TxProcessingController implements TransactionService {
 				return new ErrorTransactionResponse(txRequest.getTransactionHash(), TransactionState.LEDGER_HASH_EMPTY);
 			}
 
-			// 校验合约
-			Operation[] operations = txRequest.getTransactionContent().getOperations();
-			if (operations != null && operations.length > 0) {
-				for (Operation op : operations) {
-					if (ContractCodeDeployOperation.class.isAssignableFrom(op.getClass())) {
-						// 发布合约请求
-						ContractCodeDeployOperation contractCodeDeployOperation = (ContractCodeDeployOperation) op;
-						if (!CONTRACT_PROCESSOR.verify(contractCodeDeployOperation.getChainCode())) {
-							return new ErrorTransactionResponse(txRequest.getTransactionHash(), TransactionState.ILLEGAL_CONTRACT_CAR);
-						}
-					}
-				}
-			}
-
 			// 预期的请求中不应该包含节点签名，首个节点签名应该由当前网关提供；
 			if (txRequest.getNodeSignatures() != null && txRequest.getNodeSignatures().length > 0) {
 				return new ErrorTransactionResponse(txRequest.getTransactionHash(), TransactionState.ILLEGAL_NODE_SIGNATURE);

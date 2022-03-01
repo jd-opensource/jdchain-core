@@ -2,41 +2,46 @@ package com.jd.blockchain.contract.jvm;
 
 import com.jd.blockchain.contract.engine.ContractCode;
 import com.jd.blockchain.contract.engine.ContractEngine;
-import com.jd.blockchain.runtime.Module;
-import com.jd.blockchain.runtime.RuntimeContext;
-
+import com.jd.blockchain.ledger.ContractInfo;
+import com.jd.blockchain.ledger.ContractLang;
 import utils.Bytes;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class JVMContractEngine implements ContractEngine {
 
-	private RuntimeContext runtimeContext = RuntimeContext.get();
-	
-	private String getCodeName(Bytes address, long version) {
-		return address.toBase58() + "_" + version;
-	}
-	
-	@Override
-	public ContractCode getContract(Bytes address, long version) {
-		String codeName = getCodeName(address, version);
-		Module module = runtimeContext.getDynamicModule(codeName);
-		if (module == null) {
-			return null;
-		}
- 		return new JavaContractCode(address, version, module);
-	}
+    private static final Map<ContractLang, ContractCodeLoader> loaders = new HashMap<>();
+    // TODO imuge LRU
+    private Map<String, ContractCode> contracts = new HashMap<>();
 
-	@Override
-	public ContractCode setupContract(Bytes address, long version, byte[] code) {
-	    //is there the contractCode before setup? if yes ,then return;
-        ContractCode contractCode = getContract(address, version);
-        if(contractCode != null){
-            return contractCode;
+    static {
+        loaders.put(ContractLang.Java, new JavaContractCodeLoader());
+        loaders.put(ContractLang.JavaScript, new JavaScriptContractCodeLoader());
+    }
+
+    private String getCodeName(Bytes address, long version) {
+        return address.toBase58() + "_" + version;
+    }
+
+    @Override
+    public ContractCode setupContract(ContractInfo contractInfo) {
+        Bytes address = contractInfo.getAddress();
+        long version = contractInfo.getChainCodeVersion();
+        String codeName = getCodeName(address, version);
+        ContractCode contractCode = contracts.get(version);
+        if (null == contractCode) {
+            synchronized (JVMContractEngine.class) {
+                contractCode = contracts.get(version);
+                if (null == contractCode) {
+                    contractCode = loaders.get(contractInfo.getLang()).loadContract(address, version, contractInfo.getChainCode());
+                    if (null != contractCode) {
+                        contracts.put(codeName, contractCode);
+                    }
+                }
+            }
         }
-		String codeName = getCodeName(address, version);
-		Module module = runtimeContext.createDynamicModule(codeName, code);
-		if (module == null) {
-			return null;
-		}
-		return new JavaContractCode(address, version, module);
-	}
+
+        return contractCode;
+    }
 }

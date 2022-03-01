@@ -699,7 +699,7 @@ class Contract implements Runnable {
     public void run() {
         ContractInfo contract = query.getChainService().getContract(query.selectLedger(), address);
         if (null != contract) {
-            System.out.println(OnLineContractProcessor.getInstance().decompileEntranceClass(contract.getChainCode()));
+            System.out.println(OnLineContractProcessor.getInstance().decompileEntranceClass(contract.getChainCode(), contract.getLang()));
         }
     }
 }

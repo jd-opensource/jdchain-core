@@ -179,6 +179,19 @@ public class UncommittedLedgerQueryService implements LedgerQueryService {
     }
 
     @Override
+    public TypedKVEntry getDataEntry(String address, String key, long version) {
+        DataAccount account = transactionContext.getDataset().getDataAccountSet().getAccount(address);
+        if(null == account) {
+            return null;
+        }
+        BytesValue value = account.getDataset().getValue(key, version);
+        if(null == value) {
+            return null;
+        }
+        return new TypedKVData(key, version, value);
+    }
+
+    @Override
     public long getDataEntriesTotalCount(String address) {
         DataAccount account = transactionContext.getDataset().getDataAccountSet().getAccount(address);
         return null != account ? account.getDataset().getDataCount() : 0;

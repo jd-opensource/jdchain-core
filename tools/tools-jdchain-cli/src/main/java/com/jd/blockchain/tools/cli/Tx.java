@@ -473,8 +473,11 @@ class TxDataAccountRegister implements Runnable {
 @CommandLine.Command(name = "contract-deploy", mixinStandardHelpOptions = true, header = "Deploy or update contract.")
 class TxContractDeploy implements Runnable {
 
-    @CommandLine.Option(names = "--car", required = true, description = "The car file path", scope = CommandLine.ScopeType.INHERIT)
-    File car;
+    @CommandLine.Option(names = "--code", required = true, description = "The car file path", scope = CommandLine.ScopeType.INHERIT)
+    File code;
+
+    @CommandLine.Option(names = "--lang", required = true, description = "The contract language", defaultValue = "Java", scope = CommandLine.ScopeType.INHERIT)
+    ContractLang lang;
 
     @CommandLine.Option(names = "--pubkey", description = "The pubkey of the exist contract", scope = CommandLine.ScopeType.INHERIT)
     String pubkey;
@@ -491,7 +494,7 @@ class TxContractDeploy implements Runnable {
         } else {
             account = new BlockchainIdentityData(KeyGenUtils.decodePubKey(pubkey));
         }
-        txTemp.contracts().deploy(account, FileUtils.readBytes(car));
+        txTemp.contracts().deploy(account, FileUtils.readBytes(code), lang);
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);
         if (null != txFile) {
