@@ -359,13 +359,18 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 		metadata.setSettingsHash(settingsHash);
 		if (previousSettingHash == null || !previousSettingHash.equals(settingsHash)) {
 			Bytes settingsKey = encodeSettingsKey(settingsHash);
-			boolean nx = storage.set(settingsKey, settingsBytes, ExPolicy.NOT_EXISTING);
-			if (!nx) {
-				String base58MetadataHash = settingsHash.toBase58();
-				// 有可能发生了并发写入冲突，不同的节点都向同一个存储服务器上写入数据；
-				String errMsg = "Ledger metadata already exist! --[MetadataHash=" + base58MetadataHash + "]";
-				LOGGER.warn(errMsg);
-				throw new LedgerException(errMsg);
+			if (!storage.exist(settingsKey)) {
+				boolean nx = storage.set(settingsKey, settingsBytes, ExPolicy.NOT_EXISTING);
+				if (!nx) {
+					String base58MetadataHash = settingsHash.toBase58();
+					// 有可能发生了并发写入冲突，不同的节点都向同一个存储服务器上写入数据；
+					String errMsg = "Ledger metadata already exist! --[MetadataHash=" + base58MetadataHash + "]";
+					LOGGER.warn(errMsg);
+					throw new LedgerException(errMsg);
+				}
+			} else {
+				//可能发生在共识切换的场景，共识又切换回以前的共识方式，那么key肯定是存在的，不需要重复设置到数据库
+				LOGGER.info("Switch to old consensus, no need to set setting key repeatly!");
 			}
 		}
 
@@ -379,13 +384,18 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 			// String metadataKey = encodeMetadataKey(base58MetadataHash);
 			Bytes metadataKey = encodeMetadataKey(metadataHash);
 
-			boolean nx = storage.set(metadataKey, metadataBytes, ExPolicy.NOT_EXISTING);
-			if (!nx) {
-				String base58MetadataHash = metadataHash.toBase58();
-				// 有可能发生了并发写入冲突，不同的节点都向同一个存储服务器上写入数据；
-				String errMsg = "Ledger metadata already exist! --[MetadataHash=" + base58MetadataHash + "]";
-				LOGGER.warn(errMsg);
-				throw new LedgerException(errMsg);
+			if (!storage.exist(metadataKey)) {
+				boolean nx = storage.set(metadataKey, metadataBytes, ExPolicy.NOT_EXISTING);
+				if (!nx) {
+					String base58MetadataHash = metadataHash.toBase58();
+					// 有可能发生了并发写入冲突，不同的节点都向同一个存储服务器上写入数据；
+					String errMsg = "Ledger metadata already exist! --[MetadataHash=" + base58MetadataHash + "]";
+					LOGGER.warn(errMsg);
+					throw new LedgerException(errMsg);
+				}
+			} else {
+				//可能发生在共识切换的场景，共识又切换回以前的共识方式，那么key肯定是存在的，不需要重复设置到数据库
+				LOGGER.info("Switch to old consensus, no need to set meta key repeatly!");
 			}
 
 			adminDataHash = metadataHash;

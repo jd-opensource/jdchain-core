@@ -13,5 +13,6 @@
 	<modules>
 		<module>consensus-bftsmart</module>
 		<module>consensus-mq</module>
+		<module>consensus-raft</module>
 	</modules>
 </project>

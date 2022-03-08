@@ -5,11 +5,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
@@ -161,17 +158,32 @@ public class LedgerBindingConfig {
 		writeLine(builder, "#账本的当前共识参与方的私钥文件的读取口令；可为空；如果为空时，节点的启动过程中需要手动从控制台输入；");
 		writeLine(builder, "%s=%s", partiPwdKey, stringOf(binding.getParticipant().getPassword()));
 		writeLine(builder, "#账本的当前共识参与方的共识服务TLS相关配置；");
-		writeLine(builder, "%s=%s", partiSslKeyStore, stringOf(binding.getParticipant().getSslKeyStore()));
+		writeLine(builder, "%s=%s", partiSslKeyStore, escapeWinPath(stringOf(binding.getParticipant().getSslKeyStore())));
 		writeLine(builder, "%s=%s", partiSslKeyStoreType, stringOf(binding.getParticipant().getSslKeyStoreType()));
 		writeLine(builder, "%s=%s", partiSslKeyAlias, stringOf(binding.getParticipant().getSslKeyAlias()));
 		writeLine(builder, "%s=%s", partiSslKeyStorePassword, stringOf(binding.getParticipant().getSslKeyStorePassword()));
-		writeLine(builder, "%s=%s", partiSslTrustStore, stringOf(binding.getParticipant().getSslTrustStore()));
+		writeLine(builder, "%s=%s", partiSslTrustStore, escapeWinPath(stringOf(binding.getParticipant().getSslTrustStore())));
 		writeLine(builder, "%s=%s", partiSslTrustStorePassword, stringOf(binding.getParticipant().getSslTrustStorePassword()));
 		writeLine(builder, "%s=%s", partiSslTrustStoreType, stringOf(binding.getParticipant().getSslTrustStoreType()));
 		writeLine(builder, "%s=%s", partiSslProtocol, stringOf(binding.getParticipant().getProtocol()));
 		writeLine(builder, "%s=%s", partiSslEnabledProtocols, stringOf(binding.getParticipant().getEnabledProtocols()));
 		writeLine(builder, "%s=%s", partiSslCiphers, stringOf(binding.getParticipant().getCiphers()));
 		writeLine(builder);
+	}
+
+	private String  escapeWinPath(String path){
+
+		if(path == null || "".equals(path.trim())){
+			return path;
+		}
+
+		String os = System.getProperty("os.name");
+		if(!os.toLowerCase().startsWith("win")){
+			return path;
+		}
+
+		String[] split = path.split("\\\\");
+		return Arrays.stream(split).filter(x -> x != null && !"".equals(x.trim())).collect(Collectors.joining("\\\\"));
 	}
 
 	private void writeDB(StringBuilder builder, HashDigest ledgerHash, BindingConfig binding) {

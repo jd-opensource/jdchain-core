@@ -1,17 +1,5 @@
 package com.jd.blockchain.peer.consensus;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.BlockStateSnapshot;
 import com.jd.blockchain.consensus.service.ConsensusContext;
@@ -31,10 +19,23 @@ import com.jd.blockchain.ledger.core.TransactionEngineImpl;
 import com.jd.blockchain.service.TransactionBatchProcess;
 import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.service.TransactionEngine;
-
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import utils.codec.Base58Utils;
 import utils.concurrent.AsyncFuture;
 import utils.concurrent.CompletableAsyncFuture;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import com.jd.blockchain.metrics.LedgerMetrics;
+import io.micrometer.core.instrument.MeterRegistry;
 
 /**
  * @author huanghaiquan
@@ -45,6 +46,9 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 
 	@Autowired
 	private TransactionEngine txEngine;
+
+	@Autowired
+	private MeterRegistry meterRegistry;
 
 	// todo 当账本很多的时候，可能存在内存溢出的问题
 	private final Map<String, RealmProcessor> realmProcessorMap = new ConcurrentHashMap<>();
@@ -76,8 +80,8 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 	}
 
 	@Override
-	public StateSnapshot getStateSnapshot(ConsensusContext consensusContext) {
-		RealmProcessor realmProcessor = realmProcessorMap.get(realmName(consensusContext));
+	public StateSnapshot getLatestStateSnapshot(String realName) {
+		RealmProcessor realmProcessor = realmProcessorMap.get(realName);
 		if (realmProcessor == null) {
 			throw new IllegalArgumentException("RealmName is not init!");
 		}
@@ -85,12 +89,56 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 	}
 
 	@Override
-	public StateSnapshot getGenesisStateSnapshot(ConsensusContext consensusContext) {
-		RealmProcessor realmProcessor = realmProcessorMap.get(realmName(consensusContext));
+	public StateSnapshot getGenesisStateSnapshot(String realName) {
+		RealmProcessor realmProcessor = realmProcessorMap.get(realName);
 		if (realmProcessor == null) {
 			throw new IllegalArgumentException("RealmName is not init!");
 		}
 		return realmProcessor.getGenesisStateSnapshot();
+	}
+
+	@Override
+	public int getCommandsNumByCid(String realName, int cid) {
+
+		byte[] hashBytes = Base58Utils.decode(realName);
+
+		HashDigest ledgerHash =  Crypto.resolveAsHashDigest(hashBytes);
+
+		//获得区块高度为cid + 1对应的增量交易数
+		return ((TransactionEngineImpl)txEngine).getTxsNumByHeight(ledgerHash, cid + 1);
+
+	}
+
+	@Override
+	public byte[][] getCommandsByCid(String realName, int  cid, int currHeightCommandsNum) {
+
+		byte[] hashBytes = Base58Utils.decode(realName);
+
+		HashDigest ledgerHash = Crypto.resolveAsHashDigest(hashBytes);
+
+		// 获得区块高度为cid + 1对应的增量交易内容
+		return ((TransactionEngineImpl)txEngine).getTxsByHeight(ledgerHash, cid + 1, currHeightCommandsNum);
+
+	}
+
+	@Override
+	public byte[] getSnapshotByHeight(String realName, int cid) {
+
+		byte[] hashBytes = Base58Utils.decode(realName);
+
+		HashDigest ledgerHash =  Crypto.resolveAsHashDigest(hashBytes);
+
+		//获得区块高度为cid + 1的区块哈希
+		return ((TransactionEngineImpl)txEngine).getSnapshotByHeight(ledgerHash, cid + 1);
+	}
+
+	@Override
+	public long getTimestampByCid(String realName, int cid) {
+		byte[] hashBytes = Base58Utils.decode(realName);
+
+		HashDigest ledgerHash =  Crypto.resolveAsHashDigest(hashBytes);
+
+		return ((TransactionEngineImpl)txEngine).getTimestampByHeight(ledgerHash, cid + 1);
 	}
 
 	@Override
@@ -156,6 +204,7 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 		HashDigest ledgerHash = Crypto.resolveAsHashDigest(hashBytes);
 		realmProcessor.realmName = realmName;
 		realmProcessor.ledgerHash = ledgerHash;
+		realmProcessor.metrics = new LedgerMetrics(realmName, meterRegistry);
 		return realmProcessor;
 	}
 
@@ -188,6 +237,8 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 
 		String realmName;
 
+		private LedgerMetrics metrics;
+
 		public String getRealmName() {
 			return realmName;
 		}
@@ -218,7 +269,7 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 					txResponseMap = new ConcurrentHashMap<>();
 				}
 				if (txBatchProcess == null) {
-					txBatchProcess = txEngine.createNextBatch(ledgerHash);
+					txBatchProcess = txEngine.createNextBatch(ledgerHash, metrics);
 				}
 			} finally {
 				realmLock.unlock();
@@ -310,7 +361,7 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 		}
 
 		private void asyncBlExecute(Map<TransactionResponse, CompletableAsyncFuture<byte[]>> asyncMap,
-									long blockHeight, HashDigest blockHash, long blockGenerateTime) {
+                                    long blockHeight, HashDigest blockHash, long blockGenerateTime) {
 			asyncBlExecutor.execute(() -> {
 				// 填充应答结果
 				for (Map.Entry<TransactionResponse, CompletableAsyncFuture<byte[]>> entry : asyncMap.entrySet()) {

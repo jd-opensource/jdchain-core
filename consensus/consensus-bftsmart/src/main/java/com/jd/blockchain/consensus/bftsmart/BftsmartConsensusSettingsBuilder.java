@@ -164,15 +164,15 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 			PubKey pubKey = participantNodes[i].getPubKey();
 //			resolvingProps.remove(keyOfPubkey);
 			
-			String keyOfHost = keyOfNode(CONSENSUS_HOST_PATTERN, id);
+			String keyOfHost = keyOfNode(CONSENSUS_HOST_PATTERN, participantNodes[id].getId());
 			String networkAddressHost = PropertiesUtils.getOptionalProperty(resolvingProps, keyOfHost, null);
 			resolvingProps.remove(keyOfHost);
 
-			String keyOfPort = keyOfNode(CONSENSUS_PORT_PATTERN, id);
+			String keyOfPort = keyOfNode(CONSENSUS_PORT_PATTERN, participantNodes[id].getId());
 			int networkAddressPort = PropertiesUtils.getIntOptional(resolvingProps, keyOfPort, -1);
 			resolvingProps.remove(keyOfPort);
 
-			String keyOfSecure = keyOfNode(CONSENSUS_SECURE_PATTERN, id);
+			String keyOfSecure = keyOfNode(CONSENSUS_SECURE_PATTERN, participantNodes[id].getId());
 			boolean networkAddressSecure = PropertiesUtils.getBooleanOptional(resolvingProps, keyOfSecure, false);
 			resolvingProps.remove(keyOfSecure);
 			
@@ -183,7 +183,7 @@ public class BftsmartConsensusSettingsBuilder implements ConsensusSettingsBuilde
 				networkAddressSecure = replica.getNetworkAddress().isSecure();
 			}
 
-			BftsmartNodeConfig nodeConfig = new BftsmartNodeConfig(pubKey, id,
+			BftsmartNodeConfig nodeConfig = new BftsmartNodeConfig(pubKey, participantNodes[id].getId(),
 					new NetworkAddress(networkAddressHost, networkAddressPort, networkAddressSecure));
 			nodesSettings[i] = nodeConfig;
 		}

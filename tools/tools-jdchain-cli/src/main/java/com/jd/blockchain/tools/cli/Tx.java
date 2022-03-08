@@ -11,6 +11,8 @@ import com.jd.blockchain.transaction.*;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 import utils.Bytes;
+import utils.GmSSLProvider;
+import utils.PropertiesUtils;
 import utils.StringUtils;
 import utils.codec.Base58Utils;
 import utils.io.BytesUtils;
@@ -18,10 +20,14 @@ import utils.io.FileUtils;
 import utils.net.SSLSecurity;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
@@ -56,6 +62,8 @@ import java.util.concurrent.atomic.AtomicLong;
                 TxSign.class,
                 TxSend.class,
                 TxTestKV.class,
+                TxSwitchConsensus.class,
+                TxSwitchHashAlgo.class,
                 CommandLine.HelpCommand.class
         }
 )
@@ -102,6 +110,9 @@ public class Tx implements Runnable {
     @CommandLine.Option(names = "--ssl.ciphers", description = "Set ssl.ciphers for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String ciphers;
 
+    @CommandLine.Option(names = "--ssl.host-verifier", defaultValue = "NO-OP",description = "Set host verifier for SSL. NO-OP or Default", scope = CommandLine.ScopeType.INHERIT)
+    String hostNameVerifier;
+
     @CommandLine.Option(names = "--export", description = "Transaction export directory", scope = CommandLine.ScopeType.INHERIT)
     String export;
 
@@ -113,8 +124,9 @@ public class Tx implements Runnable {
     GatewayBlockchainServiceProxy getChainService() {
         if (null == blockchainService) {
             if (gwSecure) {
+                GmSSLProvider.enableGMSupport(protocol);
                 blockchainService = (GatewayBlockchainServiceProxy) GatewayServiceFactory.connect(gwHost, gwPort, gwSecure, new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword,
-                        trustStore, trustStorePassword, trustStoreType, protocol, enabledProtocols, ciphers)).getBlockchainService();
+                        trustStore, trustStorePassword, trustStoreType, protocol, enabledProtocols, ciphers, hostNameVerifier)).getBlockchainService();
             } else {
                 blockchainService = (GatewayBlockchainServiceProxy) GatewayServiceFactory.connect(gwHost, gwPort, gwSecure).getBlockchainService();
             }
@@ -124,10 +136,17 @@ public class Tx implements Runnable {
 
     HashDigest selectLedger() {
         HashDigest[] ledgers = getChainService().getLedgerHashs();
+
         System.out.printf("select ledger, input the index: %n%-7s\t%s%n", "INDEX", "LEDGER");
         for (int i = 0; i < ledgers.length; i++) {
             System.out.printf("%-7s\t%s%n", i, ledgers[i]);
         }
+
+        if(ledgers.length == 1){
+            System.out.printf("> 0 (use default ledger)%n");
+            return ledgers[0];
+        }
+
         int index = ScannerUtils.readRangeInt(0, ledgers.length - 1);
         return ledgers[index];
     }
@@ -407,7 +426,7 @@ class TxUserStateUpdate implements Runnable {
     @CommandLine.Option(names = "--address", required = true, description = "User address", scope = CommandLine.ScopeType.INHERIT)
     String address;
 
-    @CommandLine.Option(names = "--state", required = true, description = "User state，Optional values: FREEZE,NORMAL,REVOKE", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--state", required = true, description = "User state, Optional values: FREEZE,NORMAL,REVOKE", scope = CommandLine.ScopeType.INHERIT)
     AccountState state;
 
     @CommandLine.ParentCommand
@@ -751,7 +770,7 @@ class TxContractStateUpdate implements Runnable {
     @CommandLine.Option(names = "--address", required = true, description = "Contract address", scope = CommandLine.ScopeType.INHERIT)
     String address;
 
-    @CommandLine.Option(names = "--state", required = true, description = "Contract state，Optional values: FREEZE,NORMAL,REVOKE", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--state", required = true, description = "Contract state, Optional values: FREEZE,NORMAL,REVOKE", scope = CommandLine.ScopeType.INHERIT)
     AccountState state;
 
     @CommandLine.ParentCommand
@@ -1141,6 +1160,100 @@ class TxContractAccountPermission implements Runnable {
                     System.out.printf("update contract: [%s] permission\n", address);
                 } else {
                     System.err.printf("update contract permission failed: [%s]!%n", response.getExecutionState());
+                }
+            }
+        }
+    }
+}
+
+@CommandLine.Command(name = "switch-consensus", mixinStandardHelpOptions = true, header = "Switch consensus type.")
+class TxSwitchConsensus implements Runnable {
+
+    @CommandLine.Option(names = "--type", required = true, description = "New consensus type. Options: `bft`,`raft`,`mq`", scope = CommandLine.ScopeType.INHERIT)
+    String type;
+
+    @CommandLine.Option(names = "--file", required = true, description = "Set new consensus config file", scope = CommandLine.ScopeType.INHERIT)
+    String config;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+        Properties properties;
+        String providerName = null;
+
+        if (StringUtils.isEmpty(type) || StringUtils.isEmpty(config)) {
+            System.err.println("both type and config file path are empty!");
+            return;
+        }
+
+        TransactionTemplate txTemp = txCommand.newTransaction();
+
+        try (InputStream in = new FileInputStream(new File(config))) {
+            properties = FileUtils.readProperties(in);
+        } catch (IOException e) {
+            throw new IllegalStateException(e.getMessage(), e);
+        }
+
+        if (type.equalsIgnoreCase("bft")) {
+            providerName = "com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider";
+        } else if (type.equalsIgnoreCase("raft")) {
+            providerName = "com.jd.blockchain.consensus.raft.RaftConsensusProvider";
+        } else if (type.equalsIgnoreCase("mq")) {
+            providerName = "com.jd.blockchain.consensus.mq.MsgQueueConsensusProvider";
+        }else {
+            System.err.printf("not support consensus type: %s, select `bft`, `raft` or `mq`%n", type);
+            return;
+        }
+        txTemp.switchSettings().update(providerName, PropertiesUtils.getOrderedValues(properties));
+        PreparedTransaction ptx = txTemp.prepare();
+        String txFile = txCommand.export(ptx);
+        if (null != txFile) {
+            System.err.println("export transaction success: " + txFile);
+        } else {
+            if (txCommand.sign(ptx)) {
+                TransactionResponse response = ptx.commit();
+                if (response.isSuccess()) {
+                    System.out.println("switch consensus type success");
+                } else {
+                    System.err.printf("switch consensus type failed: [%s]!%n", response.getExecutionState());
+                }
+            }
+        }
+    }
+}
+
+@CommandLine.Command(name = "switch-hash-algo", mixinStandardHelpOptions = true, header = "Switch crypto hash algo.")
+class TxSwitchHashAlgo implements Runnable {
+
+    @CommandLine.Option(names = "--hash-algo", required = true, description = "New crypto hash algo. Options:'SHA256','RIPEMD160','SM3'", scope = CommandLine.ScopeType.INHERIT)
+    String newHashAlgo;
+
+    @CommandLine.ParentCommand
+    private Tx txCommand;
+
+    @Override
+    public void run() {
+
+        if (StringUtils.isEmpty(newHashAlgo)) {
+            System.err.println("new hash algo is empty!");
+            return;
+        }
+
+        TransactionTemplate txTemp = txCommand.newTransaction();
+        txTemp.switchHashAlgo().update(newHashAlgo);
+        PreparedTransaction ptx = txTemp.prepare();
+        String txFile = txCommand.export(ptx);
+        if (null != txFile) {
+            System.err.println("export transaction success: " + txFile);
+        } else {
+            if (txCommand.sign(ptx)) {
+                TransactionResponse response = ptx.commit();
+                if (response.isSuccess()) {
+                    System.out.println("switch new hash algo success");
+                } else {
+                    System.err.printf("switch new hash algo failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }

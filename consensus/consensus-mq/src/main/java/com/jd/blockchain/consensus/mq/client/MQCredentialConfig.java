@@ -1,6 +1,7 @@
 package com.jd.blockchain.consensus.mq.client;
 
 import com.jd.binaryproto.DataContractRegistry;
+import com.jd.blockchain.consensus.ConsensusTypeEnum;
 
 public class MQCredentialConfig implements MQCredentialInfo{
 
@@ -25,5 +26,10 @@ public class MQCredentialConfig implements MQCredentialInfo{
 
 	public static MQCredentialConfig createEmptyCredential() {
 		return new MQCredentialConfig(new byte[]{});
+	}
+
+	@Override
+	public int consensusProviderType() {
+		return ConsensusTypeEnum.MQ.getCode();
 	}
 }

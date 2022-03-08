@@ -193,14 +193,6 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 					"The size of value is great than the max size[" + MAX_SIZE_OF_VALUE + "]!");
 		}
 		Bytes dataKey = encodeDataKey(key);
-
-//		long newVersion;
-//		if (datasetType == SimpleDatasetType.TX) {
-//			newVersion = setTxTypeValue(dataKey, value);
-//		} else {
-//			newVersion = setNoneTypeValue(dataKey, value, version);
-//		}
-
 		return setNoneTypeValue(dataKey, value, version);
 	}
 

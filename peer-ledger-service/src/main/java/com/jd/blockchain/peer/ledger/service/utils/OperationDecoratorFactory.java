@@ -7,10 +7,9 @@ import com.jd.blockchain.transaction.*;
 
 /**
  * Operation接口包装工厂
- *         用于将${@link Operation} 接口对象转换为具体的实现类（可用于JSON序列化）
+ * 用于将${@link Operation} 接口对象转换为具体的实现类（可用于JSON序列化）
  *
  * @author shaozhuguang
- *
  */
 public class OperationDecoratorFactory {
 
@@ -31,6 +30,8 @@ public class OperationDecoratorFactory {
             return decorateParticipantStateUpdateOperation((ParticipantStateUpdateOperation) op);
         } else if (op instanceof ConsensusSettingsUpdateOperation) {
             return decorateConsensusSettingsUpdateOperation((ConsensusSettingsUpdateOperation) op);
+        } else if (op instanceof ConsensusReconfigOperation) {
+            return decorateConsensusReconfigOperation((ConsensusReconfigOperation) op);
         } else if (op instanceof RolesConfigureOperation) {
             return decorateRolesConfigureOperation((RolesConfigureOperation) op);
         } else if (op instanceof UserAuthorizeOperation) {
@@ -51,9 +52,21 @@ public class OperationDecoratorFactory {
             return decorateContractStateUpdateOperation((ContractStateUpdateOperation) op);
         } else if (op instanceof AccountPermissionSetOperation) {
             return decorateAccountPermissionSetOperation((AccountPermissionSetOperation) op);
+        } else if (op instanceof ConsensusTypeUpdateOperation) {
+            return decorateConsensusTypeUpdateOperation((ConsensusTypeUpdateOperation) op);
+        } else if (op instanceof CryptoHashAlgoUpdateOperation){
+            return decorateCryptoHashAlgoUpdateOperation((CryptoHashAlgoUpdateOperation)op);
         }
 
         return null;
+    }
+
+    private static Operation decorateCryptoHashAlgoUpdateOperation(CryptoHashAlgoUpdateOperation op) {
+        return new CryptoHashAlgoUpdateOpTemplate(op.getHashAlgoName());
+    }
+
+    private static Operation decorateConsensusTypeUpdateOperation(ConsensusTypeUpdateOperation op) {
+        return new ConsensusTypeUpdateOpTemplate(op.getProviderName(), op.getProperties());
     }
 
     /**
@@ -75,7 +88,7 @@ public class OperationDecoratorFactory {
      */
     public static Operation decorateContractEventSendOperation(ContractEventSendOperation op) {
         BytesDataList dataList;
-        if(null != op.getArgs()) {
+        if (null != op.getArgs()) {
             dataList = new BytesDataList(decorateBytesValues(op.getArgs().getValues()));
         } else {
             dataList = new BytesDataList();
@@ -123,7 +136,7 @@ public class OperationDecoratorFactory {
         ledgerInitData.setCryptoSetting(new CryptoConfigInfo(op.getInitSetting().getCryptoSetting()));
         ledgerInitData.setLedgerSeed(op.getInitSetting().getLedgerSeed());
         ledgerInitData.setIdentityMode(op.getInitSetting().getIdentityMode());
-        if(op.getInitSetting().getIdentityMode() == IdentityMode.CA) {
+        if (op.getInitSetting().getIdentityMode() == IdentityMode.CA) {
             ledgerInitData.setLedgerCertificates(op.getInitSetting().getLedgerCertificates());
         }
         ledgerInitData.setConsensusProvider(op.getInitSetting().getConsensusProvider());
@@ -144,14 +157,14 @@ public class OperationDecoratorFactory {
             }
 
             GenesisUser[] gus = op.getInitSetting().getGenesisUsers();
-            if(null == gus || gus.length == 0) {
+            if (null == gus || gus.length == 0) {
                 gus = new GenesisUserConfig[participantNodes.length];
                 for (int i = 0; i < participantNodes.length; i++) {
                     gus[i] = new GenesisUserConfig(participantNodes[i].getPubKey(), null, null, null);
                 }
             }
             GenesisUser[] genesisUsers = new GenesisUserConfig[gus.length];
-            for(int i=0; i<gus.length; i++) {
+            for (int i = 0; i < gus.length; i++) {
                 genesisUsers[i] = new GenesisUserConfig(gus[i]);
             }
             ledgerInitData.setGenesisUsers(genesisUsers);
@@ -192,6 +205,16 @@ public class OperationDecoratorFactory {
      */
     public static Operation decorateConsensusSettingsUpdateOperation(ConsensusSettingsUpdateOperation op) {
         return new ConsensusSettingsUpdateOpTemplate(op.getProperties());
+    }
+
+    /**
+     * decorate ConsensusReconfigOperation object
+     *
+     * @param op
+     * @return
+     */
+    public static Operation decorateConsensusReconfigOperation(ConsensusReconfigOperation op) {
+        return new ConsensusReconfigOpTemplate(op.getReconfigType());
     }
 
     /**
@@ -320,6 +343,7 @@ public class OperationDecoratorFactory {
     public static Operation decorateContractStateUpdateOperation(ContractStateUpdateOperation op) {
         return new ContractStateUpdateOpTemplate(op.getContractAddress(), op.getState());
     }
+
     /**
      * decorate AccountPermissionSetOperation object
      *

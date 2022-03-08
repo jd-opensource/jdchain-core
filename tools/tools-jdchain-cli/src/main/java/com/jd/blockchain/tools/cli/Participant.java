@@ -16,6 +16,7 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicNameValuePair;
 import picocli.CommandLine;
+import utils.GmSSLProvider;
 import utils.StringUtils;
 import utils.codec.Base58Utils;
 import utils.io.FileUtils;
@@ -75,6 +76,9 @@ public class Participant implements Runnable {
     @CommandLine.Option(names = "--ssl.ciphers", description = "Set ssl.ciphers for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String ciphers;
 
+    @CommandLine.Option(names = "--ssl.host-verifier", defaultValue = "NO-OP",description = "Set host verifier for SSL. NO-OP or Default", scope = CommandLine.ScopeType.INHERIT)
+    String hostNameVerifier;
+
     @CommandLine.ParentCommand
     JDChainCli jdChainCli;
 
@@ -82,7 +86,7 @@ public class Participant implements Runnable {
     CommandLine.Model.CommandSpec spec;
 
     SSLSecurity getSSLSecurity() {
-        return new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword, trustStore, trustStorePassword, trustStoreType, protocol, enabledProtocols, ciphers);
+        return new SSLSecurity(keyStoreType, keyStore, keyAlias, keyStorePassword, trustStore, trustStorePassword, trustStoreType, protocol, enabledProtocols, ciphers, hostNameVerifier);
     }
 
     @Override
@@ -122,6 +126,7 @@ class ParticipantRegister implements Runnable {
     BlockchainService getChainService() {
         if (null == blockchainService) {
             if (gwSecure) {
+                GmSSLProvider.enableGMSupport(participant.getSSLSecurity().getProtocol());
                 blockchainService = GatewayServiceFactory.connect(gwHost, gwPort, gwSecure, participant.getSSLSecurity()).getBlockchainService();
             } else {
                 blockchainService = GatewayServiceFactory.connect(gwHost, gwPort, gwSecure).getBlockchainService();
@@ -136,6 +141,12 @@ class ParticipantRegister implements Runnable {
         for (int i = 0; i < ledgers.length; i++) {
             System.out.printf("%-7s\t%s%n", i, ledgers[i]);
         }
+
+        if(ledgers.length == 1){
+            System.out.printf("> 0 (use default ledger)%n");
+            return ledgers[0];
+        }
+
         int selectedIndex = ScannerUtils.readRangeInt(0, ledgers.length - 1);
         return ledgers[selectedIndex];
     }
@@ -249,6 +260,9 @@ class ParticipantActive implements Runnable {
     @CommandLine.Option(names = "--consensus-port", required = true, description = "Set the participant consensus port.", scope = CommandLine.ScopeType.INHERIT)
     int consensusPort;
 
+    @CommandLine.Option(names = "--consensus-storage", required = false, description = "Set the participant consensus storage. (raft consensus needed)", scope = CommandLine.ScopeType.INHERIT)
+    String consensusStorage;
+
     @CommandLine.Option(names = "--consensus-secure", description = "Whether to open the secure connection for consensus.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
     boolean consensusSecure;
 
@@ -290,6 +304,7 @@ class ParticipantActive implements Runnable {
         params.add(new BasicNameValuePair("ledgerHash", ledger));
         params.add(new BasicNameValuePair("consensusHost", host));
         params.add(new BasicNameValuePair("consensusPort", consensusPort + ""));
+        params.add(new BasicNameValuePair("consensusStorage", consensusStorage));
         params.add(new BasicNameValuePair("consensusSecure", consensusSecure + ""));
         params.add(new BasicNameValuePair("remoteManageHost", synHost));
         params.add(new BasicNameValuePair("remoteManagePort", synPort + ""));
@@ -298,6 +313,7 @@ class ParticipantActive implements Runnable {
         httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
         ServiceEndpoint endpoint = new ServiceEndpoint(host, port, secure);
         if (secure) {
+            GmSSLProvider.enableGMSupport(participant.getSSLSecurity().getProtocol());
             endpoint.setSslSecurity(participant.getSSLSecurity());
         } else {
             endpoint.setSslSecurity(new SSLSecurity());
@@ -327,6 +343,9 @@ class ParticipantUpdate implements Runnable {
 
     @CommandLine.Option(names = "--consensus-port", required = true, description = "Set the participant consensus port.", scope = CommandLine.ScopeType.INHERIT)
     int consensusPort;
+
+    @CommandLine.Option(names = "--consensus-storage", required = false, description = "Set the participant consensus storage. (raft consensus needed)", scope = CommandLine.ScopeType.INHERIT)
+    String consensusStorage;
 
     @CommandLine.Option(names = "--consensus-secure", description = "Whether to open the secure connection for consensus.", defaultValue = "false", scope = CommandLine.ScopeType.INHERIT)
     boolean consensusSecure;
@@ -360,11 +379,13 @@ class ParticipantUpdate implements Runnable {
         params.add(new BasicNameValuePair("ledgerHash", ledger));
         params.add(new BasicNameValuePair("consensusHost", consensusHost));
         params.add(new BasicNameValuePair("consensusPort", consensusPort + ""));
+        params.add(new BasicNameValuePair("consensusStorage", consensusStorage + ""));
         params.add(new BasicNameValuePair("consensusSecure", consensusSecure + ""));
         params.add(new BasicNameValuePair("shutdown", shutdown + ""));
         httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
         ServiceEndpoint endpoint = new ServiceEndpoint(host, port, secure);
         if (secure) {
+            GmSSLProvider.enableGMSupport(participant.getSSLSecurity().getProtocol());
             endpoint.setSslSecurity(participant.getSSLSecurity());
         } else {
             endpoint.setSslSecurity(new SSLSecurity());
@@ -407,6 +428,7 @@ class ParticipantInactive implements Runnable {
             httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
             ServiceEndpoint endpoint = new ServiceEndpoint(host, port, secure);
             if (secure) {
+                GmSSLProvider.enableGMSupport(participant.getSSLSecurity().getProtocol());
                 endpoint.setSslSecurity(participant.getSSLSecurity());
             } else {
                 endpoint.setSslSecurity(new SSLSecurity());
