@@ -35,7 +35,6 @@ import com.alipay.remoting.config.BoltClientOption;
 import com.alipay.remoting.config.BoltGenericOption;
 import com.alipay.remoting.config.BoltServerOption;
 import io.netty.handler.ssl.util.SimpleTrustManagerFactory;
-import org.apache.tomcat.jni.SSL;
 import org.slf4j.Logger;
 
 import com.alipay.remoting.codec.Codec;
