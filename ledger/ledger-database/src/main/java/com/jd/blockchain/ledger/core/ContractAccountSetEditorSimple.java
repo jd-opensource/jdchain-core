@@ -2,11 +2,7 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.ledger.AccountState;
-import com.jd.blockchain.ledger.BlockchainIdentity;
-import com.jd.blockchain.ledger.CryptoSetting;
-import com.jd.blockchain.ledger.DigitalSignature;
-import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import utils.Bytes;
@@ -101,9 +97,10 @@ public class ContractAccountSetEditorSimple implements Transactional, ContractAc
 	 * @param pubKey           合约账户公钥；
 	 * @param addressSignature 地址签名；合约账户的私钥对地址的签名；
 	 * @param chaincode        链码内容；
+	 * @param lang   合约语言；
 	 * @return 合约账户；
 	 */
-	public ContractAccount deploy(Bytes address, PubKey pubKey, DigitalSignature addressSignature, byte[] chaincode) {
+	public ContractAccount deploy(Bytes address, PubKey pubKey, DigitalSignature addressSignature, byte[] chaincode, ContractLang lang) {
 		// TODO: 校验和记录合约地址签名；
 		//is exist address?
 		ContractAccount contractAcc;
@@ -117,6 +114,7 @@ public class ContractAccountSetEditorSimple implements Transactional, ContractAc
 			contractAcc = this.getAccount(address,curVersion);
 			contractAcc.setChaincode(chaincode,curVersion);
 		}
+		contractAcc.setLang(lang);
 		return contractAcc;
 	}
 
@@ -126,11 +124,13 @@ public class ContractAccountSetEditorSimple implements Transactional, ContractAc
 	 * @param address   合约账户地址；
 	 * @param chaincode 链码内容；
 	 * @param version   链码版本；
+	 * @param lang   合约语言；
 	 * @return 返回链码的新版本号；
 	 */
-	public long update(Bytes address, byte[] chaincode, long version) {
+	public long update(Bytes address, byte[] chaincode, long version, ContractLang lang) {
 		CompositeAccount accBase = accountSet.getAccount(address);
 		ContractAccount contractAcc = new ContractAccount(accBase);
+		contractAcc.setLang(lang);
 		return contractAcc.setChaincode(chaincode, version);
 	}
 

@@ -3,48 +3,7 @@ package com.jd.blockchain.ledger.core.handles;
 import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.contract.LedgerContext;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.AccountPermissionSetOperation;
-import com.jd.blockchain.ledger.AccountState;
-import com.jd.blockchain.ledger.AccountType;
-import com.jd.blockchain.ledger.BlockchainIdentity;
-import com.jd.blockchain.ledger.BlockchainIdentityData;
-import com.jd.blockchain.ledger.BytesValue;
-import com.jd.blockchain.ledger.BytesValueList;
-import com.jd.blockchain.ledger.ContractCodeDeployOperation;
-import com.jd.blockchain.ledger.ContractEventSendOperation;
-import com.jd.blockchain.ledger.ContractInfo;
-import com.jd.blockchain.ledger.ContractStateUpdateOperation;
-import com.jd.blockchain.ledger.DataAccountInfo;
-import com.jd.blockchain.ledger.DataAccountKVSetOperation;
-import com.jd.blockchain.ledger.DataAccountRegisterOperation;
-import com.jd.blockchain.ledger.Event;
-import com.jd.blockchain.ledger.EventAccountInfo;
-import com.jd.blockchain.ledger.EventAccountRegisterOperation;
-import com.jd.blockchain.ledger.EventPublishOperation;
-import com.jd.blockchain.ledger.KVInfoVO;
-import com.jd.blockchain.ledger.LedgerAdminInfo;
-import com.jd.blockchain.ledger.LedgerBlock;
-import com.jd.blockchain.ledger.LedgerInfo;
-import com.jd.blockchain.ledger.LedgerMetadata;
-import com.jd.blockchain.ledger.LedgerPermission;
-import com.jd.blockchain.ledger.LedgerQueryService;
-import com.jd.blockchain.ledger.LedgerTransaction;
-import com.jd.blockchain.ledger.Operation;
-import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.PrivilegeSet;
-import com.jd.blockchain.ledger.RolesConfigureOperation;
-import com.jd.blockchain.ledger.RolesPolicy;
-import com.jd.blockchain.ledger.RootCAUpdateOperationBuilder;
-import com.jd.blockchain.ledger.TransactionPermission;
-import com.jd.blockchain.ledger.TransactionState;
-import com.jd.blockchain.ledger.TypedKVEntry;
-import com.jd.blockchain.ledger.TypedValue;
-import com.jd.blockchain.ledger.UserAuthorizeOperation;
-import com.jd.blockchain.ledger.UserCAUpdateOperation;
-import com.jd.blockchain.ledger.UserInfo;
-import com.jd.blockchain.ledger.UserPrivilegeSet;
-import com.jd.blockchain.ledger.UserRegisterOperation;
-import com.jd.blockchain.ledger.UserStateUpdateOperation;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.transaction.AccountPermissionSetOpTemplate;
 import com.jd.blockchain.transaction.AccountPermissionSetOperationBuilder;
@@ -165,6 +124,11 @@ public class ContractLedgerContext implements LedgerContext {
     @Override
     public TypedKVEntry[] getDataEntries(String address, KVInfoVO kvInfoVO) {
         return innerQueryService.getDataEntries(address, kvInfoVO);
+    }
+
+    @Override
+    public TypedKVEntry getDataEntry(String address, String key, long version) {
+        return innerQueryService.getDataEntry(address, key, version);
     }
 
     @Override
@@ -677,8 +641,24 @@ public class ContractLedgerContext implements LedgerContext {
         }
 
         @Override
+        public ContractCodeDeployOperation deploy(BlockchainIdentity id, byte[] chainCode, ContractLang lang) {
+            ContractCodeDeployOperation op = new ContractCodeDeployOpTemplate(id, chainCode, lang);
+            derivedOperations.add(op);
+            opHandleContext.handle(op);
+            return op;
+        }
+
+        @Override
         public ContractCodeDeployOperation deploy(BlockchainIdentity id, byte[] chainCode, long version) {
             ContractCodeDeployOperation op = new ContractCodeDeployOpTemplate(id, chainCode, version);
+            derivedOperations.add(op);
+            opHandleContext.handle(op);
+            return op;
+        }
+
+        @Override
+        public ContractCodeDeployOperation deploy(BlockchainIdentity id, byte[] chainCode, long version, ContractLang lang) {
+            ContractCodeDeployOperation op = new ContractCodeDeployOpTemplate(id, chainCode, version, lang);
             derivedOperations.add(op);
             opHandleContext.handle(op);
             return op;

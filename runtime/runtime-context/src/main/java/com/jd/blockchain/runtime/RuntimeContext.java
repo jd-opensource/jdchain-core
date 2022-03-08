@@ -51,8 +51,6 @@ public abstract class RuntimeContext {
 		RuntimeContext.runtimeContext = runtimeContext;
 	}
 
-	private Map<String, Module> modules = new ConcurrentHashMap<>();
-
 	public RuntimeContext() {
 	}
 
@@ -73,27 +71,7 @@ public abstract class RuntimeContext {
 		return new File(parent, name);
 	}
 
-	public Module getDynamicModule(String name) {
-		return modules.get(name);
-
-	}
-
-	public List<Module> getDynamicModules() {
-		return new ArrayList<>(modules.values());
-	}
-
 	public Module createDynamicModule(String name, byte[] jarBytes) {
-		Module module = modules.get(name);
-		if (module != null) {
-			return module;
-		}
-		synchronized (DefaultRuntimeContext.class) {
-			module = modules.get(name);
-			if (module != null) {
-				return module;
-			}
-		}
-
 		// Save File to Disk;
 		File jarFile = getDynamicModuleJarFile(name);
 		synchronized (RuntimeContext.class) {
@@ -101,24 +79,14 @@ public abstract class RuntimeContext {
 				FileUtils.writeBytes(jarBytes, jarFile);
 			}
 		}
-//		if (jarFile.exists()) {
-//			if (jarFile.isFile()) {
-//				FileUtils.deleteFile(jarFile);
-//			} else {
-//				throw new IllegalStateException("Code storage conflict! --" + jarFile.getAbsolutePath());
-//			}
-//		}
-//		FileUtils.writeBytes(jarBytes, jarFile);
 
 		try {
 			URL jarURL = jarFile.toURI().toURL();
 			ClassLoader moduleClassLoader = createDynamicModuleClassLoader(jarURL);
 			ContractEntrance entrance = contractEntrance(jarFile);
 			String contractMainClass = entrance.getImpl();
-			module = new DefaultModule(name, moduleClassLoader, contractMainClass);
-			modules.put(name, module);
 
-			return module;
+			return new DefaultModule(name, moduleClassLoader, contractMainClass);
 		} catch (Exception e) {
 			throw new IllegalStateException(e.getMessage(), e);
 		}

@@ -175,6 +175,19 @@ public class ContractLedgerQueryService implements LedgerQueryService {
     }
 
     @Override
+    public TypedKVEntry getDataEntry(String address, String key, long version) {
+        DataAccount account = ledgerQuery.getDataAccountSet().getAccount(address);
+        if(null == account) {
+            return null;
+        }
+        BytesValue value = account.getDataset().getValue(key, version);
+        if(null == value) {
+            return null;
+        }
+        return new TypedKVData(key, version, value);
+    }
+
+    @Override
     public long getDataEntriesTotalCount(String address) {
         DataAccount account = ledgerQuery.getDataAccountSet().getAccount(address);
         return null != account ? account.getDataset().getDataCount() : 0;

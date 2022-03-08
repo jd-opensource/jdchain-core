@@ -38,7 +38,7 @@ public class LedgerInitCommandBooter {
 				method.setAccessible(true);
 			}
 			// 获取系统类加载器
-			URLClassLoader classLoader = (URLClassLoader) Thread.currentThread().getContextClassLoader();
+			ClassLoader classLoader = URLClassLoader.newInstance(new URL[]{}, Thread.currentThread().getContextClassLoader());
 			for (File file : jarPaths) {
 				URL url = file.toURI().toURL();
 				try {
@@ -48,6 +48,7 @@ public class LedgerInitCommandBooter {
 					throw new RuntimeException(e);
 				}
 			}
+			Thread.currentThread().setContextClassLoader(classLoader);
 		} finally {
 			method.setAccessible(accessible);
 		}

@@ -3,14 +3,7 @@ package com.jd.blockchain.ledger.core.handles;
 import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
-import com.jd.blockchain.ledger.AccountState;
-import com.jd.blockchain.ledger.AccountDataPermission;
-import com.jd.blockchain.ledger.AccountType;
-import com.jd.blockchain.ledger.ContractCodeDeployOperation;
-import com.jd.blockchain.ledger.ContractVersionConflictException;
-import com.jd.blockchain.ledger.IllegalTransactionException;
-import com.jd.blockchain.ledger.LedgerDataStructure;
-import com.jd.blockchain.ledger.LedgerPermission;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.*;
 import utils.Bytes;
 
@@ -52,7 +45,7 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 
 		// 校验合约代码，不通过会抛出异常
 		try {
-			if (!CONTRACT_PROCESSOR.verify(chainCode)) {
+			if (op.getLang().equals(ContractLang.Java) && !CONTRACT_PROCESSOR.verify(chainCode)) {
 				throw new ContractException(String.format("Contract[%s] verify fail !!!", op.getContractID().getAddress().toBase58()));
 			}
 		} catch (Exception e) {
@@ -71,10 +64,10 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 			long rst = 0;
 			if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 				rst = ((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).update(op.getContractID().getAddress(),
-						op.getChainCode(), contractVersion);
+						op.getChainCode(), contractVersion, op.getLang());
 			} else {
 				rst = ((ContractAccountSetEditorSimple)(transactionContext.getDataset().getContractAccountSet())).update(op.getContractID().getAddress(),
-						op.getChainCode(), contractVersion);
+						op.getChainCode(), contractVersion, op.getLang());
 			}
 
 			if(rst < 0 ){
@@ -84,10 +77,10 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 			ContractAccount account;
 			if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 				account = ((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).deploy(op.getContractID().getAddress(),
-					op.getContractID().getPubKey(), op.getAddressSignature(), op.getChainCode());
+					op.getContractID().getPubKey(), op.getAddressSignature(), op.getChainCode(), op.getLang());
 			} else {
 				account = ((ContractAccountSetEditorSimple)(transactionContext.getDataset().getContractAccountSet())).deploy(op.getContractID().getAddress(),
-						op.getContractID().getPubKey(), op.getAddressSignature(), op.getChainCode());
+						op.getContractID().getPubKey(), op.getAddressSignature(), op.getChainCode(), op.getLang());
 			}
 
 			account.setPermission(new AccountDataPermission(AccountType.CONTRACT, requestContext.getEndpointAddresses().toArray(new Bytes[0])));
