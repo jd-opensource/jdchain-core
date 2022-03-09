@@ -2,19 +2,11 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.binaryproto.DataContractRegistry;
+import com.jd.blockchain.contract.jvm.JVMContractRuntimeConfig;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
-import com.jd.blockchain.ledger.GenesisUser;
-import com.jd.blockchain.ledger.GenesisUserConfig;
-import com.jd.blockchain.ledger.IdentityMode;
-import com.jd.blockchain.ledger.LedgerAdminSettings;
-import com.jd.blockchain.ledger.LedgerException;
-import com.jd.blockchain.ledger.LedgerInitSetting;
-import com.jd.blockchain.ledger.LedgerMetadata;
-import com.jd.blockchain.ledger.LedgerMetadata_V2;
-import com.jd.blockchain.ledger.LedgerSettings;
-import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.storage.service.ExPolicy;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
@@ -448,6 +440,8 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 
 		private GenesisUser[] genesisUsers;
 
+		private ContractRuntimeConfig contractRuntimeConfig;
+
 		public LedgerMetadataInfo() {
 		}
 
@@ -469,6 +463,9 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 				for (int i = 0; i < users.length; i++) {
 					this.genesisUsers[i] = new GenesisUserConfig(users[i]);
 				}
+			}
+			if(null != metadata.getContractRuntimeConfig()) {
+				this.contractRuntimeConfig = new JVMContractRuntimeConfig(metadata.getContractRuntimeConfig());
 			}
 		}
 
@@ -498,6 +495,11 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 		@Override
 		public GenesisUser[] getGenesisUsers() {
 			return genesisUsers;
+		}
+
+		@Override
+		public ContractRuntimeConfig getContractRuntimeConfig() {
+			return contractRuntimeConfig;
 		}
 
 		public void setLedgerCertificates(String[] ledgerCertificates) {

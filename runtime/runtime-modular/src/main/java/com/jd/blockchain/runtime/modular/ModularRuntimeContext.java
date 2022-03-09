@@ -6,6 +6,8 @@ import java.net.URLClassLoader;
 
 import com.jd.blockchain.runtime.RuntimeContext;
 
+import com.jd.blockchain.runtime.RuntimeSecurityManager;
+import utils.StringUtils;
 import utils.io.FileSystemStorage;
 import utils.io.RuntimeIOException;
 import utils.io.Storage;
@@ -18,6 +20,8 @@ public class ModularRuntimeContext extends RuntimeContext {
 	
 	private EnvSettings environment;
 
+	protected RuntimeSecurityManager securityManager;
+
 	public ModularRuntimeContext(String runtimeDir, JarsModule libModule, 
 			boolean productMode) {
 		this.environment = new EnvSettings();
@@ -25,6 +29,11 @@ public class ModularRuntimeContext extends RuntimeContext {
 		this.environment.setRuntimeDir(runtimeDir);
 		this.runtimeDir = runtimeDir;
 		this.libModule = libModule;
+		String securityPolicy = System.getProperty("java.security.policy");
+		if(!StringUtils.isEmpty(securityPolicy)) {
+			securityManager = new RuntimeSecurityManager(false);
+			System.setSecurityManager(securityManager);
+		}
 	}
 	
 	void register() {
@@ -34,6 +43,11 @@ public class ModularRuntimeContext extends RuntimeContext {
 	@Override
 	public Environment getEnvironment() {
 		return environment;
+	}
+
+	@Override
+	public RuntimeSecurityManager getSecurityManager() {
+		return securityManager;
 	}
 
 	@Override

@@ -2,12 +2,12 @@ package com.jd.blockchain.contract.jvm;
 
 import com.jd.blockchain.contract.ContractEventContext;
 import com.jd.blockchain.contract.engine.ContractCode;
-import com.jd.blockchain.ledger.BytesValue;
-import com.jd.blockchain.ledger.ContractExecuteException;
-import com.jd.blockchain.ledger.LedgerException;
+import com.jd.blockchain.ledger.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.Bytes;
+
+import java.util.concurrent.*;
 
 /**
  * @author huanghaiquan
@@ -42,8 +42,27 @@ public abstract class AbstractContractCode implements ContractCode {
             // 执行预处理;
             beforeEvent(contractInstance, eventContext);
 
-            // 合约方法执行
-            retn = doProcessEvent(contractInstance, eventContext);
+            ContractRuntimeConfig contractRuntimeConfig = eventContext.getContractRuntimeConfig();
+            // 判断存在合约运行时配置
+            if (null != contractRuntimeConfig) {
+                ExecutorService executor = Executors.newSingleThreadExecutor();
+                try {
+                    Object finalContractInstance = contractInstance;
+                    Future<Object> future = executor.submit(() -> securityInvoke(eventContext, finalContractInstance));
+                    retn = future.get(contractRuntimeConfig.getTimeout(), TimeUnit.MILLISECONDS);
+                } catch (TimeoutException e) {
+                    // 超时异常，区块回滚
+                    throw new BlockRollbackException(TransactionState.TIMEOUT, "Contract timeout");
+                } catch (Exception e) {
+                    String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]! --%s",
+                            eventContext.getEvent(), address.toString(), e.getMessage());
+                    throw new ContractExecuteException(errorMessage, e);
+                } finally {
+                    executor.shutdown();
+                }
+            } else {
+                retn = securityInvoke(eventContext, contractInstance);
+            }
 
         } catch (LedgerException e) {
             error = e;
@@ -62,6 +81,20 @@ public abstract class AbstractContractCode implements ContractCode {
             throw error;
         }
         return (BytesValue) retn;
+    }
+
+    private Object securityInvoke(ContractEventContext eventContext, Object contractInstance) {
+        RuntimeSecurityManager securityManager = RuntimeContext.get().getSecurityManager();
+        try {
+            if (null != securityManager) {
+                securityManager.enable();
+            }
+            return doProcessEvent(contractInstance, eventContext);
+        } finally {
+            if (null != securityManager) {
+                securityManager.disable();
+            }
+        }
     }
 
     protected abstract Object getContractInstance();

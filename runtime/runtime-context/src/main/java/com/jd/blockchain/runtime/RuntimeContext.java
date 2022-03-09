@@ -12,6 +12,7 @@ import com.jd.blockchain.contract.ContractEntrance;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 
+import utils.StringUtils;
 import utils.io.FileSystemStorage;
 import utils.io.FileUtils;
 import utils.io.RuntimeIOException;
@@ -97,6 +98,8 @@ public abstract class RuntimeContext {
 	}
 
 	public abstract Environment getEnvironment();
+
+	public abstract RuntimeSecurityManager getSecurityManager();
 
 	protected abstract String getRuntimeDir();
 
@@ -184,6 +187,8 @@ public abstract class RuntimeContext {
 
 		protected EnvSettings environment;
 
+		protected RuntimeSecurityManager securityManager;
+
 		public DefaultRuntimeContext() {
 
 			this.environment = new EnvSettings();
@@ -193,6 +198,11 @@ public abstract class RuntimeContext {
 				this.homeDir = new File("./").getCanonicalPath();
 				this.runtimeDir = new File(homeDir, "runtime").getAbsolutePath();
 				this.environment.setRuntimeDir(runtimeDir);
+				String securityPolicy = System.getProperty("java.security.policy");
+				if(!StringUtils.isEmpty(securityPolicy)) {
+					securityManager = new RuntimeSecurityManager(false);
+					System.setSecurityManager(securityManager);
+				}
 			} catch (IOException e) {
 				throw new RuntimeIOException(e.getMessage(), e);
 			}
@@ -201,6 +211,11 @@ public abstract class RuntimeContext {
 		@Override
 		public Environment getEnvironment() {
 			return environment;
+		}
+
+		@Override
+		public RuntimeSecurityManager getSecurityManager() {
+			return securityManager;
 		}
 
 		@Override

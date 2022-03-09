@@ -124,6 +124,8 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 		ledgerBaseSettings.setLedgerCertificates(ledgerMetadata.getLedgerCertificates());
 		// 设置创世用户
 		ledgerBaseSettings.setGenesisUsers(ledgerMetadata.getGenesisUsers());
+		// 设置合约运行时配置
+		ledgerBaseSettings.setContractRuntimeConfig(ledgerMetadata.getContractRuntimeConfig());
 		return ledgerBaseSettings;
 	}
 

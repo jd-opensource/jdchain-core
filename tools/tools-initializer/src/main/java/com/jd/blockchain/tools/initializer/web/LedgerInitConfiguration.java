@@ -11,6 +11,7 @@ import java.util.Set;
 import com.jd.blockchain.consensus.ConsensusProvider;
 import com.jd.blockchain.consensus.ConsensusProviders;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
+import com.jd.blockchain.contract.jvm.JVMContractRuntimeConfig;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.CryptoAlgorithm;
@@ -217,6 +218,7 @@ public class LedgerInitConfiguration {
 		initSetting.setCreatedTime(ledgerProps.getCreatedTime());
 
 		initSetting.setLedgerDataStructure(ledgerProps.getLedgerDataStructure());
+		initSetting.setContractRuntimeConfig(new JVMContractRuntimeConfig(ledgerProps.getContractTimeout()));
 
 		// 创建共识配置；
 		try {
