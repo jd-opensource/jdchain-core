@@ -95,7 +95,7 @@ public class LedgersManagerContext {
     }
 
     public int getPeerConnectionPin() {
-        return this.configProperties.getPeerConnectionPin();
+        return this.configProperties.getPeerConnectionPing();
     }
 
     public int getPeerConnectionAuth() {
