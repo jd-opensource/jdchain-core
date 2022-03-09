@@ -3,6 +3,8 @@ package com.jd.blockchain.contract.jvm;
 import com.jd.blockchain.contract.ContractEventContext;
 import com.jd.blockchain.contract.engine.ContractCode;
 import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.runtime.RuntimeContext;
+import com.jd.blockchain.runtime.RuntimeSecurityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.Bytes;

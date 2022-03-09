@@ -7,7 +7,6 @@ import com.jd.blockchain.contract.engine.ContractServiceProviders;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.*;
 
-import java.util.Stack;
 import java.util.stream.Collectors;
 
 import static utils.BaseConstant.CONTRACT_SERVICE_PROVIDER;
@@ -18,11 +17,6 @@ public class ContractEventSendOperationHandle implements OperationHandle {
     static {
         ENGINE = ContractServiceProviders.getProvider(CONTRACT_SERVICE_PROVIDER).getEngine();
     }
-
-    // 保存合约调用栈信息
-    private ThreadLocal<Stack<String>> contractEventStackTL = new ThreadLocal<>();
-    // 合约调用栈最大深度
-    private static final int MAX_CONTRACT_EVENT_STACK_SIZE = 100;
 
     @Override
     public Class<?> getOperationType() {
@@ -38,24 +32,7 @@ public class ContractEventSendOperationHandle implements OperationHandle {
 
         ContractEventSendOperation contractOP = (ContractEventSendOperation) op;
 
-        // 处理合约调用栈
-        Stack<String> contractEventStack = contractEventStackTL.get();
-        if (null == contractEventStack) {
-            contractEventStack = new Stack<>();
-            contractEventStackTL.set(contractEventStack);
-        }
-        // 合约调用入栈
-        contractEventStack.push(contractOP.getContractAddress() + contractOP.getEvent());
-        try {
-            // 合约调用栈最大深度检查，超过则回滚交易
-            if (contractEventStack.size() > MAX_CONTRACT_EVENT_STACK_SIZE) {
-                throw new ContractExecuteException(String.format("Size of contract event stack is greater than %d", MAX_CONTRACT_EVENT_STACK_SIZE));
-            }
-            return doProcess(requestContext, contractOP, transactionContext, ledger, opHandleContext, manager, securityPolicy);
-        } finally {
-            // 合约调用出栈
-            contractEventStack.pop();
-        }
+        return doProcess(requestContext, contractOP, transactionContext, ledger, opHandleContext, manager, securityPolicy);
     }
 
     private BytesValue doProcess(TransactionRequestExtension request, ContractEventSendOperation contractOP,
@@ -72,8 +49,11 @@ public class ContractEventSendOperationHandle implements OperationHandle {
             throw new IllegalAccountStateException("Can not call contract[" + contract.getAddress() + "] in " + contract.getState() + " state.");
         }
 
+        ContractLedgerQueryService ledgerQueryService = new ContractLedgerQueryService(ledger);
+        LedgerMetadata_V2 metadata = (LedgerMetadata_V2) ledgerQueryService.getLedgerMetadata();
+
         // 创建合约的账本上下文实例；
-        ContractLedgerContext ledgerContext = new ContractLedgerContext(opHandleContext, new ContractLedgerQueryService(ledger), new MultiLedgerQueryService(ledger));
+        ContractLedgerContext ledgerContext = new ContractLedgerContext(opHandleContext, ledgerQueryService, new MultiLedgerQueryService(ledger));
         UncommittedLedgerQueryService uncommittedLedgerQueryService = new UncommittedLedgerQueryService(transactionContext);
 
         // 执行权限校验
@@ -81,7 +61,10 @@ public class ContractEventSendOperationHandle implements OperationHandle {
 
         // 创建合约上下文;
         LocalContractEventContext localContractEventContext = new LocalContractEventContext(
-                request.getTransactionContent().getLedgerHash(), contract.getAddress(), contractOP.getEvent());
+                request.getTransactionContent().getLedgerHash(),
+                metadata.getContractRuntimeConfig(),
+                contract.getAddress(),
+                contractOP.getEvent());
         localContractEventContext.setArgs(contractOP.getArgs()).setTransactionRequest(request)
                 .setLedgerContext(ledgerContext).setVersion(contract.getChainCodeVersion())
                 .setUncommittedLedgerContext(uncommittedLedgerQueryService);
