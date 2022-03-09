@@ -2,8 +2,6 @@ package com.jd.blockchain.peer.web;
 
 import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUtils;
-import com.jd.blockchain.consensus.NodeNetworkAddress;
-import com.jd.blockchain.consensus.bftsmart.service.BftsmartNodeState;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.ledger.BlockRollbackException;
 import com.jd.blockchain.ledger.ConsensusReconfigOperation;
@@ -139,12 +137,8 @@ import org.springframework.web.bind.annotation.RestController;
 import utils.net.SSLSecurity;
 
 import javax.annotation.PreDestroy;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
-import java.net.URL;
 import java.security.cert.X509Certificate;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -168,12 +162,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
     private static final String STORAGE_CONSENSUS = "consensus";
 
-
     private static Logger LOGGER = LoggerFactory.getLogger(ManagementController.class);
-
-    public String DEFAULT_DIR = "";
-
-    public String logDefaultFile;
 
     @Autowired
     private Storage storage;
@@ -630,114 +619,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
     }
 
     /**
-     * 输出当前节点状态到日志文件
-     *
-     * @return
-     */
-    @RequestMapping(path = "/node/log", method = RequestMethod.GET)
-    public void createNodeLog() {
-        if (DEFAULT_DIR.length() == 0) {
-            try {
-                URL resource = ManagementController.class.getResource("/");
-                if (resource != null) {
-                    String libPath = resource.getPath();
-                    if (libPath != null && libPath.length() > 0) {
-                        DEFAULT_DIR = libPath;
-                        this.logDefaultFile = File.separator + new SimpleDateFormat("yyyy-MM-dd :hh:mm:ss").format(Calendar.getInstance().getTime()) + "-node.log";
-                    }
-                } else {
-                    File libDir = new File(ManagementController.class.getProtectionDomain().getCodeSource().getLocation().getPath());
-                    LOGGER.info("ManagementController's lib path = {} !", libDir.getAbsolutePath());
-                    DEFAULT_DIR = libDir.getParentFile().getParentFile().getPath();
-                    this.logDefaultFile = File.separator + "logs" + File.separator + new SimpleDateFormat("yyyy-MM-dd :hh:mm:ss").format(Calendar.getInstance().getTime()) + "-node.log";
-                    LOGGER.debug("logDefaultFile = {}", logDefaultFile);
-                }
-            } catch (Exception e) {
-                LOGGER.error("create node log file error!", e);
-            }
-        }
-
-        try {
-            String logPath = DEFAULT_DIR + logDefaultFile;
-            File nodeLogFile = new File(logPath);
-
-            if (!nodeLogFile.exists()) {
-                nodeLogFile.createNewFile();
-            }
-
-            BufferedWriter out = new BufferedWriter(new FileWriter(nodeLogFile, true));
-            writeStateToLog(out);
-
-            out.flush();
-            out.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void writeStateToLog(BufferedWriter out) {
-        try {
-            for (HashDigest ledgerHash : ledgerPeers.keySet()) {
-
-                String base58LedgerHash = Base58Utils.encode(ledgerHash.toBytes());
-                NodeServer nodeServer = ledgerPeers.get(ledgerHash);
-
-                if (nodeServer == null) {
-                    throw new BusinessException("The consensus node of ledger[" + base58LedgerHash + "] don't exist!");
-                }
-
-                BftsmartNodeState nodeState = (BftsmartNodeState) nodeServer.getState();
-
-                out.write("==========================Ledger = " + base58LedgerHash + "=============================\r\n");
-
-                out.write("Time = " + new SimpleDateFormat("yyyy-MM-dd :hh:mm:ss:SSS").format(Calendar.getInstance().getTime()) + "\r\n");
-
-                out.write("###Node State:### \r\n");
-                out.write("{Running : " + String.valueOf(nodeState.isRunning()) + ", ");
-                out.write("NodeID : " + String.valueOf(nodeState.getNodeID()) + ", ");
-                out.write("isLeader : " + String.valueOf(nodeState.isLeader()) + "}\r\n");
-
-                out.write("###View State:### \r\n");
-                out.write("{ViewID: " + String.valueOf(nodeState.getViewState().getViewID()) + ", " + "ViewN : " + String.valueOf(nodeState.getViewState().getViewN()) + ", " +
-                        "ViewF: " + String.valueOf(nodeState.getViewState().getViewF()) + ", " + "Quorum: " + String.valueOf(nodeState.getViewState().getQuorum()) + "}\r\n");
-
-                out.write("View Procs: {");
-                int procCount = 0, procs = nodeState.getViewState().getProcessIDs().length;
-                for (int procid : nodeState.getViewState().getProcessIDs()) {
-                    out.write(String.valueOf(procid));
-                    if (++procCount != procs) {
-                        out.write(",");
-                    } else {
-                        out.write("}\r\n");
-                    }
-                }
-                out.write("View Procs Address: {");
-                int addressCount = 0;
-                for (NodeNetworkAddress nodeNetworkAddress : nodeState.getViewState().getProcessNetAddresses()) {
-                    out.write("(host: " + nodeNetworkAddress.getHost() + ", consensusport: " + String.valueOf(nodeNetworkAddress.getConsensusPort()) + ", monitorport: " + String.valueOf(nodeNetworkAddress.getMonitorPort()) + ")");
-                    if (++addressCount != procs) {
-                        out.write(",");
-                    } else {
-                        out.write("}\r\n");
-                    }
-                }
-
-                out.write("###Consensus State:###\r\n");
-                out.write("{currentcid: " + String.valueOf(nodeState.getConsensusState().getConensusID()) + ", lastcid: " + String.valueOf(nodeState.getConsensusState().getLastConensusID()) + ", leaderid: " + String.valueOf(nodeState.getConsensusState().getLeaderID()) + "}\r\n");
-
-                out.write("###Leader State:###\r\n");
-                out.write("{leaderid: " + String.valueOf(nodeState.getLeaderState().getLeaderID()) + ", lastregency: " + String.valueOf(nodeState.getLeaderState().getLastRegency()) + ", nxtregency: " + String.valueOf(nodeState.getLeaderState().getNextRegency()) + "}\r\n");
-
-                out.write("###Communication State:###\r\n");
-                out.write("{tomlayerRunning: " + String.valueOf(nodeState.getCommunicationState().isTomLayerRunning()) + ", tomThreadAlived: " + String.valueOf(nodeState.getCommunicationState().isTomLayerThreadAlived()) + ", deliverThreadAlived: " + String.valueOf(nodeState.getCommunicationState().isDeliverThreadAlived()) + "}\r\n");
-                out.write("\r\n");
-            }
-        } catch (Exception e) {
-            LOGGER.error("write state to node log file error!", e);
-        }
-    }
-
-    /**
      * 区块同步：
      * 从指定节点同步最新区块信息，调用此接口会执行NodeServer重建
      *
@@ -986,7 +867,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
         List<NodeSettings> origConsensusNodes = SearchOtherOrigConsensusNodes(ledgerRepo, node);
         // 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行新参与方的状态激活操作
-        TransactionResponse remoteTxResponse = participantService.submitNodeStateChangeTx(context, txRequest, origConsensusNodes);
+        TransactionResponse remoteTxResponse = participantService.submitNodeStateChangeTx(context, node.getId(), txRequest, origConsensusNodes);
 
         if (remoteTxResponse.isSuccess() && replayTransaction(ledgerRepo, node, remoteEndpoint)) {
             try {
@@ -1033,7 +914,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         List<NodeSettings> origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
 
         // 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行新参与方的状态激活操作
-        TransactionResponse remoteTxResponse = participantService.submitNodeStateChangeTx(context, txRequest, origConsensusNodes);
+        TransactionResponse remoteTxResponse = participantService.submitNodeStateChangeTx(context, node.getId(), txRequest, origConsensusNodes);
 
         if(!remoteTxResponse.isSuccess()){
             return WebResponse.createFailureResult(-1,
@@ -1185,7 +1066,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
             txRequest = addNodeSigner(txRequest);
 
             // 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行参与方的去激活操作，这个原有网络包括本节点
-            TransactionResponse txResponse = participantService.submitNodeStateChangeTx(context, txRequest, origConsensusNodes);
+            TransactionResponse txResponse = participantService.submitNodeStateChangeTx(context, node.getId(), txRequest, origConsensusNodes);
             if(!txResponse.isSuccess()){
                 return WebResponse.createFailureResult(-1, "commit tx to orig consensus, tx execute failed, please retry deactivate participant!");
             }
@@ -1474,23 +1355,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
     }
 
-//    // 在指定的账本上准备一笔reconfig操作交易
-//    private TransactionRequest prepareReconfigTx(HashDigest ledgerHash) {
-//
-//        TxBuilder txbuilder = new TxBuilder(ledgerHash, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
-//
-//        // This transaction contains one reconfig op
-//        txbuilder.reconfigs().record();
-//
-//        TransactionRequestBuilder reqBuilder = txbuilder.prepareRequest();
-//
-//        reqBuilder.signAsEndpoint(new AsymmetricKeypair(ledgerKeypairs.get(ledgerHash).getPubKey(),
-//                ledgerKeypairs.get(ledgerHash).getPrivKey()));
-//
-//        return reqBuilder.buildRequest();
-//
-//    }
-
     // 加载本参与方的公私钥对身份信息
     private AsymmetricKeypair loadIdentity(ParticipantNode currentNode, BindingConfig bindingConfig) {
 
@@ -1584,48 +1448,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         }
 
     }
-
-//    // 通知原有的共识网络更新共识的视图ID
-//    private View updateView(LedgerRepository ledgerRepository, NetworkAddress networkAddress, SSLSecurity security,
-//                            ParticipantUpdateType participantUpdateType, Properties systemConfig, int viewId, List<NodeSettings> origConsensusNodes) {
-//        ParticipantNode currNode = ledgerCurrNodes.get(ledgerRepository.getHash());
-//
-//        LOGGER.info("ManagementController start updateView operation!");
-//
-//        try {
-//            ServiceProxy peerProxy = createPeerProxy(systemConfig, viewId, origConsensusNodes, security);
-//
-//            Reconfiguration reconfiguration = new Reconfiguration(peerProxy.getProcessId(), peerProxy);
-//
-//            if (participantUpdateType == ParticipantUpdateType.ACTIVE) {
-//                // addServer的第一个参数指待加入共识的新参与方的编号
-//                reconfiguration.addServer(currNode.getId(), networkAddress);
-//            } else if (participantUpdateType == ParticipantUpdateType.DEACTIVE) {
-//                // 参数为待移除共识节点的id
-//                reconfiguration.removeServer(currNode.getId());
-//            } else if (participantUpdateType == ParticipantUpdateType.UPDATE) {
-//                // 共识参数修改，先移除后添加
-//                reconfiguration.removeServer(currNode.getId());
-//                reconfiguration.addServer(currNode.getId(), networkAddress);
-//            } else {
-//                throw new IllegalArgumentException("op type error!");
-//            }
-//
-//            // 把交易作为reconfig操作的扩展信息携带，目的是为了让该操作上链，便于后续跟踪；
-//            reconfiguration.addExtendInfo(BinaryProtocol.encode(prepareReconfigTx(ledgerRepository.getHash()), TransactionRequest.class));
-//
-//            // 执行更新目标共识网络的视图ID
-//            ReconfigureReply reconfigureReply = reconfiguration.execute();
-//
-//            peerProxy.close();
-//
-//            // 返回新视图
-//            return reconfigureReply.getView();
-//
-//        } catch (Exception e) {
-//            throw new ViewUpdateException("view update fail exception!", e);
-//        }
-//    }
 
     private TransactionRequest addNodeSigner(TransactionRequest txRequest) {
         TxRequestMessage txMessage = new TxRequestMessage(txRequest);

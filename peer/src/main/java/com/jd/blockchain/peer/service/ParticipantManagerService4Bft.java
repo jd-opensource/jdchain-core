@@ -126,7 +126,7 @@ public class ParticipantManagerService4Bft implements IParticipantManagerService
     }
 
     @Override
-    public TransactionResponse submitNodeStateChangeTx(ParticipantContext context, TransactionRequest txRequest, List<NodeSettings> origConsensusNodes) {
+    public TransactionResponse submitNodeStateChangeTx(ParticipantContext context, int activeID, TransactionRequest txRequest, List<NodeSettings> origConsensusNodes) {
 
         Properties systemConfig = getCustomProperties(context);
         int viewId = ((BftsmartConsensusViewSettings) getConsensusSetting(context)).getViewId();

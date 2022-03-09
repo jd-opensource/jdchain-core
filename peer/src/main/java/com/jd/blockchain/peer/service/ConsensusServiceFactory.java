@@ -15,6 +15,7 @@ public class ConsensusServiceFactory {
 
     public static final String BFTSMART_PROVIDER = "com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider";
     public static final String RAFT_PROVIDER = "com.jd.blockchain.consensus.raft.RaftConsensusProvider";
+    public static final String MQ_PROVIDER = "com.jd.blockchain.consensus.mq.MsgQueueConsensusProvider";
 
     @Autowired
     Map<String, IParticipantManagerService> services = new ConcurrentHashMap<>(3);
