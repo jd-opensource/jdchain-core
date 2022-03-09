@@ -16,6 +16,7 @@ import java.util.concurrent.*;
  */
 public abstract class AbstractContractCode implements ContractCode {
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractContractCode.class);
+    private static final ExecutorService executor = Executors.newSingleThreadExecutor();
     private Bytes address;
     private long version;
 
@@ -36,6 +37,16 @@ public abstract class AbstractContractCode implements ContractCode {
 
     @Override
     public BytesValue processEvent(ContractEventContext eventContext) {
+        ContractRuntimeConfig contractRuntimeConfig = eventContext.getContractRuntimeConfig();
+        // 判断存在合约运行时配置
+        if (null != contractRuntimeConfig) {
+            return timeLimitedInvoke(eventContext, contractRuntimeConfig);
+        } else {
+            return invoke(eventContext);
+        }
+    }
+
+    private BytesValue invoke(ContractEventContext eventContext) {
         Object retn = null;
         LedgerException error = null;
         Object contractInstance = null;
@@ -44,45 +55,55 @@ public abstract class AbstractContractCode implements ContractCode {
             // 执行预处理;
             beforeEvent(contractInstance, eventContext);
 
-            ContractRuntimeConfig contractRuntimeConfig = eventContext.getContractRuntimeConfig();
-            // 判断存在合约运行时配置
-            if (null != contractRuntimeConfig) {
-                ExecutorService executor = Executors.newSingleThreadExecutor();
-                try {
-                    Object finalContractInstance = contractInstance;
-                    Future<Object> future = executor.submit(() -> securityInvoke(eventContext, finalContractInstance));
-                    retn = future.get(contractRuntimeConfig.getTimeout(), TimeUnit.MILLISECONDS);
-                } catch (TimeoutException e) {
-                    // 超时异常，区块回滚
-                    throw new BlockRollbackException(TransactionState.TIMEOUT, "Contract timeout");
-                } catch (Exception e) {
-                    String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]! --%s",
-                            eventContext.getEvent(), address.toString(), e.getMessage());
-                    throw new ContractExecuteException(errorMessage, e);
-                } finally {
-                    executor.shutdown();
-                }
-            } else {
-                retn = securityInvoke(eventContext, contractInstance);
-            }
-
+            // 合约方法执行
+            retn = securityInvoke(eventContext, contractInstance);
         } catch (LedgerException e) {
             error = e;
+            String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]!", eventContext.getEvent(), address.toString());
+            LOGGER.error(errorMessage, e);
         } catch (Throwable e) {
-            String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]! --%s",
-                    eventContext.getEvent(), address.toString(), e.getMessage());
-            error = new ContractExecuteException(errorMessage, e);
+            String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]!", eventContext.getEvent(), address.toString());
+            LOGGER.error(errorMessage, e);
+            if (e instanceof LedgerException) {
+                error = (LedgerException) e;
+            } else {
+                error = new ContractExecuteException(errorMessage, e);
+            }
         }
 
         try {
             postEvent(contractInstance, eventContext, error);
         } catch (Throwable e) {
-            throw new ContractExecuteException("Error occurred while posting contract event!", e);
+            String errorMessage = String.format("Error occurred while posting event[%s] of contract[%s]!", eventContext.getEvent(), address.toString());
+            LOGGER.error(errorMessage, e);
+            if (e instanceof LedgerException) {
+                error = (LedgerException) e;
+            } else {
+                error = new ContractExecuteException(errorMessage, e);
+            }
         }
         if (error != null) {
             throw error;
         }
         return (BytesValue) retn;
+    }
+
+    private BytesValue timeLimitedInvoke(ContractEventContext eventContext, ContractRuntimeConfig runtimeConfig) {
+        try {
+            SecurityPolicy usersPolicy = SecurityContext.getContextUsersPolicy();
+            Future<Object> future = executor.submit(() -> {
+                SecurityContext.setContextUsersPolicy(usersPolicy);
+                return invoke(eventContext);
+            });
+            return (BytesValue) future.get(runtimeConfig.getTimeout(), TimeUnit.MILLISECONDS);
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof LedgerException) {
+                throw (LedgerException) e.getCause();
+            }
+            throw new ContractExecuteException("Error occurred while get contract result ", e);
+        } catch (InterruptedException | TimeoutException e) {
+            throw new BlockRollbackException(TransactionState.SYSTEM_ERROR, "Contract Interrupted or Timeout", e);
+        }
     }
 
     private Object securityInvoke(ContractEventContext eventContext, Object contractInstance) {

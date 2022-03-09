@@ -1,9 +1,9 @@
 package com.jd.blockchain.ledger.core;
 
 import java.security.cert.X509Certificate;
-import java.util.Map;
 import java.util.Set;
 
+import com.jd.blockchain.ledger.SecurityPolicy;
 import utils.Bytes;
 
 /**

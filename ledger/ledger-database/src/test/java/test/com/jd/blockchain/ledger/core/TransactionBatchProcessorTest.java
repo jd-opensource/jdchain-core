@@ -36,7 +36,7 @@ import com.jd.blockchain.ledger.core.LedgerManager;
 import com.jd.blockchain.ledger.core.LedgerRepository;
 import com.jd.blockchain.ledger.core.LedgerSecurityManager;
 import com.jd.blockchain.ledger.core.OperationHandleRegisteration;
-import com.jd.blockchain.ledger.core.SecurityPolicy;
+import com.jd.blockchain.ledger.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionBatchProcessor;
 import com.jd.blockchain.ledger.core.TransactionSetEditor;
 import com.jd.blockchain.ledger.core.UserAccount;

@@ -45,7 +45,7 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 
 		// 校验合约代码，不通过会抛出异常
 		try {
-			if (op.getLang().equals(ContractLang.Java) && !CONTRACT_PROCESSOR.verify(chainCode)) {
+			if ((null == op.getLang() || op.getLang().equals(ContractLang.Java)) && !CONTRACT_PROCESSOR.verify(chainCode)) {
 				throw new ContractException(String.format("Contract[%s] verify fail !!!", op.getContractID().getAddress().toBase58()));
 			}
 		} catch (Exception e) {

@@ -9,12 +9,12 @@ import com.jd.blockchain.ledger.RolesConfigureOperation.RolePrivilegeEntry;
 import com.jd.blockchain.ledger.core.EventManager;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
-import com.jd.blockchain.ledger.core.MultiIDsPolicy;
+import com.jd.blockchain.ledger.MultiIDsPolicy;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.RolePrivilegeDataset;
 import com.jd.blockchain.ledger.core.RolePrivilegeDatasetSimple;
-import com.jd.blockchain.ledger.core.SecurityContext;
-import com.jd.blockchain.ledger.core.SecurityPolicy;
+import com.jd.blockchain.ledger.SecurityContext;
+import com.jd.blockchain.ledger.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
 
 public class RolesConfigureOperationHandle extends AbstractLedgerOperationHandle<RolesConfigureOperation> {

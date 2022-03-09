@@ -62,7 +62,7 @@ public class TxProcessingController implements TransactionService {
 					if (ContractCodeDeployOperation.class.isAssignableFrom(op.getClass())) {
 						// 发布合约请求
 						ContractCodeDeployOperation opration = (ContractCodeDeployOperation) op;
-						if (opration.getLang().equals(ContractLang.Java) && !CONTRACT_PROCESSOR.verify(opration.getChainCode())) {
+						if ((null == opration.getLang() || opration.getLang().equals(ContractLang.Java)) && !CONTRACT_PROCESSOR.verify(opration.getChainCode())) {
 							return new ErrorTransactionResponse(txRequest.getTransactionHash(), TransactionState.ILLEGAL_CONTRACT_CAR);
 						}
 					} else if (CryptoHashAlgoUpdateOperation.class.isAssignableFrom(op.getClass())) {

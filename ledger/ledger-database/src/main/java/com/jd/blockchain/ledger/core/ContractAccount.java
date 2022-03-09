@@ -54,6 +54,9 @@ public class ContractAccount extends PermissionAccountDecorator implements Contr
     }
 
     public void setLang(ContractLang lang) {
+        if(null == lang) {
+            lang = ContractLang.Java;
+        }
         long version = getHeaders().getVersion(DATA_LANG);
         getHeaders().setValue(DATA_LANG, TypedValue.fromText(lang.name()), version);
         this.lang = lang;

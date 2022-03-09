@@ -10,10 +10,10 @@ import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.core.DataAccount;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
-import com.jd.blockchain.ledger.core.MultiIDsPolicy;
+import com.jd.blockchain.ledger.MultiIDsPolicy;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
-import com.jd.blockchain.ledger.core.SecurityContext;
-import com.jd.blockchain.ledger.core.SecurityPolicy;
+import com.jd.blockchain.ledger.SecurityContext;
+import com.jd.blockchain.ledger.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
 import com.jd.blockchain.ledger.core.EventManager;
 

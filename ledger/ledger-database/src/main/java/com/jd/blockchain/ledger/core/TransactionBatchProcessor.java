@@ -7,7 +7,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.jd.blockchain.ca.CertificateUtils;
-import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.ledger.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

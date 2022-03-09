@@ -11,23 +11,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUtils;
-import com.jd.blockchain.ledger.AccountModeBits;
-import com.jd.blockchain.ledger.DataPermission;
-import com.jd.blockchain.ledger.DataPermissionType;
-import com.jd.blockchain.ledger.LedgerPermission;
-import com.jd.blockchain.ledger.LedgerSecurityException;
-import com.jd.blockchain.ledger.ParticipantDoesNotExistException;
-import com.jd.blockchain.ledger.RolePrivilegeSettings;
-import com.jd.blockchain.ledger.RolePrivileges;
-import com.jd.blockchain.ledger.RolesPolicy;
-import com.jd.blockchain.ledger.TransactionPermission;
-import com.jd.blockchain.ledger.UserDoesNotExistException;
-import com.jd.blockchain.ledger.UserRoles;
+import com.jd.blockchain.ledger.*;
 
-import com.jd.blockchain.ledger.AccountState;
 import utils.Bytes;
-
-import com.jd.blockchain.ledger.UserAuthorizationSettings;
 
 /**
  * 账本安全管理器；
