@@ -1,10 +1,7 @@
 package com.jd.blockchain.contract.jvm;
 
 import com.jd.blockchain.contract.*;
-import com.jd.blockchain.ledger.BytesValue;
-import com.jd.blockchain.ledger.BytesValueEncoding;
-import com.jd.blockchain.ledger.BytesValueList;
-import com.jd.blockchain.ledger.LedgerException;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.runtime.Module;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +9,7 @@ import org.springframework.util.ReflectionUtils;
 import utils.Bytes;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 
 /**
@@ -89,17 +87,23 @@ public class JavaContractCode extends AbstractContractCode {
 
     @Override
     protected BytesValue doProcessEvent(Object contractInstance, ContractEventContext eventContext) {
-        // 反序列化参数；
         Method handleMethod = contractDefinition.getType().getHandleMethod(eventContext.getEvent());
-
         if (handleMethod == null) {
-            throw new ContractException(
+            throw new ContractMethodNotFoundException(
                     String.format("Contract[%s:%s] has no handle method to handle event[%s]!", getAddress().toString(),
                             contractDefinition.getType().getName(), eventContext.getEvent()));
         }
-
+        // 参数解析；
         BytesValueList bytesValues = eventContext.getArgs();
-        Object[] args = BytesValueEncoding.decode(bytesValues, handleMethod.getParameterTypes());
+        Object[] args;
+        try {
+            args = BytesValueEncoding.decode(bytesValues, handleMethod.getParameterTypes());
+        } catch (Exception e) {
+            throw new ContractParameterErrorException(
+                    String.format("Contract[%s:%s] event[%s] can not handle parameters[%s]!", getAddress().toString(),
+                            contractDefinition.getType().getName(), eventContext.getEvent(),
+                            Arrays.toString(Arrays.stream(bytesValues.getValues()).map(BytesValue::getType).map(DataType::name).toArray())));
+        }
 
         return BytesValueEncoding.encodeSingle(ReflectionUtils.invokeMethod(handleMethod, contractInstance, args), handleMethod.getReturnType());
     }

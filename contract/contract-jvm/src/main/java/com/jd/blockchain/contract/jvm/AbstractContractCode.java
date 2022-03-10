@@ -59,26 +59,18 @@ public abstract class AbstractContractCode implements ContractCode {
             retn = securityInvoke(eventContext, contractInstance);
         } catch (LedgerException e) {
             error = e;
-            String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]!", eventContext.getEvent(), address.toString());
-            LOGGER.error(errorMessage, e);
         } catch (Throwable e) {
             String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]!", eventContext.getEvent(), address.toString());
-            LOGGER.error(errorMessage, e);
-            if (e instanceof LedgerException) {
-                error = (LedgerException) e;
-            } else {
-                error = new ContractExecuteException(errorMessage, e);
-            }
+            error = new ContractExecuteException(errorMessage, e);
         }
 
         try {
             postEvent(contractInstance, eventContext, error);
         } catch (Throwable e) {
-            String errorMessage = String.format("Error occurred while posting event[%s] of contract[%s]!", eventContext.getEvent(), address.toString());
-            LOGGER.error(errorMessage, e);
             if (e instanceof LedgerException) {
                 error = (LedgerException) e;
             } else {
+                String errorMessage = String.format("Error occurred while posting event[%s] of contract[%s]!", eventContext.getEvent(), address.toString());
                 error = new ContractExecuteException(errorMessage, e);
             }
         }
