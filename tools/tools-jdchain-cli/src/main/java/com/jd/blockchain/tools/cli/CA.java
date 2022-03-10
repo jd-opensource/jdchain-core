@@ -1,16 +1,9 @@
 package com.jd.blockchain.tools.cli;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
 import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUsage;
 import com.jd.blockchain.ca.CertificateUtils;
-import com.jd.blockchain.crypto.AsymmetricKeypair;
-import com.jd.blockchain.crypto.Crypto;
-import com.jd.blockchain.crypto.KeyGenUtils;
-import com.jd.blockchain.crypto.PrivKey;
-import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.crypto.SignatureFunction;
+import com.jd.blockchain.crypto.*;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1Primitive;
@@ -18,13 +11,7 @@ import org.bouncycastle.asn1.pkcs.Attribute;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
-import org.bouncycastle.asn1.x509.BasicConstraints;
-import org.bouncycastle.asn1.x509.Certificate;
-import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
-import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.asn1.x509.Extensions;
-import org.bouncycastle.asn1.x509.KeyPurposeId;
-import org.bouncycastle.asn1.x509.KeyUsage;
+import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -47,13 +34,7 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * @description: JD Chain certificate management
@@ -503,7 +484,7 @@ class CATest implements Runnable {
             if ("GMSSL".equalsIgnoreCase(algorithm)) {
 
                 String sm2CertsOutPath = caCli.getCaHome() + File.separator + "sm2";
-                if(!Strings.isNullOrEmpty(outPath)){
+                if (!StringUtils.isEmpty(outPath)) {
                     sm2CertsOutPath = outPath;
                 }
 
@@ -514,12 +495,14 @@ class CATest implements Runnable {
                 long expireTime = 10L * 365 * 24 * 60 * 60 * 1000;
 
                 CertsHelper.makeSMCaTestCerts(gmsslHome, nodes, gws, users, expireTime, password,
-                        ImmutableMap.of(BCStyle.O, organization,
-                                BCStyle.C, country,
-                                BCStyle.ST, province,
-                                BCStyle.L, locality,
-                                BCStyle.EmailAddress, email
-                        ));
+                        new HashMap<ASN1ObjectIdentifier, String>() {{
+                            put(BCStyle.O, organization);
+                            put(BCStyle.C, country);
+                            put(BCStyle.ST, province);
+                            put(BCStyle.L, locality);
+                            put(BCStyle.EmailAddress, email);
+                        }}
+                );
 
                 System.out.println("create test gmssl certificates in [" + gmsslHome.getAbsolutePath() + "] success");
                 return;

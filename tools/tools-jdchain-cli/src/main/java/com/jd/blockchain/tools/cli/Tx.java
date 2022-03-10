@@ -757,7 +757,7 @@ class TxContractCall implements Runnable {
                         }
                     }
                 } else {
-                    System.err.println("call contract failed!");
+                    System.err.println("call contract failed: " + response.getExecutionState());
                 }
             }
         }
