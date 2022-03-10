@@ -19,15 +19,11 @@ import utils.io.BytesUtils;
 import utils.io.FileUtils;
 import utils.net.SSLSecurity;
 
-import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -66,8 +62,8 @@ import java.util.concurrent.atomic.AtomicLong;
                 TxSign.class,
                 TxSend.class,
                 TxTestKV.class,
-                TxSwitchConsensus.class,
-                TxSwitchHashAlgo.class,
+                TxConsensusSwitch.class,
+                TxHashAlgorithmSwitch.class,
                 CommandLine.HelpCommand.class
         }
 )
@@ -114,7 +110,7 @@ public class Tx implements Runnable {
     @CommandLine.Option(names = "--ssl.ciphers", description = "Set ssl.ciphers for SSL.", scope = CommandLine.ScopeType.INHERIT)
     String ciphers;
 
-    @CommandLine.Option(names = "--ssl.host-verifier", defaultValue = "NO-OP",description = "Set host verifier for SSL. NO-OP or Default", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--ssl.host-verifier", defaultValue = "NO-OP", description = "Set host verifier for SSL. NO-OP or Default", scope = CommandLine.ScopeType.INHERIT)
     String hostNameVerifier;
 
     @CommandLine.Option(names = "--export", description = "Transaction export directory", scope = CommandLine.ScopeType.INHERIT)
@@ -146,7 +142,7 @@ public class Tx implements Runnable {
             System.out.printf("%-7s\t%s%n", i, ledgers[i]);
         }
 
-        if(ledgers.length == 1){
+        if (ledgers.length == 1) {
             System.out.printf("> 0 (use default ledger)%n");
             return ledgers[0];
         }
@@ -1170,13 +1166,13 @@ class TxContractAccountPermission implements Runnable {
     }
 }
 
-@CommandLine.Command(name = "switch-consensus", mixinStandardHelpOptions = true, header = "Switch consensus type.")
-class TxSwitchConsensus implements Runnable {
+@CommandLine.Command(name = "consensus-switch", mixinStandardHelpOptions = true, header = "Switch consensus type.")
+class TxConsensusSwitch implements Runnable {
 
     @CommandLine.Option(names = "--type", required = true, description = "New consensus type. Options: `bft`,`raft`,`mq`", scope = CommandLine.ScopeType.INHERIT)
     String type;
 
-    @CommandLine.Option(names = "--file", required = true, description = "Set new consensus config file", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = "--config", required = true, description = "Set new consensus config file", scope = CommandLine.ScopeType.INHERIT)
     String config;
 
     @CommandLine.ParentCommand
@@ -1194,7 +1190,7 @@ class TxSwitchConsensus implements Runnable {
 
         TransactionTemplate txTemp = txCommand.newTransaction();
 
-        try (InputStream in = new FileInputStream(new File(config))) {
+        try (InputStream in = new FileInputStream(config)) {
             properties = FileUtils.readProperties(in);
         } catch (IOException e) {
             throw new IllegalStateException(e.getMessage(), e);
@@ -1206,11 +1202,11 @@ class TxSwitchConsensus implements Runnable {
             providerName = "com.jd.blockchain.consensus.raft.RaftConsensusProvider";
         } else if (type.equalsIgnoreCase("mq")) {
             providerName = "com.jd.blockchain.consensus.mq.MsgQueueConsensusProvider";
-        }else {
+        } else {
             System.err.printf("not support consensus type: %s, select `bft`, `raft` or `mq`%n", type);
             return;
         }
-        txTemp.switchSettings().update(providerName, PropertiesUtils.getOrderedValues(properties));
+        txTemp.consensus().update(providerName, PropertiesUtils.getOrderedValues(properties));
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);
         if (null != txFile) {
@@ -1228,10 +1224,10 @@ class TxSwitchConsensus implements Runnable {
     }
 }
 
-@CommandLine.Command(name = "switch-hash-algo", mixinStandardHelpOptions = true, header = "Switch crypto hash algo.")
-class TxSwitchHashAlgo implements Runnable {
+@CommandLine.Command(name = "hash-algo-switch", mixinStandardHelpOptions = true, header = "Switch crypto hash algo.")
+class TxHashAlgorithmSwitch implements Runnable {
 
-    @CommandLine.Option(names = "--hash-algo", required = true, description = "New crypto hash algo. Options:'SHA256','RIPEMD160','SM3'", scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = {"-a", "--algorithm"}, required = true, description = "New crypto hash algo. Options:'SHA256','RIPEMD160','SM3'", scope = CommandLine.ScopeType.INHERIT)
     String newHashAlgo;
 
     @CommandLine.ParentCommand
@@ -1241,12 +1237,12 @@ class TxSwitchHashAlgo implements Runnable {
     public void run() {
 
         if (StringUtils.isEmpty(newHashAlgo)) {
-            System.err.println("new hash algo is empty!");
+            System.err.println("new hash algorithm is empty!");
             return;
         }
 
         TransactionTemplate txTemp = txCommand.newTransaction();
-        txTemp.switchHashAlgo().update(newHashAlgo);
+        txTemp.settings().hashAlgorithm(newHashAlgo);
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);
         if (null != txFile) {
@@ -1255,9 +1251,9 @@ class TxSwitchHashAlgo implements Runnable {
             if (txCommand.sign(ptx)) {
                 TransactionResponse response = ptx.commit();
                 if (response.isSuccess()) {
-                    System.out.println("switch new hash algo success");
+                    System.out.println("switch new hash algorithm success");
                 } else {
-                    System.err.printf("switch new hash algo failed: [%s]!%n", response.getExecutionState());
+                    System.err.printf("switch new hash algorithm failed: [%s]!%n", response.getExecutionState());
                 }
             }
         }

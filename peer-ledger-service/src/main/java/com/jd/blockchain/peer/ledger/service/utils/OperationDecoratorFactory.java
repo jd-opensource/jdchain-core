@@ -53,21 +53,15 @@ public class OperationDecoratorFactory {
             return decorateContractStateUpdateOperation((ContractStateUpdateOperation) op);
         } else if (op instanceof AccountPermissionSetOperation) {
             return decorateAccountPermissionSetOperation((AccountPermissionSetOperation) op);
-        } else if (op instanceof ConsensusTypeUpdateOperation) {
-            return decorateConsensusTypeUpdateOperation((ConsensusTypeUpdateOperation) op);
-        } else if (op instanceof CryptoHashAlgoUpdateOperation){
-            return decorateCryptoHashAlgoUpdateOperation((CryptoHashAlgoUpdateOperation)op);
+        } else if (op instanceof HashAlgorithmUpdateOperation){
+            return decorateCryptoHashAlgoUpdateOperation((HashAlgorithmUpdateOperation)op);
         }
 
         return null;
     }
 
-    private static Operation decorateCryptoHashAlgoUpdateOperation(CryptoHashAlgoUpdateOperation op) {
-        return new CryptoHashAlgoUpdateOpTemplate(op.getHashAlgoName());
-    }
-
-    private static Operation decorateConsensusTypeUpdateOperation(ConsensusTypeUpdateOperation op) {
-        return new ConsensusTypeUpdateOpTemplate(op.getProviderName(), op.getProperties());
+    private static Operation decorateCryptoHashAlgoUpdateOperation(HashAlgorithmUpdateOperation op) {
+        return new HashAlgorithmUpdateOpTemplate(op.getAlgorithm());
     }
 
     /**
@@ -206,7 +200,7 @@ public class OperationDecoratorFactory {
      * @return
      */
     public static Operation decorateConsensusSettingsUpdateOperation(ConsensusSettingsUpdateOperation op) {
-        return new ConsensusSettingsUpdateOpTemplate(op.getProperties());
+        return new ConsensusSettingsUpdateOpTemplate(op.getProvider(), op.getProperties());
     }
 
     /**

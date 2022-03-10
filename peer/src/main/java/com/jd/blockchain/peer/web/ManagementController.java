@@ -5,8 +5,7 @@ import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.crypto.AddressEncoding;
 import com.jd.blockchain.ledger.BlockRollbackException;
 import com.jd.blockchain.ledger.ConsensusReconfigOperation;
-import com.jd.blockchain.ledger.ConsensusTypeUpdateOperation;
-import com.jd.blockchain.ledger.CryptoHashAlgoUpdateOperation;
+import com.jd.blockchain.ledger.HashAlgorithmUpdateOperation;
 import com.jd.blockchain.ledger.IdentityMode;
 import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.ledger.LedgerDataStructure;
@@ -217,9 +216,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         DataContractRegistry.register(ParticipantStateUpdateOperation.class);
         DataContractRegistry.register(ConsensusSettingsUpdateOperation.class);
         DataContractRegistry.register(ConsensusReconfigOperation.class);
-        DataContractRegistry.register(ConsensusTypeUpdateOperation.class);
 
-        DataContractRegistry.register(CryptoHashAlgoUpdateOperation.class);
+        DataContractRegistry.register(HashAlgorithmUpdateOperation.class);
 
         DataContractRegistry.register(ActionResponse.class);
 
@@ -1114,7 +1112,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         // ops
         txbuilder.states().update(new BlockchainIdentityData(node.getPubKey()), ParticipantNodeState.DEACTIVATED);
 
-        txbuilder.settings().update(properties);
+        txbuilder.consensus().update(properties);
 
         TransactionRequestBuilder reqBuilder = txbuilder.prepareRequest();
 
@@ -1317,7 +1315,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         // ops
         txbuilder.states().update(new BlockchainIdentityData(node.getPubKey()), ParticipantNodeState.CONSENSUS);
 
-        txbuilder.settings().update(properties);
+        txbuilder.consensus().update(properties);
 
         TransactionRequestBuilder reqBuilder = txbuilder.prepareRequest();
 
@@ -1344,7 +1342,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         // ops
         txbuilder.states().update(new BlockchainIdentityData(node.getPubKey()), ParticipantNodeState.CONSENSUS);
 
-        txbuilder.settings().update(properties);
+        txbuilder.consensus().update(properties);
 
         TransactionRequestBuilder reqBuilder = txbuilder.prepareRequest();
 

@@ -322,7 +322,7 @@ public class ParticipantManagerService4Bft implements IParticipantManagerService
         TxBuilder txbuilder = new TxBuilder(ledgerHash, (Short) context.getProperty(ParticipantContext.HASH_ALG_PROP));
 
         // This transaction contains one reconfig op
-        txbuilder.reconfigs().record(type);
+        txbuilder.consensus().reconfig(type);
 
         TransactionRequestBuilder reqBuilder = txbuilder.prepareRequest();
 

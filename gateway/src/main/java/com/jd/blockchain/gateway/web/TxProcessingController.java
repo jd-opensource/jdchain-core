@@ -4,7 +4,7 @@ import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.ledger.*;
-import com.jd.blockchain.ledger.CryptoHashAlgoUpdateOperation;
+import com.jd.blockchain.ledger.HashAlgorithmUpdateOperation;
 import com.jd.blockchain.sdk.service.ErrorTransactionResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +65,7 @@ public class TxProcessingController implements TransactionService {
 						if ((null == opration.getLang() || opration.getLang().equals(ContractLang.Java)) && !CONTRACT_PROCESSOR.verify(opration.getChainCode())) {
 							return new ErrorTransactionResponse(txRequest.getTransactionHash(), TransactionState.ILLEGAL_CONTRACT_CAR);
 						}
-					} else if (CryptoHashAlgoUpdateOperation.class.isAssignableFrom(op.getClass())) {
+					} else if (HashAlgorithmUpdateOperation.class.isAssignableFrom(op.getClass())) {
 						ledgerSettingUpdate = true;
 					}
 				}
