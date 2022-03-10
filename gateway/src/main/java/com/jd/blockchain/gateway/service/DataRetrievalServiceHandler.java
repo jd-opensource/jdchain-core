@@ -8,7 +8,6 @@
  */
 package com.jd.blockchain.gateway.service;
 
-import com.alibaba.fastjson.JSONObject;
 import com.jd.httpservice.agent.HttpClientPool;
 
 import org.springframework.stereotype.Component;
