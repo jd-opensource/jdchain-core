@@ -6,13 +6,11 @@ import java.io.InputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 import com.jd.blockchain.contract.ContractEntrance;
 import com.jd.blockchain.contract.ContractProcessor;
 import com.jd.blockchain.contract.OnLineContractProcessor;
 
-import utils.StringUtils;
 import utils.io.FileSystemStorage;
 import utils.io.FileUtils;
 import utils.io.RuntimeIOException;
@@ -47,7 +45,7 @@ public abstract class RuntimeContext {
 
 	protected static void set(RuntimeContext runtimeContext) {
 		if (RuntimeContext.runtimeContext != null) {
-			throw new IllegalStateException("RuntimeContext has been setted!");
+			throw new IllegalStateException("RuntimeContext has been set!");
 		}
 		RuntimeContext.runtimeContext = runtimeContext;
 	}
@@ -198,11 +196,8 @@ public abstract class RuntimeContext {
 				this.homeDir = new File("./").getCanonicalPath();
 				this.runtimeDir = new File(homeDir, "runtime").getAbsolutePath();
 				this.environment.setRuntimeDir(runtimeDir);
-				String securityPolicy = System.getProperty("java.security.policy");
-				if(!StringUtils.isEmpty(securityPolicy)) {
-					securityManager = new RuntimeSecurityManager(false);
-					System.setSecurityManager(securityManager);
-				}
+				this.securityManager = new RuntimeSecurityManager(false);
+				System.setSecurityManager(securityManager);
 			} catch (IOException e) {
 				throw new RuntimeIOException(e.getMessage(), e);
 			}

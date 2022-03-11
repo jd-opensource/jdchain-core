@@ -47,37 +47,50 @@ public abstract class AbstractContractCode implements ContractCode {
     }
 
     private BytesValue invoke(ContractEventContext eventContext) {
+        RuntimeSecurityManager securityManager = RuntimeContext.get().getSecurityManager();
         Object retn = null;
         LedgerException error = null;
         Object contractInstance = null;
         try {
-            contractInstance = getContractInstance();
-            // 执行预处理;
-            beforeEvent(contractInstance, eventContext);
+            try {
+                // 生成合约类对象
+                contractInstance = getContractInstance();
+                // 开启安全管理器
+                if (null != securityManager) {
+                    securityManager.enable();
+                }
+                // 执行预处理;
+                beforeEvent(contractInstance, eventContext);
 
-            // 合约方法执行
-            retn = securityInvoke(eventContext, contractInstance);
-        } catch (LedgerException e) {
-            error = e;
-        } catch (Throwable e) {
-            String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]!", eventContext.getEvent(), address.toString());
-            error = new ContractExecuteException(errorMessage, e);
-        }
-
-        try {
-            postEvent(contractInstance, eventContext, error);
-        } catch (Throwable e) {
-            if (e instanceof LedgerException) {
-                error = (LedgerException) e;
-            } else {
-                String errorMessage = String.format("Error occurred while posting event[%s] of contract[%s]!", eventContext.getEvent(), address.toString());
+                // 合约方法执行
+                retn = doProcessEvent(contractInstance, eventContext);
+            } catch (LedgerException e) {
+                error = e;
+            } catch (Throwable e) {
+                String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]!", eventContext.getEvent(), address.toString());
                 error = new ContractExecuteException(errorMessage, e);
             }
+
+            try {
+                // 执行后处理
+                postEvent(contractInstance, eventContext, error);
+            } catch (Throwable e) {
+                if (e instanceof LedgerException) {
+                    error = (LedgerException) e;
+                } else {
+                    String errorMessage = String.format("Error occurred while posting event[%s] of contract[%s]!", eventContext.getEvent(), address.toString());
+                    error = new ContractExecuteException(errorMessage, e);
+                }
+            }
+            if (error != null) {
+                throw error;
+            }
+            return (BytesValue) retn;
+        } finally {
+            if (null != securityManager) {
+                securityManager.disable();
+            }
         }
-        if (error != null) {
-            throw error;
-        }
-        return (BytesValue) retn;
     }
 
     private BytesValue timeLimitedInvoke(ContractEventContext eventContext, ContractRuntimeConfig runtimeConfig) {
@@ -95,20 +108,8 @@ public abstract class AbstractContractCode implements ContractCode {
             throw new ContractExecuteException("Error occurred while get contract result ", e);
         } catch (InterruptedException | TimeoutException e) {
             throw new BlockRollbackException(TransactionState.SYSTEM_ERROR, "Contract Interrupted or Timeout", e);
-        }
-    }
-
-    private Object securityInvoke(ContractEventContext eventContext, Object contractInstance) {
-        RuntimeSecurityManager securityManager = RuntimeContext.get().getSecurityManager();
-        try {
-            if (null != securityManager) {
-                securityManager.enable();
-            }
-            return doProcessEvent(contractInstance, eventContext);
-        } finally {
-            if (null != securityManager) {
-                securityManager.disable();
-            }
+        } catch (Exception e) {
+            throw new BlockRollbackException(TransactionState.SYSTEM_ERROR, "Contract Interrupted or Timeout", e);
         }
     }
 
@@ -116,7 +117,7 @@ public abstract class AbstractContractCode implements ContractCode {
 
     protected abstract void beforeEvent(Object contractInstance, ContractEventContext eventContext);
 
-    protected abstract BytesValue doProcessEvent(Object contractInstance, ContractEventContext eventContext);
+    protected abstract BytesValue doProcessEvent(Object contractInstance, ContractEventContext eventContext) throws Exception;
 
     protected abstract void postEvent(Object contractInstance, ContractEventContext eventContext, LedgerException error);
 }

@@ -1,10 +1,13 @@
 package com.jd.blockchain.runtime;
 
+import com.jd.blockchain.ledger.ContractExecuteException;
+
+import java.lang.reflect.ReflectPermission;
 import java.security.Permission;
 
 public class RuntimeSecurityManager extends SecurityManager {
 
-    ThreadLocal<Boolean> enabledFlag;
+    private ThreadLocal<Boolean> enabledFlag;
 
     public RuntimeSecurityManager(final boolean enabledByDefault) {
 
@@ -24,15 +27,19 @@ public class RuntimeSecurityManager extends SecurityManager {
 
     @Override
     public void checkPermission(Permission permission) {
-        if (isEnabled()) {
-            super.checkPermission(permission);
-        }
+        checkPermission(permission, null);
     }
 
     @Override
     public void checkPermission(Permission permission, Object context) {
         if (isEnabled()) {
-            super.checkPermission(permission, context);
+            if (permission.getName().equals("createClassLoader") && permission.getClass().getName().equals(RuntimePermission.class.getName())) {
+                return;
+            } else if (permission.getName().equals("suppressAccessChecks") && permission.getClass().getName().equals(ReflectPermission.class.getName())) {
+                return;
+            } else {
+                throw new ContractExecuteException("access denied " + permission);
+            }
         }
     }
 
