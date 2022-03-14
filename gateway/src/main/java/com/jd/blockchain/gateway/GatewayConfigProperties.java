@@ -72,8 +72,6 @@ public class GatewayConfigProperties {
 
 	private HttpConfig http = new HttpConfig();
 
-	private ProviderConfig providerConfig = new ProviderConfig();
-
 	private NetworkAddress masterPeerAddress = null;
 	private SSLClientAuth masterPeerClientAuth = SSLClientAuth.NONE;
 	private boolean consensusSecure;
@@ -122,10 +120,6 @@ public class GatewayConfigProperties {
 
 	public void setSchemaRetrievalUrl(String schemaRetrievalUrl) {
 		this.schemaRetrievalUrl = schemaRetrievalUrl;
-	}
-
-	public ProviderConfig providerConfig() {
-		return providerConfig;
 	}
 
 	public void setMasterPeerAddress(NetworkAddress peerAddress) {
@@ -186,15 +180,6 @@ public class GatewayConfigProperties {
 
 		String schemaRetrievalUrl = getProperty(props, SCHEMA_RETRIEVAL_URL, false);
 		configProps.schemaRetrievalUrl = schemaRetrievalUrl;
-
-		String providers = getProperty(props, PEER_PROVIDERS, true);
-		if (providers == null || providers.length() <= 0) {
-			throw new IllegalArgumentException("Miss peer providers!");
-		}
-		String[] providerArray = providers.split(",");
-		for (String provider : providerArray) {
-			configProps.providerConfig.add(provider);
-		}
 
 		String pubkeyString = getProperty(props, DEFAULT_PUBKEY, false);
 		String capath = getProperty(props, DEFAULT_CA_PATH, false);
@@ -304,18 +289,6 @@ public class GatewayConfigProperties {
 	}
 
 	// ------------------------------------------------------------
-
-	public static class ProviderConfig {
-		List<String> providers = new ArrayList<>();
-
-		public void add(String provider) {
-			providers.add(provider);
-		}
-
-		public List<String> getProviders() {
-			return providers;
-		}
-	}
 
 	public static class HttpConfig {
 
