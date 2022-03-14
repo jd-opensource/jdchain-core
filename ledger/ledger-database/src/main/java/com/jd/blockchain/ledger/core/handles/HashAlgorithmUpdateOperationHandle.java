@@ -44,7 +44,7 @@ public class HashAlgorithmUpdateOperationHandle extends AbstractLedgerOperationH
         CryptoAlgorithm newCryptoAlgorithm;
         if (algorithmName.equals(ClassicAlgorithm.SHA256.name())) {
             newCryptoAlgorithm = ClassicAlgorithm.SHA256;
-        } else if (algorithmName.equals(ClassicAlgorithm.SHA256.name())) {
+        } else if (algorithmName.equals(ClassicAlgorithm.RIPEMD160.name())) {
             newCryptoAlgorithm = ClassicAlgorithm.RIPEMD160;
         } else if (algorithmName.equals(SMAlgorithm.SM3.name())) {
             newCryptoAlgorithm = SMAlgorithm.SM3;
