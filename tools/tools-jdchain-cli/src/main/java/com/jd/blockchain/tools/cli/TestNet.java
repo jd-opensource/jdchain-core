@@ -657,8 +657,19 @@ class InitConfig implements Runnable {
                 "#application-peer.properties完整路径\n" +
                 "SPRING_CONFIG=$CONFIG_PATH/application-peer.properties\n" +
                 "\n" +
+                "JDK_VERSION=$(java -version 2>&1 | sed '1!d' | sed -e 's/\"//g' | awk '{print $3}')\n" +
+                "if [[ $JDK_VERSION == 1.8.* ]]; then\n" +
+                "  opens=\"\"\n" +
+                "else\n" +
+                "  opens=\"--add-opens java.base/java.lang=ALL-UNNAMED\"\n" +
+                "  opens=$opens\" --add-opens java.base/java.util=ALL-UNNAMED\"\n" +
+                "  opens=$opens\" --add-opens java.base/java.net=ALL-UNNAMED\"\n" +
+                "  opens=$opens\" --add-opens java.base/sun.security.x509=ALL-UNNAMED\"\n" +
+                "  opens=$opens\" --add-opens java.base/sun.security.util=ALL-UNNAMED\"\n" +
+                "fi\n" +
+                "\n" +
                 "#定义程序启动的参数\n" +
-                "JAVA_OPTS=\"-jar -server -Xms2048m -Xmx2048m -Djdchain.log=$APP_HOME/logs -Dlog4j.configurationFile=file:$APP_HOME/config/log4j2-peer.xml\"\n" +
+                "JAVA_OPTS=\"-jar -server -Xms2048m -Xmx2048m $opens -Djdchain.log=$APP_HOME/logs -Dlog4j.configurationFile=file:$APP_HOME/config/log4j2-peer.xml\"\n" +
                 "\n" +
                 "#APP具体相关命令\n" +
                 "APP_CMD=$APP_SYSTEM_PATH/$APP_JAR\" -home=\"$APP_HOME\" -c \"$LEDGER_BINDING_CONFIG\" -p \"$WEB_PORT\" -sp \"$SPRING_CONFIG\n" +
