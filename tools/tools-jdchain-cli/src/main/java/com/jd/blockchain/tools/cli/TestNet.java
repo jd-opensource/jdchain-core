@@ -163,9 +163,11 @@ class InitConfig implements Runnable {
             String[] pubkeys = new String[peerSize];
             String[] privkeys = new String[peerSize];
             String[] peerDirs = new String[peerSize];
+            String[] raftDirs = new String[peerSize];
             String base58pwd = KeyGenUtils.encodePasswordAsBase58(password);
             for (int i = 0; i < peerSize; i++) {
                 peerDirs[i] = out.getAbsolutePath() + File.separator + "peer" + i;
+                raftDirs[i] = peerDirs[i] + File.separator + "raft";
                 // 解压
                 unzipFile(new File(peerZip), peerDirs[i]);
                 // 生成公私钥
@@ -186,15 +188,14 @@ class InitConfig implements Runnable {
             }
             for (int i = 0; i < peerSize; i++) {
                 if (consensus.equalsIgnoreCase("Raft")) {
-                    // 配置 raft.config TODO imuge
+                    // 配置 raft.config
+                    configRaft(peerDirs[i], raftDirs, hostsForPeer, portsForConsensus);
                 } else if (consensus.equalsIgnoreCase("MQ")) {
                     // 配置 mq.config
-                    configMQ(peerDirs[i] + File.separator + "config" + File.separator + "init" + File.separator + "mq.config",
-                            rabbit, hostsForPeer, pubkeys);
+                    configMQ(peerDirs[i], rabbit, hostsForPeer, pubkeys);
                 } else {
                     // 配置 bftsmart.config
-                    configBftsmart(peerDirs[i] + File.separator + "config" + File.separator + "init" + File.separator + "bftsmart.config",
-                            hostsForPeer, portsForConsensus);
+                    configBftsmart(peerDirs[i], hostsForPeer, portsForConsensus);
                 }
                 // 配置 local.conf
                 configLocal(peerDirs[i] + File.separator + "config" + File.separator + "init" + File.separator + "local.conf",
@@ -249,7 +250,8 @@ class InitConfig implements Runnable {
         zipFile.extractAll(output);
     }
 
-    private void configBftsmart(String file, String[] peerHosts, int[] peerPorts) {
+    private void configBftsmart(String peerDir, String[] peerHosts, int[] peerPorts) {
+        String file = peerDir + File.separator + "config" + File.separator + "init" + File.separator + "bftsmart.config";
         StringBuilder sb = new StringBuilder();
         sb.append("############################################\n" +
                 "###### #Consensus Participants ######\n" +
@@ -385,7 +387,46 @@ class InitConfig implements Runnable {
         FileUtils.writeText(sb.toString(), new File(file));
     }
 
-    private void configMQ(String file, String rabbit, String[] peerHosts, String[] peerPubs) {
+    private void configRaft(String peerDir, String[] raftDirs, String[] peerHosts, int[] portsForConsensus) {
+        String file = peerDir + File.separator + "config" + File.separator + "init" + File.separator + "raft.config";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < peerHosts.length; i++) {
+            sb.append("system.server." + i + ".network.host=" + peerHosts[i] + "\n" +
+                    "system.server." + i + ".network.port=" + portsForConsensus[i] + "\n" +
+                    "system.server." + i + ".network.secure=false\n" +
+                    "system.server." + i + ".raft.path=" + raftDirs[i] + "\n");
+        }
+        sb.append("\nsystem.server.block.max.num=100\n" +
+                "system.server.block.max.bytes=4194304\n" +
+                "\n" +
+                "system.server.election.timeout=5000\n" +
+                "system.server.snapshot.interval=1800\n" +
+                "\n" +
+                "system.client.configuration.refresh.interval=60000\n" +
+                "\n" +
+                "system.server.rpc.connect.timeout=10000\n" +
+                "system.server.rpc.default.timeout=10000\n" +
+                "system.server.rpc.snapshot.timeout=300000\n" +
+                "system.server.rpc.request.timeout=20000\n" +
+                "\n" +
+                "system.raft.maxByteCountPerRpc=131072\n" +
+                "system.raft.maxEntriesSize=1024\n" +
+                "system.raft.maxBodySize=524288\n" +
+                "system.raft.maxAppendBufferSize=262144\n" +
+                "system.raft.maxElectionDelayMs=1000\n" +
+                "system.raft.electionHeartbeatFactor=5\n" +
+                "system.raft.applyBatch=32\n" +
+                "system.raft.sync=true\n" +
+                "system.raft.syncMeta=false\n" +
+                "system.raft.disruptorBufferSize=16384\n" +
+                "system.raft.replicatorPipeline=true\n" +
+                "system.raft.maxReplicatorInflightMsgs=256\n");
+        FileUtils.deleteFile(file);
+        FileUtils.writeText(sb.toString(), new File(file));
+    }
+
+    private void configMQ(String peerDir, String rabbit, String[] peerHosts, String[] peerPubs) {
+        String file = peerDir + File.separator + "config" + File.separator + "init" + File.separator + "mq.config";
         StringBuilder sb = new StringBuilder();
         sb.append("# MQ连接地址，格式：{MQ类型}://{IP}:{PORT}\n" +
                 "system.msg.queue.server=amqp://" + rabbit + "\n" +
@@ -717,8 +758,15 @@ class InitConfig implements Runnable {
                 "#账本节点拓扑信息落盘，默认false\n" +
                 "topology.store=false\n" +
                 "\n" +
-                "#是否开启共识节点自动感知，默认true\n" +
+                "#是否开启共识节点自动感知，默认true. MQ不支持动态感知\n" +
                 "topology.aware=" + (consensus.equalsIgnoreCase("MQ") ? "false" : "true") + "\n" +
+                "#共识节点自动感知间隔（毫秒），0及负值表示仅感知一次。对于不存在节点变更的场景可只感知一次\n" +
+                "topology.aware.interval=0\n" +
+                "\n" +
+                "# 节点连接心跳（毫秒），及时感知连接有效性，0及负值表示关闭\n" +
+                "peer.connection.ping=3000\n" +
+                "# 节点连接认证（毫秒），及时感知连接合法性，0及负值表示关闭。对于不存在权限变更的场景可关闭\n" +
+                "peer.connection.auth=0" +
                 "\n" +
                 "#共识节点的服务提供解析器\n" +
                 "peer.providers=" +
