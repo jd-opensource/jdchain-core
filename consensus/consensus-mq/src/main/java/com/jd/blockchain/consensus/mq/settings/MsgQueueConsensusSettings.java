@@ -31,4 +31,7 @@ public interface MsgQueueConsensusSettings extends ConsensusViewSettings {
 
     @DataField(order = 1, refContract = true)
     MsgQueueBlockSettings getBlockSettings();
+
+    @DataField(order = 3, primitiveType = PrimitiveType.BYTES, list=true)
+    Property[] getSystemConfigs();
 }

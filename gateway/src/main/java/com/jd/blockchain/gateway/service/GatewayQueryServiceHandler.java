@@ -8,6 +8,14 @@ import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusConfig;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeConfig;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
+import com.jd.blockchain.consensus.mq.config.MsgQueueBlockConfig;
+import com.jd.blockchain.consensus.mq.config.MsgQueueConsensusConfig;
+import com.jd.blockchain.consensus.mq.config.MsgQueueNetworkConfig;
+import com.jd.blockchain.consensus.mq.config.MsgQueueNodeConfig;
+import com.jd.blockchain.consensus.mq.settings.MsgQueueBlockSettings;
+import com.jd.blockchain.consensus.mq.settings.MsgQueueConsensusSettings;
+import com.jd.blockchain.consensus.mq.settings.MsgQueueNetworkSettings;
+import com.jd.blockchain.consensus.mq.settings.MsgQueueNodeSettings;
 import com.jd.blockchain.consensus.raft.config.RaftConfig;
 import com.jd.blockchain.consensus.raft.config.RaftConsensusConfig;
 import com.jd.blockchain.consensus.raft.config.RaftNetworkConfig;
@@ -215,6 +223,35 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 
 
 			return raftConsensusConfig;
+		}else if(consensusSettings instanceof MsgQueueConsensusSettings) {
+			MsgQueueConsensusSettings mqConsensusSettings = (MsgQueueConsensusSettings) consensusSettings;
+			MsgQueueConsensusConfig mqConsensusConfig = new MsgQueueConsensusConfig();
+			MsgQueueBlockSettings blockSettings = mqConsensusSettings.getBlockSettings();
+			MsgQueueBlockConfig mqQueueBlockConfig = new MsgQueueBlockConfig();
+			mqQueueBlockConfig.setMaxDelayMilliSecondsPerBlock(blockSettings.getMaxDelayMilliSecondsPerBlock());
+			mqQueueBlockConfig.setTxSizePerBlock(blockSettings.getTxSizePerBlock());
+			mqConsensusConfig.setBlockSettings(mqQueueBlockConfig);
+
+			MsgQueueNetworkSettings networkSettings = mqConsensusSettings.getNetworkSettings();
+			MsgQueueNetworkConfig mqQueueNetworkConfig = new MsgQueueNetworkConfig();
+			mqQueueNetworkConfig.setBlockTopic(networkSettings.getBlockTopic());
+			mqQueueNetworkConfig.setMsgResultTopic(networkSettings.getMsgResultTopic());
+			mqQueueNetworkConfig.setMsgTopic(networkSettings.getMsgTopic());
+			mqQueueNetworkConfig.setServer(networkSettings.getServer());
+			mqQueueNetworkConfig.setTxTopic(networkSettings.getTxTopic());
+			mqQueueNetworkConfig.setTxResultTopic(networkSettings.getTxResultTopic());
+			mqConsensusConfig.setNetworkSettings(mqQueueNetworkConfig);
+
+			for(int i=0; i<mqConsensusSettings.getNodes().length; i++) {
+				MsgQueueNodeSettings nodeSettings = (MsgQueueNodeSettings)mqConsensusSettings.getNodes()[i];
+				MsgQueueNodeConfig msgQueueNodeConfig = new MsgQueueNodeConfig();
+				msgQueueNodeConfig.setAddress(nodeSettings.getAddress());
+				msgQueueNodeConfig.setPubKey(nodeSettings.getPubKey());
+				msgQueueNodeConfig.setId(nodeSettings.getId());
+				mqConsensusConfig.addNodeSettings(msgQueueNodeConfig);
+			}
+
+			return mqConsensusConfig;
 		}
 		return consensusSettings;
 	}

@@ -8,18 +8,19 @@
  */
 package com.jd.blockchain.consensus.mq.config;
 
-import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
-import com.jd.blockchain.consensus.mq.settings.*;
-import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.consensus.mq.settings.MsgQueueBlockSettings;
+import com.jd.blockchain.consensus.mq.settings.MsgQueueConsensusSettings;
+import com.jd.blockchain.consensus.mq.settings.MsgQueueNetworkSettings;
+import com.jd.blockchain.consensus.mq.settings.MsgQueueNodeSettings;
+import utils.Property;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * 设置消息队列的信息
+ *
  * @author shaozhuguang
  * @create 2018/12/12
  * @since 1.0.0
@@ -38,16 +39,6 @@ public class MsgQueueConsensusConfig implements MsgQueueConsensusSettings {
         return this;
     }
 
-    public MsgQueueConsensusConfig setNetworkSettings(MsgQueueNetworkSettings networkSettings) {
-        this.networkSettings = networkSettings;
-        return this;
-    }
-
-    public MsgQueueConsensusConfig setBlockSettings(MsgQueueBlockSettings blockSettings) {
-        this.blockSettings = blockSettings;
-        return this;
-    }
-
     @Override
     public NodeSettings[] getNodes() {
         return nodeSettingsList.toArray(new NodeSettings[nodeSettingsList.size()]);
@@ -58,8 +49,34 @@ public class MsgQueueConsensusConfig implements MsgQueueConsensusSettings {
         return networkSettings;
     }
 
+    public MsgQueueConsensusConfig setNetworkSettings(MsgQueueNetworkSettings networkSettings) {
+        this.networkSettings = networkSettings;
+        return this;
+    }
+
     @Override
     public MsgQueueBlockSettings getBlockSettings() {
         return blockSettings;
+    }
+
+    public MsgQueueConsensusConfig setBlockSettings(MsgQueueBlockSettings blockSettings) {
+        this.blockSettings = blockSettings;
+        return this;
+    }
+
+    @Override
+    public Property[] getSystemConfigs() {
+        MsgQueueNetworkSettings networkSettings = getNetworkSettings();
+        MsgQueueBlockSettings blockSettings = getBlockSettings();
+        Property[] properties = new Property[8];
+        properties[0] = new Property("system.msg.queue.server", networkSettings.getServer());
+        properties[1] = new Property("system.msg.queue.topic.tx", networkSettings.getTxTopic());
+        properties[2] = new Property("system.msg.queue.topic.tx-result", networkSettings.getTxResultTopic());
+        properties[3] = new Property("system.msg.queue.topic.msg", networkSettings.getMsgTopic());
+        properties[4] = new Property("system.msg.queue.topic.msg-result", networkSettings.getMsgResultTopic());
+        properties[5] = new Property("system.msg.queue.topic.block", networkSettings.getBlockTopic());
+        properties[6] = new Property("system.msg.queue.block.txsize", String.valueOf(blockSettings.getTxSizePerBlock()));
+        properties[7] = new Property("system.msg.queue.block.maxdelay", String.valueOf(blockSettings.getMaxDelayMilliSecondsPerBlock()));
+        return properties;
     }
 }
