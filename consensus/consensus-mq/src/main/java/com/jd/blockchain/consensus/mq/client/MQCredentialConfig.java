@@ -1,7 +1,7 @@
 package com.jd.blockchain.consensus.mq.client;
 
 import com.jd.binaryproto.DataContractRegistry;
-import com.jd.blockchain.consensus.ConsensusTypeEnum;
+import com.jd.blockchain.ledger.ConsensusTypeEnum;
 
 public class MQCredentialConfig implements MQCredentialInfo{
 

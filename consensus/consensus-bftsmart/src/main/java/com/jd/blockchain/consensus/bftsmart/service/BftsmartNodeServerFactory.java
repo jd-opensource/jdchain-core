@@ -1,23 +1,19 @@
 package com.jd.blockchain.consensus.bftsmart.service;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
-import com.jd.blockchain.consensus.service.MessageHandle;
-import com.jd.blockchain.consensus.service.NodeServer;
-import com.jd.blockchain.consensus.service.NodeServerFactory;
-import com.jd.blockchain.consensus.service.ServerSettings;
-import com.jd.blockchain.consensus.service.StateMachineReplicate;
-
+import com.jd.blockchain.consensus.service.*;
 import utils.GmSSLProvider;
 import utils.io.Storage;
 import utils.net.NetworkAddress;
 import utils.net.SSLSecurity;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BftsmartNodeServerFactory implements NodeServerFactory {
 
@@ -26,11 +22,11 @@ public class BftsmartNodeServerFactory implements NodeServerFactory {
 	@Override
 	public ServerSettings buildServerSettings(String realmName, ConsensusViewSettings viewSettings,
 			String nodeAddress) {
-		return buildServerSettings(realmName, viewSettings, nodeAddress, new SSLSecurity());
+		return buildServerSettings(realmName, viewSettings, nodeAddress, new SSLSecurity(), null);
 	}
 
 	@Override
-	public ServerSettings buildServerSettings(String realmName, ConsensusViewSettings viewSettings, String nodeAddress, SSLSecurity sslSecurity) {
+	public ServerSettings buildServerSettings(String realmName, ConsensusViewSettings viewSettings, String nodeAddress, SSLSecurity sslSecurity, Properties properties) {
 		NodeSettings currentNodeSetting = null;
 
 		BftsmartServerSettingConfig serverSettings = new BftsmartServerSettingConfig();

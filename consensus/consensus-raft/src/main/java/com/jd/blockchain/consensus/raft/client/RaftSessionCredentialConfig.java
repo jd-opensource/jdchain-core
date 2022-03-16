@@ -1,7 +1,7 @@
 package com.jd.blockchain.consensus.raft.client;
 
 import com.jd.binaryproto.DataContractRegistry;
-import com.jd.blockchain.consensus.ConsensusTypeEnum;
+import com.jd.blockchain.ledger.ConsensusTypeEnum;
 
 public class RaftSessionCredentialConfig implements RaftSessionCredential {
 

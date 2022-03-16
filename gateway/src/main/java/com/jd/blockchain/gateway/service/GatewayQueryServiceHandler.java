@@ -203,7 +203,7 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 					if (node instanceof RaftNodeSettings) {
 						RaftNodeSettings raftNodeSetting = (RaftNodeSettings) node;
 						raftNodeSettings[i] = new RaftNodeConfig(raftNodeSetting.getId(),
-								raftNodeSetting.getAddress(), raftNodeSetting.getPubKey(), raftNodeSetting.getRaftPath(), raftNodeSetting.getNetworkAddress());
+								raftNodeSetting.getAddress(), raftNodeSetting.getPubKey(), raftNodeSetting.getNetworkAddress());
 
 					}
 				}

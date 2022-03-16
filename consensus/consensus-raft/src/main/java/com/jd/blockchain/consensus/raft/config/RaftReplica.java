@@ -12,7 +12,6 @@ public class RaftReplica implements NetworkReplica {
     private String name;
     private PubKey pubKey;
     private NetworkAddress networkAddress;
-    private String raftPath;
 
     @Override
     public int getId() {
@@ -57,14 +56,6 @@ public class RaftReplica implements NetworkReplica {
 
     public void setNetworkAddress(NetworkAddress networkAddress) {
         this.networkAddress = networkAddress;
-    }
-
-    public String getRaftPath() {
-        return raftPath;
-    }
-
-    public void setRaftPath(String raftPath) {
-        this.raftPath = raftPath;
     }
 
     public String getPeerStr() {

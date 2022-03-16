@@ -12,10 +12,7 @@ import com.jd.blockchain.consensus.raft.settings.RaftConsensusSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftNetworkSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftNodeSettings;
 import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.TransactionRequest;
-import com.jd.blockchain.ledger.TransactionResponse;
-import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.peer.web.ManagementController;
 import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.httpservice.utils.web.WebResponse;
@@ -33,7 +30,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
-@Component(ConsensusServiceFactory.RAFT_PROVIDER)
+@Component(ConsensusTypeEnum.RAFT_PROVIDER)
 public class ParticipantManagerService4Raft implements IParticipantManagerService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ParticipantManagerService4Raft.class);

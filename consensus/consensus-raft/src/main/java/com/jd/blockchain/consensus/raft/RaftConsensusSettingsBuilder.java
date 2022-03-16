@@ -117,7 +117,6 @@ public class RaftConsensusSettingsBuilder implements ConsensusSettingsBuilder {
         newRaftNodeConfig.setAddress(newReplica.getAddress().toBase58());
         newRaftNodeConfig.setPubKey(newReplica.getPubKey());
         newRaftNodeConfig.setNetworkAddress(newReplica.getNetworkAddress());
-        newRaftNodeConfig.setRaftPath(newReplica.getRaftPath());
         newNodes[origNodes.length] = newRaftNodeConfig;
 
         RaftConsensusConfig raftConsensusConfig = new RaftConsensusConfig(raftConsensusSettings);
@@ -133,7 +132,7 @@ public class RaftConsensusSettingsBuilder implements ConsensusSettingsBuilder {
             throw new IllegalArgumentException("updateSettings parameters error!");
         }
 
-        RaftConsensusConfig raftConsensusConfig = new RaftConsensusConfig((RaftConsensusSettings)oldConsensusSettings);
+        RaftConsensusConfig raftConsensusConfig = new RaftConsensusConfig((RaftConsensusSettings) oldConsensusSettings);
 
         RaftConfig raftConfig = (RaftConfig) raftConsensusConfig.getRaftSettings();
         RaftNetworkConfig raftNetworkConfig = (RaftNetworkConfig) raftConsensusConfig.getNetworkSettings();
@@ -142,13 +141,13 @@ public class RaftConsensusSettingsBuilder implements ConsensusSettingsBuilder {
         RaftNodeConfig deActiveNode = getDeActiveNode(newProps);
 
         Iterator<NodeSettings> iterator = raftConsensusConfig.getNodeSettingsList().iterator();
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             RaftNodeConfig nodeConfig = (RaftNodeConfig) iterator.next();
-            if(deActiveNode != null && deActiveNode.getId() == nodeConfig.getId()){
+            if (deActiveNode != null && deActiveNode.getId() == nodeConfig.getId()) {
                 iterator.remove();
             }
             //update node step
-            if(activeNode != null && activeNode.getId() == nodeConfig.getId()){
+            if (activeNode != null && activeNode.getId() == nodeConfig.getId()) {
                 iterator.remove();
             }
         }

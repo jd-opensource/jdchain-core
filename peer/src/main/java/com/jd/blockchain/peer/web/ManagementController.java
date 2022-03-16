@@ -1,101 +1,17 @@
 package com.jd.blockchain.peer.web;
 
-import com.jd.blockchain.ca.CertificateRole;
-import com.jd.blockchain.ca.CertificateUtils;
-import com.jd.blockchain.crypto.AddressEncoding;
-import com.jd.blockchain.ledger.BlockRollbackException;
-import com.jd.blockchain.ledger.ConsensusReconfigOperation;
-import com.jd.blockchain.ledger.HashAlgorithmUpdateOperation;
-import com.jd.blockchain.ledger.IdentityMode;
-import com.jd.blockchain.ledger.AccountState;
-import com.jd.blockchain.ledger.LedgerDataStructure;
-import com.jd.blockchain.ledger.core.MerkleTreeSimple;
-import com.jd.blockchain.ledger.core.TransactionSet;
-import com.jd.blockchain.ledger.core.UserAccount;
-import com.jd.blockchain.peer.service.IParticipantManagerService;
-import com.jd.blockchain.peer.service.ParticipantContext;
-import com.jd.blockchain.peer.service.ConsensusServiceFactory;
-import com.jd.blockchain.sdk.proxy.HttpBlockchainBrowserService;
-import com.jd.httpservice.agent.HttpServiceAgent;
-import com.jd.httpservice.agent.ServiceConnection;
-import com.jd.httpservice.agent.ServiceConnectionManager;
-import com.jd.httpservice.agent.ServiceEndpoint;
-import utils.BusinessException;
-import utils.Bytes;
-import utils.Property;
-import utils.StringUtils;
-import utils.codec.Base58Utils;
-import utils.io.ByteArray;
-import utils.io.BytesUtils;
-import utils.io.Storage;
-import utils.net.NetworkAddress;
-
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.jd.binaryproto.DataContractRegistry;
-import com.jd.blockchain.consensus.ClientCredential;
-import com.jd.blockchain.consensus.ClientIncomingSettings;
-import com.jd.blockchain.consensus.ConsensusProvider;
-import com.jd.blockchain.consensus.ConsensusProviders;
-import com.jd.blockchain.consensus.ConsensusViewSettings;
-import com.jd.blockchain.consensus.NodeSettings;
+import com.jd.blockchain.ca.CertificateRole;
+import com.jd.blockchain.ca.CertificateUtils;
+import com.jd.blockchain.consensus.*;
 import com.jd.blockchain.consensus.action.ActionResponse;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
-import com.jd.blockchain.consensus.service.MessageHandle;
-import com.jd.blockchain.consensus.service.NodeServer;
-import com.jd.blockchain.consensus.service.NodeState;
-import com.jd.blockchain.consensus.service.ServerSettings;
-import com.jd.blockchain.consensus.service.StateMachineReplicate;
-import com.jd.blockchain.crypto.AsymmetricKeypair;
-import com.jd.blockchain.crypto.Crypto;
-import com.jd.blockchain.crypto.CryptoAlgorithm;
-import com.jd.blockchain.crypto.CryptoProvider;
-import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.crypto.KeyGenUtils;
-import com.jd.blockchain.crypto.PrivKey;
-import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.ledger.BlockchainIdentityData;
-import com.jd.blockchain.ledger.ConsensusSettingsUpdateOperation;
-import com.jd.blockchain.ledger.ContractCodeDeployOperation;
-import com.jd.blockchain.ledger.ContractEventSendOperation;
-import com.jd.blockchain.ledger.CryptoSetting;
-import com.jd.blockchain.ledger.DataAccountKVSetOperation;
-import com.jd.blockchain.ledger.DataAccountRegisterOperation;
-import com.jd.blockchain.ledger.DigitalSignature;
-import com.jd.blockchain.ledger.EventAccountRegisterOperation;
-import com.jd.blockchain.ledger.EventPublishOperation;
-import com.jd.blockchain.ledger.LedgerAdminInfo;
-import com.jd.blockchain.ledger.LedgerBlock;
-import com.jd.blockchain.ledger.LedgerInitOperation;
-import com.jd.blockchain.ledger.LedgerMetadata_V2;
-import com.jd.blockchain.ledger.LedgerSettings;
-import com.jd.blockchain.ledger.LedgerTransaction;
-import com.jd.blockchain.ledger.LedgerTransactions;
-import com.jd.blockchain.ledger.Operation;
-import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.ParticipantNodeState;
-import com.jd.blockchain.ledger.ParticipantRegisterOperation;
-import com.jd.blockchain.ledger.ParticipantStateUpdateOperation;
-import com.jd.blockchain.ledger.PrivilegeSet;
-import com.jd.blockchain.ledger.RoleInitSettings;
-import com.jd.blockchain.ledger.RoleSet;
-import com.jd.blockchain.ledger.RolesConfigureOperation;
-import com.jd.blockchain.ledger.SecurityInitSettings;
-import com.jd.blockchain.ledger.StartServerException;
-import com.jd.blockchain.ledger.TransactionContent;
-import com.jd.blockchain.ledger.TransactionRequest;
-import com.jd.blockchain.ledger.TransactionRequestBuilder;
-import com.jd.blockchain.ledger.TransactionResponse;
-import com.jd.blockchain.ledger.UserAuthInitSettings;
-import com.jd.blockchain.ledger.UserAuthorizeOperation;
-import com.jd.blockchain.ledger.UserRegisterOperation;
-import com.jd.blockchain.ledger.core.DefaultOperationHandleRegisteration;
-import com.jd.blockchain.ledger.core.LedgerEditor;
-import com.jd.blockchain.ledger.core.LedgerManage;
-import com.jd.blockchain.ledger.core.LedgerQuery;
-import com.jd.blockchain.ledger.core.LedgerRepository;
-import com.jd.blockchain.ledger.core.OperationHandleRegisteration;
-import com.jd.blockchain.ledger.core.TransactionBatchProcessor;
+import com.jd.blockchain.consensus.service.*;
+import com.jd.blockchain.crypto.*;
+import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.ledger.core.*;
 import com.jd.blockchain.ledger.json.CryptoConfigInfo;
 import com.jd.blockchain.ledger.merkletree.HashBucketEntry;
 import com.jd.blockchain.ledger.merkletree.KeyIndex;
@@ -108,9 +24,13 @@ import com.jd.blockchain.peer.ConsensusRealm;
 import com.jd.blockchain.peer.LedgerBindingConfigAware;
 import com.jd.blockchain.peer.PeerManage;
 import com.jd.blockchain.peer.consensus.LedgerStateManager;
+import com.jd.blockchain.peer.service.ConsensusServiceFactory;
+import com.jd.blockchain.peer.service.IParticipantManagerService;
+import com.jd.blockchain.peer.service.ParticipantContext;
 import com.jd.blockchain.sdk.AccessSpecification;
 import com.jd.blockchain.sdk.GatewayAuthRequest;
 import com.jd.blockchain.sdk.ManagementHttpService;
+import com.jd.blockchain.sdk.proxy.HttpBlockchainBrowserService;
 import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.setting.GatewayAuthResponse;
 import com.jd.blockchain.setting.LedgerIncomingSettings;
@@ -122,17 +42,24 @@ import com.jd.blockchain.transaction.SignatureUtils;
 import com.jd.blockchain.transaction.TxBuilder;
 import com.jd.blockchain.transaction.TxRequestMessage;
 import com.jd.blockchain.web.converters.BinaryMessageConverter;
+import com.jd.httpservice.agent.HttpServiceAgent;
+import com.jd.httpservice.agent.ServiceConnection;
+import com.jd.httpservice.agent.ServiceConnectionManager;
+import com.jd.httpservice.agent.ServiceEndpoint;
 import com.jd.httpservice.utils.web.WebResponse;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import utils.BusinessException;
+import utils.Bytes;
+import utils.Property;
+import utils.StringUtils;
+import utils.codec.Base58Utils;
+import utils.io.ByteArray;
+import utils.io.BytesUtils;
+import utils.io.Storage;
+import utils.net.NetworkAddress;
 import utils.net.SSLSecurity;
 
 import javax.annotation.PreDestroy;
@@ -140,11 +67,7 @@ import java.io.File;
 import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static com.jd.blockchain.ledger.TransactionState.LEDGER_ERROR;
 
@@ -184,7 +107,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
     private Map<HashDigest, IdentityMode> ledgerIdMode = new ConcurrentHashMap<>();
 
-    private Map<HashDigest, SSLSecurity> ledgerSecurities = new ConcurrentHashMap<>();
+    private Map<HashDigest, BindingConfig> bindingConfigs = new ConcurrentHashMap<>();
 
     @Autowired
     private MessageHandle consensusMessageHandler;
@@ -466,7 +389,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
             // 处于ACTIVED状态的参与方才会创建共识节点服务
             if (currentNode.getParticipantNodeState() == ParticipantNodeState.CONSENSUS) {
                 ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(ledgerHash.toBase58(), csSettings,
-                        currentNode.getAddress().toBase58(), bindingConfig.getSslSecurity());
+                        currentNode.getAddress().toBase58(), bindingConfig.getSslSecurity(), bindingConfig.getExtraProperties());
                 ((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
                 Storage consensusRuntimeStorage = getConsensusRuntimeStorage(ledgerHash);
                 server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
@@ -477,7 +400,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
             ledgerCurrNodes.put(ledgerHash, currentNode);
             ledgerCryptoSettings.put(ledgerHash, ledgerAdminAccount.getSettings().getCryptoSetting());
             ledgerKeypairs.put(ledgerHash, loadIdentity(currentNode, bindingConfig));
-            ledgerSecurities.put(ledgerHash, bindingConfig.getSslSecurity());
+            bindingConfigs.put(ledgerHash, bindingConfig);
         } catch (Exception e) {
             ledgerManager.unregister(ledgerHash);
             throw e;
@@ -643,11 +566,11 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
             LedgerAdminInfo ledgerAdminInfo = ledgerRepo.getAdminInfo(ledgerLatestBlock);
 
             // 目前仅支持BFT-SMaRt
-            if (ledgerAdminInfo.getSettings().getConsensusProvider().equals(ConsensusServiceFactory.BFTSMART_PROVIDER)) {
+            if (ledgerAdminInfo.getSettings().getConsensusProvider().equals(ConsensusTypeEnum.BFTSMART.getProvider())) {
 
                 // 检查本地节点与远端节点在库上是否存在差异,有差异的进行差异交易重放
                 ServiceEndpoint endpoint = new ServiceEndpoint(new NetworkAddress(syncHost, syncPort, syncSecure));
-                SSLSecurity sslSecurity = ledgerSecurities.get(ledger);
+                SSLSecurity sslSecurity = bindingConfigs.get(ledger).getSslSecurity();
                 endpoint.setSslSecurity(sslSecurity);
                 WebResponse webResponse = checkLedgerDiff(ledger, ledgerRepo, ledgerLatestBlock, endpoint);
                 if (!webResponse.isSuccess()) {
@@ -728,7 +651,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
             String currentProvider = ledgerAdminInfo.getSettings().getConsensusProvider();
             IParticipantManagerService participantService = consensusServiceFactory.getService(currentProvider);
-            if (participantService == null || !participantService.supportManagerParticipant()){
+            if (participantService == null || !participantService.supportManagerParticipant()) {
                 return WebResponse.createFailureResult(-1, "not support operation");
             }
 
@@ -737,8 +660,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     ledgerAdminInfo,
                     currentProvider,
                     participantService,
-                    ledgerSecurities.get(ledgerHash));
-            context.setProperty(IParticipantManagerService.RAFT_CONSENSUS_NODE_STORAGE , consensusStorage);
+                    bindingConfigs.get(ledgerHash).getSslSecurity());
+            context.setProperty(IParticipantManagerService.RAFT_CONSENSUS_NODE_STORAGE, consensusStorage);
             context.setProperty(ParticipantContext.HASH_ALG_PROP, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
             context.setProperty(ParticipantContext.ENDPOINT_SIGNER_PROP, new AsymmetricKeypair(ledgerKeypairs.get(ledgerHash).getPubKey(),
                     ledgerKeypairs.get(ledgerHash).getPrivKey()));
@@ -762,14 +685,14 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
             }
 
             NetworkAddress addConsensusNodeAddress = new NetworkAddress(consensusHost, consensusPort, consensusSecure);
-            remoteEndpoint.setSslSecurity(ledgerSecurities.get(ledgerHash));
+            remoteEndpoint.setSslSecurity(bindingConfigs.get(ledgerHash).getSslSecurity());
 
             LOGGER.info("active participant {}:{}!", consensusHost, consensusPort);
             return activeParticipant(context, addNode, addConsensusNodeAddress, shutdown, remoteEndpoint);
         } catch (Exception e) {
             LOGGER.error(String.format("activate participant %s:%d failed!", consensusHost, consensusPort), e);
             return WebResponse.createFailureResult(-1, "activate participant failed! " + e.getMessage());
-        }finally {
+        } finally {
             ParticipantContext.clear();
         }
     }
@@ -802,7 +725,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
             String currentProvider = ledgerAdminInfo.getSettings().getConsensusProvider();
             IParticipantManagerService participantService = consensusServiceFactory.getService(currentProvider);
-            if (participantService == null || !participantService.supportManagerParticipant()){
+            if (participantService == null || !participantService.supportManagerParticipant()) {
                 return WebResponse.createFailureResult(-1, "not support operation");
             }
 
@@ -811,8 +734,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     ledgerAdminInfo,
                     currentProvider,
                     participantService,
-                    ledgerSecurities.get(ledgerHash));
-            context.setProperty(IParticipantManagerService.RAFT_CONSENSUS_NODE_STORAGE , consensusStorage);
+                    bindingConfigs.get(ledgerHash).getSslSecurity());
+            context.setProperty(IParticipantManagerService.RAFT_CONSENSUS_NODE_STORAGE, consensusStorage);
             context.setProperty(ParticipantContext.HASH_ALG_PROP, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
             context.setProperty(ParticipantContext.ENDPOINT_SIGNER_PROP, new AsymmetricKeypair(ledgerKeypairs.get(ledgerHash).getPubKey(),
                     ledgerKeypairs.get(ledgerHash).getPrivKey()));
@@ -841,7 +764,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         } catch (Exception e) {
             LOGGER.error(String.format("update participant %s:%d failed!", consensusHost, consensusPort), e);
             return WebResponse.createFailureResult(-1, "update participant failed! " + e.getMessage());
-        }finally {
+        } finally {
             ParticipantContext.clear();
         }
     }
@@ -870,17 +793,17 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         if (remoteTxResponse.isSuccess() && replayTransaction(ledgerRepo, node, remoteEndpoint)) {
             try {
 
-                if(participantService.startServerBeforeApplyNodeChange()){
+                if (participantService.startServerBeforeApplyNodeChange()) {
                     setupServer(ledgerRepo, false);
                 }
 
                 //使用共识原语变更节点
                 WebResponse webResponse = participantService.applyConsensusGroupNodeChange(context, ledgerCurrNodes.get(ledgerHash), addConsensusNodeAddress, origConsensusNodes, ParticipantUpdateType.ACTIVE);
-                if(!webResponse.isSuccess()){
+                if (!webResponse.isSuccess()) {
                     return webResponse;
                 }
 
-                if(!participantService.startServerBeforeApplyNodeChange()){
+                if (!participantService.startServerBeforeApplyNodeChange()) {
                     setupServer(ledgerRepo, shutdown);
                 }
 
@@ -914,17 +837,17 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         // 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行新参与方的状态激活操作
         TransactionResponse remoteTxResponse = participantService.submitNodeStateChangeTx(context, node.getId(), txRequest, origConsensusNodes);
 
-        if(!remoteTxResponse.isSuccess()){
+        if (!remoteTxResponse.isSuccess()) {
             return WebResponse.createFailureResult(-1,
                     "commit tx to orig consensus, tx execute failed, please retry activate participant!");
         }
 
         // 保证原有共识网络账本状态与共识协议的视图更新信息一致
-        try{
+        try {
 
             waitUtilReachHeight(remoteTxResponse.getBlockHeight(), ledgerRepo);
 
-            if(participantService.startServerBeforeApplyNodeChange()){
+            if (participantService.startServerBeforeApplyNodeChange()) {
                 setupServer(ledgerRepo, false);
             }
 
@@ -934,7 +857,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     origConsensusNodes,
                     ParticipantUpdateType.UPDATE);
 
-            if(!webResponse.isSuccess()){
+            if (!webResponse.isSuccess()) {
                 return webResponse;
             }
         } catch (Exception e) {
@@ -943,7 +866,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     "commit tx to orig consensus, tx execute succ but view update failed, please restart all nodes and copy database for new participant node!");
         }
 
-        if(!participantService.startServerBeforeApplyNodeChange()){
+        if (!participantService.startServerBeforeApplyNodeChange()) {
             setupServer(ledgerRepo, shutdown);
         }
 
@@ -951,9 +874,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
     }
 
     private void waitUtilReachHeight(long blockHeight, LedgerRepository ledgerRepo) {
-        for(;;){
+        for (; ; ) {
             long latestBlockHeight = ledgerRepo.retrieveLatestBlockHeight();
-            if(latestBlockHeight >= blockHeight){
+            if (latestBlockHeight >= blockHeight) {
                 return;
             }
             Thread.yield();
@@ -973,7 +896,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         for (LedgerQuery ledgerRepo : ledgers) {
             for (NodeSettings nodeSettings : SearchOrigConsensusNodes((LedgerRepository) ledgerRepo)) {
                 NetworkAddress netWorkAddress = consensusServiceFactory.getNetWorkAddress(nodeSettings);
-                if(netWorkAddress == null){
+                if (netWorkAddress == null) {
                     continue;
                 }
                 String host = netWorkAddress.getHost();
@@ -1030,7 +953,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
             String currentProvider = ledgerAdminInfo.getSettings().getConsensusProvider();
             IParticipantManagerService participantService = consensusServiceFactory.getService(currentProvider);
-            if (participantService == null || !participantService.supportManagerParticipant()){
+            if (participantService == null || !participantService.supportManagerParticipant()) {
                 return WebResponse.createFailureResult(-1, "not support operation");
             }
 
@@ -1051,11 +974,11 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     ledgerAdminInfo,
                     currentProvider,
                     participantService,
-                    ledgerSecurities.get(ledgerHash));
+                    bindingConfigs.get(ledgerHash).getSslSecurity());
             context.setProperty(ParticipantContext.HASH_ALG_PROP, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
             context.setProperty(ParticipantContext.ENDPOINT_SIGNER_PROP, new AsymmetricKeypair(ledgerKeypairs.get(ledgerHash).getPubKey(),
                     ledgerKeypairs.get(ledgerHash).getPrivKey()));
-            
+
             Properties customProperties = participantService.getCustomProperties(context);
 
             // 由本节点准备交易
@@ -1065,7 +988,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
             // 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行参与方的去激活操作，这个原有网络包括本节点
             TransactionResponse txResponse = participantService.submitNodeStateChangeTx(context, node.getId(), txRequest, origConsensusNodes);
-            if(!txResponse.isSuccess()){
+            if (!txResponse.isSuccess()) {
                 return WebResponse.createFailureResult(-1, "commit tx to orig consensus, tx execute failed, please retry deactivate participant!");
             }
 
@@ -1075,14 +998,14 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     null,
                     origConsensusNodes,
                     ParticipantUpdateType.DEACTIVE
-                    );
+            );
             ledgerPeers.get(ledgerHash).stop();
             LOGGER.info("updateView success!");
             return response;
 
         } catch (Exception e) {
             return WebResponse.createFailureResult(-1, "deactivate participant failed!" + e);
-        }finally {
+        } finally {
             ParticipantContext.clear();
         }
     }
@@ -1428,7 +1351,8 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
             ConsensusViewSettings csSettings = getConsensusSetting(ledgerAdminAccount);
 
             ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(
-                    ledgerHash.toBase58(), csSettings, currentNode.getAddress().toBase58(), ledgerSecurities.get(ledgerHash));
+                    ledgerHash.toBase58(), csSettings, currentNode.getAddress().toBase58(),
+                    bindingConfigs.get(ledgerHash).getSslSecurity(), bindingConfigs.get(ledgerHash).getExtraProperties());
 
             ((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
 

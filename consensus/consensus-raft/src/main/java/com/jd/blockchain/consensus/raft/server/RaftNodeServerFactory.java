@@ -3,7 +3,6 @@ package com.jd.blockchain.consensus.raft.server;
 import com.google.common.base.Strings;
 import com.jd.blockchain.consensus.ConsensusViewSettings;
 import com.jd.blockchain.consensus.NodeSettings;
-import com.jd.blockchain.consensus.raft.config.RaftNodeConfig;
 import com.jd.blockchain.consensus.raft.config.RaftServerSettingsConfig;
 import com.jd.blockchain.consensus.raft.settings.RaftConsensusSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftNodeSettings;
@@ -13,10 +12,9 @@ import utils.GmSSLProvider;
 import utils.io.Storage;
 import utils.net.SSLSecurity;
 
-import java.util.Arrays;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 public class RaftNodeServerFactory implements NodeServerFactory {
 
@@ -24,16 +22,20 @@ public class RaftNodeServerFactory implements NodeServerFactory {
 
     @Override
     public ServerSettings buildServerSettings(String realmName, ConsensusViewSettings viewSettings, String nodeAddress) {
-        return buildServerSettings(realmName, viewSettings, nodeAddress, null);
+        return buildServerSettings(realmName, viewSettings, nodeAddress, null, null);
 
     }
 
 
     @Override
-    public ServerSettings buildServerSettings(String realmName, ConsensusViewSettings viewSettings, String nodeAddress, SSLSecurity sslSecurity) {
+    public ServerSettings buildServerSettings(String realmName, ConsensusViewSettings viewSettings, String nodeAddress, SSLSecurity sslSecurity, Properties properties) {
 
         if (!(viewSettings instanceof RaftConsensusSettings)) {
             throw new IllegalStateException("view settings should be raft-consensus settings");
+        }
+
+        if(null == properties || properties.size() == 0) {
+            throw new IllegalStateException("Extra properties empty");
         }
 
         RaftServerSettingsConfig settingsConfig = new RaftServerSettingsConfig();
@@ -53,6 +55,7 @@ public class RaftNodeServerFactory implements NodeServerFactory {
         settingsConfig.setRealmName(realmName);
         settingsConfig.setConsensusSettings((RaftConsensusSettings) viewSettings);
         settingsConfig.setReplicaSettings(currentNodeSettings);
+        settingsConfig.setExtraProperties(properties);
 
         if(sslSecurity == null){
             return  settingsConfig;

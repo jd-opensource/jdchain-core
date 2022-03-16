@@ -39,7 +39,7 @@ import java.util.Random;
 
 import static com.jd.blockchain.consensus.bftsmart.BftsmartConsensusSettingsBuilder.*;
 
-@Component(ConsensusServiceFactory.BFTSMART_PROVIDER)
+@Component(ConsensusTypeEnum.BFTSMART_PROVIDER)
 public class ParticipantManagerService4Bft implements IParticipantManagerService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ParticipantManagerService4Bft.class);

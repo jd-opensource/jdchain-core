@@ -1,6 +1,6 @@
 package com.jd.blockchain.consensus.bftsmart.client;
 
-import com.jd.blockchain.consensus.ConsensusTypeEnum;
+import com.jd.blockchain.ledger.ConsensusTypeEnum;
 import com.jd.blockchain.consensus.bftsmart.BftsmartSessionCredential;
 
 public class BftsmartSessionCredentialConfig implements BftsmartSessionCredential {
@@ -38,6 +38,6 @@ public class BftsmartSessionCredentialConfig implements BftsmartSessionCredentia
 
 	@Override
 	public int consensusProviderType() {
-		return ConsensusTypeEnum.BFT.getCode();
+		return ConsensusTypeEnum.BFTSMART.getCode();
 	}
 }

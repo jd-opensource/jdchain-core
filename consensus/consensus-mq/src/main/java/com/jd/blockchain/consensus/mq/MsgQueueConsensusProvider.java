@@ -9,7 +9,7 @@
 package com.jd.blockchain.consensus.mq;
 
 import com.jd.blockchain.consensus.ConsensusProvider;
-import com.jd.blockchain.consensus.ConsensusTypeEnum;
+import com.jd.blockchain.ledger.ConsensusTypeEnum;
 import com.jd.blockchain.consensus.SettingsFactory;
 import com.jd.blockchain.consensus.client.ClientFactory;
 import com.jd.blockchain.consensus.manage.ManageClientFactory;

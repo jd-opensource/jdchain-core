@@ -11,18 +11,21 @@ import com.jd.blockchain.consensus.service.MessageHandle;
 import com.jd.blockchain.consensus.service.NodeServerFactory;
 import com.jd.blockchain.consensus.service.ServerSettings;
 import com.jd.blockchain.consensus.service.StateMachineReplicate;
+import utils.Property;
 import utils.io.Storage;
 import utils.net.SSLSecurity;
+
+import java.util.Properties;
 
 public class MsgQueueNodeServerFactory implements NodeServerFactory {
 
     @Override
     public MsgQueueServerSettings buildServerSettings(String realmName, ConsensusViewSettings consensusSetting, String nodeAddress) {
-        return buildServerSettings(realmName, consensusSetting, nodeAddress, new SSLSecurity());
+        return buildServerSettings(realmName, consensusSetting, nodeAddress, new SSLSecurity(), null);
     }
 
     @Override
-    public MsgQueueServerSettings buildServerSettings(String realmName, ConsensusViewSettings viewSettings, String nodeAddress, SSLSecurity sslSecurity) {
+    public MsgQueueServerSettings buildServerSettings(String realmName, ConsensusViewSettings viewSettings, String nodeAddress, SSLSecurity sslSecurity, Properties properties) {
         if (!(viewSettings instanceof MsgQueueConsensusSettings)) {
             throw new IllegalArgumentException("ConsensusSettings data isn't supported! Accept MsgQueueConsensusSettings only!");
         }

@@ -12,10 +12,7 @@ import com.jd.blockchain.consensus.mq.factory.MsgQueueFactory;
 import com.jd.blockchain.consensus.mq.producer.MsgQueueProducer;
 import com.jd.blockchain.consensus.mq.settings.MsgQueueConsensusSettings;
 import com.jd.blockchain.crypto.PubKey;
-import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.TransactionRequest;
-import com.jd.blockchain.ledger.TransactionResponse;
-import com.jd.blockchain.ledger.TransactionState;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.peer.web.ManagementController;
 import com.jd.blockchain.transaction.TxResponseMessage;
 import com.jd.httpservice.utils.web.WebResponse;
@@ -31,7 +28,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
-@Component(ConsensusServiceFactory.MQ_PROVIDER)
+@Component(ConsensusTypeEnum.MQ_PROVIDER)
 public class ParticipantManagerService4MQ implements IParticipantManagerService {
 
     public static final int MQ_CONSENSUS_MIN_NODES = 1;

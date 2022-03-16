@@ -1,39 +1,31 @@
 package com.jd.blockchain.tools.initializer;
 
-import java.io.File;
-import java.security.cert.X509Certificate;
-import java.util.UUID;
-
 import com.jd.blockchain.ca.CertificateUtils;
+import com.jd.blockchain.crypto.*;
 import com.jd.blockchain.ledger.IdentityMode;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.ApplicationContextInitializer;
-import org.springframework.context.ConfigurableApplicationContext;
-
-import com.jd.blockchain.crypto.AddressEncoding;
-import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.crypto.KeyGenUtils;
-import com.jd.blockchain.crypto.PrivKey;
-import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.LedgerInitProperties;
 import com.jd.blockchain.ledger.LedgerInitProperties.ParticipantProperties;
 import com.jd.blockchain.ledger.core.LedgerManager;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig.BindingConfig;
-
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.util.NumberUtils;
 import utils.ArgumentSet;
-import utils.ConsoleUtils;
-import utils.StringUtils;
 import utils.ArgumentSet.ArgEntry;
 import utils.ArgumentSet.Setting;
+import utils.ConsoleUtils;
+import utils.StringUtils;
 import utils.codec.Base58Utils;
 import utils.io.FileUtils;
 import utils.net.NetworkAddress;
 
-import org.springframework.util.NumberUtils;
+import java.io.File;
+import java.security.cert.X509Certificate;
+import java.util.UUID;
 
 /**
  * 账本初始化器；
@@ -295,6 +287,9 @@ public class LedgerInitCommand {
 
 		//设置账本存储数据库的锚定类型
 		bindingConf.setDataStructure(ledgerInitProperties.getLedgerDataStructure());
+
+		// 设置额外参数
+		bindingConf.setExtraProperties(localConfig.getExtraProperties());
 
 		bindingConf.getParticipant()
 				.setAddress(ledgerInitProperties.getConsensusParticipant(currId).getAddress().toBase58());

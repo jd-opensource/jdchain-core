@@ -16,7 +16,6 @@ public class RaftDataContractAutoRegistrar implements DataContractAutoRegistrar 
     @Override
     public void initContext(DataContractRegistry registry) {
         DataContractRegistry.register(RaftSettings.class);
-        DataContractRegistry.register(RaftServerSettings.class);
         DataContractRegistry.register(RaftNodeSettings.class);
         DataContractRegistry.register(RaftNetworkSettings.class);
         DataContractRegistry.register(RaftConsensusSettings.class);

@@ -45,11 +45,15 @@ public class LocalConfig {
 	// 账本数据库的连接口令；
 	public static final String LEDGER_DB_PWD = "ledger.db.pwd";
 
+	public static final String EXTRA_PROPERTIES_PREFIX = "extra.properties.";
+
 	private LocalParticipantConfig local = new LocalParticipantConfig();
 
 	private String bindingOutDir;
 
 	private DBConnectionConfig storagedDb = new DBConnectionConfig();
+
+	private Properties extraProperties;
 
 	public LocalParticipantConfig getLocal() {
 		return local;
@@ -73,6 +77,14 @@ public class LocalConfig {
 
 	public void setStoragedDb(DBConnectionConfig storagedDb) {
 		this.storagedDb = storagedDb;
+	}
+
+	public Properties getExtraProperties() {
+		return extraProperties;
+	}
+
+	public void setExtraProperties(Properties extraProperties) {
+		this.extraProperties = extraProperties;
 	}
 
 	public static LocalConfig resolve(String initSettingFile) {
@@ -123,6 +135,8 @@ public class LocalConfig {
 		conf.local.sslProtocol = PropertiesUtils.getProperty(props, LOCAL_PARTI_SSL_PROTOCOL, false);
 		conf.local.sslEnabledProtocols = PropertiesUtils.getProperty(props, LOCAL_PARTI_SSL_ENABLED_PROTOCOLS, false);
 		conf.local.sslCiphers = PropertiesUtils.getProperty(props, LOCAL_PARTI_SSL_CIPHERS, false);
+
+		conf.extraProperties = PropertiesUtils.getPrefixedValues(props, EXTRA_PROPERTIES_PREFIX);
 
 		return conf;
 	}

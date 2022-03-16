@@ -16,7 +16,4 @@ public interface RaftNodeSettings extends NodeSettings {
     @DataField(order = 3, primitiveType = PrimitiveType.BYTES)
     NetworkAddress getNetworkAddress();
 
-    @DataField(order = 4, primitiveType = PrimitiveType.TEXT)
-    String getRaftPath();
-
 }

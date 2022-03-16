@@ -41,6 +41,8 @@ import static com.jd.blockchain.consensus.raft.msgbus.MessageBus.BLOCK_CATCH_UP_
 
 public class RaftNodeServer implements NodeServer {
 
+    private static final String RAFT_PATH_KEY = "raft.path";
+
     static {
         System.getProperties().setProperty("bolt.netty.buffer.low.watermark", String.valueOf(128 * 1024 * 1024));
         System.getProperties().setProperty("bolt.netty.buffer.high.watermark", String.valueOf(512 * 1024 * 1024));
@@ -142,7 +144,7 @@ public class RaftNodeServer implements NodeServer {
         options.setElectionTimeoutMs(config.getElectionTimeoutMs());
         options.setSnapshotIntervalSecs(config.getSnapshotIntervalSec());
 
-        mkdirRaftDirs(config.getRaftNodeSettings().getRaftPath(), options);
+        mkdirRaftDirs(serverSettings.getExtraProperties().getProperty(RAFT_PATH_KEY), options);
 
         options.setSharedElectionTimer(true);
         options.setSharedVoteTimer(true);
@@ -153,7 +155,6 @@ public class RaftNodeServer implements NodeServer {
 
         return options;
     }
-
 
     public void stop() {
         if (isStop) {
@@ -179,7 +180,7 @@ public class RaftNodeServer implements NodeServer {
             messageBus.close();
         }
 
-        if(blockProposer != null){
+        if (blockProposer != null) {
             blockProposer.clear();
         }
     }
@@ -308,7 +309,7 @@ public class RaftNodeServer implements NodeServer {
     public String[] getCurrentPeerEndpoints() {
 
         Configuration configuration = RouteTable.getInstance().getConfiguration(this.realmName);
-        if(configuration == null){
+        if (configuration == null) {
             return null;
         }
         return configuration.listPeers().stream()

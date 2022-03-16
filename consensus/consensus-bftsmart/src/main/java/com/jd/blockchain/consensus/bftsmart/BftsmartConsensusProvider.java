@@ -1,7 +1,7 @@
 package com.jd.blockchain.consensus.bftsmart;
 
 import com.jd.blockchain.consensus.ConsensusProvider;
-import com.jd.blockchain.consensus.ConsensusTypeEnum;
+import com.jd.blockchain.ledger.ConsensusTypeEnum;
 import com.jd.blockchain.consensus.SettingsFactory;
 import com.jd.blockchain.consensus.bftsmart.client.BftsmartConsensusClientFactory;
 import com.jd.blockchain.consensus.bftsmart.manage.BftsmartConsensusManageClientFactory;
@@ -39,7 +39,7 @@ public class BftsmartConsensusProvider implements ConsensusProvider {
 
 	@Override
 	public ConsensusTypeEnum getConsensusType() {
-		return ConsensusTypeEnum.BFT;
+		return ConsensusTypeEnum.BFTSMART;
 	}
 
 	@Override

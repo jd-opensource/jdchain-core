@@ -4,11 +4,14 @@ import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftConsensusSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftServerSettings;
 
+import java.util.Properties;
+
 public class RaftServerSettingsConfig implements RaftServerSettings {
 
     private String realmName;
     private NodeSettings replicaSettings;
     private RaftConsensusSettings consensusSettings;
+    private Properties properties;
 
     @Override
     public String getRealmName() {
@@ -35,5 +38,14 @@ public class RaftServerSettingsConfig implements RaftServerSettings {
 
     public void setConsensusSettings(RaftConsensusSettings consensusSettings) {
         this.consensusSettings = consensusSettings;
+    }
+
+    @Override
+    public Properties getExtraProperties() {
+        return properties;
+    }
+
+    public void setExtraProperties(Properties properties) {
+        this.properties = properties;
     }
 }

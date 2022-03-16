@@ -13,6 +13,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.tools.initializer.web.LedgerBindingConfigException;
 
+import utils.PropertiesUtils;
 import utils.StringUtils;
 import utils.codec.Base58Utils;
 import utils.io.FileUtils;
@@ -157,17 +158,27 @@ public class LedgerBindingConfig {
 		writeLine(builder, "%s=%s", partiPKKey, stringOf(binding.getParticipant().getPk()));
 		writeLine(builder, "#账本的当前共识参与方的私钥文件的读取口令；可为空；如果为空时，节点的启动过程中需要手动从控制台输入；");
 		writeLine(builder, "%s=%s", partiPwdKey, stringOf(binding.getParticipant().getPassword()));
-		writeLine(builder, "#账本的当前共识参与方的共识服务TLS相关配置；");
-		writeLine(builder, "%s=%s", partiSslKeyStore, escapeWinPath(stringOf(binding.getParticipant().getSslKeyStore())));
-		writeLine(builder, "%s=%s", partiSslKeyStoreType, stringOf(binding.getParticipant().getSslKeyStoreType()));
-		writeLine(builder, "%s=%s", partiSslKeyAlias, stringOf(binding.getParticipant().getSslKeyAlias()));
-		writeLine(builder, "%s=%s", partiSslKeyStorePassword, stringOf(binding.getParticipant().getSslKeyStorePassword()));
-		writeLine(builder, "%s=%s", partiSslTrustStore, escapeWinPath(stringOf(binding.getParticipant().getSslTrustStore())));
-		writeLine(builder, "%s=%s", partiSslTrustStorePassword, stringOf(binding.getParticipant().getSslTrustStorePassword()));
-		writeLine(builder, "%s=%s", partiSslTrustStoreType, stringOf(binding.getParticipant().getSslTrustStoreType()));
-		writeLine(builder, "%s=%s", partiSslProtocol, stringOf(binding.getParticipant().getProtocol()));
-		writeLine(builder, "%s=%s", partiSslEnabledProtocols, stringOf(binding.getParticipant().getEnabledProtocols()));
-		writeLine(builder, "%s=%s", partiSslCiphers, stringOf(binding.getParticipant().getCiphers()));
+		writeLine(builder);
+		writeNonEmptyProperty(builder, "%s=%s", partiSslKeyStore, escapeWinPath(stringOf(binding.getParticipant().getSslKeyStore())));
+		writeNonEmptyProperty(builder, "%s=%s", partiSslKeyStoreType, stringOf(binding.getParticipant().getSslKeyStoreType()));
+		writeNonEmptyProperty(builder, "%s=%s", partiSslKeyAlias, stringOf(binding.getParticipant().getSslKeyAlias()));
+		writeNonEmptyProperty(builder, "%s=%s", partiSslKeyStorePassword, stringOf(binding.getParticipant().getSslKeyStorePassword()));
+		writeNonEmptyProperty(builder, "%s=%s", partiSslTrustStore, escapeWinPath(stringOf(binding.getParticipant().getSslTrustStore())));
+		writeNonEmptyProperty(builder, "%s=%s", partiSslTrustStorePassword, stringOf(binding.getParticipant().getSslTrustStorePassword()));
+		writeNonEmptyProperty(builder, "%s=%s", partiSslTrustStoreType, stringOf(binding.getParticipant().getSslTrustStoreType()));
+		writeNonEmptyProperty(builder, "%s=%s", partiSslProtocol, stringOf(binding.getParticipant().getProtocol()));
+		writeNonEmptyProperty(builder, "%s=%s", partiSslEnabledProtocols, stringOf(binding.getParticipant().getEnabledProtocols()));
+		writeNonEmptyProperty(builder, "%s=%s", partiSslCiphers, stringOf(binding.getParticipant().getCiphers()));
+		writeLine(builder);
+		Properties extraProperties = binding.getExtraProperties();
+		if(null != extraProperties) {
+			Enumeration<String> en = (Enumeration<String>) extraProperties.propertyNames();
+			while(en.hasMoreElements()){
+				String propName = en.nextElement();
+				String propValue = extraProperties.getProperty(propName);
+				writeNonEmptyProperty(builder, "%s=%s", String.join(ATTR_SEPERATOR, ledgerPrefix, propName), stringOf(propValue));
+			}
+		}
 		writeLine(builder);
 	}
 
@@ -223,13 +234,21 @@ public class LedgerBindingConfig {
 		content.append("\r\n");
 	}
 
+	private static void writeNonEmptyProperty(StringBuilder content, String format, String key, String value) {
+		if(StringUtils.isEmpty(value)) {
+			return;
+		}
+		content.append(String.format(format, key, value));
+		content.append("\r\n");
+	}
+
 	private static void writeLine(StringBuilder content) {
 		content.append("\r\n");
 	}
 
 	/**
 	 * 解析配置；
-	 * 
+	 *
 	 * @param file
 	 * @return
 	 */
@@ -243,7 +262,7 @@ public class LedgerBindingConfig {
 
 	/**
 	 * 解析配置；
-	 * 
+	 *
 	 * @param in
 	 * @return
 	 */
@@ -257,7 +276,7 @@ public class LedgerBindingConfig {
 
 	/**
 	 * 解析配置；
-	 * 
+	 *
 	 * @param props
 	 * @return
 	 */
@@ -284,7 +303,7 @@ public class LedgerBindingConfig {
 
 	/**
 	 * 解析 Binding 配置；
-	 * 
+	 *
 	 * @param props
 	 * @param ledgerHash
 	 * @return
@@ -353,6 +372,8 @@ public class LedgerBindingConfig {
 		String structure = getProperty(props, ledgerDataStructure, false);
 		binding.dataStructure = StringUtils.isEmpty(structure) ? LedgerDataStructure.MERKLE_TREE : LedgerDataStructure.valueOf(structure);
 
+		binding.setExtraProperties(PropertiesUtils.getPrefixedValues(props, ledgerPrefix + ATTR_SEPERATOR));
+
 		return binding;
 	}
 
@@ -370,10 +391,10 @@ public class LedgerBindingConfig {
 
 	/**
 	 * 返回指定属性的值；
-	 * 
+	 *
 	 * <br>
 	 * 当值不存在时，如果是必需参数，则抛出异常 {@link IllegalArgumentException}，否则返回 null；
-	 * 
+	 *
 	 * @param props
 	 *            属性表；
 	 * @param key
@@ -403,10 +424,9 @@ public class LedgerBindingConfig {
 	public static class BindingConfig {
 
 		private String ledgerName;
-
 		private LedgerDataStructure dataStructure = LedgerDataStructure.MERKLE_TREE;
-
 		private SSLSecurity sslSecurity;
+		private Properties extraProperties;
 
 		// 账本名字
 		private ParticipantBindingConfig participant = new ParticipantBindingConfig();
@@ -443,6 +463,14 @@ public class LedgerBindingConfig {
 
 		public void setSslSecurity(SSLSecurity sslSecurity) {
 			this.sslSecurity = sslSecurity;
+		}
+
+		public Properties getExtraProperties() {
+			return extraProperties;
+		}
+
+		public void setExtraProperties(Properties extraProperties) {
+			this.extraProperties = extraProperties;
 		}
 	}
 

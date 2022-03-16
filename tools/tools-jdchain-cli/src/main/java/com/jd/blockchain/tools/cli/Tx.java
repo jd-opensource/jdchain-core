@@ -1169,8 +1169,8 @@ class TxContractAccountPermission implements Runnable {
 @CommandLine.Command(name = "consensus-switch", mixinStandardHelpOptions = true, header = "Switch consensus type.")
 class TxConsensusSwitch implements Runnable {
 
-    @CommandLine.Option(names = "--type", required = true, description = "New consensus type. Options: `bft`,`raft`,`mq`", scope = CommandLine.ScopeType.INHERIT)
-    String type;
+    @CommandLine.Option(names = "--consensus", required = true, description = "New consensus type. Options: `BFTSMART`,`RAFT`,`MQ`", scope = CommandLine.ScopeType.INHERIT)
+    ConsensusTypeEnum consensus;
 
     @CommandLine.Option(names = "--config", required = true, description = "Set new consensus config file", scope = CommandLine.ScopeType.INHERIT)
     String config;
@@ -1181,10 +1181,14 @@ class TxConsensusSwitch implements Runnable {
     @Override
     public void run() {
         Properties properties;
-        String providerName = null;
 
-        if (StringUtils.isEmpty(type) || StringUtils.isEmpty(config)) {
-            System.err.println("both type and config file path are empty!");
+        if (ConsensusTypeEnum.UNKNOWN.equals(consensus)) {
+            System.err.println("unknown consensus type!");
+            return;
+        }
+
+        if (StringUtils.isEmpty(config)) {
+            System.err.println("config file path are empty!");
             return;
         }
 
@@ -1196,17 +1200,7 @@ class TxConsensusSwitch implements Runnable {
             throw new IllegalStateException(e.getMessage(), e);
         }
 
-        if (type.equalsIgnoreCase("bft")) {
-            providerName = "com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider";
-        } else if (type.equalsIgnoreCase("raft")) {
-            providerName = "com.jd.blockchain.consensus.raft.RaftConsensusProvider";
-        } else if (type.equalsIgnoreCase("mq")) {
-            providerName = "com.jd.blockchain.consensus.mq.MsgQueueConsensusProvider";
-        } else {
-            System.err.printf("not support consensus type: %s, select `bft`, `raft` or `mq`%n", type);
-            return;
-        }
-        txTemp.consensus().update(providerName, PropertiesUtils.getOrderedValues(properties));
+        txTemp.consensus().update(consensus.getProvider(), PropertiesUtils.getOrderedValues(properties));
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);
         if (null != txFile) {
