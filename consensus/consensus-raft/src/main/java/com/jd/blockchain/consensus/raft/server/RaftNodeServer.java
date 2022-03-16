@@ -41,7 +41,7 @@ import static com.jd.blockchain.consensus.raft.msgbus.MessageBus.BLOCK_CATCH_UP_
 
 public class RaftNodeServer implements NodeServer {
 
-    private static final String RAFT_PATH_KEY = "raft.path";
+    public static final String RAFT_PATH_KEY = "raft.path";
 
     static {
         System.getProperties().setProperty("bolt.netty.buffer.low.watermark", String.valueOf(128 * 1024 * 1024));

@@ -20,8 +20,6 @@ import java.util.Properties;
 
 public interface IParticipantManagerService {
 
-    String RAFT_CONSENSUS_NODE_STORAGE = "RAFT_CONSENSUS_NODE_STORAGE";
-
     default boolean supportManagerParticipant() {
         return true;
     }

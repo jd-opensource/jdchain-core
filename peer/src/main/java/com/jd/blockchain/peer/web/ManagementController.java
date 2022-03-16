@@ -625,7 +625,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
     public WebResponse activateParticipant(@RequestParam("ledgerHash") String base58LedgerHash,
                                            @RequestParam("consensusHost") String consensusHost,
                                            @RequestParam("consensusPort") int consensusPort,
-                                           @RequestParam(name = "consensusStorage", required = false) String consensusStorage,
                                            @RequestParam(name = "consensusSecure", required = false, defaultValue = "false") boolean consensusSecure,
                                            @RequestParam("remoteManageHost") String remoteManageHost,
                                            @RequestParam("remoteManagePort") int remoteManagePort,
@@ -661,7 +660,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     currentProvider,
                     participantService,
                     bindingConfigs.get(ledgerHash).getSslSecurity());
-            context.setProperty(IParticipantManagerService.RAFT_CONSENSUS_NODE_STORAGE, consensusStorage);
             context.setProperty(ParticipantContext.HASH_ALG_PROP, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
             context.setProperty(ParticipantContext.ENDPOINT_SIGNER_PROP, new AsymmetricKeypair(ledgerKeypairs.get(ledgerHash).getPubKey(),
                     ledgerKeypairs.get(ledgerHash).getPrivKey()));
@@ -710,7 +708,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
     public WebResponse updateParticipant(@RequestParam("ledgerHash") String base58LedgerHash,
                                          @RequestParam("consensusHost") String consensusHost,
                                          @RequestParam("consensusPort") int consensusPort,
-                                         @RequestParam(name = "consensusStorage", required = false) String consensusStorage,
                                          @RequestParam(name = "consensusSecure", required = false, defaultValue = "false") boolean consensusSecure,
                                          @RequestParam(name = "shutdown", required = false, defaultValue = "false") boolean shutdown) {
         try {
@@ -735,7 +732,6 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     currentProvider,
                     participantService,
                     bindingConfigs.get(ledgerHash).getSslSecurity());
-            context.setProperty(IParticipantManagerService.RAFT_CONSENSUS_NODE_STORAGE, consensusStorage);
             context.setProperty(ParticipantContext.HASH_ALG_PROP, ledgerCryptoSettings.get(ledgerHash).getHashAlgorithm());
             context.setProperty(ParticipantContext.ENDPOINT_SIGNER_PROP, new AsymmetricKeypair(ledgerKeypairs.get(ledgerHash).getPubKey(),
                     ledgerKeypairs.get(ledgerHash).getPrivKey()));

@@ -4,7 +4,6 @@ import com.alipay.sofa.jraft.option.CliOptions;
 import com.alipay.sofa.jraft.rpc.RpcClient;
 import com.alipay.sofa.jraft.rpc.impl.cli.CliClientServiceImpl;
 import com.alipay.sofa.jraft.util.Endpoint;
-import com.google.common.base.Strings;
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.consensus.NodeSettings;
 import com.jd.blockchain.consensus.raft.rpc.*;
@@ -36,7 +35,6 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
     private static final Logger LOGGER = LoggerFactory.getLogger(ParticipantManagerService4Raft.class);
 
     private static final int RAFT_CONSENSUS_MIN_NODES = 1;
-    private static final String RAFT_PATH_KEY = "raft_path";
     private static final int MAX_RETRY_TIMES = 3;
     private static final String RPC_QUEST_TIMEOUT_MS = "rpc_quest_timeout_ms";
     private static final String RPC_CLIENT = "rpc_client";
@@ -49,25 +47,16 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
 
     @Override
     public Properties getCustomProperties(ParticipantContext context) {
-        Properties properties = new Properties();
-        properties.setProperty(RAFT_PATH_KEY, String.valueOf(context.getProperty(IParticipantManagerService.RAFT_CONSENSUS_NODE_STORAGE)));
-        return properties;
+        return new Properties();
     }
 
     @Override
     public Property[] createActiveProperties(NetworkAddress address, PubKey activePubKey, int activeID, Properties customProperties) {
-
-        String raftPath = customProperties.getProperty(RAFT_PATH_KEY);
-        if (Strings.isNullOrEmpty(raftPath) || "null".equals(raftPath)) {
-            throw new IllegalStateException("raft path is missing, --consensus-storage required");
-        }
-
         List<Property> properties = new ArrayList<>();
 
         properties.add(new Property(keyOfNode("system.server.%d.network.host", activeID), address.getHost()));
         properties.add(new Property(keyOfNode("system.server.%d.network.port", activeID), String.valueOf(address.getPort())));
         properties.add(new Property(keyOfNode("system.server.%d.network.secure", activeID), String.valueOf(address.isSecure())));
-        properties.add(new Property(keyOfNode("system.server.%d.raft.path", activeID), raftPath));
         properties.add(new Property(keyOfNode("system.server.%d.pubkey", activeID), activePubKey.toBase58()));
         properties.add(new Property("participant.op", "active"));
         properties.add(new Property("active.participant.id", String.valueOf(activeID)));
@@ -263,7 +252,7 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
 
         SSLSecurity sslSecurity = context.sslSecurity();
         //启用TLS
-        if(sslSecurity != null && sslSecurity.getKeyStore() != null){
+        if (sslSecurity != null && sslSecurity.getKeyStore() != null) {
             setSystemProperty("bolt.client.ssl.enable", "true");
             setSystemProperty("bolt.client.ssl.keystore", sslSecurity.getTrustStore());
             setSystemProperty("bolt.client.ssl.keystore.password", sslSecurity.getTrustStorePassword());
