@@ -616,7 +616,7 @@ class InitConfig implements Runnable {
                         "ledger.db.pwd=\n" +
                         "\n" +
                         (consensus.equals(ConsensusTypeEnum.RAFT) ?
-                                ("Raft运行时数据路径\n" + "extra.properties.raft.path=" + peerDir + File.separator + "raft") : ""),
+                                ("#Raft运行时数据路径\n" + "extra.properties.raft.path=" + peerDir + File.separator + "raft") : ""),
                 new File(file));
     }
 
