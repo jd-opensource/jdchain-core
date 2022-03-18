@@ -3,8 +3,6 @@ package com.jd.blockchain.contract.jvm;
 import com.jd.blockchain.contract.*;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.runtime.Module;
-import com.jd.blockchain.runtime.RuntimeContext;
-import com.jd.blockchain.runtime.RuntimeSecurityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.Bytes;
@@ -88,10 +86,7 @@ public class JavaContractCode extends AbstractContractCode {
 
     @Override
     protected BytesValue doProcessEvent(Object contractInstance, ContractEventContext eventContext) throws Exception {
-        RuntimeSecurityManager securityManager = RuntimeContext.get().getSecurityManager();
-        if (null != securityManager) {
-            securityManager.disable();
-        }
+        disableSecurityManager();
         Method handleMethod = contractDefinition.getType().getHandleMethod(eventContext.getEvent());
         if (handleMethod == null) {
             throw new ContractMethodNotFoundException(
@@ -110,9 +105,7 @@ public class JavaContractCode extends AbstractContractCode {
                             Arrays.toString(Arrays.stream(bytesValues.getValues()).map(BytesValue::getType).map(DataType::name).toArray())));
         }
 
-        if (null != securityManager) {
-            securityManager.enable();
-        }
+        enableSecurityManager();
         return BytesValueEncoding.encodeSingle(handleMethod.invoke(contractInstance, args), handleMethod.getReturnType());
     }
 

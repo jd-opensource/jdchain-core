@@ -5,6 +5,7 @@ import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.TypedValue;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.Value;
 import utils.Bytes;
 import utils.io.BytesUtils;
@@ -30,7 +31,7 @@ public class PythonContractCode extends AbstractContractCode {
         contractClassLoader.set(Thread.currentThread().getContextClassLoader());
         Thread.currentThread().setContextClassLoader(Context.class.getClassLoader());
 
-        return Context.newBuilder(LANG).allowAllAccess(true).allowIO(false).build();
+        return Context.newBuilder(LANG).allowAllAccess(true).allowHostAccess(HostAccess.ALL).build();
     }
 
     @Override
@@ -110,6 +111,16 @@ public class PythonContractCode extends AbstractContractCode {
         } finally {
             Thread.currentThread().setContextClassLoader(contractClassLoader.get());
         }
+    }
+
+    @Override
+    protected void enableSecurityManager() {
+        // Using graalvm supported access controlling
+    }
+
+    @Override
+    protected void disableSecurityManager() {
+        // Using graalvm supported access controlling
     }
 
     /**

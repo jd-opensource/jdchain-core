@@ -47,7 +47,6 @@ public abstract class AbstractContractCode implements ContractCode {
     }
 
     private BytesValue invoke(ContractEventContext eventContext) {
-        RuntimeSecurityManager securityManager = RuntimeContext.get().getSecurityManager();
         Object retn = null;
         LedgerException error = null;
         Object contractInstance = null;
@@ -56,15 +55,15 @@ public abstract class AbstractContractCode implements ContractCode {
                 // 生成合约类对象
                 contractInstance = getContractInstance();
                 // 开启安全管理器
-                if (null != securityManager) {
-                    securityManager.enable();
-                }
+                enableSecurityManager();
+
                 // 执行预处理;
                 beforeEvent(contractInstance, eventContext);
 
                 // 合约方法执行
                 retn = doProcessEvent(contractInstance, eventContext);
             } catch (LedgerException e) {
+                e.printStackTrace();
                 error = e;
             } catch (Throwable e) {
                 String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]!", eventContext.getEvent(), address.toString());
@@ -87,9 +86,7 @@ public abstract class AbstractContractCode implements ContractCode {
             }
             return (BytesValue) retn;
         } finally {
-            if (null != securityManager) {
-                securityManager.disable();
-            }
+            disableSecurityManager();
         }
     }
 
@@ -110,6 +107,20 @@ public abstract class AbstractContractCode implements ContractCode {
             throw new BlockRollbackException(TransactionState.SYSTEM_ERROR, "Contract Interrupted or Timeout", e);
         } catch (Exception e) {
             throw new BlockRollbackException(TransactionState.SYSTEM_ERROR, "Contract Interrupted or Timeout", e);
+        }
+    }
+
+    protected void enableSecurityManager() {
+        RuntimeSecurityManager securityManager = RuntimeContext.get().getSecurityManager();
+        if (null != securityManager) {
+            securityManager.enable();
+        }
+    }
+
+    protected void disableSecurityManager() {
+        RuntimeSecurityManager securityManager = RuntimeContext.get().getSecurityManager();
+        if (null != securityManager) {
+            securityManager.disable();
         }
     }
 
