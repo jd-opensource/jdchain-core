@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.protobuf.Message;
 import com.jd.binaryproto.DataContractAutoRegistrar;
 import net.bytebuddy.implementation.bytecode.Throw;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.*;
@@ -30,6 +31,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+@Ignore
 public class SubmitTxRequestProcessorTest {
 
     String groupId = "j5j4L7EcFkVJUyLN4wWbT66pTwsgNSsnHYwC3xSducjer6";

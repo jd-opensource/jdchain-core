@@ -9,12 +9,14 @@ import com.jd.blockchain.ledger.LedgerAdminSettings;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.core.*;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.util.ReflectionUtils;
 import utils.codec.Base58Utils;
 
 import java.lang.reflect.Field;
 
+@Ignore
 public class BlockProposerServiceTest {
 
     @Test
