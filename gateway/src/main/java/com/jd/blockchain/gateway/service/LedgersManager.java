@@ -369,5 +369,6 @@ public class LedgersManager implements LedgersService, LedgersListener, EventLis
 
     public void stop() {
         this.running = false;
+        close();
     }
 }
