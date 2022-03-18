@@ -101,6 +101,10 @@ class InitConfig implements Runnable {
     @Override
     public void run() {
         try {
+            if (consensus.getMinimalNodeSize() > peerSize) {
+                System.err.printf("consensus %s minimal peer size is %d\n", consensus.name(), consensus.getMinimalNodeSize());
+                return;
+            }
             File out = new File(output);
             if (!out.exists()) {
                 out.mkdirs();
@@ -612,7 +616,7 @@ class InitConfig implements Runnable {
                         "ledger.db.pwd=\n" +
                         "\n" +
                         (consensus.equals(ConsensusTypeEnum.RAFT) ?
-                                ( "Raft运行时数据路径\n" + "extra.properties.raft.path=" + peerDir + File.separator + "raft") : ""),
+                                ("Raft运行时数据路径\n" + "extra.properties.raft.path=" + peerDir + File.separator + "raft") : ""),
                 new File(file));
     }
 
