@@ -31,13 +31,12 @@ import java.util.concurrent.TimeUnit;
 @Component(ConsensusTypeEnum.MQ_PROVIDER)
 public class ParticipantManagerService4MQ implements IParticipantManagerService {
 
-    public static final int MQ_CONSENSUS_MIN_NODES = 1;
     private static final int MQ_INVOKE_TIMEOUT = 120000;// milliseconds
     private static final Logger LOGGER = LoggerFactory.getLogger(ParticipantManagerService4MQ.class);
 
     @Override
     public int minConsensusNodes() {
-        return MQ_CONSENSUS_MIN_NODES;
+        return ConsensusTypeEnum.MQ.getMinimalNodeSize();
     }
 
     @Override

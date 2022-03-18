@@ -34,7 +34,6 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ParticipantManagerService4Raft.class);
 
-    private static final int RAFT_CONSENSUS_MIN_NODES = 1;
     private static final int MAX_RETRY_TIMES = 3;
     private static final String RPC_QUEST_TIMEOUT_MS = "rpc_quest_timeout_ms";
     private static final String RPC_CLIENT = "rpc_client";
@@ -42,7 +41,7 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
 
     @Override
     public int minConsensusNodes() {
-        return RAFT_CONSENSUS_MIN_NODES;
+        return ConsensusTypeEnum.RAFT.getMinimalNodeSize();
     }
 
     @Override

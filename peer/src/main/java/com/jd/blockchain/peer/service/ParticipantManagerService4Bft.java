@@ -44,11 +44,9 @@ public class ParticipantManagerService4Bft implements IParticipantManagerService
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ParticipantManagerService4Bft.class);
 
-    public static final int BFT_CONSENSUS_MIN_NODES = 4;
-
     @Override
     public int minConsensusNodes() {
-        return BFT_CONSENSUS_MIN_NODES;
+        return ConsensusTypeEnum.BFTSMART.getMinimalNodeSize();
     }
 
     @Override
