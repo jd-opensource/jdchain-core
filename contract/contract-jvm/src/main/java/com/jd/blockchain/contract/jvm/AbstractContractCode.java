@@ -62,12 +62,15 @@ public abstract class AbstractContractCode implements ContractCode {
 
                 // 合约方法执行
                 retn = doProcessEvent(contractInstance, eventContext);
-            } catch (LedgerException e) {
-                e.printStackTrace();
-                error = e;
             } catch (Throwable e) {
-                String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]!", eventContext.getEvent(), address.toString());
-                error = new ContractExecuteException(errorMessage, e);
+                if (e instanceof LedgerException) {
+                    error = (LedgerException) e;
+                } else if (e.getCause() instanceof LedgerException) {
+                    error = (LedgerException) e.getCause();
+                } else {
+                    String errorMessage = String.format("Error occurred while processing event[%s] of contract[%s]!", eventContext.getEvent(), address.toString());
+                    error = new ContractExecuteException(errorMessage, e);
+                }
             }
 
             try {
