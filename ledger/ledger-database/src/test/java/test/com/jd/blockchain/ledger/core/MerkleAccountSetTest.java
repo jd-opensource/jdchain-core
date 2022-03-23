@@ -3,6 +3,7 @@ package test.com.jd.blockchain.ledger.core;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import com.jd.blockchain.ledger.core.MerkleAccountSetEditor;
 import org.junit.Test;
 
 import com.jd.blockchain.crypto.Crypto;
@@ -11,7 +12,6 @@ import com.jd.blockchain.ledger.BlockchainKeypair;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.core.CompositeAccount;
 import com.jd.blockchain.ledger.core.CryptoConfig;
-import com.jd.blockchain.ledger.core.MerkleAccountSetEditor;
 import com.jd.blockchain.ledger.core.OpeningAccessPolicy;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 

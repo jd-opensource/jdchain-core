@@ -20,7 +20,7 @@ import utils.Transactional;
 
 public class MerkleEventGroupPublisher implements EventGroup, EventPublisher, Transactional {
 
-    private  MerkleDataset<Bytes, byte[]> events;
+    private BaseDataset<Bytes, byte[]> events;
 
     public MerkleEventGroupPublisher(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
         events = new MerkleHashDataset(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage);

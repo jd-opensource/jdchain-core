@@ -50,7 +50,7 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 	/**
 	 * 交易状态集合；用于记录交易执行结果；
 	 */
-	private MerkleDataset<Bytes, byte[]> txStateSet;
+	private BaseDataset<Bytes, byte[]> txStateSet;
 
 	/**
 	 * 交易请求列表；用于记录交易请求的顺序；

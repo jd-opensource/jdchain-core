@@ -34,7 +34,7 @@ public class LedgerAccountTest {
 //		String address = "xxxxxxxxxxxx";
 //		PubKey pubKey = new PubKey(SMAlgorithm.SM2, rawDigestBytes);
 //		HashDigest hashDigest = new HashDigest(ClassicAlgorithm.SHA256, rawDigestBytes);
-//		MerkleAccountSet.AccountHeaderData accountHeaderData = new MerkleAccountSet.AccountHeaderData(Bytes.fromString(address),
+//		BaseAccountSet.AccountHeaderData accountHeaderData = new BaseAccountSet.AccountHeaderData(Bytes.fromString(address),
 //				pubKey, hashDigest);
 //
 //		// encode and decode

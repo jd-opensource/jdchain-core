@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import com.jd.blockchain.ledger.LedgerDataStructure;
+import com.jd.blockchain.ledger.core.MerkleHashDataset;
 import com.jd.blockchain.ledger.core.UserAccountSetEditor;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,7 +36,6 @@ import com.jd.blockchain.ledger.core.LedgerManager;
 import com.jd.blockchain.ledger.core.LedgerRepository;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.core.LedgerTransactionalEditor;
-import com.jd.blockchain.ledger.core.MerkleHashDataset;
 import com.jd.blockchain.ledger.core.UserAccount;
 import com.jd.blockchain.ledger.proof.MerkleHashTrie;
 import com.jd.blockchain.ledger.proof.MerkleTrieData;

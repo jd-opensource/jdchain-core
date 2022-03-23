@@ -13,9 +13,9 @@ import utils.Transactional;
 
 public class MerkleDataCluster implements Transactional, MerkleSnapshot {
 
-	private  MerkleDataset<Bytes, byte[]> rootDS;
+	private BaseDataset<Bytes, byte[]> rootDS;
 
-	private Map<Bytes,  MerkleDataset<Bytes, byte[]>> partitions;
+	private Map<Bytes, BaseDataset<Bytes, byte[]>> partitions;
 
 	/**
 	 * Create an empty readable {@link MerkleDataCluster} instance;

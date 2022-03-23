@@ -7,13 +7,13 @@ import utils.Bytes;
 import utils.SkippingIterator;
 
 /**
- * {@link MerkleAccountSet} 是一种只读列表；
+ * {@link BaseAccountSet} 是一种只读列表；
  * 
  * @author huanghaiquan
  *
  * @param <T>
  */
-public interface MerkleAccountSet<T> extends MerkleProvable<Bytes> {
+public interface BaseAccountSet<T> extends MerkleProvable<Bytes> {
 
 	/**
 	 * 返回总数；

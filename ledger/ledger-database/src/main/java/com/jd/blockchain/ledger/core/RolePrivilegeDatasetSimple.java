@@ -17,14 +17,12 @@ import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import utils.Bytes;
 import utils.DataEntry;
-import utils.Mapper;
 import utils.SkippingIterator;
 import utils.Transactional;
-import utils.io.BytesUtils;
 
 public class RolePrivilegeDatasetSimple implements Transactional, MerkleProvable<Bytes>, RolePrivilegeSettings {
 
-	private SimpleDataset<Bytes, byte[]> dataset;
+	private BaseDataset<Bytes, byte[]> dataset;
 
 	private volatile long rolepri_index_in_block = 0;
 
@@ -34,12 +32,12 @@ public class RolePrivilegeDatasetSimple implements Transactional, MerkleProvable
 
 	public RolePrivilegeDatasetSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
                                       VersioningKVStorage verStorage) {
-		dataset = new SimpleDatasetImpl(SimpleDatasetType.NONE, cryptoSetting, prefix, exPolicyStorage, verStorage);
+		dataset = new KvDataset(DatasetType.NONE, cryptoSetting, prefix, exPolicyStorage, verStorage);
 	}
 
 	public RolePrivilegeDatasetSimple(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
                                       ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, SimpleDatasetType.NONE, cryptoSetting, prefix, exPolicyStorage,
+		dataset = new KvDataset(preBlockHeight, merkleRootHash, DatasetType.NONE, cryptoSetting, prefix, exPolicyStorage,
 				verStorage, readonly);
 	}
 
@@ -304,7 +302,7 @@ public class RolePrivilegeDatasetSimple implements Transactional, MerkleProvable
 	}
 
 	public RolePrivileges[] getRolePrivileges() {
-		DataEntry<Bytes, byte[]>[] kvEntries = ((SimpleDatasetImpl)dataset).getDataEntries(0, (int) dataset.getDataCount());
+		DataEntry<Bytes, byte[]>[] kvEntries = ((KvDataset)dataset).getDataEntries(0, (int) dataset.getDataCount());
 		RolePrivileges[] pns = new RolePrivileges[kvEntries.length];
 		PrivilegeSet privilege;
 		for (int i = 0; i < pns.length; i++) {

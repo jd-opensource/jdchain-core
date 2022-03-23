@@ -28,7 +28,7 @@ import utils.io.BytesUtils;
  * @author huanghaiquan
  *
  */
-public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
+public class MerkleSequenceDataset implements BaseDataset<Bytes, byte[]> {
 
 	/**
 	 * 4 MB MaxSize of value;
@@ -76,7 +76,7 @@ public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
 	 * @param versioningStorage 数据的存储；
 	 */
 	public MerkleSequenceDataset(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
-			VersioningKVStorage versioningStorage) {
+								 VersioningKVStorage versioningStorage) {
 		this(setting, Bytes.fromString(keyPrefix), exPolicyStorage, versioningStorage);
 	}
 
@@ -88,7 +88,7 @@ public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
 	 * @param versioningStorage 数据的存储；
 	 */
 	public MerkleSequenceDataset(CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage exPolicyStorage,
-			VersioningKVStorage versioningStorage) {
+								 VersioningKVStorage versioningStorage) {
 		// 缓冲对KV的写入；
 		this.bufferedStorage = new BufferedKVStorage(Crypto.getHashFunction(setting.getHashAlgorithm()), exPolicyStorage, versioningStorage, false);
 
@@ -121,7 +121,7 @@ public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
 	 * @param snGenerator
 	 */
 	public MerkleSequenceDataset(HashDigest merkleRootHash, CryptoSetting setting, String keyPrefix,
-			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
+								 ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
 		this(merkleRootHash, setting, Bytes.fromString(keyPrefix), exPolicyStorage, versioningStorage, readonly);
 	}
 
@@ -135,7 +135,7 @@ public class MerkleSequenceDataset implements MerkleDataset<Bytes, byte[]> {
 	 * @param snGenerator
 	 */
 	public MerkleSequenceDataset(HashDigest merkleRootHash, CryptoSetting setting, Bytes keyPrefix,
-			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
+								 ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
 		// 缓冲对KV的写入；
 		this.bufferedStorage = new BufferedKVStorage(Crypto.getHashFunction(setting.getHashAlgorithm()), exPolicyStorage, versioningStorage, false);
 

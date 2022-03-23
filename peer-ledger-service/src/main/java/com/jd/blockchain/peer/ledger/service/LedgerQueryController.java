@@ -9,7 +9,7 @@ import com.jd.blockchain.ledger.core.ContractAccountSetEditorSimple;
 import com.jd.blockchain.ledger.core.DataAccountSetEditorSimple;
 import com.jd.blockchain.ledger.core.EventAccountSetEditorSimple;
 import com.jd.blockchain.ledger.core.IteratorDataset;
-import com.jd.blockchain.ledger.core.SimpleDatasetImpl;
+import com.jd.blockchain.ledger.core.KvDataset;
 import com.jd.blockchain.ledger.core.UserAccountSetEditorSimple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -616,7 +616,7 @@ public class LedgerQueryController implements BlockchainQueryService {
         } else {
             TypedKVEntry[] typedKVEntries = new TypedKVEntry[count];
             for (int i = 0; i < count; i++) {
-                String kvKey = BytesUtils.toString(((SimpleDatasetImpl)(((ComplecatedSimpleAccount)(dataAccount.getMklAccount())).getDataDataset())).getKeyByIndex(fromIndex + i));
+                String kvKey = BytesUtils.toString(((KvDataset)(((ComplecatedSimpleAccount)(dataAccount.getMklAccount())).getDataDataset())).getKeyByIndex(fromIndex + i));
                 DataEntry<String, TypedValue> entry = dataAccount.getDataset().getDataEntry(kvKey);
                 typedKVEntries[i] = new TypedKVData(entry.getKey(), entry.getVersion(), entry.getValue());
             }

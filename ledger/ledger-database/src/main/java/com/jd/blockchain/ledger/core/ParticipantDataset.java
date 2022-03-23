@@ -22,7 +22,7 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 		DataContractRegistry.register(ParticipantNode.class);
 	}
 
-	private MerkleDataset<Bytes, byte[]> dataset;
+	private BaseDataset<Bytes, byte[]> dataset;
 
 	public ParticipantDataset(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage verStorage) {

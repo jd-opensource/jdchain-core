@@ -28,7 +28,7 @@ import utils.SkippingIterator;
  * @author huanghaiquan
  *
  */
-public class MerkleHashDataset implements MerkleDataset<Bytes, byte[]> {
+public class MerkleHashDataset implements BaseDataset<Bytes, byte[]> {
 
 	/**
 	 * 4 MB MaxSize of value;
@@ -71,7 +71,7 @@ public class MerkleHashDataset implements MerkleDataset<Bytes, byte[]> {
 	 * @param versioningStorage 数据的存储；
 	 */
 	public MerkleHashDataset(CryptoSetting setting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
-			VersioningKVStorage versioningStorage) {
+							 VersioningKVStorage versioningStorage) {
 		this(setting, Bytes.fromString(keyPrefix), exPolicyStorage, versioningStorage);
 	}
 
@@ -83,7 +83,7 @@ public class MerkleHashDataset implements MerkleDataset<Bytes, byte[]> {
 	 * @param versioningStorage 数据的存储；
 	 */
 	public MerkleHashDataset(CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage exPolicyStorage,
-			VersioningKVStorage versioningStorage) {
+							 VersioningKVStorage versioningStorage) {
 		this(null, setting, keyPrefix, exPolicyStorage, versioningStorage, false);
 	}
 
@@ -97,7 +97,7 @@ public class MerkleHashDataset implements MerkleDataset<Bytes, byte[]> {
 	 * @param snGenerator
 	 */
 	public MerkleHashDataset(HashDigest merkleRootHash, CryptoSetting setting, String keyPrefix,
-			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
+							 ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
 		this(merkleRootHash, setting, Bytes.fromString(keyPrefix), exPolicyStorage, versioningStorage, readonly);
 	}
 
@@ -111,7 +111,7 @@ public class MerkleHashDataset implements MerkleDataset<Bytes, byte[]> {
 	 * @param snGenerator
 	 */
 	public MerkleHashDataset(HashDigest merkleRootHash, CryptoSetting setting, Bytes keyPrefix,
-			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
+							 ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
 		// 把存储数据值、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
 		this.dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
 		// 缓冲对KV的写入；

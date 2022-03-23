@@ -10,8 +10,6 @@ import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import utils.Bytes;
-import utils.DataEntry;
-import utils.Mapper;
 import utils.SkippingIterator;
 import utils.Transactional;
 
@@ -21,7 +19,7 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 		DataContractRegistry.register(ParticipantNode.class);
 	}
 
-	private SimpleDataset<Bytes, byte[]> dataset;
+	private BaseDataset<Bytes, byte[]> dataset;
 
 	private volatile long parti_index_in_block = 0;
 
@@ -31,12 +29,12 @@ public class ParticipantDatasetSimple implements Transactional, ParticipantColle
 
 	public ParticipantDatasetSimple(CryptoSetting cryptoSetting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
                                     VersioningKVStorage verStorage) {
-		dataset = new SimpleDatasetImpl(SimpleDatasetType.PARTIS, cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage, verStorage);
+		dataset = new KvDataset(DatasetType.PARTIS, cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage, verStorage);
 	}
 
 	public ParticipantDatasetSimple(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String keyPrefix,
                                     ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, SimpleDatasetType.PARTIS, cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage,
+		dataset = new KvDataset(preBlockHeight, merkleRootHash, DatasetType.PARTIS, cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage,
 				verStorage, readonly);
 	}
 

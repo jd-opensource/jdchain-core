@@ -5,15 +5,10 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.merkletree.KVEntry;
-import com.jd.blockchain.ledger.merkletree.MerkleHashSortTree;
-import com.jd.blockchain.ledger.merkletree.MerkleTree;
-import com.jd.blockchain.ledger.merkletree.TreeOptions;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
 import com.jd.blockchain.storage.service.utils.VersioningKVData;
-import utils.AbstractSkippingIterator;
 import utils.Bytes;
 import utils.DataEntry;
 import utils.SkippingIterator;
@@ -22,7 +17,7 @@ import utils.io.BytesUtils;
 import java.util.ArrayList;
 
 /**
- * {@link SimpleDatasetImpl}
+ * {@link KvDataset}
  * <br>
  *
  * 注：此实现不是线程安全的；
@@ -30,7 +25,7 @@ import java.util.ArrayList;
  * @author
  *
  */
-public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
+public class KvDataset implements BaseDataset<Bytes, byte[]> {
 
 	/**
 	 * 4 MB MaxSize of value;
@@ -59,7 +54,7 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 
 	private boolean readonly;
 
-	private SimpleDatasetType datasetType;
+	private DatasetType datasetType;
 
 	/*
 	 * (non-Javadoc)
@@ -78,8 +73,8 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 * @param exPolicyStorage   默克尔树的存储；
 	 * @param versioningStorage 数据的存储；
 	 */
-	public SimpleDatasetImpl(SimpleDatasetType type, CryptoSetting setting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
-                             VersioningKVStorage versioningStorage) {
+	public KvDataset(DatasetType type, CryptoSetting setting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
+					 VersioningKVStorage versioningStorage) {
 		this(type, setting, Bytes.fromString(keyPrefix), exPolicyStorage, versioningStorage);
 	}
 
@@ -90,8 +85,8 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 * @param exPolicyStorage   默克尔树的存储；
 	 * @param versioningStorage 数据的存储；
 	 */
-	public SimpleDatasetImpl(SimpleDatasetType type, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage exPolicyStorage,
-                             VersioningKVStorage versioningStorage) {
+	public KvDataset(DatasetType type, CryptoSetting setting, Bytes keyPrefix, ExPolicyKVStorage exPolicyStorage,
+					 VersioningKVStorage versioningStorage) {
 		this(-1, null, type, setting, keyPrefix, exPolicyStorage, versioningStorage, false);
 	}
 
@@ -104,8 +99,8 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 * @param merkleTreeStorage
 	 * @param snGenerator
 	 */
-	public SimpleDatasetImpl(long preBlockHeight, HashDigest prevRootHash, SimpleDatasetType type, CryptoSetting setting, String keyPrefix,
-                             ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
+	public KvDataset(long preBlockHeight, HashDigest prevRootHash, DatasetType type, CryptoSetting setting, String keyPrefix,
+					 ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
 		this(preBlockHeight, prevRootHash, type, setting, Bytes.fromString(keyPrefix), exPolicyStorage, versioningStorage, readonly);
 	}
 
@@ -118,8 +113,8 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 	 * @param merkleTreeStorage
 	 * @param snGenerator
 	 */
-	public SimpleDatasetImpl(long preBlockHeight, HashDigest prevRootHash, SimpleDatasetType type, CryptoSetting setting, Bytes keyPrefix,
-                             ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
+	public KvDataset(long preBlockHeight, HashDigest prevRootHash, DatasetType type, CryptoSetting setting, Bytes keyPrefix,
+					 ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
 		// 把存储数据值、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
 		this.dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
 
@@ -151,7 +146,7 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 		// prefix + KV/Total
 		Bytes totalKey;
 
-		if (datasetType == SimpleDatasetType.TX) {
+		if (datasetType == DatasetType.TX) {
 			totalKey = dataKeyPrefix.concat(Bytes.fromString("TOTAL/").concat(Bytes.fromString(String.valueOf(preBlockHeight))));
 		} else {
 			totalKey = dataKeyPrefix.concat(Bytes.fromString("TOTAL"));
@@ -208,7 +203,7 @@ public class SimpleDatasetImpl implements SimpleDataset<Bytes, byte[]> {
 		Bytes dataKey = encodeDataKey(key);
 
 //		long newVersion;
-//		if (datasetType == SimpleDatasetType.TX) {
+//		if (datasetType == DatasetType.TX) {
 //			newVersion = setTxTypeValue(dataKey, value);
 //		} else {
 //			newVersion = setNoneTypeValue(dataKey, value, -1);

@@ -1,5 +1,5 @@
 package com.jd.blockchain.ledger.core;
 
-public interface ContractAccountSet extends MerkleAccountSet<ContractAccount> {
+public interface ContractAccountSet extends BaseAccountSet<ContractAccount> {
 
 }

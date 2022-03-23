@@ -139,10 +139,6 @@ public class UserAccountSetEditorSimple implements Transactional, UserAccountSet
 		return accountSet.isAddNew();
 	}
 
-	public Map<Bytes, Long> getKvNumCache() {
-		return accountSet.getKvNumCache();
-	}
-
 	public void clearCachedIndex() {
 		accountSet.clearCachedIndex();
 	}

@@ -24,14 +24,14 @@ import utils.Mapper;
 import utils.SkippingIterator;
 import utils.Transactional;
 
-public class MerkleAccountSetEditor implements Transactional, MerkleAccountSet<CompositeAccount> {
+public class MerkleAccountSetEditor implements Transactional, BaseAccountSet<CompositeAccount> {
 
 	private final Bytes keyPrefix;
 
 	/**
 	 * 账户根哈希的数据集；
 	 */
-	private MerkleDataset<Bytes, byte[]> merkleDataset;
+	private BaseDataset<Bytes, byte[]> merkleDataset;
 
 	/**
 	 * The cache of latest version accounts, including accounts getting by querying
@@ -56,13 +56,13 @@ public class MerkleAccountSetEditor implements Transactional, MerkleAccountSet<C
 	}
 
 	public MerkleAccountSetEditor(CryptoSetting cryptoSetting, Bytes keyPrefix, ExPolicyKVStorage exStorage,
-			VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
+								  VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
 		this(null, cryptoSetting, keyPrefix, exStorage, verStorage, false, accessPolicy);
 	}
 
 	public MerkleAccountSetEditor(HashDigest rootHash, CryptoSetting cryptoSetting, Bytes keyPrefix,
-			ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
-			AccountAccessPolicy accessPolicy) {
+								  ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
+								  AccountAccessPolicy accessPolicy) {
 		this.keyPrefix = keyPrefix;
 		this.cryptoSetting = cryptoSetting;
 		this.baseExStorage = exStorage;

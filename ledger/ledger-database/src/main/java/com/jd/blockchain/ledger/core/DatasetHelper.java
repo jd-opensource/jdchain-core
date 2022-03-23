@@ -55,7 +55,7 @@ public class DatasetHelper {
 	 * @param valueMapper 值的映射配置；
 	 * @return
 	 */
-	public static <V> MerkleDataset<String, V> map(MerkleDataset<Bytes, V> dataset) {
+	public static <V> BaseDataset<String, V> map(BaseDataset<Bytes, V> dataset) {
 		return new TypeAdapter<Bytes, String, V, V>(dataset, UTF8_STRING_BYTES_MAPPER, new EmptyMapper<V>());
 	}
 
@@ -71,7 +71,7 @@ public class DatasetHelper {
 	 * @param valueMapper 值的映射配置；
 	 * @return
 	 */
-	public static <V1, V2> MerkleDataset<String, V2> map(MerkleDataset<Bytes, V1> dataset, TypeMapper<V1, V2> valueMapper) {
+	public static <V1, V2> BaseDataset<String, V2> map(BaseDataset<Bytes, V1> dataset, TypeMapper<V1, V2> valueMapper) {
 		return new TypeAdapter<Bytes, String, V1, V2>(dataset, UTF8_STRING_BYTES_MAPPER, valueMapper);
 	}
 
@@ -87,8 +87,8 @@ public class DatasetHelper {
 	 * @param valueMapper 值的映射配置；
 	 * @return
 	 */
-	public static <K1, K2, V1, V2> MerkleDataset<K2, V2> map(MerkleDataset<K1, V1> dataset, TypeMapper<K1, K2> keyMapper,
-			TypeMapper<V1, V2> valueMapper) {
+	public static <K1, K2, V1, V2> BaseDataset<K2, V2> map(BaseDataset<K1, V1> dataset, TypeMapper<K1, K2> keyMapper,
+                                                           TypeMapper<V1, V2> valueMapper) {
 		return new TypeAdapter<K1, K2, V1, V2>(dataset, keyMapper, valueMapper);
 	}
 
@@ -101,7 +101,7 @@ public class DatasetHelper {
 	 * @param listener 要植入的监听器；
 	 * @return 植入监听器的数据集实例；
 	 */
-	public static <K, V> MerkleDataset<K, V> listen(MerkleDataset<K, V> dataset, DataChangedListener<K, V> listener) {
+	public static <K, V> BaseDataset<K, V> listen(BaseDataset<K, V> dataset, DataChangedListener<K, V> listener) {
 		return new DatasetUpdatingMonitor<K, V>(dataset, listener);
 	}
 
@@ -149,13 +149,13 @@ public class DatasetHelper {
 
 	}
 
-	private static class DatasetUpdatingMonitor<K, V> implements MerkleDataset<K, V> {
+	private static class DatasetUpdatingMonitor<K, V> implements BaseDataset<K, V> {
 
-		private MerkleDataset<K, V> dataset;
+		private BaseDataset<K, V> dataset;
 
 		private DataChangedListener<K, V> listener;
 
-		public DatasetUpdatingMonitor(MerkleDataset<K, V> dataset, DataChangedListener<K, V> listener) {
+		public DatasetUpdatingMonitor(BaseDataset<K, V> dataset, DataChangedListener<K, V> listener) {
 			this.dataset = dataset;
 			this.listener = listener;
 		}
@@ -260,12 +260,12 @@ public class DatasetHelper {
 	 * @param <V1>
 	 * @param <V2>
 	 */
-	private static class TypeAdapter<K1, K2, V1, V2> implements MerkleDataset<K2, V2> {
-		private MerkleDataset<K1, V1> dataset;
+	private static class TypeAdapter<K1, K2, V1, V2> implements BaseDataset<K2, V2> {
+		private BaseDataset<K1, V1> dataset;
 		private TypeMapper<K1, K2> keyMapper;
 		private TypeMapper<V1, V2> valueMapper;
 
-		public TypeAdapter(MerkleDataset<K1, V1> dataset, TypeMapper<K1, K2> keyMapper, TypeMapper<V1, V2> valueMapper) {
+		public TypeAdapter(BaseDataset<K1, V1> dataset, TypeMapper<K1, K2> keyMapper, TypeMapper<V1, V2> valueMapper) {
 			this.dataset = dataset;
 			this.keyMapper = keyMapper;
 			this.valueMapper = valueMapper;

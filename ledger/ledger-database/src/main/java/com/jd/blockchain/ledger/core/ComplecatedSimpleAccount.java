@@ -39,13 +39,13 @@ public class ComplecatedSimpleAccount implements CompositeAccount, HashProvable,
 
 //	private SimpleDataset<Bytes, byte[]> rootDataset;
 
-	private SimpleDataset<Bytes, byte[]> headerDataset;
+	private BaseDataset<Bytes, byte[]> headerDataset;
 
-	private SimpleDataset<Bytes, byte[]> dataDataset;
+	private BaseDataset<Bytes, byte[]> dataDataset;
 
-	private SimpleDataset<String, TypedValue> typedHeader;
+	private BaseDataset<String, TypedValue> typedHeader;
 
-	private SimpleDataset<String, TypedValue> typedData;
+	private BaseDataset<String, TypedValue> typedData;
 
 	private long preblockHeight;
 	/**
@@ -139,14 +139,14 @@ public class ComplecatedSimpleAccount implements CompositeAccount, HashProvable,
 		// 加载“头数据集”；
 //		HashDigest headerRoot = loadHeaderRoot();
 		Bytes headerPrefix = keyPrefix.concat(HEADER_PREFIX);
-		this.headerDataset = new SimpleDatasetImpl(preblockHeight, headerRoot, SimpleDatasetType.NONE, cryptoSetting, headerPrefix, exStorage, verStorage,
+		this.headerDataset = new KvDataset(preblockHeight, headerRoot, DatasetType.NONE, cryptoSetting, headerPrefix, exStorage, verStorage,
 				readonly);
 		this.typedHeader = DatasetHelperSimple.listen(DatasetHelperSimple.map(headerDataset, valueMapper), dataChangedListenerHeader);
 
 		// 加载“主数据集”
 //		HashDigest dataRoot = loadDataRoot();
 		Bytes dataPrefix = keyPrefix.concat(DATA_PREFIX);
-		this.dataDataset = new SimpleDatasetImpl(preblockHeight, dataRoot, SimpleDatasetType.NONE, cryptoSetting, dataPrefix, exStorage, verStorage, readonly);
+		this.dataDataset = new KvDataset(preblockHeight, dataRoot, DatasetType.NONE, cryptoSetting, dataPrefix, exStorage, verStorage, readonly);
 		this.typedData = DatasetHelperSimple.listen(DatasetHelperSimple.map(dataDataset, valueMapper), dataChangedListenerData);
 	}
 
@@ -191,16 +191,16 @@ public class ComplecatedSimpleAccount implements CompositeAccount, HashProvable,
 		return typedHeader;
 	}
 
-	public SimpleDataset<Bytes, byte[]> getHeaderDataset() {
+	public BaseDataset<Bytes, byte[]> getHeaderDataset() {
 		return headerDataset;
 	}
 
-	public SimpleDataset<Bytes, byte[]> getDataDataset() {
+	public BaseDataset<Bytes, byte[]> getDataDataset() {
 		return dataDataset;
 	}
 
 	@Override
-	public SimpleDataset<String, TypedValue> getDataset() {
+	public BaseDataset<String, TypedValue> getDataset() {
 		return typedData;
 	}
 

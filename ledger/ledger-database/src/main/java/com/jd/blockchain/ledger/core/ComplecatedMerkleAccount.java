@@ -38,15 +38,15 @@ public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable,
 
 	private BlockchainIdentity accountID;
 
-//	private MerkleDataset<Bytes, byte[]> rootDataset;
+//	private BaseDataset<Bytes, byte[]> rootDataset;
 
-	private MerkleDataset<Bytes, byte[]> headerDataset;
+	private BaseDataset<Bytes, byte[]> headerDataset;
 
-	private MerkleDataset<Bytes, byte[]> dataDataset;
+	private BaseDataset<Bytes, byte[]> dataDataset;
 
-	private MerkleDataset<String, TypedValue> typedHeader;
+	private BaseDataset<String, TypedValue> typedHeader;
 
-	private MerkleDataset<String, TypedValue> typedData;
+	private BaseDataset<String, TypedValue> typedData;
 
 	/**
 	 * Create a new Account with the specified identity(address and pubkey); <br>
@@ -186,7 +186,7 @@ public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable,
 	}
 
 	@Override
-	public MerkleDataset<String, TypedValue> getDataset() {
+	public BaseDataset<String, TypedValue> getDataset() {
 		return typedData;
 	}
 

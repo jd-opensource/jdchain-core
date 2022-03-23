@@ -24,7 +24,7 @@ import utils.Transactional;
 
 public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes>, RolePrivilegeSettings {
 
-	private MerkleDataset<Bytes, byte[]> dataset;
+	private BaseDataset<Bytes, byte[]> dataset;
 
 	public RolePrivilegeDataset(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
 			VersioningKVStorage verStorage) {

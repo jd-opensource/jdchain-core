@@ -6,13 +6,9 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.EventInfo;
 import com.jd.blockchain.ledger.LedgerException;
-import com.jd.blockchain.ledger.ParticipantNode;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import utils.Bytes;
-import utils.DataEntry;
-import utils.Mapper;
-import utils.SkippingIterator;
 import utils.Transactional;
 
 import java.util.ArrayList;
@@ -20,7 +16,7 @@ import java.util.List;
 
 public class MerkleEventGroupPublisherSimple implements EventGroup, EventPublisher, Transactional {
 
-    private  SimpleDataset<Bytes, byte[]> events;
+    private  BaseDataset<Bytes, byte[]> events;
 
     private volatile long event_index_in_block = 0;
 
@@ -30,12 +26,12 @@ public class MerkleEventGroupPublisherSimple implements EventGroup, EventPublish
 
 
     public MerkleEventGroupPublisherSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
-        events = new SimpleDatasetImpl(SimpleDatasetType.NONE, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage);
+        events = new KvDataset(DatasetType.NONE, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage);
     }
 
     public MerkleEventGroupPublisherSimple(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
                                            ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
-        events = new SimpleDatasetImpl(preBlockHeight, dataRootHash, SimpleDatasetType.NONE, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, readonly);
+        events = new KvDataset(preBlockHeight, dataRootHash, DatasetType.NONE, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, readonly);
     }
 
     /**

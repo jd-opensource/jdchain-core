@@ -15,8 +15,6 @@ import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import utils.Bytes;
-import utils.DataEntry;
-import utils.Mapper;
 import utils.SkippingIterator;
 import utils.Transactional;
 import utils.io.BytesUtils;
@@ -24,14 +22,14 @@ import utils.io.BytesUtils;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<CompositeAccount> {
+public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<CompositeAccount> {
 
 	private final Bytes keyPrefix;
 
 	/**
 	 * 账户根哈希的数据集；
 	 */
-	private SimpleDataset<Bytes, byte[]> simpleDataset;
+	private BaseDataset<Bytes, byte[]> simpleDataset;
 
 	/**
 	 * The cache of latest version accounts, including accounts getting by querying
@@ -79,7 +77,7 @@ public class SimpleAccountSetEditor implements Transactional, MerkleAccountSet<C
 		this.baseExStorage = exStorage;
 		this.baseVerStorage = verStorage;
 		this.preBlockHeight = preBlockHeight;
-		this.simpleDataset = new SimpleDatasetImpl(preBlockHeight, rootHash, SimpleDatasetType.NONE, cryptoSetting, keyPrefix, this.baseExStorage,
+		this.simpleDataset = new KvDataset(preBlockHeight, rootHash, DatasetType.NONE, cryptoSetting, keyPrefix, this.baseExStorage,
 				this.baseVerStorage, readonly);
 
 		this.accessPolicy = accessPolicy;

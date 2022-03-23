@@ -38,7 +38,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 	/**
 	 * 交易状态集合；用于记录交易执行结果；
 	 */
-	private SimpleDataset<Bytes, byte[]> txDataSet;
+	private BaseDataset<Bytes, byte[]> txDataSet;
 
 	private volatile long txIndex = 0;
 
@@ -67,7 +67,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		this.origin_rootHash = this.rootHash;
 		this.setting = setting;
 		this.preBlockHeight = -1;
-		this.txDataSet = new SimpleDatasetImpl(SimpleDatasetType.TX, setting, keyPrefix, merkleTreeStorage, dataStorage);
+		this.txDataSet = new KvDataset(DatasetType.TX, setting, keyPrefix, merkleTreeStorage, dataStorage);
 	}
 
 	/**
@@ -83,7 +83,7 @@ public class TransactionSetEditorSimple implements Transactional, TransactionSet
 		this.origin_rootHash = this.rootHash;
 		this.setting = setting;
 		this.preBlockHeight = preBlockHeight;
-		this.txDataSet = new SimpleDatasetImpl(preBlockHeight, txsetHash, SimpleDatasetType.TX, setting, keyPrefix, merkleTreeStorage, dataStorage,
+		this.txDataSet = new KvDataset(preBlockHeight, txsetHash, DatasetType.TX, setting, keyPrefix, merkleTreeStorage, dataStorage,
 				readonly);
 	}
 

@@ -8,7 +8,7 @@ import utils.Bytes;
 import utils.EmptySkippingIterator;
 import utils.SkippingIterator;
 
-public class EmptyAccountSet<T> implements MerkleAccountSet<T> {
+public class EmptyAccountSet<T> implements BaseAccountSet<T> {
 	
 	@Override
 	public HashDigest getRootHash() {

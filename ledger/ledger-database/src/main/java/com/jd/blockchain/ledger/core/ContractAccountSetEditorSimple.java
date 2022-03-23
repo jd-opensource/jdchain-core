@@ -153,10 +153,6 @@ public class ContractAccountSetEditorSimple implements Transactional, ContractAc
 		return accountSet.isAddNew();
 	}
 
-	public Map<Bytes, Long> getKvNumCache() {
-		return accountSet.getKvNumCache();
-	}
-
 	public void clearCachedIndex() {
 		accountSet.clearCachedIndex();
 	}

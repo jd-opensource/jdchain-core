@@ -5,7 +5,7 @@ import utils.Dataset;
 import utils.SkippingIterator;
 import utils.Transactional;
 
-public interface MerkleDataset<K, V> extends IteratorDataset<K, V> {
+public interface BaseDataset<K, V> extends IteratorDataset<K, V> {
 
 	boolean isReadonly();
 

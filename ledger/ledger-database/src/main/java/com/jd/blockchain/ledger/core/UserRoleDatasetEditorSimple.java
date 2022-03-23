@@ -10,14 +10,11 @@ import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.RolesPolicy;
 import com.jd.blockchain.ledger.UserAuthorizationSettings;
 import com.jd.blockchain.ledger.UserRoles;
-import com.jd.blockchain.ledger.merkletree.KVEntry;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
-import com.jd.blockchain.storage.service.utils.VersioningKVData;
 import utils.Bytes;
 import utils.DataEntry;
 import utils.Transactional;
-import utils.io.BytesUtils;
 
 import java.util.Collection;
 
@@ -29,7 +26,7 @@ import java.util.Collection;
  */
 public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvable<Bytes>, UserAuthorizationSettings {
 
-	private SimpleDatasetImpl dataset;
+	private KvDataset dataset;
 
 	private volatile long userrole_index_in_block = 0;
 
@@ -39,12 +36,12 @@ public class UserRoleDatasetEditorSimple implements Transactional, MerkleProvabl
 
 	public UserRoleDatasetEditorSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
                                        VersioningKVStorage verStorage) {
-		dataset = new SimpleDatasetImpl(SimpleDatasetType.NONE, cryptoSetting, prefix, exPolicyStorage, verStorage);
+		dataset = new KvDataset(DatasetType.NONE, cryptoSetting, prefix, exPolicyStorage, verStorage);
 	}
 
 	public UserRoleDatasetEditorSimple(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
                                        ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new SimpleDatasetImpl(preBlockHeight, merkleRootHash, SimpleDatasetType.NONE, cryptoSetting, prefix, exPolicyStorage, verStorage, readonly);
+		dataset = new KvDataset(preBlockHeight, merkleRootHash, DatasetType.NONE, cryptoSetting, prefix, exPolicyStorage, verStorage, readonly);
 	}
 
 	@Override

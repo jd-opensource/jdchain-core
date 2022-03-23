@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import com.jd.blockchain.ledger.core.MerkleHashDataset;
 import org.junit.Test;
 
 import com.jd.blockchain.crypto.Crypto;
@@ -24,7 +25,6 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.core.CryptoConfig;
 import com.jd.blockchain.ledger.core.DatasetHelper;
-import com.jd.blockchain.ledger.core.MerkleHashDataset;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 
 import utils.Bytes;
