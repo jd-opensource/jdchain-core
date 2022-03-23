@@ -62,6 +62,7 @@ public class UserRegisterOperationHandle extends AbstractLedgerOperationHandle<U
 		} else {
 			((UserAccountSetEditorSimple)(transactionContext.getDataset().getUserAccountSet())).register(userAddress, bid.getPubKey(), op.getCertificate());
 		}
+
 	}
 
 }

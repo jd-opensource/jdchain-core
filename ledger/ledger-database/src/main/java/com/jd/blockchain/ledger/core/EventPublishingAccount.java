@@ -68,7 +68,7 @@ public class EventPublishingAccount extends PermissionAccountDecorator implement
             String[] eventNames = new String[count];
 
             for (int index = 0; index < count; index++) {
-                byte[] indexKey = ((KvDataset)((ComplecatedSimpleAccount)mklAccount).getDataDataset()).getKeyByIndex(fromIndex + index);
+                byte[] indexKey = ((KvDataset)((KvComplecatedAccount)mklAccount).getDataDataset()).getKeyByIndex(fromIndex + index);
                 eventNames[index] = BytesUtils.toString(indexKey);
             }
 

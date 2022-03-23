@@ -396,7 +396,7 @@ public class MerkleAccountSetEditor implements Transactional, BaseAccountSet<Com
 	 * @author huanghaiquan
 	 *
 	 */
-	private class InnerMerkleAccount extends ComplecatedMerkleAccount {
+	private class InnerMerkleAccount extends MerkleComplecatedAccount {
 
 		private long version;
 

@@ -14,7 +14,7 @@ import utils.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MerkleEventGroupPublisherSimple implements EventGroup, EventPublisher, Transactional {
+public class KvEventGroupPublisher implements EventGroup, EventPublisher, Transactional {
 
     private  BaseDataset<Bytes, byte[]> events;
 
@@ -25,12 +25,12 @@ public class MerkleEventGroupPublisherSimple implements EventGroup, EventPublish
     private static final Bytes SYSTEMEVENT_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
 
 
-    public MerkleEventGroupPublisherSimple(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
+    public KvEventGroupPublisher(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
         events = new KvDataset(DatasetType.NONE, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage);
     }
 
-    public MerkleEventGroupPublisherSimple(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
-                                           ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
+    public KvEventGroupPublisher(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
+                                 ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
         events = new KvDataset(preBlockHeight, dataRootHash, DatasetType.NONE, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, readonly);
     }
 

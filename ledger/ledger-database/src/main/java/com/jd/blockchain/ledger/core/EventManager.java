@@ -61,7 +61,7 @@ public class EventManager implements EventOperationHandle {
         if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
             v = ((MerkleEventGroupPublisher)(txCtx.getEventSet().getSystemEventGroup())).publish(new EventInfo(eventName, latestSequence+1, content, request.getTransactionHash(), txCtx.getBlockHeight()));
         } else {
-            v = ((MerkleEventGroupPublisherSimple)(txCtx.getEventSet().getSystemEventGroup())).publish(new EventInfo(eventName, latestSequence+1, content, request.getTransactionHash(), txCtx.getBlockHeight()));
+            v = ((KvEventGroupPublisher)(txCtx.getEventSet().getSystemEventGroup())).publish(new EventInfo(eventName, latestSequence+1, content, request.getTransactionHash(), txCtx.getBlockHeight()));
         }
 
         if (v < 0) {

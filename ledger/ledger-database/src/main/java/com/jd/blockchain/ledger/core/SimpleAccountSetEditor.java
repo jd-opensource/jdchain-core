@@ -29,7 +29,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 	/**
 	 * 账户根哈希的数据集；
 	 */
-	private BaseDataset<Bytes, byte[]> simpleDataset;
+	private BaseDataset<Bytes, byte[]> kvDataset;
 
 	/**
 	 * The cache of latest version accounts, including accounts getting by querying
@@ -59,7 +59,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 	private AccountAccessPolicy accessPolicy;
 
 	public boolean isReadonly() {
-		return simpleDataset.isReadonly();
+		return kvDataset.isReadonly();
 	}
 
 	private static final Bytes ACCOUNTSET_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
@@ -77,7 +77,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 		this.baseExStorage = exStorage;
 		this.baseVerStorage = verStorage;
 		this.preBlockHeight = preBlockHeight;
-		this.simpleDataset = new KvDataset(preBlockHeight, rootHash, DatasetType.NONE, cryptoSetting, keyPrefix, this.baseExStorage,
+		this.kvDataset = new KvDataset(preBlockHeight, rootHash, DatasetType.NONE, cryptoSetting, keyPrefix, this.baseExStorage,
 				this.baseVerStorage, readonly);
 
 		this.accessPolicy = accessPolicy;
@@ -85,12 +85,12 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 
 	@Override
 	public HashDigest getRootHash() {
-		return simpleDataset.getRootHash();
+		return kvDataset.getRootHash();
 	}
 
 	@Override
 	public MerkleProof getProof(Bytes key) {
-		return simpleDataset.getProof(key);
+		return kvDataset.getProof(key);
 	}
 
 //	@Override
@@ -122,7 +122,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 		BlockchainIdentity[] userAccounts = new BlockchainIdentity[userCount];
 
 		for (int index = 0; index < userCount; index++) {
-			byte[] indexKey = simpleDataset.getValue(keyPrefix.concat(ACCOUNTSET_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf((long)(fromIndex + index)))));
+			byte[] indexKey = kvDataset.getValue(keyPrefix.concat(ACCOUNTSET_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf((long)(fromIndex + index)))));
 
 			BlockchainIdentity identity = BinaryProtocol.decode(indexKey, BlockchainIdentity.class);
 			userAccounts[index] = new BlockchainIdentityData(identity.getAddress(), identity.getPubKey());
@@ -136,7 +136,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 	 * @return
 	 */
 	public long getTotal() {
-		return simpleDataset.getDataCount() + account_index_in_block;
+		return kvDataset.getDataCount() + account_index_in_block;
 	}
 
 	@Override
@@ -170,7 +170,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 			// 无论是新注册未提交的，还是缓存已提交的账户实例，都认为是存在；
 			return true;
 		}
-		long latestVersion = simpleDataset.getVersion(address);
+		long latestVersion = kvDataset.getVersion(address);
 		return latestVersion > -1;
 	}
 
@@ -191,7 +191,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 			return acc.getVersion();
 		}
 
-		return simpleDataset.getVersion(address);
+		return kvDataset.getVersion(address);
 	}
 
 	/**
@@ -212,7 +212,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 			return acc;
 		}
 
-		long latestVersion = simpleDataset.getVersion(address);
+		long latestVersion = kvDataset.getVersion(address);
 		if (latestVersion < 0) {
 			// Not exist;
 			return null;
@@ -284,7 +284,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 			throw new LedgerException("The registering account already exist!",
 					TransactionState.ACCOUNT_REGISTER_CONFLICT);
 		}
-		long version = simpleDataset.getVersion(address);
+		long version = kvDataset.getVersion(address);
 		if (version >= 0) {
 			throw new LedgerException("The registering account already exist!",
 					TransactionState.ACCOUNT_REGISTER_CONFLICT);
@@ -299,7 +299,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 		latestAccountsCache.put(address, acc);
 		// 该设置用来维护注册用户的顺序
 		// keyprefix = LDG://ledgerhash/USRS/KV/SEQ/index
-		long nv = simpleDataset.setValue(keyPrefix.concat(ACCOUNTSET_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf(simpleDataset.getDataCount() + account_index_in_block))), BinaryProtocol.encode(accountId, BlockchainIdentity.class), -1);
+		long nv = kvDataset.setValue(keyPrefix.concat(ACCOUNTSET_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf(kvDataset.getDataCount() + account_index_in_block))), BinaryProtocol.encode(accountId, BlockchainIdentity.class), -1);
 
 		if (nv < 0) {
 			throw new LedgerException("Account Registering sequence already exist!");
@@ -329,7 +329,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 	 * @return
 	 */
 	private InnerSimpleAccount loadAccount(Bytes address, boolean readonly, long version) {
-		byte[] accountSnapshotBytes = simpleDataset.getValue(address, version);
+		byte[] accountSnapshotBytes = kvDataset.getValue(address, version);
 		return resolveAccount(address, accountSnapshotBytes, version, readonly);
 	}
 
@@ -394,7 +394,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 					}
 				}
 			}
-			simpleDataset.commit();
+			kvDataset.commit();
 			origin_account_index_in_block = account_index_in_block;
 		} finally {
 			updated = false;
@@ -417,7 +417,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 					acc.cancel();
 				}
 			}
-			simpleDataset.cancel();
+			kvDataset.cancel();
 			account_index_in_block = origin_account_index_in_block;
 		} finally {
 			updated = false;
@@ -430,7 +430,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 	 * @author huanghaiquan
 	 *
 	 */
-	private class InnerSimpleAccount extends ComplecatedSimpleAccount {
+	private class InnerSimpleAccount extends KvComplecatedAccount {
 		private long version;
 		private long keyIndex = 0;
 
@@ -471,7 +471,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 			AccountSnapshot accountSnapshot = new AccountHashSnapshot(headerRoot, dataRoot);
 			byte[] snapshotBytes = BinaryProtocol.encode(accountSnapshot, AccountSnapshot.class);
 
-			long newVersion = simpleDataset.setValue(this.getAddress(), snapshotBytes, version);
+			long newVersion = kvDataset.setValue(this.getAddress(), snapshotBytes, version);
 			if (newVersion < 0) {
 				// Update fail;
 				throw new LedgerException("Account updating fail! --[Address=" + this.getAddress() + "]");

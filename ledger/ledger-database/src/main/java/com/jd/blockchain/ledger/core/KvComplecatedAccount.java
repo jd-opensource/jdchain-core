@@ -3,18 +3,17 @@ package com.jd.blockchain.ledger.core;
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
+import com.jd.blockchain.ledger.AccountSnapshot;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.LedgerException;
-import com.jd.blockchain.ledger.AccountSnapshot;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.core.DatasetHelper.DataChangedListener;
 import com.jd.blockchain.ledger.core.DatasetHelper.TypeMapper;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
-
 import utils.Bytes;
 import utils.Dataset;
 import utils.Transactional;
@@ -25,7 +24,7 @@ import utils.Transactional;
  * @author huanghaiquan
  *
  */
-public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable, AccountSnapshot, Transactional {
+public class KvComplecatedAccount implements CompositeAccount, HashProvable, AccountSnapshot, Transactional {
 
 	private static final Bytes HEADER_PREFIX = Bytes.fromString("HD/");
 	private static final Bytes DATA_PREFIX = Bytes.fromString("DT/");
@@ -38,7 +37,7 @@ public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable,
 
 	private BlockchainIdentity accountID;
 
-//	private BaseDataset<Bytes, byte[]> rootDataset;
+//	private SimpleDataset<Bytes, byte[]> rootDataset;
 
 	private BaseDataset<Bytes, byte[]> headerDataset;
 
@@ -48,12 +47,13 @@ public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable,
 
 	private BaseDataset<String, TypedValue> typedData;
 
+	private long preblockHeight;
 	/**
 	 * Create a new Account with the specified identity(address and pubkey); <br>
 	 *
 	 * At the same time, a empty merkle dataset is also created for this account,
 	 * which is used for storing data of this account.<br>
-	 * 
+	 *
 	 * This new account will be writable. <br>
 	 *
 	 * @param accountID     Identity of this new account;
@@ -62,8 +62,9 @@ public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable,
 	 * @param exStorage     The base storage for existance operation;
 	 * @param verStorage    The base storage for versioning operation;
 	 */
-	public ComplecatedMerkleAccount(BlockchainIdentity accountID, CryptoSetting cryptoSetting, Bytes keyPrefix,
-			ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
+	public KvComplecatedAccount(long preblockHeight, BlockchainIdentity accountID, CryptoSetting cryptoSetting, Bytes keyPrefix,
+								ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
+		this.preblockHeight = preblockHeight;
 		// 初始化数据集；
 		initializeDatasets(null, null, cryptoSetting, keyPrefix, exStorage, verStorage, false);
 
@@ -84,16 +85,14 @@ public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable,
 	 * @param verStorage    The base storage for versioning operation;
 	 * @param readonly      Readonly about this account's dataset;
 	 */
-	public ComplecatedMerkleAccount(Bytes address, HashDigest headerRoot, HashDigest dataRoot, CryptoSetting cryptoSetting,
-			Bytes keyPrefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
-		if (headerRoot == null) {
+	public KvComplecatedAccount(long preblockHeight, Bytes address, HashDigest headerRoot, HashDigest dataRoot, CryptoSetting cryptoSetting,
+								Bytes keyPrefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
+		if (headerRoot == null && dataRoot == null) {
 			throw new IllegalArgumentException(
-					"Specified a null header-root hash for account[" + address.toBase58() + "]!");
+					"Specified a null header-root hash and data-root hash for account[" + address.toBase58() + "]!");
 		}
-		if (dataRoot == null) {
-			throw new IllegalArgumentException(
-					"Specified a null data-root hash for account[" + address.toBase58() + "]!");
-		}
+
+		this.preblockHeight = preblockHeight;
 
 		// 初始化数据集；
 		initializeDatasets(headerRoot, dataRoot, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
@@ -109,10 +108,17 @@ public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable,
 //		this.rootDataset = new MerkleHashDataset(rootHash, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
 
 		// 初始化数据修改监听器；
-		DataChangedListener<String, TypedValue> dataChangedListener = new DataChangedListener<String, TypedValue>() {
+		DataChangedListener<String, TypedValue> dataChangedListenerHeader = new DataChangedListener<String, TypedValue>() {
 			@Override
 			public void onChanged(String key, TypedValue value, long expectedVersion, long newVersion) {
-				onUpdated(key, value, expectedVersion, newVersion);
+				onUpdated(key, value, "header", expectedVersion, newVersion);
+			}
+		};
+
+		DataChangedListener<String, TypedValue> dataChangedListenerData = new DataChangedListener<String, TypedValue>() {
+			@Override
+			public void onChanged(String key, TypedValue value, long expectedVersion, long newVersion) {
+				onUpdated(key, value, "data", expectedVersion, newVersion);
 			}
 		};
 
@@ -133,15 +139,15 @@ public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable,
 		// 加载“头数据集”；
 //		HashDigest headerRoot = loadHeaderRoot();
 		Bytes headerPrefix = keyPrefix.concat(HEADER_PREFIX);
-		this.headerDataset = new MerkleHashDataset(headerRoot, cryptoSetting, headerPrefix, exStorage, verStorage,
+		this.headerDataset = new KvDataset(preblockHeight, headerRoot, DatasetType.NONE, cryptoSetting, headerPrefix, exStorage, verStorage,
 				readonly);
-		this.typedHeader = DatasetHelper.listen(DatasetHelper.map(headerDataset, valueMapper), dataChangedListener);
+		this.typedHeader = DatasetHelper.listen(DatasetHelper.map(headerDataset, valueMapper), dataChangedListenerHeader);
 
 		// 加载“主数据集”
 //		HashDigest dataRoot = loadDataRoot();
 		Bytes dataPrefix = keyPrefix.concat(DATA_PREFIX);
-		this.dataDataset = new MerkleHashDataset(dataRoot, cryptoSetting, dataPrefix, exStorage, verStorage, readonly);
-		this.typedData = DatasetHelper.listen(DatasetHelper.map(dataDataset, valueMapper), dataChangedListener);
+		this.dataDataset = new KvDataset(preblockHeight, dataRoot, DatasetType.NONE, cryptoSetting, dataPrefix, exStorage, verStorage, readonly);
+		this.typedData = DatasetHelper.listen(DatasetHelper.map(dataDataset, valueMapper), dataChangedListenerData);
 	}
 
 //	private HashDigest loadHeaderRoot() {
@@ -183,6 +189,14 @@ public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable,
 
 	public Dataset<String, TypedValue> getHeaders() {
 		return typedHeader;
+	}
+
+	public BaseDataset<Bytes, byte[]> getHeaderDataset() {
+		return headerDataset;
+	}
+
+	public BaseDataset<Bytes, byte[]> getDataDataset() {
+		return dataDataset;
 	}
 
 	@Override
@@ -242,7 +256,7 @@ public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable,
 	 * @param pubKey
 	 */
 	private void initPubKey(PubKey pubKey) {
-		long v = typedHeader.setValue(KEY_PUBKEY, TypedValue.fromPubKey(pubKey));
+		long v = typedHeader.setValue(KEY_PUBKEY, TypedValue.fromPubKey(pubKey), -1);
 		if (v < 0) {
 			throw new LedgerException("PubKey storage conflict!");
 		}
@@ -268,7 +282,7 @@ public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable,
 	 * @param value
 	 * @param newVersion
 	 */
-	protected void onUpdated(String key, TypedValue value, long expectedVersion, long newVersion) {
+	protected void onUpdated(String key, TypedValue value, String type, long expectedVersion, long newVersion) {
 	}
 
 	/**
@@ -351,7 +365,7 @@ public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable,
 
 	}
 
-//	private static class MerkleDatasetAdapter implements Dataset<String, BytesValue> {
+//	private static class SimpleDatasetAdapter implements Dataset<String, BytesValue> {
 //
 //		private static DataChangedListener NULL_LISTENER = new DataChangedListener() {
 //			@Override
@@ -368,11 +382,11 @@ public class ComplecatedMerkleAccount implements CompositeAccount, HashProvable,
 //		}
 //
 //		@SuppressWarnings("unused")
-//		public MerkleDatasetAdapter(MerkleDataSet dataset) {
+//		public SimpleDatasetAdapter(MerkleDataSet dataset) {
 //			this(dataset, NULL_LISTENER);
 //		}
 //
-//		public MerkleDatasetAdapter(MerkleDataSet dataset, DataChangedListener listener) {
+//		public SimpleDatasetAdapter(MerkleDataSet dataset, DataChangedListener listener) {
 //			this.dataset = dataset;
 //			this.changedListener = listener == null ? NULL_LISTENER : listener;
 //		}

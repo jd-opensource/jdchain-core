@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.jd.blockchain.ledger.LedgerDataStructure;
-import com.jd.blockchain.ledger.core.ComplecatedSimpleAccount;
+import com.jd.blockchain.ledger.core.KvComplecatedAccount;
 import com.jd.blockchain.ledger.core.ContractAccountSetEditorSimple;
 import com.jd.blockchain.ledger.core.DataAccountSetEditorSimple;
 import com.jd.blockchain.ledger.core.EventAccountSetEditorSimple;
@@ -616,7 +616,7 @@ public class LedgerQueryController implements BlockchainQueryService {
         } else {
             TypedKVEntry[] typedKVEntries = new TypedKVEntry[count];
             for (int i = 0; i < count; i++) {
-                String kvKey = BytesUtils.toString(((KvDataset)(((ComplecatedSimpleAccount)(dataAccount.getMklAccount())).getDataDataset())).getKeyByIndex(fromIndex + i));
+                String kvKey = BytesUtils.toString(((KvDataset)(((KvComplecatedAccount)(dataAccount.getMklAccount())).getDataDataset())).getKeyByIndex(fromIndex + i));
                 DataEntry<String, TypedValue> entry = dataAccount.getDataset().getDataEntry(kvKey);
                 typedKVEntries[i] = new TypedKVData(entry.getKey(), entry.getVersion(), entry.getValue());
             }

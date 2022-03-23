@@ -4,19 +4,19 @@ import utils.Transactional;
 
 public class LedgerEventSetEditorSimple implements LedgerEventSet, Transactional {
 
-	private MerkleEventGroupPublisherSimple systemEventPublisher;
+	private KvEventGroupPublisher systemEventPublisher;
 	private EventAccountSetEditorSimple userEventSet;
 	private boolean readonly;
 
 
-	public LedgerEventSetEditorSimple(MerkleEventGroupPublisherSimple systemEventSet, EventAccountSetEditorSimple userEventSet, boolean readonly) {
+	public LedgerEventSetEditorSimple(KvEventGroupPublisher systemEventSet, EventAccountSetEditorSimple userEventSet, boolean readonly) {
 		this.systemEventPublisher = systemEventSet;
 		this.userEventSet = userEventSet;
 		this.readonly = readonly;
 	}
 
 	@Override
-	public MerkleEventGroupPublisherSimple getSystemEventGroup() {
+	public KvEventGroupPublisher getSystemEventGroup() {
 		return systemEventPublisher;
 	}
 

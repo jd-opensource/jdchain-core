@@ -431,7 +431,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				versioningStorage, true);
 	}
 
-	private MerkleEventGroupPublisherSimple createSystemEventSetSimple(LedgerBlock block, CryptoSetting cryptoSetting) {
+	private KvEventGroupPublisher createSystemEventSetSimple(LedgerBlock block, CryptoSetting cryptoSetting) {
 		return loadSystemEventSetSimple(block.getHeight(), block.getSystemEventSetHash(), cryptoSetting, keyPrefix, exPolicyStorage,
 				versioningStorage, true);
 	}
@@ -522,7 +522,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		LedgerAdminDataSetEditorSimple adminDataset = createAdminDatasetSimple(block);
 		CryptoSetting cryptoSetting = adminDataset.getSettings().getCryptoSetting();
 
-		MerkleEventGroupPublisherSimple systemEventSet = createSystemEventSetSimple(block, cryptoSetting);
+		KvEventGroupPublisher systemEventSet = createSystemEventSetSimple(block, cryptoSetting);
 		EventAccountSetEditorSimple userEventSet = createUserEventSetSimple(block, cryptoSetting);
 		return new LedgerEventSetEditorSimple(systemEventSet, userEventSet, true);
 	}
@@ -658,7 +658,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	static LedgerEventSetEditorSimple newEventSetSimple(CryptoSetting cryptoSetting, String keyPrefix,
 											ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
 
-		MerkleEventGroupPublisherSimple systemEventSet = new MerkleEventGroupPublisherSimple(cryptoSetting,
+		KvEventGroupPublisher systemEventSet = new KvEventGroupPublisher(cryptoSetting,
 				keyPrefix + SYSTEM_EVENT_SET_PREFIX, ledgerExStorage, ledgerVerStorage);
 
 		EventAccountSetEditorSimple userEventSet = new EventAccountSetEditorSimple(cryptoSetting,
@@ -744,7 +744,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	static LedgerEventSetEditorSimple loadEventSetSimple(long preBlockHeight, LedgerDataSnapshot dataSnapshot, CryptoSetting cryptoSetting, String keyPrefix,
 											 ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, boolean readonly) {
 
-		MerkleEventGroupPublisherSimple systemEventSet = loadSystemEventSetSimple(preBlockHeight, dataSnapshot.getSystemEventSetHash(), cryptoSetting,
+		KvEventGroupPublisher systemEventSet = loadSystemEventSetSimple(preBlockHeight, dataSnapshot.getSystemEventSetHash(), cryptoSetting,
 				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
 		EventAccountSetEditorSimple userEventSet = loadUserEventSetSimple(preBlockHeight, dataSnapshot.getUserEventSetHash(), cryptoSetting,
 				keyPrefix, ledgerExStorage, ledgerVerStorage, readonly);
@@ -832,10 +832,10 @@ class LedgerRepositoryImpl implements LedgerRepository {
 				ledgerVerStorage, readonly);
 	}
 
-	static MerkleEventGroupPublisherSimple loadSystemEventSetSimple(long preBlockHeight, HashDigest systemEventSetHash, CryptoSetting cryptoSetting,
-														String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
-														boolean readonly) {
-		return new MerkleEventGroupPublisherSimple(preBlockHeight, systemEventSetHash, cryptoSetting, keyPrefix+ SYSTEM_EVENT_SET_PREFIX, ledgerExStorage,
+	static KvEventGroupPublisher loadSystemEventSetSimple(long preBlockHeight, HashDigest systemEventSetHash, CryptoSetting cryptoSetting,
+                                                          String keyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage,
+                                                          boolean readonly) {
+		return new KvEventGroupPublisher(preBlockHeight, systemEventSetHash, cryptoSetting, keyPrefix+ SYSTEM_EVENT_SET_PREFIX, ledgerExStorage,
 				ledgerVerStorage, readonly);
 	}
 
