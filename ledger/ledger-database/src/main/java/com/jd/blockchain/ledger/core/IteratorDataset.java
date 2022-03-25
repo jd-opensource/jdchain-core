@@ -8,17 +8,31 @@ import utils.Transactional;
 public interface IteratorDataset<K, V> extends Transactional, MerkleProvable<K>, Dataset<K, V> {
 
 	/**
-	 * Ascending iterator；
+	 * Ascending identity iterator；
 	 * 
 	 * @return
 	 */
-	SkippingIterator<DataEntry<K, V>> iterator();
+	SkippingIterator<DataEntry<K, V>> idIterator();
 
 	/**
-	 * Descending iterator；
+	 * Ascending kv iterator；
+	 *
+	 * @return
+	 */
+	SkippingIterator<DataEntry<K, V>> kvIterator();
+
+	/**
+	 * Descending identity iterator；
 	 * 
 	 * @return
 	 */
-	SkippingIterator<DataEntry<K, V>> iteratorDesc();
+	SkippingIterator<DataEntry<K, V>> idIteratorDesc();
+
+	/**
+	 * Descending kv iterator；
+	 *
+	 * @return
+	 */
+	SkippingIterator<DataEntry<K, V>> kvIteratorDesc();
 
 }

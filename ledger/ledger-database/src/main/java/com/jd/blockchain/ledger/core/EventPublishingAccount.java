@@ -52,28 +52,17 @@ public class EventPublishingAccount extends PermissionAccountDecorator implement
 
     @Override
     public String[] getEventNames(long fromIndex, int count) {
-        if (ledgerDataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
-            SkippingIterator<DataEntry<String, TypedValue>> iterator = ((BaseDataset) mklAccount.getDataset()).iterator();
-            iterator.skip(fromIndex);
+        SkippingIterator<DataEntry<String, TypedValue>> iterator = ((BaseDataset) mklAccount.getDataset()).kvIterator();
+        iterator.skip(fromIndex);
 
-            String[] eventNames = iterator.next(count, String.class, new Mapper<DataEntry<String, TypedValue>, String>() {
-                @Override
-                public String from(DataEntry<String, TypedValue> source) {
-                    return source.getKey();
-                }
-            });
-
-            return eventNames;
-        } else {
-            String[] eventNames = new String[count];
-
-            for (int index = 0; index < count; index++) {
-                byte[] indexKey = ((KvDataset)((KvComplecatedAccount)mklAccount).getDataDataset()).getKeyByIndex(fromIndex + index);
-                eventNames[index] = BytesUtils.toString(indexKey);
+        String[] eventNames = iterator.next(count, String.class, new Mapper<DataEntry<String, TypedValue>, String>() {
+            @Override
+            public String from(DataEntry<String, TypedValue> source) {
+                return source.getKey();
             }
+        });
 
-            return eventNames;
-        }
+        return eventNames;
     }
 
     @Override

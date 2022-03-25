@@ -305,7 +305,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 
 	@Override
 	public SkippingIterator<RolePrivileges> rolePrivilegesIterator() {
-		SkippingIterator<DataEntry<Bytes, byte[]>> entriesIterator = dataset.iterator();
+		SkippingIterator<DataEntry<Bytes, byte[]>> entriesIterator = dataset.idIterator();
 		return entriesIterator.iterateAs(new Mapper<DataEntry<Bytes,byte[]>, RolePrivileges>() {
 
 			@Override

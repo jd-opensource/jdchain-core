@@ -15,6 +15,8 @@ import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import utils.Bytes;
+import utils.DataEntry;
+import utils.Mapper;
 import utils.SkippingIterator;
 import utils.Transactional;
 import utils.io.BytesUtils;
@@ -93,23 +95,22 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 		return kvDataset.getProof(key);
 	}
 
-//	@Override
-//	public BlockchainIdentity[] getAccountIDs(int fromIndex, int count) {
-//		DataEntry<Bytes, byte[]>[] results = merkleDataset.getDataEntries(fromIndex, count);
-//		
-//		BlockchainIdentity[] ids = new BlockchainIdentity[results.length];
-//		for (int i = 0; i < results.length; i++) {
-//			InnerSimpleAccount account = createAccount(results[i].getKey(), new HashDigest(results[i].getValue()),
-//					results[i].getVersion(), true);
-//			ids[i] = account.getID();
-//		}
-//		return ids;
-//	}
 
 	@Override
 	public SkippingIterator<BlockchainIdentity> identityIterator() {
-		// not used in simple ledger database
-		return null;
+		SkippingIterator<BlockchainIdentity> idIterator = kvDataset.idIterator()
+				.iterateAs(new Mapper<DataEntry<Bytes, byte[]>, BlockchainIdentity>() {
+					@Override
+					public BlockchainIdentity from(DataEntry<Bytes, byte[]> source) {
+						if (source == null) {
+							return null;
+						}
+						BlockchainIdentity identity = BinaryProtocol.decode(source.getValue(), BlockchainIdentity.class);
+						return new BlockchainIdentityData(identity.getAddress(), identity.getPubKey());
+					}
+				});
+
+		return idIterator;
 	}
 
 	public BlockchainIdentity[] getAccounts(int fromIndex, int count) {
@@ -122,7 +123,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 		BlockchainIdentity[] userAccounts = new BlockchainIdentity[userCount];
 
 		for (int index = 0; index < userCount; index++) {
-			byte[] indexKey = kvDataset.getValue(keyPrefix.concat(ACCOUNTSET_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf((long)(fromIndex + index)))));
+			byte[] indexKey = kvDataset.getValue(ACCOUNTSET_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf((long)(fromIndex + index)))));
 
 			BlockchainIdentity identity = BinaryProtocol.decode(indexKey, BlockchainIdentity.class);
 			userAccounts[index] = new BlockchainIdentityData(identity.getAddress(), identity.getPubKey());
@@ -299,7 +300,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 		latestAccountsCache.put(address, acc);
 		// 该设置用来维护注册用户的顺序
 		// keyprefix = LDG://ledgerhash/USRS/KV/SEQ/index
-		long nv = kvDataset.setValue(keyPrefix.concat(ACCOUNTSET_SEQUENCE_KEY_PREFIX).concat(Bytes.fromString(String.valueOf(kvDataset.getDataCount() + account_index_in_block))), BinaryProtocol.encode(accountId, BlockchainIdentity.class), -1);
+		long nv = kvDataset.setValue(ACCOUNTSET_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(kvDataset.getDataCount() + account_index_in_block))), BinaryProtocol.encode(accountId, BlockchainIdentity.class), -1);
 
 		if (nv < 0) {
 			throw new LedgerException("Account Registering sequence already exist!");

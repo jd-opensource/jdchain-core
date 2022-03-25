@@ -99,7 +99,7 @@ public class MerkleAccountSetEditor implements Transactional, BaseAccountSet<Com
 	@Override
 	public SkippingIterator<BlockchainIdentity> identityIterator() {
 
-		SkippingIterator<BlockchainIdentity> idIterator = merkleDataset.iterator()
+		SkippingIterator<BlockchainIdentity> idIterator = merkleDataset.idIterator()
 				.iterateAs(new Mapper<DataEntry<Bytes, byte[]>, BlockchainIdentity>() {
 					@Override
 					public BlockchainIdentity from(DataEntry<Bytes, byte[]> source) {

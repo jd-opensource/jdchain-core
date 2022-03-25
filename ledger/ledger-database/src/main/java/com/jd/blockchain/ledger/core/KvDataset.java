@@ -5,10 +5,12 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.merkletree.KVEntry;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
 import com.jd.blockchain.storage.service.utils.VersioningKVData;
+import utils.AbstractSkippingIterator;
 import utils.Bytes;
 import utils.DataEntry;
 import utils.SkippingIterator;
@@ -282,20 +284,60 @@ public class KvDataset implements BaseDataset<Bytes, byte[]> {
 		return value;
 	}
 
-	// 根据索引编号找到存储数据对应的key,通过这个方法可以保证查询存储数据的顺序；
-	public byte[] getKeyByIndex(long index) {
+	// 根据索引编号找到存储数据的值,通过这个方法可以保证查询存储数据的顺序，维护账户或KV在集合中的顺序
+	public byte[] getValueAt(long index) {
 		Bytes key = ACCOUNTSET_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(index)));
 		long latestVersion = getVersion(key);
 		if (latestVersion != 0 ) {
 			throw new DataExistException("Expected value version not exist!");
 		}
-		Bytes dataKey = encodeDataKey(ACCOUNTSET_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(index))));
+		Bytes dataKey = encodeDataKey(key);
 		byte[] value = valueStorage.get(dataKey, 0);
 		if (value == null) {
 			throw new DataExistException("Expected value does not exist!");
 		}
 		return value;
 	}
+
+	public DataEntry<Bytes, byte[]> getIdDataEntryAt(long index) {
+		if (index < 0 || index + 1 > getDataCount()) {
+			throw new IllegalArgumentException("Index out of bound!");
+		}
+
+		byte[] bytesValue = getValueAt(index);
+
+		DataEntry<Bytes, byte[]> entry = new VersioningKVData<Bytes, byte[]>(Bytes.fromLong(index), 0, bytesValue);
+
+		return entry;
+	}
+
+	public DataEntry<Bytes, byte[]> getKvDataEntryAt(long index) {
+		if (index < 0 || index + 1 > getDataCount()) {
+			throw new IllegalArgumentException("Index out of bound!");
+		}
+
+		byte[] bytesValue = getValueAt(index);
+
+		String indexKey = BytesUtils.toString(bytesValue);
+
+		Bytes key = Bytes.fromString(indexKey);
+
+		long latestVersion = getVersion(key);
+		if (latestVersion < 0 ) {
+			throw new DataExistException("Expected value version not exist!");
+		}
+		Bytes dataKey = encodeDataKey(key);
+		byte[] value = valueStorage.get(dataKey, 0);
+		if (value == null) {
+			throw new DataExistException("Expected value does not exist!");
+		}
+
+		DataEntry<Bytes, byte[]> entry = new VersioningKVData<Bytes, byte[]>(key, latestVersion, value);
+
+		return entry;
+	}
+
+
 	/**
 	 * Return the latest version's value;
 	 *
@@ -363,23 +405,31 @@ public class KvDataset implements BaseDataset<Bytes, byte[]> {
 		byte[] bytesValue;
 
 		for (int i = 0; i < count; i++) {
-			byte[] key = getKeyByIndex(fromIndex + i);
+			byte[] key = getValueAt(fromIndex + i);
 			DataEntry<Bytes, byte[]> entry = getDataEntry(new Bytes(key));
 			values[i] = entry;
 		}
 		return values;
 	}
 
-	// not used in kv data structure type, can get by order directly
 	@Override
-	public SkippingIterator<DataEntry<Bytes, byte[]>> iterator() {
-		return null;
+	public SkippingIterator<DataEntry<Bytes, byte[]>> idIterator() {
+		return new AscIdDataInterator(getDataCount());
 	}
 
-	// not used in kv data structure type, can get by order directly
 	@Override
-	public SkippingIterator<DataEntry<Bytes, byte[]>> iteratorDesc() {
-		return null;
+	public SkippingIterator<DataEntry<Bytes, byte[]>> kvIterator() {
+		return new AscKvDataInterator(getDataCount());
+	}
+
+	@Override
+	public SkippingIterator<DataEntry<Bytes, byte[]>> idIteratorDesc() {
+		return new DescIdDataInterator(getDataCount());
+	}
+
+	@Override
+	public SkippingIterator<DataEntry<Bytes, byte[]>> kvIteratorDesc() {
+		return new DescKvDataInterator(getDataCount());
 	}
 
 	public MerkleDataProof getDataProof(Bytes key, long version) {
@@ -461,10 +511,93 @@ public class KvDataset implements BaseDataset<Bytes, byte[]> {
 		valueStorage.cancel();
 	}
 
+
 	private HashDigest computeDataSetRootHash(HashDigest originHash, BufferedKVStorage valueStorage) {
 
         ArrayList<HashDigest> merkleNodes = valueStorage.getCachedKvList();
 
 		return  new MerkleTreeSimple(this.DEFAULT_HASH_FUNCTION, originHash, merkleNodes).root();
+	}
+
+	// 迭代身份集合
+	private class AscIdDataInterator extends AbstractSkippingIterator<DataEntry<Bytes, byte[]>> {
+
+		private final long total;
+
+		@Override
+		public long getTotalCount() {
+			return total;
+		}
+
+		public AscIdDataInterator(long total) {
+			this.total = total;
+		}
+
+		@Override
+		protected DataEntry<Bytes, byte[]> get(long cursor) {
+			return getIdDataEntryAt(cursor);
+		}
+
+	}
+
+	// 迭代KV集合
+	private class AscKvDataInterator extends AbstractSkippingIterator<DataEntry<Bytes, byte[]>> {
+
+		private final long total;
+
+		@Override
+		public long getTotalCount() {
+			return total;
+		}
+
+		public AscKvDataInterator(long total) {
+			this.total = total;
+		}
+
+		@Override
+		protected DataEntry<Bytes, byte[]> get(long cursor) {
+			return getKvDataEntryAt(cursor);
+		}
+
+	}
+
+	private class DescIdDataInterator extends AbstractSkippingIterator<DataEntry<Bytes, byte[]>> {
+
+		private final long total;
+
+		public DescIdDataInterator(long total) {
+			this.total = total;
+		}
+
+		@Override
+		public long getTotalCount() {
+			return total;
+		}
+
+		@Override
+		protected DataEntry<Bytes, byte[]> get(long cursor) {
+			// 倒序的迭代器从后往前返回；
+			return getIdDataEntryAt(total - cursor - 1);
+		}
+	}
+
+	private class DescKvDataInterator extends AbstractSkippingIterator<DataEntry<Bytes, byte[]>> {
+
+		private final long total;
+
+		public DescKvDataInterator(long total) {
+			this.total = total;
+		}
+
+		@Override
+		public long getTotalCount() {
+			return total;
+		}
+
+		@Override
+		protected DataEntry<Bytes, byte[]> get(long cursor) {
+			// 倒序的迭代器从后往前返回；
+			return getKvDataEntryAt(total - cursor - 1);
+		}
 	}
 }

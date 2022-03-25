@@ -101,7 +101,7 @@ public class MerkleEventGroupPublisher implements EventGroup, EventPublisher, Tr
 
     @Override
     public String[] getEventNames(long fromIndex, int count) {
-        SkippingIterator<DataEntry<Bytes, byte[]>> iterator = events.iterator();
+        SkippingIterator<DataEntry<Bytes, byte[]>> iterator = events.idIterator();
         iterator.skip(fromIndex);
         
         String[] events = iterator.next(count, String.class, new Mapper<DataEntry<Bytes,byte[]>, String>() {

@@ -480,12 +480,23 @@ public class MerkleSequenceDataset implements BaseDataset<Bytes, byte[]> {
 	}
 
 	@Override
-	public SkippingIterator<DataEntry<Bytes, byte[]>> iterator() {
+	public SkippingIterator<DataEntry<Bytes, byte[]>> idIterator() {
 		return new AscDataInterator(getDataCount());
 	}
 
 	@Override
-	public SkippingIterator<DataEntry<Bytes, byte[]>> iteratorDesc() {
+	public SkippingIterator<DataEntry<Bytes, byte[]>> kvIterator() {
+		return new AscDataInterator(getDataCount());
+	}
+
+
+	@Override
+	public SkippingIterator<DataEntry<Bytes, byte[]>> idIteratorDesc() {
+		return new DescDataInterator(getDataCount());
+	}
+
+	@Override
+	public SkippingIterator<DataEntry<Bytes, byte[]>> kvIteratorDesc() {
 		return new DescDataInterator(getDataCount());
 	}
 

@@ -209,13 +209,23 @@ public class DatasetHelper {
 		}
 		
 		@Override
-		public SkippingIterator<DataEntry<K, V>> iterator() {
-			return dataset.iterator();
+		public SkippingIterator<DataEntry<K, V>> idIterator() {
+			return dataset.idIterator();
 		}
-		
+
 		@Override
-		public SkippingIterator<DataEntry<K, V>> iteratorDesc() {
-			return dataset.iteratorDesc();
+		public SkippingIterator<DataEntry<K, V>> kvIterator() {
+			return dataset.kvIterator();
+		}
+
+		@Override
+		public SkippingIterator<DataEntry<K, V>> idIteratorDesc() {
+			return dataset.idIteratorDesc();
+		}
+
+		@Override
+		public SkippingIterator<DataEntry<K, V>> kvIteratorDesc() {
+			return dataset.kvIteratorDesc();
 		}
 
 		@Override
@@ -370,8 +380,14 @@ public class DatasetHelper {
 		}
 
 		@Override
-		public SkippingIterator<DataEntry<K2, V2>> iterator() {
-			return dataset.iterator().iterateAs(new Mapper<DataEntry<K1,V1>, DataEntry<K2, V2>>() {
+		public SkippingIterator<DataEntry<K2, V2>> idIterator() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public SkippingIterator<DataEntry<K2, V2>> kvIterator() {
+			return dataset.kvIterator().iterateAs(new Mapper<DataEntry<K1,V1>, DataEntry<K2, V2>>() {
 				@Override
 				public DataEntry<K2, V2> from(DataEntry<K1, V1> source) {
 					if (source == null) {
@@ -385,12 +401,16 @@ public class DatasetHelper {
 		}
 
 		@Override
-		public SkippingIterator<DataEntry<K2, V2>> iteratorDesc() {
+		public SkippingIterator<DataEntry<K2, V2>> idIteratorDesc() {
 			// TODO Auto-generated method stub
 			return null;
 		}
 
-
+		@Override
+		public SkippingIterator<DataEntry<K2, V2>> kvIteratorDesc() {
+			// TODO Auto-generated method stub
+			return null;
+		}
 	}
 
 	private static class KeyValueEntry<K, V> implements DataEntry<K, V> {

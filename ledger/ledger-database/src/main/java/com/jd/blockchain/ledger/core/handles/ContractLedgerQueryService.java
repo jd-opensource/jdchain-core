@@ -199,7 +199,7 @@ public class ContractLedgerQueryService implements LedgerQueryService {
         DataAccount dataAccount = dataAccountSet.getAccount(Bytes.fromBase58(address));
 
         QueryArgs queryArgs = QueryUtils.calFromIndexAndCount(fromIndex, count, (int) dataAccount.getDataset().getDataCount());
-        SkippingIterator<DataEntry<String, TypedValue>> iterator = ((IteratorDataset)dataAccount.getDataset()).iterator();
+        SkippingIterator<DataEntry<String, TypedValue>> iterator = ((IteratorDataset)dataAccount.getDataset()).kvIterator();
         iterator.skip(queryArgs.getFrom());
 
         TypedKVEntry[] typedKVEntries = iterator.next(queryArgs.getCount(), TypedKVEntry.class, entry -> new TypedKVData(entry.getKey(), entry.getVersion(), entry.getValue()));
