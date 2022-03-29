@@ -53,7 +53,7 @@ public abstract class AbstractContractCode implements ContractCode {
         try {
             try {
                 // 生成合约类对象
-                contractInstance = getContractInstance();
+                contractInstance = getContractInstance(eventContext);
                 // 开启安全管理器
                 enableSecurityManager();
 
@@ -127,7 +127,7 @@ public abstract class AbstractContractCode implements ContractCode {
         }
     }
 
-    protected abstract Object getContractInstance();
+    protected abstract Object getContractInstance(ContractEventContext eventContext);
 
     protected abstract void beforeEvent(Object contractInstance, ContractEventContext eventContext);
 

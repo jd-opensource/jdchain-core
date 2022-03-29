@@ -743,6 +743,7 @@ class TxContractCall implements Runnable {
                         BytesValue content = response.getOperationResults()[i].getResult();
                         switch (content.getType()) {
                             case TEXT:
+                            case JSON:
                                 System.out.println("return string: " + content.getBytes().toUTF8String());
                                 break;
                             case INT64:

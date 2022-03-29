@@ -32,7 +32,7 @@ public class InstantiatedContractCode<T> extends AbstractContractCode {
     }
 
     @Override
-    protected T getContractInstance() {
+    protected T getContractInstance(ContractEventContext eventContext) {
         return instance;
     }
 
