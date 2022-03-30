@@ -19,7 +19,7 @@ import utils.Mapper;
 import utils.SkippingIterator;
 import utils.Transactional;
 
-public class MerkleEventGroupPublisher implements EventGroup, EventPublisher, Transactional {
+public class EventGroupPublisher implements EventGroup, EventPublisher, Transactional {
 
     private BaseDataset<Bytes, byte[]> events;
 
@@ -33,7 +33,7 @@ public class MerkleEventGroupPublisher implements EventGroup, EventPublisher, Tr
     private static final Bytes SYSTEMEVENT_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
     // end: used only by kv ledger structure
 
-    public MerkleEventGroupPublisher(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure) {
+    public EventGroupPublisher(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure) {
         ledgerDataStructure = dataStructure;
 
         if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
@@ -43,8 +43,8 @@ public class MerkleEventGroupPublisher implements EventGroup, EventPublisher, Tr
         }
     }
 
-    public MerkleEventGroupPublisher(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
-                                     ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure, boolean readonly) {
+    public EventGroupPublisher(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
+                               ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure, boolean readonly) {
         ledgerDataStructure = dataStructure;
 
         if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {

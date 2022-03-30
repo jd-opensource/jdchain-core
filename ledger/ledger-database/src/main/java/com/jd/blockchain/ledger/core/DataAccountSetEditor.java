@@ -30,7 +30,7 @@ public class DataAccountSetEditor implements Transactional, DataAccountSet {
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
 		} else {
-			accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+			accountSet = new KvAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
 		}
 	}
 
@@ -41,7 +41,7 @@ public class DataAccountSetEditor implements Transactional, DataAccountSet {
 			accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
 					readonly, accessPolicy);
 		} else {
-			accountSet = new SimpleAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
+			accountSet = new KvAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
 					readonly, accessPolicy);
 		}
 	}

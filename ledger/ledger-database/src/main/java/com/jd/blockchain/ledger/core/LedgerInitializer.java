@@ -43,9 +43,9 @@ public class LedgerInitializer {
 
 	private static final FullPermissionedSecurityManager FULL_PERMISSION_SECURITY_MANAGER = new FullPermissionedSecurityManager();
 
-	private static final LedgerQuery EMPTY_LEDGER = new EmptyLedgerQuery();
+	private static final LedgerQuery EMPTY_LEDGER_MERKLE = new MerkleEmptyLedgerQuery();
 
-	private static final LedgerQuery EMPTY_LEDGER_SIMPLE = new EmptyLedgerQuerySimple();
+	private static final LedgerQuery EMPTY_LEDGER_KV = new KvEmptyLedgerQuery();
 
 	private static final OperationHandleRegisteration DEFAULT_OP_HANDLE_REG = new DefaultOperationHandleRegisteration();
 
@@ -229,10 +229,10 @@ public class LedgerInitializer {
 
 		if (initSetting.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
 			txProcessor = new TransactionBatchProcessor(FULL_PERMISSION_SECURITY_MANAGER,
-				ledgerEditor, EMPTY_LEDGER, DEFAULT_OP_HANDLE_REG);
+				ledgerEditor, EMPTY_LEDGER_MERKLE, DEFAULT_OP_HANDLE_REG);
 		} else {
 			txProcessor = new TransactionBatchProcessor(FULL_PERMISSION_SECURITY_MANAGER,
-					ledgerEditor, EMPTY_LEDGER_SIMPLE, DEFAULT_OP_HANDLE_REG);
+					ledgerEditor, EMPTY_LEDGER_KV, DEFAULT_OP_HANDLE_REG);
 		}
 		LedgerEditor.TIMESTAMP_HOLDER.set(initSetting.getCreatedTime());
 		TransactionResponse response = txProcessor.schedule(txRequest);

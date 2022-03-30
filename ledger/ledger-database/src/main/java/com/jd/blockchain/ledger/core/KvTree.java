@@ -12,7 +12,7 @@ import java.util.List;
  * @Date: 2021/9/6 3:26 PM
  * Version 1.0
  */
-public class MerkleTreeSimple {
+public class KvTree {
     /**
      * Zero
      */
@@ -33,7 +33,7 @@ public class MerkleTreeSimple {
     private HashFunction hashFunction;
 
 
-    public MerkleTreeSimple(HashFunction hashFunction, HashDigest preRootHash, List<HashDigest> merkleNodes) {
+    public KvTree(HashFunction hashFunction, HashDigest preRootHash, List<HashDigest> merkleNodes) {
         this.hashFunction = hashFunction;
         this.preRootHash = preRootHash;
         this.merkleNodes = merkleNodes;

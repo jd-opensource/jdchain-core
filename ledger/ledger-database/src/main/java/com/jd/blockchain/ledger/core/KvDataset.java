@@ -5,7 +5,6 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.HashFunction;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.MerkleProof;
-import com.jd.blockchain.ledger.merkletree.KVEntry;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
@@ -518,7 +517,7 @@ public class KvDataset implements BaseDataset<Bytes, byte[]> {
 
         ArrayList<HashDigest> merkleNodes = valueStorage.getCachedKvList();
 
-		return  new MerkleTreeSimple(this.DEFAULT_HASH_FUNCTION, originHash, merkleNodes).root();
+		return  new KvTree(this.DEFAULT_HASH_FUNCTION, originHash, merkleNodes).root();
 	}
 
 	// 迭代身份集合

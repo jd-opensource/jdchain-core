@@ -23,7 +23,7 @@ import utils.io.BytesUtils;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SimpleAccountSetEditor implements BaseAccountSetEditor{
+public class KvAccountSetEditor implements BaseAccountSetEditor{
 
 	private final Bytes keyPrefix;
 
@@ -66,14 +66,14 @@ public class SimpleAccountSetEditor implements BaseAccountSetEditor{
 
 	private static final Bytes ACCOUNTSET_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
 
-	public SimpleAccountSetEditor(CryptoSetting cryptoSetting, Bytes keyPrefix, ExPolicyKVStorage exStorage,
-                                  VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
+	public KvAccountSetEditor(CryptoSetting cryptoSetting, Bytes keyPrefix, ExPolicyKVStorage exStorage,
+							  VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
 		this(-1, null, cryptoSetting, keyPrefix, exStorage, verStorage, false, accessPolicy);
 	}
 
-	public SimpleAccountSetEditor(long preBlockHeight, HashDigest rootHash, CryptoSetting cryptoSetting, Bytes keyPrefix,
-                                  ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
-                                  AccountAccessPolicy accessPolicy) {
+	public KvAccountSetEditor(long preBlockHeight, HashDigest rootHash, CryptoSetting cryptoSetting, Bytes keyPrefix,
+							  ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
+							  AccountAccessPolicy accessPolicy) {
 		this.keyPrefix = keyPrefix;
 		this.cryptoSetting = cryptoSetting;
 		this.baseExStorage = exStorage;
@@ -112,24 +112,6 @@ public class SimpleAccountSetEditor implements BaseAccountSetEditor{
 
 		return idIterator;
 	}
-
-//	public BlockchainIdentity[] getAccounts(int fromIndex, int count) {
-//
-//		if (count > LedgerConsts.MAX_LIST_COUNT) {
-//			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
-//		}
-//
-//		int userCount = (int) Math.min(getTotal(), (long) count);
-//		BlockchainIdentity[] userAccounts = new BlockchainIdentity[userCount];
-//
-//		for (int index = 0; index < userCount; index++) {
-//			byte[] indexKey = kvDataset.getValue(ACCOUNTSET_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf((long)(fromIndex + index)))));
-//
-//			BlockchainIdentity identity = BinaryProtocol.decode(indexKey, BlockchainIdentity.class);
-//			userAccounts[index] = new BlockchainIdentityData(identity.getAddress(), identity.getPubKey());
-//		}
-//		return userAccounts;
-//	}
 
 	/**
 	 * 返回账户的总数量；

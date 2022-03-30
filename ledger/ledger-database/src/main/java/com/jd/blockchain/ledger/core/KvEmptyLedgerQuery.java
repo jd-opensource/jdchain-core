@@ -6,7 +6,7 @@ import com.jd.blockchain.ledger.LedgerAdminSettings;
 import com.jd.blockchain.ledger.LedgerBlock;
 import com.jd.blockchain.ledger.LedgerDataStructure;
 
-class EmptyLedgerQuery implements LedgerQuery {
+class KvEmptyLedgerQuery implements LedgerQuery {
 
 		private LedgerDataSet dataset = EmptyLedgerDataSet.INSTANCE;
 
@@ -128,7 +128,7 @@ class EmptyLedgerQuery implements LedgerQuery {
 
 		@Override
 	    public LedgerDataStructure getLedgerDataStructure() {
-			return LedgerDataStructure.MERKLE_TREE;
+			return LedgerDataStructure.KV;
 		}
 
 	}

@@ -30,7 +30,7 @@ public class UserAccountSetEditor implements Transactional, UserAccountSet {
 			accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(keyPrefix), simpleStorage, versioningStorage,
 				accessPolicy);
 		} else {
-			accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(keyPrefix), simpleStorage, versioningStorage,
+			accountSet = new KvAccountSetEditor(cryptoSetting, Bytes.fromString(keyPrefix), simpleStorage, versioningStorage,
 					accessPolicy);
 		}
 	}
@@ -42,7 +42,7 @@ public class UserAccountSetEditor implements Transactional, UserAccountSet {
 			accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(keyPrefix), exStorage,
 					verStorage, readonly, accessPolicy);
 		} else {
-			accountSet = new SimpleAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(keyPrefix), exStorage,
+			accountSet = new KvAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(keyPrefix), exStorage,
 				verStorage, readonly, accessPolicy);
 		}
 	}

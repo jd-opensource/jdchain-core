@@ -6,7 +6,6 @@ import com.jd.blockchain.ledger.DataVersionConflictException;
 import com.jd.blockchain.ledger.EventInfo;
 import com.jd.blockchain.ledger.EventPublishOperation;
 
-import com.jd.blockchain.ledger.LedgerDataStructure;
 import utils.Bytes;
 
 /**
@@ -50,7 +49,7 @@ public class EventManager implements EventOperationHandle {
     public long publish(String eventName, BytesValue content, long latestSequence) {
         long v = 0;
 
-        v = ((MerkleEventGroupPublisher)(txCtx.getEventSet().getSystemEventGroup())).publish(new EventInfo(eventName, latestSequence+1, content, request.getTransactionHash(), txCtx.getBlockHeight()));
+        v = ((EventGroupPublisher)(txCtx.getEventSet().getSystemEventGroup())).publish(new EventInfo(eventName, latestSequence+1, content, request.getTransactionHash(), txCtx.getBlockHeight()));
 
         if (v < 0) {
             throw new DataVersionConflictException();

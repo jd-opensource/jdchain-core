@@ -533,7 +533,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
             transactions.add(currTransactionSet.getTransactions(lastHeightTxTotalNums + i, 1)[0].getRequest().getTransactionHash());
         }
 
-        HashDigest computeTxSetRootHash = new MerkleTreeSimple(Crypto.getHashFunction(ledgerRepo.getAdminInfo().getSettings().getCryptoSetting().getHashAlgorithm()), lastTransactionSet.getRootHash(), transactions).root();
+        HashDigest computeTxSetRootHash = new KvTree(Crypto.getHashFunction(ledgerRepo.getAdminInfo().getSettings().getCryptoSetting().getHashAlgorithm()), lastTransactionSet.getRootHash(), transactions).root();
 
 
         return computeTxSetRootHash.toBase58().equals(currTransactionSet.getRootHash().toBase58());
