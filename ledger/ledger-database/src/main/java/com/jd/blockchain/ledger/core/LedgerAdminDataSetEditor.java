@@ -149,7 +149,7 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 		// 基于原配置初始化参与者列表；
 		String partiPrefix = keyPrefix + LEDGER_PARTICIPANT_PREFIX;
 		this.participants = new ParticipantDataset(previousSettings.getCryptoSetting(), partiPrefix, exPolicyStorage,
-				versioningStorage);
+				versioningStorage, initSetting.getLedgerDataStructure());
 
 		for (ParticipantNode p : parties) {
 			this.participants.addConsensusParticipant(p);
@@ -157,19 +157,19 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 
 		String rolePrivilegePrefix = keyPrefix + ROLE_PRIVILEGE_PREFIX;
 		this.rolePrivileges = new RolePrivilegeDataset(this.settings.getCryptoSetting(), rolePrivilegePrefix,
-				exPolicyStorage, versioningStorage);
+				exPolicyStorage, versioningStorage, initSetting.getLedgerDataStructure());
 
 		String userRolePrefix = keyPrefix + USER_ROLE_PREFIX;
 		this.userRoles = new UserRoleDatasetEditor(this.settings.getCryptoSetting(), userRolePrefix, exPolicyStorage,
-				versioningStorage);
+				versioningStorage, initSetting.getLedgerDataStructure());
 
 		// 初始化其它属性；
 		this.storage = exPolicyStorage;
 		this.readonly = false;
 	}
 
-	public LedgerAdminDataSetEditor(HashDigest adminAccountHash, String keyPrefix, ExPolicyKVStorage kvStorage,
-			VersioningKVStorage versioningKVStorage, boolean readonly) {
+	public LedgerAdminDataSetEditor(long preBlockHeight, HashDigest adminAccountHash, String keyPrefix, ExPolicyKVStorage kvStorage,
+			VersioningKVStorage versioningKVStorage, LedgerDataStructure dataStructure, boolean readonly) {
 		this.metaPrefix = Bytes.fromString(keyPrefix + LEDGER_META_PREFIX);
 		this.settingPrefix = Bytes.fromString(keyPrefix + LEDGER_SETTING_PREFIX);
 		this.storage = kvStorage;
@@ -183,16 +183,16 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 		this.adminDataHash = adminAccountHash;
 
 		String partiPrefix = keyPrefix + LEDGER_PARTICIPANT_PREFIX;
-		this.participants = new ParticipantDataset(metadata.getParticipantsHash(), previousSettings.getCryptoSetting(),
-				partiPrefix, kvStorage, versioningKVStorage, readonly);
+		this.participants = new ParticipantDataset(preBlockHeight, metadata.getParticipantsHash(), previousSettings.getCryptoSetting(),
+				partiPrefix, kvStorage, versioningKVStorage, dataStructure, readonly);
 
 		String rolePrivilegePrefix = keyPrefix + ROLE_PRIVILEGE_PREFIX;
-		this.rolePrivileges = new RolePrivilegeDataset(metadata.getRolePrivilegesHash(),
-				previousSettings.getCryptoSetting(), rolePrivilegePrefix, kvStorage, versioningKVStorage, readonly);
+		this.rolePrivileges = new RolePrivilegeDataset(preBlockHeight, metadata.getRolePrivilegesHash(),
+				previousSettings.getCryptoSetting(), rolePrivilegePrefix, kvStorage, versioningKVStorage, dataStructure, readonly);
 
 		String userRolePrefix = keyPrefix + USER_ROLE_PREFIX;
-		this.userRoles = new UserRoleDatasetEditor(metadata.getUserRolesHash(), previousSettings.getCryptoSetting(),
-				userRolePrefix, kvStorage, versioningKVStorage, readonly);
+		this.userRoles = new UserRoleDatasetEditor(preBlockHeight, metadata.getUserRolesHash(), previousSettings.getCryptoSetting(),
+				userRolePrefix, kvStorage, versioningKVStorage, dataStructure, readonly);
 	}
 
 	private LedgerSettings loadAndVerifySettings(HashDigest settingsHash) {

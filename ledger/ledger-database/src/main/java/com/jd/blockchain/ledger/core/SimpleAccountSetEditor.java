@@ -18,13 +18,12 @@ import utils.Bytes;
 import utils.DataEntry;
 import utils.Mapper;
 import utils.SkippingIterator;
-import utils.Transactional;
 import utils.io.BytesUtils;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<CompositeAccount> {
+public class SimpleAccountSetEditor implements BaseAccountSetEditor{
 
 	private final Bytes keyPrefix;
 
@@ -60,6 +59,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 
 	private AccountAccessPolicy accessPolicy;
 
+	@Override
 	public boolean isReadonly() {
 		return kvDataset.isReadonly();
 	}
@@ -113,23 +113,23 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 		return idIterator;
 	}
 
-	public BlockchainIdentity[] getAccounts(int fromIndex, int count) {
-
-		if (count > LedgerConsts.MAX_LIST_COUNT) {
-			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
-		}
-
-		int userCount = (int) Math.min(getTotal(), (long) count);
-		BlockchainIdentity[] userAccounts = new BlockchainIdentity[userCount];
-
-		for (int index = 0; index < userCount; index++) {
-			byte[] indexKey = kvDataset.getValue(ACCOUNTSET_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf((long)(fromIndex + index)))));
-
-			BlockchainIdentity identity = BinaryProtocol.decode(indexKey, BlockchainIdentity.class);
-			userAccounts[index] = new BlockchainIdentityData(identity.getAddress(), identity.getPubKey());
-		}
-		return userAccounts;
-	}
+//	public BlockchainIdentity[] getAccounts(int fromIndex, int count) {
+//
+//		if (count > LedgerConsts.MAX_LIST_COUNT) {
+//			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
+//		}
+//
+//		int userCount = (int) Math.min(getTotal(), (long) count);
+//		BlockchainIdentity[] userAccounts = new BlockchainIdentity[userCount];
+//
+//		for (int index = 0; index < userCount; index++) {
+//			byte[] indexKey = kvDataset.getValue(ACCOUNTSET_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf((long)(fromIndex + index)))));
+//
+//			BlockchainIdentity identity = BinaryProtocol.decode(indexKey, BlockchainIdentity.class);
+//			userAccounts[index] = new BlockchainIdentityData(identity.getAddress(), identity.getPubKey());
+//		}
+//		return userAccounts;
+//	}
 
 	/**
 	 * 返回账户的总数量；
@@ -185,6 +185,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 	 * @param address
 	 * @return
 	 */
+	@Override
 	public long getVersion(Bytes address) {
 		InnerSimpleAccount acc = latestAccountsCache.get(address);
 		if (acc != null) {
@@ -251,6 +252,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 		return acc;
 	}
 
+	@Override
 	public CompositeAccount register(Bytes address, PubKey pubKey) {
 		return register(new BlockchainIdentityData(address, pubKey));
 	}
@@ -513,6 +515,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 
 	}
 
+	@Override
 	public boolean isAddNew() {
 		return account_index_in_block != 0;
 	}
@@ -521,6 +524,7 @@ public class SimpleAccountSetEditor implements Transactional, BaseAccountSet<Com
 		return accountsKvNumCache;
 	}
 
+	@Override
 	public void clearCachedIndex() {
 		account_index_in_block = 0;
 	}

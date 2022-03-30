@@ -10,6 +10,7 @@ import java.util.Random;
 
 import com.jd.blockchain.ledger.ConsensusReconfigOperation;
 import com.jd.blockchain.ledger.HashAlgorithmUpdateOperation;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import org.junit.Test;
 
 import com.jd.binaryproto.DataContractRegistry;
@@ -71,7 +72,7 @@ public class TransactionSetTest {
 		MemoryKVStorage testStorage = new MemoryKVStorage();
 
 		// Create a new TransactionSet, it's empty;
-		TransactionSetEditor txset = new TransactionSetEditor(cryptoSetting, keyPrefix, testStorage, testStorage);
+		TransactionSetEditor txset = new TransactionSetEditor(cryptoSetting, keyPrefix, testStorage, testStorage, LedgerDataStructure.MERKLE_TREE);
 		assertTrue(txset.isUpdated());
 		assertFalse(txset.isReadonly());
 		assertNull(txset.getRootHash());
@@ -96,8 +97,8 @@ public class TransactionSetTest {
 		assertEquals(ledgerHash, txReq.getTransactionContent().getLedgerHash());
 
 		// Reload ;
-		TransactionSetEditor reloadTxset = new TransactionSetEditor(txsetRootHash, cryptoSetting, keyPrefix, testStorage,
-				testStorage, true);
+		TransactionSetEditor reloadTxset = new TransactionSetEditor(-1,  txsetRootHash, cryptoSetting, keyPrefix, testStorage,
+				testStorage, LedgerDataStructure.MERKLE_TREE, true);
 
 		assertEquals(1, reloadTxset.getTotalCount());
 
@@ -117,7 +118,7 @@ public class TransactionSetTest {
 		CryptoSetting cryptoSetting = LedgerTestUtils.createDefaultCryptoSetting();
 		MemoryKVStorage testStorage = new MemoryKVStorage();
 		// Create a new TransactionSet;
-		TransactionSetEditor txset = new TransactionSetEditor(cryptoSetting, keyPrefix, testStorage, testStorage);
+		TransactionSetEditor txset = new TransactionSetEditor(cryptoSetting, keyPrefix, testStorage, testStorage, LedgerDataStructure.MERKLE_TREE);
 
 		HashDigest ledgerHash = LedgerTestUtils.generateRandomHash();
 		long blockHeight = 8922L;
@@ -144,8 +145,8 @@ public class TransactionSetTest {
 
 		// 重新加载交易集合；
 		HashDigest txsetRootHash = txset.getRootHash();
-		TransactionSetEditor reloadTxset = new TransactionSetEditor(txsetRootHash, cryptoSetting, keyPrefix, testStorage,
-				testStorage, true);
+		TransactionSetEditor reloadTxset = new TransactionSetEditor(-1, txsetRootHash, cryptoSetting, keyPrefix, testStorage,
+				testStorage, LedgerDataStructure.MERKLE_TREE, true);
 
 		// 验证重新加载之后的交易集合中记录的交易顺序；
 		assertEquals(txCount0, reloadTxset.getTotalCount());
@@ -162,7 +163,7 @@ public class TransactionSetTest {
 		buildRequestAndResult(ledgerHash, blockHeight, cryptoSetting, txCount1, txRequests_1, txResults_1);
 
 		// add tx to trasaction set;
-		TransactionSetEditor newTxset = new TransactionSetEditor(txsetRootHash, cryptoSetting, keyPrefix, testStorage, testStorage,
+		TransactionSetEditor newTxset = new TransactionSetEditor(-1, txsetRootHash, cryptoSetting, keyPrefix, testStorage, testStorage, LedgerDataStructure.MERKLE_TREE,
 				false);
 		for (int i = 0; i < txCount1; i++) {
 			newTxset.addTransaction(txRequests_1[i], txResults_1[i]);
@@ -299,7 +300,7 @@ public class TransactionSetTest {
 		BufferedKVStorage bufferStorage = new BufferedKVStorage(null, testStorage, testStorage, false);
 
 		// Create a new TransactionSet, it's empty;
-		TransactionSetEditor txset = new TransactionSetEditor(defCryptoSetting, keyPrefix, bufferStorage, bufferStorage);
+		TransactionSetEditor txset = new TransactionSetEditor(defCryptoSetting, keyPrefix, bufferStorage, bufferStorage, LedgerDataStructure.MERKLE_TREE);
 		assertTrue(txset.isUpdated());
 		assertFalse(txset.isReadonly());
 		assertNull(txset.getRootHash());
@@ -345,7 +346,7 @@ public class TransactionSetTest {
 
 		HashDigest txsetRootHash = txset.getRootHash();
 
-		txset = new TransactionSetEditor(txsetRootHash, defCryptoSetting, keyPrefix, testStorage, testStorage, false);
+		txset = new TransactionSetEditor(-1, txsetRootHash, defCryptoSetting, keyPrefix, testStorage, testStorage, LedgerDataStructure.MERKLE_TREE, false);
 		tx_query = txset.getTransaction(transactionRequest1.getTransactionHash());
 		tx_state = txset.getState(transactionRequest1.getTransactionHash());
 

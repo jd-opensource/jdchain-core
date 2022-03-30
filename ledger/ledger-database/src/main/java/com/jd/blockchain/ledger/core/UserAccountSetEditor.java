@@ -4,6 +4,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.AccountState;
@@ -21,19 +22,29 @@ import utils.Transactional;
  */
 public class UserAccountSetEditor implements Transactional, UserAccountSet {
 
-	private MerkleAccountSetEditor accountSet;
+	private BaseAccountSetEditor accountSet;
 
 	public UserAccountSetEditor(CryptoSetting cryptoSetting, String keyPrefix, ExPolicyKVStorage simpleStorage,
-			VersioningKVStorage versioningStorage, AccountAccessPolicy accessPolicy) {
-		accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(keyPrefix), simpleStorage, versioningStorage,
+								VersioningKVStorage versioningStorage, AccountAccessPolicy accessPolicy, LedgerDataStructure dataStructure) {
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(keyPrefix), simpleStorage, versioningStorage,
 				accessPolicy);
+		} else {
+			accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(keyPrefix), simpleStorage, versioningStorage,
+					accessPolicy);
+		}
 	}
 
-	public UserAccountSetEditor(HashDigest dataRootHash, CryptoSetting cryptoSetting, String keyPrefix,
-			ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
-			AccountAccessPolicy accessPolicy) {
-		accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(keyPrefix), exStorage,
+	public UserAccountSetEditor(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String keyPrefix,
+									  ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly, LedgerDataStructure dataStructure,
+									  AccountAccessPolicy accessPolicy) {
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(keyPrefix), exStorage,
+					verStorage, readonly, accessPolicy);
+		} else {
+			accountSet = new SimpleAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(keyPrefix), exStorage,
 				verStorage, readonly, accessPolicy);
+		}
 	}
 	
 	@Override
@@ -140,5 +151,15 @@ public class UserAccountSetEditor implements Transactional, UserAccountSet {
 
 	public void setCertificate(Bytes address, String certificate) {
 		getAccount(address).setCertificate(certificate);
+	}
+
+	// used only by kv type ledger structure, if add new account
+	public boolean isAddNew() {
+		return accountSet.isAddNew();
+	}
+
+	// used only by kv type ledger structure, clear accountset dataset cache index
+	public void clearCachedIndex() {
+		accountSet.clearCachedIndex();
 	}
 }

@@ -1,7 +1,6 @@
 package com.jd.blockchain.ledger.core.handles;
 
 import com.jd.blockchain.ledger.ConsensusReconfigOperation;
-import com.jd.blockchain.ledger.ConsensusSettingsUpdateOperation;
 import com.jd.blockchain.ledger.core.EventManager;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;

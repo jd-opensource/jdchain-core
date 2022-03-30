@@ -5,7 +5,6 @@ import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.LedgerAdminDataSet;
 import com.jd.blockchain.ledger.core.LedgerAdminDataSetEditor;
-import com.jd.blockchain.ledger.core.LedgerAdminDataSetEditorSimple;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.MultiIDsPolicy;
@@ -36,11 +35,8 @@ public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperati
         LedgerAdminDataSet adminAccountDataSet = transactionContext.getDataset().getAdminDataset();
 
         ParticipantNode[] participants = null;
-        if (previousBlockDataset.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-            participants = ((LedgerAdminDataSetEditor)adminAccountDataSet).getParticipants();
-        } else {
-            participants = ((LedgerAdminDataSetEditorSimple)adminAccountDataSet).getParticipants();
-        }
+
+        participants = ((LedgerAdminDataSetEditor)adminAccountDataSet).getParticipants();
 
         ParticipantNode participantNode = null;
 
@@ -56,11 +52,7 @@ public class ParticipantStateUpdateOperationHandle extends AbstractLedgerOperati
         }
 
         // 激活新参与方的共识状态
-        if (previousBlockDataset.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-            ((LedgerAdminDataSetEditor)adminAccountDataSet).updateParticipant(participantNode);
-        } else {
-            ((LedgerAdminDataSetEditorSimple)adminAccountDataSet).updateParticipant(participantNode);
-        }
+        ((LedgerAdminDataSetEditor)adminAccountDataSet).updateParticipant(participantNode);
 
     }
 

@@ -8,6 +8,7 @@ import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.EventInfo;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
@@ -22,13 +23,35 @@ public class MerkleEventGroupPublisher implements EventGroup, EventPublisher, Tr
 
     private BaseDataset<Bytes, byte[]> events;
 
-    public MerkleEventGroupPublisher(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
-        events = new MerkleHashDataset(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage);
+    private LedgerDataStructure ledgerDataStructure;
+
+    // start: used only by kv ledger structure
+    private volatile long event_index_in_block = 0;
+
+    private volatile long origin_event_index_in_block  = 0;
+
+    private static final Bytes SYSTEMEVENT_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
+    // end: used only by kv ledger structure
+
+    public MerkleEventGroupPublisher(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure) {
+        ledgerDataStructure = dataStructure;
+
+        if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+            events = new MerkleHashDataset(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage);
+        } else {
+            events = new KvDataset(DatasetType.NONE, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage);
+        }
     }
 
-    public MerkleEventGroupPublisher(HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
-                          ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
-        events = new MerkleHashDataset(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, readonly);
+    public MerkleEventGroupPublisher(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
+                                     ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure, boolean readonly) {
+        ledgerDataStructure = dataStructure;
+
+        if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+            events = new MerkleHashDataset(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, readonly);
+        } else {
+            events = new KvDataset(preBlockHeight, dataRootHash, DatasetType.NONE, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, readonly);
+        }
     }
 
     /**
@@ -44,6 +67,18 @@ public class MerkleEventGroupPublisher implements EventGroup, EventPublisher, Tr
 
         if (newSequence < 0) {
             throw new LedgerException("Event sequence conflict! --[" + key + "]");
+        }
+
+        // 属于新发布的事件名
+        if (ledgerDataStructure.equals(LedgerDataStructure.KV)) {
+            if (newSequence == 0) {
+                long nv = events.setValue(SYSTEMEVENT_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(events.getDataCount() + event_index_in_block))), key.toBytes(), -1);
+
+                if (nv < 0) {
+                    throw new LedgerException("Event seq already exist! --[id=" + key + "]");
+                }
+                event_index_in_block++;
+            }
         }
 
         return newSequence;
@@ -88,11 +123,15 @@ public class MerkleEventGroupPublisher implements EventGroup, EventPublisher, Tr
             return;
         }
         events.commit();
+
+        origin_event_index_in_block = event_index_in_block;
     }
 
     @Override
     public void cancel() {
         events.cancel();
+
+        event_index_in_block = origin_event_index_in_block;
     }
 
     public boolean isReadonly() {
@@ -107,7 +146,11 @@ public class MerkleEventGroupPublisher implements EventGroup, EventPublisher, Tr
         String[] events = iterator.next(count, String.class, new Mapper<DataEntry<Bytes,byte[]>, String>() {
 			@Override
 			public String from(DataEntry<Bytes, byte[]> source) {
-				return decodeKey(source.getKey());
+			    if (ledgerDataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+                    return decodeKey(source.getKey());
+                } else {
+			        return decodeKey(new Bytes(source.getValue()));
+                }
 			}
 		});
         
@@ -116,7 +159,7 @@ public class MerkleEventGroupPublisher implements EventGroup, EventPublisher, Tr
 
     @Override
     public long totalEventNames() {
-        return events.getDataCount();
+        return events.getDataCount() + event_index_in_block;
     }
 
     @Override
@@ -131,5 +174,13 @@ public class MerkleEventGroupPublisher implements EventGroup, EventPublisher, Tr
             return null;
         }
         return new EventInfo(BinaryProtocol.decode(bs));
+    }
+
+    public boolean isAddNew() {
+        return event_index_in_block != 0;
+    }
+
+    public void clearCachedIndex() {
+        event_index_in_block = 0;
     }
 }

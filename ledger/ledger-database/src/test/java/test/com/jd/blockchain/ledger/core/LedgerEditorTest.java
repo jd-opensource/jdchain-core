@@ -101,7 +101,7 @@ public class LedgerEditorTest {
 
 		// 创建账本；
 		return LedgerTransactionalEditor.createEditor(initSetting, LEDGER_KEY_PREFIX, storage.getExPolicyKVStorage(),
-				storage.getVersioningKVStorage());
+				storage.getVersioningKVStorage(), LedgerDataStructure.MERKLE_TREE);
 	}
 
 	private LedgerTransactionContext createGenisisTx(LedgerEditor ldgEdt, BlockchainKeypair[] partis) {

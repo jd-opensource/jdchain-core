@@ -22,9 +22,8 @@ import utils.Bytes;
 import utils.DataEntry;
 import utils.Mapper;
 import utils.SkippingIterator;
-import utils.Transactional;
 
-public class MerkleAccountSetEditor implements Transactional, BaseAccountSet<CompositeAccount> {
+public class MerkleAccountSetEditor implements BaseAccountSetEditor {
 
 	private final Bytes keyPrefix;
 
@@ -51,6 +50,7 @@ public class MerkleAccountSetEditor implements Transactional, BaseAccountSet<Com
 
 	private AccountAccessPolicy accessPolicy;
 
+	@Override
 	public boolean isReadonly() {
 		return merkleDataset.isReadonly();
 	}
@@ -172,6 +172,7 @@ public class MerkleAccountSetEditor implements Transactional, BaseAccountSet<Com
 	 * @param address
 	 * @return
 	 */
+	@Override
 	public long getVersion(Bytes address) {
 		InnerMerkleAccount acc = latestAccountsCache.get(address);
 		if (acc != null) {
@@ -238,6 +239,7 @@ public class MerkleAccountSetEditor implements Transactional, BaseAccountSet<Com
 		return acc;
 	}
 
+	@Override
 	public CompositeAccount register(Bytes address, PubKey pubKey) {
 		return register(new BlockchainIdentityData(address, pubKey));
 	}
@@ -458,6 +460,22 @@ public class MerkleAccountSetEditor implements Transactional, BaseAccountSet<Com
 			return dataRoot;
 		}
 
+	}
+
+	@Override
+	public boolean isAddNew() {
+		return false;
+	}
+
+	@Override
+	public void clearCachedIndex() {
+		// do nothing in merkle ledger structure
+	}
+
+	@Override
+	public Map<Bytes, Long> getKvNumCache() {
+		// do nothing in merkle ledger structure
+		return null;
 	}
 
 }

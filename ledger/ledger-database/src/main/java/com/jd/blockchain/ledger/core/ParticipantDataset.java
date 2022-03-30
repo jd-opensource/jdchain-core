@@ -4,6 +4,7 @@ import com.jd.binaryproto.BinaryProtocol;
 import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.ParticipantNode;
@@ -24,15 +25,37 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 
 	private BaseDataset<Bytes, byte[]> dataset;
 
-	public ParticipantDataset(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
-			VersioningKVStorage verStorage) {
-		dataset = new MerkleHashDataset(cryptoSetting, prefix, exPolicyStorage, verStorage);
+	private LedgerDataStructure ledgerDataStructure;
+
+	// start: used only by kv ledger structure
+	private volatile long parti_index_in_block = 0;
+
+	private volatile long origin_parti_index_in_block  = 0;
+
+	private static final Bytes PARTISET_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
+	// end: used only by kv ledger structure
+
+
+	public ParticipantDataset(CryptoSetting cryptoSetting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
+							  VersioningKVStorage verStorage, LedgerDataStructure dataStructure) {
+		ledgerDataStructure = dataStructure;
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			dataset = new MerkleHashDataset(cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage, verStorage);
+		} else {
+			dataset = new KvDataset(DatasetType.PARTIS, cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage, verStorage);
+		}
 	}
 
-	public ParticipantDataset(HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
-			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage,
-				verStorage, readonly);
+	public ParticipantDataset(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String keyPrefix,
+									ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure, boolean readonly) {
+		ledgerDataStructure = dataStructure;
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage,
+					verStorage, readonly);
+		} else {
+			dataset = new KvDataset(preBlockHeight, merkleRootHash, DatasetType.PARTIS, cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage,
+					verStorage, readonly);
+		}
 	}
 
 	@Override
@@ -53,16 +76,18 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 	@Override
 	public void commit() {
 		dataset.commit();
+		origin_parti_index_in_block = parti_index_in_block;
 	}
 
 	@Override
 	public void cancel() {
 		dataset.cancel();
+		parti_index_in_block = origin_parti_index_in_block;
 	}
 
 	@Override
 	public long getParticipantCount() {
-		return dataset.getDataCount();
+		return dataset.getDataCount() + parti_index_in_block;
 	}
 
 	/**
@@ -77,6 +102,18 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 		long nv = dataset.setValue(key, participantBytes, -1);
 		if (nv < 0) {
 			throw new LedgerException("Participant already exist! --[id=" + key + "]");
+		}
+
+		if (ledgerDataStructure.equals(LedgerDataStructure.KV)) {
+			// 为参与方维护添加的顺序
+			Bytes index = PARTISET_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(dataset.getDataCount() + parti_index_in_block)));
+			nv = dataset.setValue(index, key.toBytes(), -1);
+
+			if (nv < 0) {
+				throw new LedgerException("Participant seq already exist! --[id=" + key + "]");
+			}
+
+			parti_index_in_block++;
 		}
 	}
 
@@ -149,6 +186,14 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 				return source == null ? null : BinaryProtocol.decode(source.getValue());
 			}
 		});
+	}
+
+	public boolean isAddNew() {
+		return parti_index_in_block != 0;
+	}
+
+	public void clearCachedIndex() {
+		parti_index_in_block = 0;
 	}
 
 }

@@ -207,7 +207,12 @@ public class DatasetHelper {
 		public DataEntry<K, V> getDataEntry(K key, long version) {
 			return dataset.getDataEntry(key, version);
 		}
-		
+
+		@Override
+		public DataEntry<K, V>[] getDataEntries(long fromIndex, int count) {
+			return dataset.getDataEntries(fromIndex, count);
+		}
+
 		@Override
 		public SkippingIterator<DataEntry<K, V>> idIterator() {
 			return dataset.idIterator();
@@ -346,6 +351,11 @@ public class DatasetHelper {
 			}
 			V2 v = valueMapper.decode(entry.getValue());
 			return new KeyValueEntry<K2, V2>(key, v, entry.getVersion());
+		}
+
+		@Override
+		public DataEntry<K2, V2>[] getDataEntries(long fromIndex, int count) {
+			return (DataEntry<K2, V2>[]) dataset.getDataEntries(fromIndex, count);
 		}
 
 		@Override

@@ -255,7 +255,7 @@ public class LedgerTestUtils {
 		LedgerInitSetting initSetting = LedgerTestUtils.createLedgerInitSetting(partiKeys);
 
 		// 创建账本；
-		LedgerEditor ldgEdt = LedgerTransactionalEditor.createEditor(initSetting, LEDGER_KEY_PREFIX, storage, storage);
+		LedgerEditor ldgEdt = LedgerTransactionalEditor.createEditor(initSetting, LEDGER_KEY_PREFIX, storage, storage, LedgerDataStructure.MERKLE_TREE);
 
 		TransactionRequest genesisTxReq = LedgerTestUtils.createLedgerInitTxRequest_SHA256(partiKeys);
 		LedgerTransactionContext genisisTxCtx = ldgEdt.newTransaction(genesisTxReq);

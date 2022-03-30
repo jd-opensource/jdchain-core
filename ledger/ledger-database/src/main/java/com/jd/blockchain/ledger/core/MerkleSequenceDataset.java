@@ -160,6 +160,11 @@ public class MerkleSequenceDataset implements BaseDataset<Bytes, byte[]> {
 		return readonly;
 	}
 
+	@Override
+	public DataEntry<Bytes, byte[]>[] getDataEntries(long fromIndex, int count) {
+		return null;
+	}
+
 	void setReadonly() {
 		this.readonly = true;
 	}

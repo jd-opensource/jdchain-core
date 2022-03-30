@@ -86,6 +86,15 @@ public class LedgerDataSetEditor implements LedgerDataSet, Transactional {
 		return readonly;
 	}
 
+	public void clearCachedIndex() {
+		adminDataset.getParticipantDataset().clearCachedIndex();
+		adminDataset.getAuthorizations().clearCachedIndex();
+		adminDataset.getRolePrivileges().clearCachedIndex();
+		userAccountSet.clearCachedIndex();
+		dataAccountSet.clearCachedIndex();
+		contractAccountSet.clearCachedIndex();
+	}
+
 //	void setReadonly() {
 //		this.readonly = true;
 //		this.adminDataset.setReadonly();

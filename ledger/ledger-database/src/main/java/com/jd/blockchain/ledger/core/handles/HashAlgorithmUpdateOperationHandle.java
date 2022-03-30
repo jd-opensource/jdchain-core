@@ -30,11 +30,7 @@ public class HashAlgorithmUpdateOperationHandle extends AbstractLedgerOperationH
 
         LedgerSettings origledgerSetting;
 
-        if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-            origledgerSetting = ((LedgerAdminDataSetEditor) adminAccountDataSet).getPreviousSetting();
-        } else {
-            origledgerSetting = ((LedgerAdminDataSetEditorSimple) adminAccountDataSet).getPreviousSetting();
-        }
+        origledgerSetting = ((LedgerAdminDataSetEditor) adminAccountDataSet).getPreviousSetting();
 
         String algorithmName = op.getAlgorithm();
         if (algorithmName.equals(origledgerSetting.getCryptoSetting().getHashAlgorithm())) {
@@ -59,11 +55,7 @@ public class HashAlgorithmUpdateOperationHandle extends AbstractLedgerOperationH
         // update ledger setting
         LedgerSettings newLedgerSetting = new LedgerConfiguration(provider, adminAccountDataSet.getAdminSettings().getSettings().getConsensusSetting(), cryptoConfig);
 
-        if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-            ((LedgerAdminDataSetEditor) adminAccountDataSet).setLedgerSetting(newLedgerSetting);
-        } else {
-            ((LedgerAdminDataSetEditorSimple) adminAccountDataSet).setLedgerSetting(newLedgerSetting);
-        }
+        ((LedgerAdminDataSetEditor) adminAccountDataSet).setLedgerSetting(newLedgerSetting);
     }
 }
 

@@ -3,6 +3,7 @@ package com.jd.blockchain.ledger.core;
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.LedgerPrivilegeBitset;
@@ -26,15 +27,34 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 
 	private BaseDataset<Bytes, byte[]> dataset;
 
+	private LedgerDataStructure ledgerDataStructure;
+
+	// start: used only by kv ledger structure
+	private volatile long rolepri_index_in_block = 0;
+
+	private volatile long origin_rolepri_index_in_block  = 0;
+
+	private static final Bytes ROLEPRI_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
+	// end: used only by kv ledger structure
+
 	public RolePrivilegeDataset(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
-			VersioningKVStorage verStorage) {
-		dataset = new MerkleHashDataset(cryptoSetting, prefix, exPolicyStorage, verStorage);
+								VersioningKVStorage verStorage, LedgerDataStructure dataStructure) {
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			dataset = new MerkleHashDataset(cryptoSetting, prefix, exPolicyStorage, verStorage);
+		} else {
+			dataset = new KvDataset(DatasetType.NONE, cryptoSetting, prefix, exPolicyStorage, verStorage);
+		}
 	}
 
-	public RolePrivilegeDataset(HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
-			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage,
-				verStorage, readonly);
+	public RolePrivilegeDataset(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
+									  ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure, boolean readonly) {
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage,
+					verStorage, readonly);
+		} else {
+			dataset = new KvDataset(preBlockHeight, merkleRootHash, DatasetType.NONE, cryptoSetting, prefix, exPolicyStorage,
+					verStorage, readonly);
+		}
 	}
 
 	@Override
@@ -55,16 +75,18 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	@Override
 	public void commit() {
 		dataset.commit();
+		origin_rolepri_index_in_block = rolepri_index_in_block;
 	}
 
 	@Override
 	public void cancel() {
 		dataset.cancel();
+		rolepri_index_in_block = origin_rolepri_index_in_block;
 	}
 
 	@Override
 	public long getRoleCount() {
-		return dataset.getDataCount();
+		return dataset.getDataCount() + rolepri_index_in_block;
 	}
 
 	/**
@@ -95,6 +117,19 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 		if (nv < 0) {
 			throw new LedgerException("Role[" + roleName + "] already exist!");
 		}
+
+		if (ledgerDataStructure.equals(LedgerDataStructure.KV)) {
+
+			Bytes index = ROLEPRI_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(dataset.getDataCount() + rolepri_index_in_block)));
+			nv = dataset.setValue(index, Bytes.fromString(roleName).toBytes(), -1);
+
+			if (nv < 0) {
+				throw new LedgerException("Role[" + roleName + "] seq already exist!");
+			}
+
+			rolepri_index_in_block++;
+		}
+
 		return nv;
 	}
 
@@ -286,26 +321,9 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 		return new RolePrivileges(roleName, kv.getVersion(), privilege);
 	}
 
-//	@Override
-//	public RolePrivileges[] getRolePrivileges(int index, int count) {
-//		DataEntry<Bytes, byte[]>[] kvEntries = dataset.getDataEntries(index, count);
-//		RolePrivileges[] pns = new RolePrivileges[kvEntries.length];
-//		PrivilegeSet privilege;
-//		for (int i = 0; i < pns.length; i++) {
-//			privilege = BinaryProtocol.decode(kvEntries[i].getValue());
-//			pns[i] = new RolePrivileges(kvEntries[i].getKey().toUTF8String(), kvEntries[i].getVersion(), privilege);
-//		}
-//		return pns;
-//	}
-//
-//	@Override
-//	public RolePrivileges[] getRolePrivileges() {
-//		return getRolePrivileges(0, (int) getRoleCount());
-//	}
-
 	@Override
 	public SkippingIterator<RolePrivileges> rolePrivilegesIterator() {
-		SkippingIterator<DataEntry<Bytes, byte[]>> entriesIterator = dataset.idIterator();
+		SkippingIterator<DataEntry<Bytes, byte[]>> entriesIterator = dataset.kvIterator();
 		return entriesIterator.iterateAs(new Mapper<DataEntry<Bytes,byte[]>, RolePrivileges>() {
 
 			@Override
@@ -328,5 +346,13 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	public boolean contains(String roleName) {
 		Bytes key = encodeKey(roleName);
 		return dataset.getVersion(key) > -1;
+	}
+
+	public boolean isAddNew() {
+		return rolepri_index_in_block != 0;
+	}
+
+	public void clearCachedIndex() {
+		rolepri_index_in_block = 0;
 	}
 }

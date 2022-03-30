@@ -6,6 +6,7 @@ import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.AuthorizationException;
 import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.RoleSet;
@@ -27,16 +28,38 @@ import utils.Transactional;
  */
 public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Bytes>, UserAuthorizationSettings {
 
-	private MerkleHashDataset dataset;
+	private BaseDataset<Bytes, byte[]> dataset;
+
+	private LedgerDataStructure ledgerDataStructure;
+
+	// start: used only by kv ledger structure
+	private volatile long userrole_index_in_block = 0;
+
+	private volatile long origin_userrole_index_in_block  = 0;
+
+	private static final Bytes USEERROLR_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
+	// end: used only by kv ledger structure
 
 	public UserRoleDatasetEditor(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
-			VersioningKVStorage verStorage) {
-		dataset = new MerkleHashDataset(cryptoSetting, prefix, exPolicyStorage, verStorage);
+								 VersioningKVStorage verStorage, LedgerDataStructure dataStructure) {
+		ledgerDataStructure = dataStructure;
+
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			dataset = new MerkleHashDataset(cryptoSetting, prefix, exPolicyStorage, verStorage);
+		} else {
+			dataset = new KvDataset(DatasetType.NONE, cryptoSetting, prefix, exPolicyStorage, verStorage);
+		}
 	}
 
-	public UserRoleDatasetEditor(HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
-			ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, boolean readonly) {
-		dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage, verStorage, readonly);
+	public UserRoleDatasetEditor(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
+									   ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure, boolean readonly) {
+		ledgerDataStructure = dataStructure;
+
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage, verStorage, readonly);
+		} else {
+			dataset = new KvDataset(preBlockHeight, merkleRootHash, DatasetType.NONE, cryptoSetting, prefix, exPolicyStorage, verStorage, readonly);
+		}
 	}
 
 	@Override
@@ -57,16 +80,18 @@ public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Byte
 	@Override
 	public void commit() {
 		dataset.commit();
+		origin_userrole_index_in_block = userrole_index_in_block;
 	}
 
 	@Override
 	public void cancel() {
 		dataset.cancel();
+		userrole_index_in_block = origin_userrole_index_in_block;
 	}
 
 	@Override
 	public long getUserCount() {
-		return dataset.getDataCount();
+		return dataset.getDataCount() + userrole_index_in_block;
 	}
 
 	/**
@@ -85,6 +110,17 @@ public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Byte
 		if (nv < 0) {
 			throw new AuthorizationException("Roles authorization of User[" + userAddress + "] already exists!");
 		}
+
+		if (ledgerDataStructure.equals(LedgerDataStructure.KV)) {
+			Bytes index = USEERROLR_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(dataset.getDataCount() + userrole_index_in_block)));
+			nv = dataset.setValue(index, userAddress.toBytes(), -1);
+
+			if (nv < 0) {
+				throw new AuthorizationException("Roles authorization seq of User[" + userAddress + "] already exists!");
+			}
+
+			userrole_index_in_block++;
+		}
 	}
 
 	/**
@@ -102,6 +138,17 @@ public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Byte
 		long nv = setUserRolesAuthorization(roleAuth);
 		if (nv < 0) {
 			throw new AuthorizationException("Roles authorization of User[" + userAddress + "] already exists!");
+		}
+
+		if (ledgerDataStructure.equals(LedgerDataStructure.KV)) {
+			Bytes index = USEERROLR_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(dataset.getDataCount() + userrole_index_in_block)));
+			nv = dataset.setValue(index, userAddress.toBytes(), -1);
+
+			if (nv < 0) {
+				throw new AuthorizationException("Roles authorization seq of User[" + userAddress + "] already exists!");
+			}
+
+			userrole_index_in_block++;
 		}
 	}
 
@@ -188,6 +235,14 @@ public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Byte
 	@Override
 	public boolean isReadonly() {
 		return dataset.isReadonly();
+	}
+
+	public boolean isAddNew() {
+		return userrole_index_in_block != 0;
+	}
+
+	public void clearCachedIndex() {
+		userrole_index_in_block = 0;
 	}
 
 }

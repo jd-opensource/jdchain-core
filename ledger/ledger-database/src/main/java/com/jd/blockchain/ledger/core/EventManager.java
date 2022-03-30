@@ -28,19 +28,11 @@ public class EventManager implements EventOperationHandle {
 
     @Override
     public EventAccount registerAccount(BlockchainIdentity identity) {
-        if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-            return ((EventAccountSetEditor) (txCtx.getEventSet().getEventAccountSet())).register(identity.getAddress(), identity.getPubKey(), null);
-        } else {
-            return ((EventAccountSetEditorSimple) (txCtx.getEventSet().getEventAccountSet())).register(identity.getAddress(), identity.getPubKey(), null);
-        }
+        return ((EventAccountSetEditor) (txCtx.getEventSet().getEventAccountSet())).register(identity.getAddress(), identity.getPubKey(), null);
     }
 
     public EventAccount getAccount(Bytes address) {
-        if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-            return ((EventAccountSetEditor) (txCtx.getEventSet().getEventAccountSet())).getAccount(address);
-        } else {
-            return ((EventAccountSetEditorSimple) (txCtx.getEventSet().getEventAccountSet())).getAccount(address);
-        }
+        return ((EventAccountSetEditor) (txCtx.getEventSet().getEventAccountSet())).getAccount(address);
     }
 
     @Override
@@ -58,11 +50,7 @@ public class EventManager implements EventOperationHandle {
     public long publish(String eventName, BytesValue content, long latestSequence) {
         long v = 0;
 
-        if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-            v = ((MerkleEventGroupPublisher)(txCtx.getEventSet().getSystemEventGroup())).publish(new EventInfo(eventName, latestSequence+1, content, request.getTransactionHash(), txCtx.getBlockHeight()));
-        } else {
-            v = ((KvEventGroupPublisher)(txCtx.getEventSet().getSystemEventGroup())).publish(new EventInfo(eventName, latestSequence+1, content, request.getTransactionHash(), txCtx.getBlockHeight()));
-        }
+        v = ((MerkleEventGroupPublisher)(txCtx.getEventSet().getSystemEventGroup())).publish(new EventInfo(eventName, latestSequence+1, content, request.getTransactionHash(), txCtx.getBlockHeight()));
 
         if (v < 0) {
             throw new DataVersionConflictException();

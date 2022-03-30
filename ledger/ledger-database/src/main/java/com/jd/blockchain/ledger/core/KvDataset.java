@@ -390,6 +390,7 @@ public class KvDataset implements BaseDataset<Bytes, byte[]> {
 		return new VersioningKVData<Bytes, byte[]>(key, version, value);
 	}
 
+	@Override
 	public DataEntry<Bytes, byte[]>[] getDataEntries(long fromIndex, int count) {
 		if (count > LedgerConsts.MAX_LIST_COUNT) {
 			throw new IllegalArgumentException("Count exceed the upper limit[" + LedgerConsts.MAX_LIST_COUNT + "]!");
@@ -509,6 +510,7 @@ public class KvDataset implements BaseDataset<Bytes, byte[]> {
 	@Override
 	public void cancel() {
 		valueStorage.cancel();
+		rootHash = originHash;
 	}
 
 

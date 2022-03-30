@@ -12,18 +12,27 @@ import utils.Transactional;
 
 public class ContractAccountSetEditor implements Transactional, ContractAccountSet {
 
-	private MerkleAccountSetEditor accountSet;
+	private BaseAccountSetEditor accountSet;
 
 	public ContractAccountSetEditor(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage,
-			VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
-		accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+			VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy, LedgerDataStructure dataStructure) {
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+		} else {
+			accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+		}
 	}
 
-	public ContractAccountSetEditor(HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
-			ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
-			AccountAccessPolicy accessPolicy) {
-		accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
-				readonly, accessPolicy);
+	public ContractAccountSetEditor(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
+										  ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly, LedgerDataStructure dataStructure,
+									AccountAccessPolicy accessPolicy) {
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
+					readonly, accessPolicy);
+		} else {
+			accountSet = new SimpleAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
+					readonly, accessPolicy);
+		}
 	}
 	
 	@Override
@@ -147,4 +156,13 @@ public class ContractAccountSetEditor implements Transactional, ContractAccountS
 		getAccount(address).setState(state);
 	}
 
+	// used only by kv type ledger structure, if add new account
+	public boolean isAddNew() {
+		return accountSet.isAddNew();
+	}
+
+	// used only by kv type ledger structure, clear accountset dataset cache index
+	public void clearCachedIndex() {
+		accountSet.clearCachedIndex();
+	}
 }

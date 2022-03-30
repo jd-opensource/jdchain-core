@@ -203,15 +203,10 @@ public class LedgerInitializer {
 	public static LedgerEditor createLedgerEditor(LedgerInitSetting initSetting, KVStorageService storageService) {
 		LedgerEditor genesisBlockEditor;
 
-		if (initSetting.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-			genesisBlockEditor = LedgerTransactionalEditor.createEditor(initSetting,
-				LedgerManage.LEDGER_PREFIX, storageService.getExPolicyKVStorage(),
-				storageService.getVersioningKVStorage());
-		} else {
-			genesisBlockEditor = LedgerTransactionalEditorSimple.createEditor(initSetting,
-					LedgerManage.LEDGER_PREFIX, storageService.getExPolicyKVStorage(),
-					storageService.getVersioningKVStorage());
-		}
+		genesisBlockEditor = LedgerTransactionalEditor.createEditor(initSetting,
+			LedgerManage.LEDGER_PREFIX, storageService.getExPolicyKVStorage(),
+			storageService.getVersioningKVStorage(), initSetting.getLedgerDataStructure());
+
 		return genesisBlockEditor;
 	}
 

@@ -4,7 +4,6 @@ import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.ledger.AccountState;
 import com.jd.blockchain.ledger.IllegalAccountStateException;
-import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.UserCAUpdateOperation;
 import com.jd.blockchain.ledger.UserDoesNotExistException;
@@ -18,7 +17,6 @@ import com.jd.blockchain.ledger.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
 import com.jd.blockchain.ledger.core.UserAccount;
 import com.jd.blockchain.ledger.core.UserAccountSetEditor;
-import com.jd.blockchain.ledger.core.UserAccountSetEditorSimple;
 
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -53,11 +51,7 @@ public class UserCAUpdateOperationHandle extends AbstractLedgerOperationHandle<U
         CertificateUtils.checkValidityAny(issuers);
 
         // 操作账本；
-        if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-            ((UserAccountSetEditor) (transactionContext.getDataset().getUserAccountSet())).setCertificate(op.getUserAddress(), op.getCertificate());
-        } else {
-            ((UserAccountSetEditorSimple) (transactionContext.getDataset().getUserAccountSet())).setCertificate(op.getUserAddress(), op.getCertificate());
-        }
+        ((UserAccountSetEditor) (transactionContext.getDataset().getUserAccountSet())).setCertificate(op.getUserAddress(), op.getCertificate());
     }
 
 }

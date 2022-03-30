@@ -37,29 +37,18 @@ public class ConsensusSettingsUpdateOperationHandle extends AbstractLedgerOperat
         ConsensusProvider provider = null;
         ConsensusViewSettings consensusSettings = null;
 
-        if (previousBlockDataset.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-            provider = ConsensusProviders.getProvider(((LedgerAdminDataSetEditor) adminAccountDataSet).getSettings().getConsensusProvider());
-            consensusSettings = provider.getSettingsFactory().getConsensusSettingsEncoder().decode(((LedgerAdminDataSetEditor) adminAccountDataSet).getSettings().getConsensusSetting().toBytes());
-        } else {
-            provider = ConsensusProviders.getProvider(((LedgerAdminDataSetEditorSimple) adminAccountDataSet).getSettings().getConsensusProvider());
-            consensusSettings = provider.getSettingsFactory().getConsensusSettingsEncoder().decode(((LedgerAdminDataSetEditorSimple) adminAccountDataSet).getSettings().getConsensusSetting().toBytes());
-        }
+        provider = ConsensusProviders.getProvider(((LedgerAdminDataSetEditor) adminAccountDataSet).getSettings().getConsensusProvider());
+        consensusSettings = provider.getSettingsFactory().getConsensusSettingsEncoder().decode(((LedgerAdminDataSetEditor) adminAccountDataSet).getSettings().getConsensusSetting().toBytes());
+
         //update consensus settings according to properties config
         ConsensusViewSettings newConsensusSettings = provider.getSettingsFactory().getConsensusSettingsBuilder().updateSettings(consensusSettings, PropertiesUtils.createProperties(op.getProperties()));
 
-        if (previousBlockDataset.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-            LedgerSettings ledgerSetting = new LedgerConfiguration(((LedgerAdminDataSetEditor) adminAccountDataSet).getSettings().getConsensusProvider(),
-                    new Bytes(provider.getSettingsFactory().getConsensusSettingsEncoder().encode(newConsensusSettings)), ((LedgerAdminDataSetEditor) adminAccountDataSet).getPreviousSetting().getCryptoSetting());
+        LedgerSettings ledgerSetting = new LedgerConfiguration(((LedgerAdminDataSetEditor) adminAccountDataSet).getSettings().getConsensusProvider(),
+                new Bytes(provider.getSettingsFactory().getConsensusSettingsEncoder().encode(newConsensusSettings)), ((LedgerAdminDataSetEditor) adminAccountDataSet).getPreviousSetting().getCryptoSetting());
 
-            // set new consensus settings to ledger
-            ((LedgerAdminDataSetEditor) adminAccountDataSet).setLedgerSetting(ledgerSetting);
-        } else {
-            LedgerSettings ledgerSetting = new LedgerConfiguration(((LedgerAdminDataSetEditorSimple) adminAccountDataSet).getSettings().getConsensusProvider(),
-                    new Bytes(provider.getSettingsFactory().getConsensusSettingsEncoder().encode(newConsensusSettings)), ((LedgerAdminDataSetEditorSimple) adminAccountDataSet).getPreviousSetting().getCryptoSetting());
+        // set new consensus settings to ledger
+        ((LedgerAdminDataSetEditor) adminAccountDataSet).setLedgerSetting(ledgerSetting);
 
-            // set new consensus settings to ledger
-            ((LedgerAdminDataSetEditorSimple) adminAccountDataSet).setLedgerSetting(ledgerSetting);
-        }
     }
 
     private void switchConsensus(ConsensusSettingsUpdateOperation op, LedgerAdminDataSet adminAccountDataSet, LedgerQuery previousBlockDataset) {
@@ -80,18 +69,10 @@ public class ConsensusSettingsUpdateOperationHandle extends AbstractLedgerOperat
         //create new consensus settings according to properties config
         ConsensusViewSettings newConsensusSettings = provider.getSettingsFactory().getConsensusSettingsBuilder().createSettings(PropertiesUtils.createProperties(op.getProperties()), replicas.toArray(new Replica[replicas.size()]));
 
-        if (previousBlockDataset.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-            LedgerSettings ledgerSetting = new LedgerConfiguration(op.getProvider(), new Bytes(provider.getSettingsFactory().getConsensusSettingsEncoder().encode(newConsensusSettings)),
-                    ((LedgerAdminDataSetEditor) adminAccountDataSet).getPreviousSetting().getCryptoSetting());
+        LedgerSettings ledgerSetting = new LedgerConfiguration(op.getProvider(), new Bytes(provider.getSettingsFactory().getConsensusSettingsEncoder().encode(newConsensusSettings)),
+                ((LedgerAdminDataSetEditor) adminAccountDataSet).getPreviousSetting().getCryptoSetting());
 
-            // set new consensus settings to ledger
-            ((LedgerAdminDataSetEditor) adminAccountDataSet).setLedgerSetting(ledgerSetting);
-        } else {
-            LedgerSettings ledgerSetting = new LedgerConfiguration(op.getProvider(), new Bytes(provider.getSettingsFactory().getConsensusSettingsEncoder().encode(newConsensusSettings)),
-                    ((LedgerAdminDataSetEditorSimple) adminAccountDataSet).getPreviousSetting().getCryptoSetting());
-
-            // set new consensus settings to ledger
-            ((LedgerAdminDataSetEditorSimple) adminAccountDataSet).setLedgerSetting(ledgerSetting);
-        }
+        // set new consensus settings to ledger
+        ((LedgerAdminDataSetEditor) adminAccountDataSet).setLedgerSetting(ledgerSetting);
     }
 }

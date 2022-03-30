@@ -16,25 +16,35 @@ import utils.Bytes;
 import utils.SkippingIterator;
 import utils.Transactional;
 
+import java.util.Map;
+
 public class EventAccountSetEditor implements EventAccountSet, Transactional {
     static {
         DataContractRegistry.register(Event.class);
     }
 
-    private MerkleAccountSetEditor accountSet;
+    private BaseAccountSetEditor accountSet;
 
     public EventAccountSetEditor(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage,
-                           VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
-        accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+                           VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy, LedgerDataStructure dataStructure) {
+        if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+            accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+        } else {
+            accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+        }
     }
 
-    public EventAccountSetEditor(HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
-                           ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
-                           AccountAccessPolicy accessPolicy) {
-        accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
-                readonly, accessPolicy);
+    public EventAccountSetEditor(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
+                                       ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly, LedgerDataStructure dataStructure,
+                                 AccountAccessPolicy accessPolicy) {
+        if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+            accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
+                    readonly, accessPolicy);
+        } else {
+            accountSet = new SimpleAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
+                    readonly, accessPolicy);
+        }
     }
-
 
     @Override
     public long getTotal() {
@@ -72,7 +82,7 @@ public class EventAccountSetEditor implements EventAccountSet, Transactional {
         if (null == account) {
             return null;
         }
-        return new EventPublishingAccount(account, LedgerDataStructure.MERKLE_TREE);
+        return new EventPublishingAccount(account);
     }
 
     @Override
@@ -98,6 +108,21 @@ public class EventAccountSetEditor implements EventAccountSet, Transactional {
     public EventPublishingAccount register(Bytes address, PubKey pubKey, DigitalSignature addressSignature) {
         // TODO: 未实现对地址签名的校验和记录；
         CompositeAccount accBase = accountSet.register(address, pubKey);
-        return new EventPublishingAccount(accBase, LedgerDataStructure.MERKLE_TREE);
+        return new EventPublishingAccount(accBase);
+    }
+
+    // used only by kv type ledger structure, if add new account
+    public boolean isAddNew() {
+        return accountSet.isAddNew();
+    }
+
+    // used only by kv type ledger structure, get new add kv nums
+    public Map<Bytes, Long> getKvNumCache() {
+        return accountSet.getKvNumCache();
+    }
+
+    // used only by kv type ledger structure, clear accountset dataset cache index
+    public void clearCachedIndex() {
+        accountSet.clearCachedIndex();
     }
 }

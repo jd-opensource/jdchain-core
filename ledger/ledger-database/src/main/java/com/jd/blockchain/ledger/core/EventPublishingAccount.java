@@ -21,11 +21,9 @@ import java.util.List;
 
 public class EventPublishingAccount extends PermissionAccountDecorator implements EventAccount, EventPublisher {
 
-    private LedgerDataStructure ledgerDataStructure;
 
-    public EventPublishingAccount(CompositeAccount account, LedgerDataStructure ledgerDataStructure) {
+    public EventPublishingAccount(CompositeAccount account) {
         super(AccountType.EVENT, account);
-        this.ledgerDataStructure = ledgerDataStructure;
     }
 
     @Override

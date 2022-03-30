@@ -5,6 +5,7 @@ import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.DigitalSignature;
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
@@ -16,21 +17,33 @@ import utils.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
+
 public class DataAccountSetEditor implements Transactional, DataAccountSet {
 	private Logger logger = LoggerFactory.getLogger(DataAccountSetEditor.class);
 
-	private MerkleAccountSetEditor accountSet;
+	private BaseAccountSetEditor accountSet;
 
 	public DataAccountSetEditor(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage,
-			VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
-		accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+			VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy, LedgerDataStructure dataStructure) {
+
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+		} else {
+			accountSet = new SimpleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+		}
 	}
 
-	public DataAccountSetEditor(HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
-			ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
-			AccountAccessPolicy accessPolicy) {
-		accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
-				readonly, accessPolicy);
+	public DataAccountSetEditor(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
+									  ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly, LedgerDataStructure dataStructure,
+								AccountAccessPolicy accessPolicy) {
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
+					readonly, accessPolicy);
+		} else {
+			accountSet = new SimpleAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
+					readonly, accessPolicy);
+		}
 	}
 
 	@Override
@@ -117,5 +130,20 @@ public class DataAccountSetEditor implements Transactional, DataAccountSet {
 	@Override
 	public void cancel() {
 		accountSet.cancel();
+	}
+
+	// used only by kv type ledger structure, if add new account
+	public boolean isAddNew() {
+		return accountSet.isAddNew();
+	}
+
+	// used only by kv type ledger structure, get new add kv nums
+	public Map<Bytes, Long> getKvNumCache() {
+		return accountSet.getKvNumCache();
+	}
+
+	// used only by kv type ledger structure, clear accountset dataset cache index
+	public void clearCachedIndex() {
+		accountSet.clearCachedIndex();
 	}
 }

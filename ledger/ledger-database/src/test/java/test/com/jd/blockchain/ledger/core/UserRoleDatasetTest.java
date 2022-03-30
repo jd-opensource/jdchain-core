@@ -4,6 +4,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import org.junit.Test;
 
 import com.jd.blockchain.crypto.Crypto;
@@ -42,7 +43,7 @@ public class UserRoleDatasetTest {
 
 		MemoryKVStorage testStorage = new MemoryKVStorage();
 		String prefix = "user-roles/";
-		UserRoleDatasetEditor userRolesDataset = new UserRoleDatasetEditor(cryptoConfig, prefix, testStorage, testStorage);
+		UserRoleDatasetEditor userRolesDataset = new UserRoleDatasetEditor(cryptoConfig, prefix, testStorage, testStorage, LedgerDataStructure.MERKLE_TREE);
 
 		BlockchainKeypair bckp = BlockchainKeyGenerator.getInstance().generate();
 		String[] authRoles = { "DEFAULT", "MANAGER" };

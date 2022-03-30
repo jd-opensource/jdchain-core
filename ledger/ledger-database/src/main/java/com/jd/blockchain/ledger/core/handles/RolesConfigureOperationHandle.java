@@ -1,6 +1,5 @@
 package com.jd.blockchain.ledger.core.handles;
 
-import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerPermission;
 import com.jd.blockchain.ledger.RolePrivilegeSettings;
 import com.jd.blockchain.ledger.RolePrivileges;
@@ -12,7 +11,6 @@ import com.jd.blockchain.ledger.core.LedgerTransactionContext;
 import com.jd.blockchain.ledger.MultiIDsPolicy;
 import com.jd.blockchain.ledger.core.OperationHandleContext;
 import com.jd.blockchain.ledger.core.RolePrivilegeDataset;
-import com.jd.blockchain.ledger.core.RolePrivilegeDatasetSimple;
 import com.jd.blockchain.ledger.SecurityContext;
 import com.jd.blockchain.ledger.SecurityPolicy;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension;
@@ -39,24 +37,15 @@ public class RolesConfigureOperationHandle extends AbstractLedgerOperationHandle
 			for (RolePrivilegeEntry rpcfg : rpcfgs) {
 				RolePrivileges rp = rpSettings.getRolePrivilege(rpcfg.getRoleName());
 				if (rp == null) {
-					if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-						((RolePrivilegeDataset)rpSettings).addRolePrivilege(rpcfg.getRoleName(), rpcfg.getEnableLedgerPermissions(),
-								rpcfg.getEnableTransactionPermissions());
-					} else {
-						((RolePrivilegeDatasetSimple)rpSettings).addRolePrivilege(rpcfg.getRoleName(), rpcfg.getEnableLedgerPermissions(),
-								rpcfg.getEnableTransactionPermissions());
-					}
+					((RolePrivilegeDataset)rpSettings).addRolePrivilege(rpcfg.getRoleName(), rpcfg.getEnableLedgerPermissions(),
+							rpcfg.getEnableTransactionPermissions());
 				} else {
 					rp.enable(rpcfg.getEnableLedgerPermissions());
 					rp.enable(rpcfg.getEnableTransactionPermissions());
 
 					rp.disable(rpcfg.getDisableLedgerPermissions());
 					rp.disable(rpcfg.getDisableTransactionPermissions());
-					if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-						((RolePrivilegeDataset)rpSettings).updateRolePrivilege(rp);
-					} else {
-						((RolePrivilegeDatasetSimple)rpSettings).updateRolePrivilege(rp);
-					}
+					((RolePrivilegeDataset)rpSettings).updateRolePrivilege(rp);
 				}
 			}
 		}

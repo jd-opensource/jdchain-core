@@ -62,26 +62,16 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 		long contractVersion = op.getChainCodeVersion();
 		if(contractVersion != -1L){
 			long rst = 0;
-			if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-				rst = ((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).update(op.getContractID().getAddress(),
-						op.getChainCode(), contractVersion, op.getLang());
-			} else {
-				rst = ((ContractAccountSetEditorSimple)(transactionContext.getDataset().getContractAccountSet())).update(op.getContractID().getAddress(),
-						op.getChainCode(), contractVersion, op.getLang());
-			}
+
+			rst = ((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).update(op.getContractID().getAddress(),
+					op.getChainCode(), contractVersion, op.getLang());
 
 			if(rst < 0 ){
 				throw new ContractVersionConflictException();
 			}
 		} else {
-			ContractAccount account;
-			if (ledger.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
-				account = ((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).deploy(op.getContractID().getAddress(),
-					op.getContractID().getPubKey(), op.getAddressSignature(), op.getChainCode(), op.getLang());
-			} else {
-				account = ((ContractAccountSetEditorSimple)(transactionContext.getDataset().getContractAccountSet())).deploy(op.getContractID().getAddress(),
-						op.getContractID().getPubKey(), op.getAddressSignature(), op.getChainCode(), op.getLang());
-			}
+			ContractAccount account = ((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).deploy(op.getContractID().getAddress(),
+				op.getContractID().getPubKey(), op.getAddressSignature(), op.getChainCode(), op.getLang());
 
 			account.setPermission(new AccountDataPermission(AccountType.CONTRACT, requestContext.getEndpointAddresses().toArray(new Bytes[0])));
 		}

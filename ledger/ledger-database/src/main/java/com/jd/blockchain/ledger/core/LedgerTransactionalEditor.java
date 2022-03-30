@@ -2,7 +2,9 @@ package com.jd.blockchain.ledger.core;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
+import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.Operation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +30,7 @@ import com.jd.blockchain.storage.service.utils.BufferedKVStorage;
 
 import utils.Bytes;
 import utils.codec.Base58Utils;
+import utils.io.BytesUtils;
 
 public class LedgerTransactionalEditor implements LedgerEditor {
 	private static final boolean PARALLEL_DB_WRITE;
@@ -61,6 +64,8 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	private BufferedKVStorage baseStorage;
 
 	private final TransactionSetEditor txset;
+
+	private LedgerDataStructure dataStructure;
 
 	/**
 	 * 上一个交易产生的账本快照；
@@ -102,7 +107,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	 */
 	private LedgerTransactionalEditor(HashDigest ledgerHash, CryptoSetting cryptoSetting, LedgerBlockData currentBlock,
 			StagedSnapshot startingPoint, String ledgerKeyPrefix, TransactionSetEditor txset,
-			BufferedKVStorage bufferedStorage) {
+			BufferedKVStorage bufferedStorage, LedgerDataStructure dataStructure) {
 		this.ledgerHash = ledgerHash;
 		this.ledgerKeyPrefix = ledgerKeyPrefix;
 		this.cryptoSetting = cryptoSetting;
@@ -110,6 +115,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		this.baseStorage = bufferedStorage;
 		this.startingPoint = startingPoint;
 		this.txset = txset;
+		this.dataStructure = dataStructure;
 
 //		this.stagedSnapshots.push(startingPoint);
 	}
@@ -127,7 +133,8 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	 * @return
 	 */
 	public static LedgerTransactionalEditor createEditor(LedgerBlock previousBlock, LedgerSettings ledgerSetting,
-			String ledgerKeyPrefix, ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
+														 String ledgerKeyPrefix, ExPolicyKVStorage ledgerExStorage,
+														 VersioningKVStorage ledgerVerStorage, LedgerDataStructure dataStructure) {
 		// new block;
 		HashDigest ledgerHash = previousBlock.getLedgerHash();
 		if (ledgerHash == null) {
@@ -142,14 +149,14 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		// init storage;
 		BufferedKVStorage txStagedStorage = new BufferedKVStorage(Crypto.getHashFunction(ledgerSetting.getCryptoSetting().getHashAlgorithm()), ledgerExStorage, ledgerVerStorage, PARALLEL_DB_WRITE);
 
-		TransactionSetEditor txset = LedgerRepositoryImpl.loadTransactionSet(previousBlock.getTransactionSetHash(),
-				ledgerSetting.getCryptoSetting(), ledgerKeyPrefix, txStagedStorage, txStagedStorage, false);
+		TransactionSetEditor txset = LedgerRepositoryImpl.loadTransactionSet(previousBlock.getHeight(), previousBlock.getTransactionSetHash(),
+				ledgerSetting.getCryptoSetting(), ledgerKeyPrefix, txStagedStorage, txStagedStorage,  dataStructure, false);
 
 		StagedSnapshot startingPoint = new TxSnapshot(null, previousBlock);
 
 		// instantiate editor;
 		return new LedgerTransactionalEditor(ledgerHash, ledgerSetting.getCryptoSetting(), currBlock, startingPoint,
-				ledgerKeyPrefix, txset, txStagedStorage);
+				ledgerKeyPrefix, txset, txStagedStorage, dataStructure);
 	}
 
 	/**
@@ -163,17 +170,17 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	 * @return
 	 */
 	public static LedgerTransactionalEditor createEditor(LedgerInitSetting initSetting, String ledgerKeyPrefix,
-			ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage) {
+			ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, LedgerDataStructure dataStructure) {
 		LedgerBlockData genesisBlock = new LedgerBlockData(0, null, null);
 		StagedSnapshot startingPoint = new GenesisSnapshot(initSetting);
 		// init storage;
 		BufferedKVStorage txStagedStorage = new BufferedKVStorage(Crypto.getHashFunction(initSetting.getCryptoSetting().getHashAlgorithm()), ledgerExStorage, ledgerVerStorage, false);
 
 		TransactionSetEditor txset = LedgerRepositoryImpl.newTransactionSet(initSetting.getCryptoSetting(), ledgerKeyPrefix,
-				txStagedStorage, txStagedStorage);
+				txStagedStorage, txStagedStorage, dataStructure);
 
 		return new LedgerTransactionalEditor(null, initSetting.getCryptoSetting(), genesisBlock, startingPoint,
-				ledgerKeyPrefix, txset, txStagedStorage);
+				ledgerKeyPrefix, txset, txStagedStorage, dataStructure);
 	}
 
 	private void commitTxSnapshot(TxSnapshot snapshot) {
@@ -357,14 +364,14 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 				// 准备生成创世区块；
 				GenesisSnapshot snpht = (GenesisSnapshot) startingPoint;
 				txDataset = LedgerRepositoryImpl.newDataSet(snpht.initSetting, ledgerKeyPrefix, txBufferedStorage,
-						txBufferedStorage);
+						txBufferedStorage, dataStructure);
 			} else if (startingPoint instanceof TxSnapshot) {
 				// 新的区块；
 				// TxSnapshot; reload dataset and eventset;
 				TxSnapshot snpht = (TxSnapshot) startingPoint;
 				// load dataset;
-				txDataset = LedgerRepositoryImpl.loadDataSet(snpht.dataSnapshot, cryptoSetting, ledgerKeyPrefix,
-						txBufferedStorage, txBufferedStorage, false);
+				txDataset = LedgerRepositoryImpl.loadDataSet(currentBlock.getHeight() - 1, snpht.dataSnapshot, cryptoSetting, ledgerKeyPrefix,
+						txBufferedStorage, txBufferedStorage, dataStructure, false);
 			} else {
 				// Unreachable;
 				throw new IllegalStateException("Unreachable code was accidentally executed!");
@@ -373,8 +380,8 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		} else {
 			// Reuse previous object to optimize performance;
 			// load dataset;
-			txDataset = LedgerRepositoryImpl.loadDataSet(previousTxSnapshot.dataSnapshot, cryptoSetting,
-					ledgerKeyPrefix, txBufferedStorage, txBufferedStorage, false);
+			txDataset = LedgerRepositoryImpl.loadDataSet(currentBlock.getHeight() - 1, previousTxSnapshot.dataSnapshot, cryptoSetting,
+					ledgerKeyPrefix, txBufferedStorage, txBufferedStorage, dataStructure,false);
 		}
 
 		return txDataset;
@@ -388,14 +395,14 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 				// 准备生成创世区块；
 				GenesisSnapshot snpht = (GenesisSnapshot) startingPoint;
 				eventSet = LedgerRepositoryImpl.newEventSet(snpht.initSetting.getCryptoSetting(), ledgerKeyPrefix,
-						txBufferedStorage, txBufferedStorage);
+						txBufferedStorage, txBufferedStorage, dataStructure);
 			} else if (startingPoint instanceof TxSnapshot) {
 				// 新的区块；
 				// TxSnapshot; reload dataset and eventset;
 				TxSnapshot snpht = (TxSnapshot) startingPoint;
 				// load eventset
-				eventSet = LedgerRepositoryImpl.loadEventSet(snpht.dataSnapshot, cryptoSetting, ledgerKeyPrefix,
-						txBufferedStorage, txBufferedStorage, false);
+				eventSet = LedgerRepositoryImpl.loadEventSet(currentBlock.getHeight() - 1, snpht.dataSnapshot, cryptoSetting, ledgerKeyPrefix,
+						txBufferedStorage, txBufferedStorage, dataStructure,false);
 			} else {
 				// Unreachable;
 				throw new IllegalStateException("Unreachable code was accidentally executed!");
@@ -403,8 +410,8 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 		} else {
 			// load eventset
-			eventSet = LedgerRepositoryImpl.loadEventSet(previousTxSnapshot.dataSnapshot, cryptoSetting,
-					ledgerKeyPrefix, txBufferedStorage, txBufferedStorage, false);
+			eventSet = LedgerRepositoryImpl.loadEventSet(currentBlock.getHeight() - 1, previousTxSnapshot.dataSnapshot, cryptoSetting,
+					ledgerKeyPrefix, txBufferedStorage, txBufferedStorage, dataStructure,false);
 		}
 		return eventSet;
 	}
@@ -426,6 +433,9 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 		// 生成交易集合根哈希；
 		txset.commit();
+
+		saveTotal();// 底层结构为KV时使用：记录参与方，各类账户，以及账户下的KV总数；
+
 		currentBlock.setTransactionSetHash(txset.getRootHash());
 
 		// do commit when transaction isolation level is BLOCK;
@@ -499,6 +509,8 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			throw new BlockRollbackException(e.getMessage(), e);
 		}
 
+		clearCachedIndex(latestLedgerDataset, latestLedgerEventSet);
+
 		committed = true;
 	}
 
@@ -525,6 +537,129 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		}
 		if (canceled) {
 			throw new IllegalStateException("The current block has been canceled!");
+		}
+	}
+
+	private void clearCachedIndex(LedgerDataSetEditor latestLedgerDataset, LedgerEventSetEditor latestLedgerEventSet) {
+
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			return;
+		}
+
+		latestLedgerDataset.clearCachedIndex();
+		// 注意此处的实现
+		latestLedgerEventSet.clearCachedIndex();
+	}
+
+	private void saveTotal() {
+
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			return;
+		}
+
+		final Bytes DATA_PREFIX = Bytes.fromString("DT/");
+
+		final Bytes KV_PREFIX = Bytes.fromString("KV/");
+
+		final Bytes LEDGER_PARTICIPANT_PREFIX = Bytes.fromString(ledgerKeyPrefix + "PAR/").concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+
+		final Bytes ROLE_PRIVILEGE_PREFIX = Bytes.fromString(ledgerKeyPrefix + "RPV/").concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+
+		final Bytes USER_ROLE_PREFIX = Bytes.fromString(ledgerKeyPrefix + "URO/").concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+
+		final Bytes USER_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("USRS/")).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+
+		final Bytes DATA_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("DATS/")).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+
+		final Bytes CONTRACT_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("CTRS/")).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+
+		final Bytes SYSEVENT_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("SEVT/")).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+
+		final Bytes USEREVENT_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("UEVT/")).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+
+		long nv = 0;
+		if (latestLedgerDataset.getAdminDataset().getParticipantDataset().isAddNew()) {
+			nv = baseStorage.set(LEDGER_PARTICIPANT_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getAdminDataset().getParticipantCount()), datasetStorage.getVersion(LEDGER_PARTICIPANT_PREFIX));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"Participants total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+			}
+		}
+
+		if (nv > -1 && latestLedgerDataset.getAdminDataset().getRolePrivileges().isAddNew()) {
+			nv = baseStorage.set(ROLE_PRIVILEGE_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getAdminDataset().getRolePrivileges().getRoleCount()), datasetStorage.getVersion(ROLE_PRIVILEGE_PREFIX));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"RolePrivis total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+			}
+		}
+
+		if (latestLedgerDataset.getAdminDataset().getAuthorizations().isAddNew()) {
+			nv = baseStorage.set(USER_ROLE_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getAdminDataset().getAuthorizations().getUserCount()), datasetStorage.getVersion(USER_ROLE_PREFIX));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"UserRoles total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+			}
+		}
+
+		if (latestLedgerDataset.getUserAccountSet().isAddNew()) {
+			nv = baseStorage.set(USER_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getUserAccountSet().getTotal()), baseStorage.getVersion(USER_SET_PREFIX));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"UserAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+			}
+		}
+
+		if (latestLedgerDataset.getDataAccountSet().isAddNew()) {
+			nv = baseStorage.set(DATA_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getDataAccountSet().getTotal()), baseStorage.getVersion(DATA_SET_PREFIX));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"DataAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+			}
+		}
+
+		Map<Bytes, Long> kvNumCache = latestLedgerDataset.getDataAccountSet().getKvNumCache();
+		for (Bytes address : kvNumCache.keySet()) {
+			Bytes dataKvTotalPrefix = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("DATS/")).concat(address).concat(DATA_PREFIX).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+			nv = baseStorage.set(dataKvTotalPrefix, BytesUtils.toBytes(latestLedgerDataset.getDataAccountSet().getAccount(address).getDataset().getDataCount() + kvNumCache.get(address).longValue()), baseStorage.getVersion(dataKvTotalPrefix));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"DataAccount kv total set exception! --[DataAccount address = " + Base58Utils.encode(address.toBytes()) + "]");
+			}
+		}
+
+		if (latestLedgerDataset.getContractAccountSet().isAddNew()) {
+			nv = baseStorage.set(CONTRACT_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getContractAccountSet().getTotal()), baseStorage.getVersion(CONTRACT_SET_PREFIX));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"ContractAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+			}
+		}
+
+		if (latestLedgerEventSet.getSystemEventGroup().isAddNew()) {
+			nv = baseStorage.set(SYSEVENT_SET_PREFIX, BytesUtils.toBytes(latestLedgerEventSet.getSystemEventGroup().totalEventNames()), baseStorage.getVersion(SYSEVENT_SET_PREFIX));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"SystemEvent name total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+			}
+		}
+
+		if (latestLedgerEventSet.getEventAccountSet().isAddNew()) {
+			nv = baseStorage.set(USEREVENT_SET_PREFIX, BytesUtils.toBytes(latestLedgerEventSet.getEventAccountSet().getTotal()), baseStorage.getVersion(USEREVENT_SET_PREFIX));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"UserEvent user total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
+			}
+		}
+
+		Map<Bytes, Long> kvNumCacheEvent = latestLedgerEventSet.getEventAccountSet().getKvNumCache();
+		for (Bytes address : kvNumCacheEvent.keySet()) {
+			Bytes eventNameTotalPrefix = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("UEVT/")).concat(address).concat(DATA_PREFIX).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+			nv = baseStorage.set(eventNameTotalPrefix, BytesUtils.toBytes(latestLedgerEventSet.getEventAccountSet().getAccount(address).totalEventNames() + kvNumCacheEvent.get(address).longValue()), baseStorage.getVersion(eventNameTotalPrefix));
+			if (nv < 0) {
+				throw new IllegalStateException(
+						"EventAccount name total set exception! --[EventAccount address = " + Base58Utils.encode(address.toBytes()) + "]");
+			}
 		}
 	}
 
