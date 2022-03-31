@@ -39,6 +39,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 
 	public RolePrivilegeDataset(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
 								VersioningKVStorage verStorage, LedgerDataStructure dataStructure) {
+		ledgerDataStructure = dataStructure;
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			dataset = new MerkleHashDataset(cryptoSetting, prefix, exPolicyStorage, verStorage);
 		} else {
@@ -48,6 +49,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 
 	public RolePrivilegeDataset(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
 									  ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure, boolean readonly) {
+		ledgerDataStructure = dataStructure;
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage,
 					verStorage, readonly);

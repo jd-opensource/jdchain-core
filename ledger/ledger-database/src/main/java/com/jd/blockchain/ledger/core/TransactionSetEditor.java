@@ -40,8 +40,6 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 
 	private static final String TX_STATE_PREFIX = "STA" + LedgerConsts.KEY_SEPERATOR;
 
-//	private static final String TX_SEQUENCE_PREFIX = "SEQ" + LedgerConsts.KEY_SEPERATOR;
-
 	/**
 	 * 交易请求列表的根哈希保存在交易状态集的 key ；
 	 */
@@ -104,6 +102,7 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 			this.txRequestBlockID = -1;
 
 			Bytes txSequencePrefix = Bytes.fromString(keyPrefix).concat(TX_SEQUENCE_KEY_PREFIX);
+
 			TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(setting.getHashAlgorithm())
 					.setVerifyHashOnLoad(setting.getAutoVerifyHash());
 			this.txSequence = new MerkleList<>(options, txSequencePrefix, merkleTreeStorage, HASH_DIGEST_CONVERTER);
@@ -125,7 +124,7 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		ledgerDataStructure = dataStructure;
 
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
-			Bytes txStatePrefix = Bytes.fromString(keyPrefix).concat(TX_SEQUENCE_KEY_PREFIX);
+			Bytes txStatePrefix = Bytes.fromString(keyPrefix + TX_STATE_PREFIX);
 			this.txStateSet = new MerkleHashDataset(txRootHash, setting, txStatePrefix, merkleTreeStorage, dataStorage,
 					readonly);
 
@@ -133,7 +132,7 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 			this.txRequestBlockID = txReqRootHashData.getVersion();
 			HashDigest txRequestRootHash = Crypto.resolveAsHashDigest(txReqRootHashData.getValue());
 
-			Bytes txRequestPrefix = Bytes.fromString(keyPrefix + TX_SEQUENCE_KEY_PREFIX);
+			Bytes txRequestPrefix = Bytes.fromString(keyPrefix).concat(TX_SEQUENCE_KEY_PREFIX);
 			TreeOptions options = TreeOptions.build().setDefaultHashAlgorithm(setting.getHashAlgorithm())
 					.setVerifyHashOnLoad(setting.getAutoVerifyHash());
 			this.txSequence = new MerkleList<>(txRequestRootHash, options, txRequestPrefix, merkleTreeStorage,

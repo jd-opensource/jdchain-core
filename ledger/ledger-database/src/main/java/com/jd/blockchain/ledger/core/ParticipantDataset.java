@@ -178,7 +178,7 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 
 	@Override
 	public SkippingIterator<ParticipantNode> getAllParticipants() {
-		SkippingIterator<DataEntry<Bytes, byte[]>> dataIterator = dataset.idIterator();
+		SkippingIterator<DataEntry<Bytes, byte[]>> dataIterator = dataset.kvIterator();
 		return dataIterator.iterateAs(new Mapper<DataEntry<Bytes, byte[]>, ParticipantNode>() {
 
 			@Override

@@ -317,16 +317,13 @@ public class KvDataset implements BaseDataset<Bytes, byte[]> {
 
 		byte[] bytesValue = getValueAt(index);
 
-		String indexKey = BytesUtils.toString(bytesValue);
-
-		Bytes key = Bytes.fromString(indexKey);
-
+		Bytes key = new Bytes(bytesValue);
 		long latestVersion = getVersion(key);
 		if (latestVersion < 0 ) {
 			throw new DataExistException("Expected value version not exist!");
 		}
 		Bytes dataKey = encodeDataKey(key);
-		byte[] value = valueStorage.get(dataKey, 0);
+		byte[] value = valueStorage.get(dataKey, latestVersion);
 		if (value == null) {
 			throw new DataExistException("Expected value does not exist!");
 		}
