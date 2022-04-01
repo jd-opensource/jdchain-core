@@ -64,7 +64,7 @@ public class KvAccountSetEditor implements BaseAccountSetEditor{
 		return kvDataset.isReadonly();
 	}
 
-	private static final Bytes ACCOUNTSET_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes ACCOUNTSET_SEQUENCE_KEY_PREFIX = Bytes.fromString("SQ" + LedgerConsts.KEY_SEPERATOR);
 
 	public KvAccountSetEditor(CryptoSetting cryptoSetting, Bytes keyPrefix, ExPolicyKVStorage exStorage,
 							  VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {

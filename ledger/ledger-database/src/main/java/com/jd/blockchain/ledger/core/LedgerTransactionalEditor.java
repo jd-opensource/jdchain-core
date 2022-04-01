@@ -557,25 +557,25 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			return;
 		}
 
-		final Bytes DATA_PREFIX = Bytes.fromString("DT/");
+		final Bytes DATA_PREFIX = Bytes.fromString("D/");
 
-		final Bytes KV_PREFIX = Bytes.fromString("KV/");
+//		final Bytes KV_PREFIX = Bytes.fromString("KV/");
 
-		final Bytes LEDGER_PARTICIPANT_PREFIX = Bytes.fromString(ledgerKeyPrefix + "PAR/").concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+		final Bytes LEDGER_PARTICIPANT_PREFIX = Bytes.fromString(ledgerKeyPrefix + "PAR/").concat(Bytes.fromString("T"));
 
-		final Bytes ROLE_PRIVILEGE_PREFIX = Bytes.fromString(ledgerKeyPrefix + "RPV/").concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+		final Bytes ROLE_PRIVILEGE_PREFIX = Bytes.fromString(ledgerKeyPrefix + "RPV/").concat(Bytes.fromString("T"));
 
-		final Bytes USER_ROLE_PREFIX = Bytes.fromString(ledgerKeyPrefix + "URO/").concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+		final Bytes USER_ROLE_PREFIX = Bytes.fromString(ledgerKeyPrefix + "URO/").concat(Bytes.fromString("T"));
 
-		final Bytes USER_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("USRS/")).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+		final Bytes USER_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("US/")).concat(Bytes.fromString("T"));
 
-		final Bytes DATA_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("DATS/")).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+		final Bytes DATA_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("DS/")).concat(Bytes.fromString("T"));
 
-		final Bytes CONTRACT_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("CTRS/")).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+		final Bytes CONTRACT_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("CS/")).concat(Bytes.fromString("T"));
 
-		final Bytes SYSEVENT_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("SEVT/")).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+		final Bytes SYSEVENT_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("SE/")).concat(Bytes.fromString("T"));
 
-		final Bytes USEREVENT_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("UEVT/")).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+		final Bytes USEREVENT_SET_PREFIX = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("UE/")).concat(Bytes.fromString("T"));
 
 		long nv = 0;
 		if (latestLedgerDataset.getAdminDataset().getParticipantDataset().isAddNew()) {
@@ -602,25 +602,23 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			}
 		}
 
-		if (latestLedgerDataset.getUserAccountSet().isAddNew()) {
-			nv = baseStorage.set(USER_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getUserAccountSet().getTotal()), baseStorage.getVersion(USER_SET_PREFIX));
-			if (nv < 0) {
-				throw new IllegalStateException(
-						"UserAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
-			}
+		System.out.println("USER_SET_PREFIX = "+ USER_SET_PREFIX.toBytes().length);
+		nv = baseStorage.set(USER_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getUserAccountSet().getTotal()), baseStorage.getVersion(USER_SET_PREFIX));
+		if (nv < 0) {
+			throw new IllegalStateException(
+					"UserAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
 		}
 
-		if (latestLedgerDataset.getDataAccountSet().isAddNew()) {
-			nv = baseStorage.set(DATA_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getDataAccountSet().getTotal()), baseStorage.getVersion(DATA_SET_PREFIX));
-			if (nv < 0) {
-				throw new IllegalStateException(
-						"DataAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
-			}
+		nv = baseStorage.set(DATA_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getDataAccountSet().getTotal()), baseStorage.getVersion(DATA_SET_PREFIX));
+		if (nv < 0) {
+			throw new IllegalStateException(
+					"DataAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
 		}
+
 
 		Map<Bytes, Long> kvNumCache = latestLedgerDataset.getDataAccountSet().getKvNumCache();
 		for (Bytes address : kvNumCache.keySet()) {
-			Bytes dataKvTotalPrefix = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("DATS/")).concat(address).concat(DATA_PREFIX).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+			Bytes dataKvTotalPrefix = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("DS/")).concat(address).concat(DATA_PREFIX).concat(Bytes.fromString("T"));
 			nv = baseStorage.set(dataKvTotalPrefix, BytesUtils.toBytes(latestLedgerDataset.getDataAccountSet().getAccount(address).getDataset().getDataCount() + kvNumCache.get(address).longValue()), baseStorage.getVersion(dataKvTotalPrefix));
 			if (nv < 0) {
 				throw new IllegalStateException(
@@ -628,12 +626,10 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			}
 		}
 
-		if (latestLedgerDataset.getContractAccountSet().isAddNew()) {
-			nv = baseStorage.set(CONTRACT_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getContractAccountSet().getTotal()), baseStorage.getVersion(CONTRACT_SET_PREFIX));
-			if (nv < 0) {
-				throw new IllegalStateException(
-						"ContractAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
-			}
+		nv = baseStorage.set(CONTRACT_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getContractAccountSet().getTotal()), baseStorage.getVersion(CONTRACT_SET_PREFIX));
+		if (nv < 0) {
+			throw new IllegalStateException(
+					"ContractAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
 		}
 
 		if (latestLedgerEventSet.getSystemEventGroup().isAddNew()) {
@@ -654,7 +650,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 		Map<Bytes, Long> kvNumCacheEvent = latestLedgerEventSet.getEventAccountSet().getKvNumCache();
 		for (Bytes address : kvNumCacheEvent.keySet()) {
-			Bytes eventNameTotalPrefix = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("UEVT/")).concat(address).concat(DATA_PREFIX).concat(KV_PREFIX).concat(Bytes.fromString("TOTAL"));
+			Bytes eventNameTotalPrefix = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("UE/")).concat(address).concat(DATA_PREFIX).concat(Bytes.fromString("T"));
 			nv = baseStorage.set(eventNameTotalPrefix, BytesUtils.toBytes(latestLedgerEventSet.getEventAccountSet().getAccount(address).totalEventNames() + kvNumCacheEvent.get(address).longValue()), baseStorage.getVersion(eventNameTotalPrefix));
 			if (nv < 0) {
 				throw new IllegalStateException(

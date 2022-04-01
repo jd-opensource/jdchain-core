@@ -37,7 +37,7 @@ public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Byte
 
 	private volatile long origin_userrole_index_in_block  = 0;
 
-	private static final Bytes USEERROLR_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes USEERROLR_SEQUENCE_KEY_PREFIX = Bytes.fromString("SQ" + LedgerConsts.KEY_SEPERATOR);
 	// end: used only by kv ledger structure
 
 	public UserRoleDatasetEditor(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,

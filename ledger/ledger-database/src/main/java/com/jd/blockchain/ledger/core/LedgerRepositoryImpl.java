@@ -35,21 +35,21 @@ import utils.codec.Base58Utils;
  */
 class LedgerRepositoryImpl implements LedgerRepository {
 
-	private static final Bytes LEDGER_PREFIX = Bytes.fromString("IDX" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes LEDGER_PREFIX = Bytes.fromString("IX" + LedgerConsts.KEY_SEPERATOR);
 
-	private static final Bytes BLOCK_PREFIX = Bytes.fromString("BLK" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes BLOCK_PREFIX = Bytes.fromString("BK" + LedgerConsts.KEY_SEPERATOR);
 
-	private static final Bytes USER_SET_PREFIX = Bytes.fromString("USRS" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes USER_SET_PREFIX = Bytes.fromString("US" + LedgerConsts.KEY_SEPERATOR);
 
-	private static final Bytes DATA_SET_PREFIX = Bytes.fromString("DATS" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes DATA_SET_PREFIX = Bytes.fromString("DS" + LedgerConsts.KEY_SEPERATOR);
 
-	private static final Bytes CONTRACT_SET_PREFIX = Bytes.fromString("CTRS" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes CONTRACT_SET_PREFIX = Bytes.fromString("CS" + LedgerConsts.KEY_SEPERATOR);
 
-	private static final Bytes TRANSACTION_SET_PREFIX = Bytes.fromString("TXS" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes TRANSACTION_SET_PREFIX = Bytes.fromString("TS" + LedgerConsts.KEY_SEPERATOR);
 
-	private static final Bytes SYSTEM_EVENT_SET_PREFIX = Bytes.fromString("SEVT" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes SYSTEM_EVENT_SET_PREFIX = Bytes.fromString("SE" + LedgerConsts.KEY_SEPERATOR);
 
-	private static final Bytes USER_EVENT_SET_PREFIX = Bytes.fromString("UEVT" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes USER_EVENT_SET_PREFIX = Bytes.fromString("UE" + LedgerConsts.KEY_SEPERATOR);
 
 	private static final AccountAccessPolicy DEFAULT_ACCESS_POLICY = new OpeningAccessPolicy();
 

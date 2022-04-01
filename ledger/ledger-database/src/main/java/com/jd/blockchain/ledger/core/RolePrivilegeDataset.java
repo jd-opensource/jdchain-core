@@ -34,7 +34,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 
 	private volatile long origin_rolepri_index_in_block  = 0;
 
-	private static final Bytes ROLEPRI_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes ROLEPRI_SEQUENCE_KEY_PREFIX = Bytes.fromString("SQ" + LedgerConsts.KEY_SEPERATOR);
 	// end: used only by kv ledger structure
 
 	public RolePrivilegeDataset(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,

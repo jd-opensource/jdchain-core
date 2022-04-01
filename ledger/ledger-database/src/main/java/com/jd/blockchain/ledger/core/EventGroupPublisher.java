@@ -30,7 +30,7 @@ public class EventGroupPublisher implements EventGroup, EventPublisher, Transact
 
     private volatile long origin_event_index_in_block  = 0;
 
-    private static final Bytes SYSTEMEVENT_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
+    private static final Bytes SYSTEMEVENT_SEQUENCE_KEY_PREFIX = Bytes.fromString("SQ" + LedgerConsts.KEY_SEPERATOR);
     // end: used only by kv ledger structure
 
     public EventGroupPublisher(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure) {

@@ -32,7 +32,7 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 
 	private volatile long origin_parti_index_in_block  = 0;
 
-	private static final Bytes PARTISET_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes PARTISET_SEQUENCE_KEY_PREFIX = Bytes.fromString("SQ" + LedgerConsts.KEY_SEPERATOR);
 	// end: used only by kv ledger structure
 
 

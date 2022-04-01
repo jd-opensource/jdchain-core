@@ -132,11 +132,6 @@ public class DataAccountSetEditor implements Transactional, DataAccountSet {
 		accountSet.cancel();
 	}
 
-	// used only by kv type ledger structure, if add new account
-	public boolean isAddNew() {
-		return accountSet.isAddNew();
-	}
-
 	// used only by kv type ledger structure, get new add kv nums
 	public Map<Bytes, Long> getKvNumCache() {
 		return accountSet.getKvNumCache();

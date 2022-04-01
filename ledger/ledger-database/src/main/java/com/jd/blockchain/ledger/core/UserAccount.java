@@ -21,9 +21,9 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 
 	private static final String USER_INFO_PREFIX = "PROP" + LedgerConsts.KEY_SEPERATOR;
 
-	private static final String DATA_PUB_KEY = "DATA-PUBKEY";
-	private static final String DATA_CA = "DATA-CA";
-	private static final String DATA_STATE = "DATA-STATE";
+	private static final String DATA_PUB_KEY = "D-PK";
+	private static final String DATA_CA = "D-CA";
+	private static final String DATA_STATE = "D-ST";
 
 	public UserAccount(CompositeAccount baseAccount) {
 		super(baseAccount);

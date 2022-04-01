@@ -9,9 +9,9 @@ public class ContractAccount extends PermissionAccountDecorator implements Contr
 
     private static final String CONTRACT_INFO_PREFIX = "INFO" + LedgerConsts.KEY_SEPERATOR;
 
-    private static final String CHAIN_CODE_KEY = "CHAIN-CODE";
-    private static final String DATA_STATE = "DATA-STATE";
-    private static final String DATA_LANG = "DATA-LANG";
+    private static final String CHAIN_CODE_KEY = "C-CODE";
+    private static final String DATA_STATE = "D-ST";
+    private static final String DATA_LANG = "D-LG";
 
     private AccountState state;
     private ContractLang lang;

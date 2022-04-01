@@ -36,7 +36,7 @@ public class MerkleSequenceDataset implements BaseDataset<Bytes, byte[]> {
 	public static final int MAX_SIZE_OF_VALUE = 4 * 1024 * 1024;
 
 	public static final Bytes SN_PREFIX = Bytes.fromString("SN" + LedgerConsts.KEY_SEPERATOR);
-	public static final Bytes DATA_PREFIX = Bytes.fromString("KV" + LedgerConsts.KEY_SEPERATOR);
+//	public static final Bytes DATA_PREFIX = Bytes.fromString("KV" + LedgerConsts.KEY_SEPERATOR);
 	public static final Bytes MERKLE_TREE_PREFIX = Bytes.fromString("MKL" + LedgerConsts.KEY_SEPERATOR);
 
 	private final Bytes snKeyPrefix;
@@ -98,7 +98,8 @@ public class MerkleSequenceDataset implements BaseDataset<Bytes, byte[]> {
 		// this.snStorage = PrefixAppender.prefix(SN_PREFIX, (ExPolicyKVStorage)
 		// bufferedStorage);
 		snKeyPrefix = keyPrefix.concat(SN_PREFIX);
-		dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
+//		dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
+		dataKeyPrefix = keyPrefix;
 		this.valueStorage = bufferedStorage;
 		this.snStorage = bufferedStorage;
 
@@ -143,7 +144,8 @@ public class MerkleSequenceDataset implements BaseDataset<Bytes, byte[]> {
 //		snKeyPrefix = Bytes.fromString(keyPrefix + SN_PREFIX);
 //		dataKeyPrefix = Bytes.fromString(keyPrefix + DATA_PREFIX);
 		snKeyPrefix = keyPrefix.concat(SN_PREFIX);
-		dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
+//		dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
+		dataKeyPrefix = keyPrefix;
 		this.valueStorage = bufferedStorage;
 		this.snStorage = bufferedStorage;
 

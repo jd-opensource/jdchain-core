@@ -153,11 +153,6 @@ public class UserAccountSetEditor implements Transactional, UserAccountSet {
 		getAccount(address).setCertificate(certificate);
 	}
 
-	// used only by kv type ledger structure, if add new account
-	public boolean isAddNew() {
-		return accountSet.isAddNew();
-	}
-
 	// used only by kv type ledger structure, clear accountset dataset cache index
 	public void clearCachedIndex() {
 		accountSet.clearCachedIndex();

@@ -34,8 +34,8 @@ public class KvDataset implements BaseDataset<Bytes, byte[]> {
 	public static final int MAX_SIZE_OF_VALUE = 8 * 1024 * 1024;
 
 //	public static final Bytes SN_PREFIX = Bytes.fromString("SN" + LedgerConsts.KEY_SEPERATOR);
-	private static final Bytes DATA_PREFIX = Bytes.fromString("KV" + LedgerConsts.KEY_SEPERATOR);
-	private static final Bytes ACCOUNTSET_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
+//	private static final Bytes DATA_PREFIX = Bytes.fromString("KV" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes ACCOUNTSET_SEQUENCE_KEY_PREFIX = Bytes.fromString("SQ" + LedgerConsts.KEY_SEPERATOR);
 
 	private static final DataEntry<Bytes, byte[]>[] EMPTY_ENTRIES = new DataEntry[0];
 
@@ -117,7 +117,8 @@ public class KvDataset implements BaseDataset<Bytes, byte[]> {
 	public KvDataset(long preBlockHeight, HashDigest prevRootHash, DatasetType type, CryptoSetting setting, Bytes keyPrefix,
 					 ExPolicyKVStorage exPolicyStorage, VersioningKVStorage versioningStorage, boolean readonly) {
 		// 把存储数据值、Merkle节点的 key 分别加入独立的前缀，避免针对 key 的注入攻击；
-		this.dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
+//		this.dataKeyPrefix = keyPrefix.concat(DATA_PREFIX);
+		this.dataKeyPrefix = keyPrefix;
 
 		this.DEFAULT_HASH_FUNCTION = Crypto.getHashFunction(setting.getHashAlgorithm());
 
@@ -144,13 +145,13 @@ public class KvDataset implements BaseDataset<Bytes, byte[]> {
 
 	@Override
 	public long getDataCount() {
-		// prefix + KV/Total
+		// prefix/T
 		Bytes totalKey;
 
 		if (datasetType == DatasetType.TX) {
-			totalKey = dataKeyPrefix.concat(Bytes.fromString("TOTAL/").concat(Bytes.fromString(String.valueOf(preBlockHeight))));
+			totalKey = dataKeyPrefix.concat(Bytes.fromString("T/").concat(Bytes.fromString(String.valueOf(preBlockHeight))));
 		} else {
-			totalKey = dataKeyPrefix.concat(Bytes.fromString("TOTAL"));
+			totalKey = dataKeyPrefix.concat(Bytes.fromString("T"));
 		}
 		byte[] value = valueStorage.get(totalKey, -1);
 		if (value == null) {
@@ -224,11 +225,6 @@ public class KvDataset implements BaseDataset<Bytes, byte[]> {
 
 
 	private long setNoneTypeValue(Bytes key, byte[] value, long version) {
-		long latestVersion = valueStorage.getVersion(key);
-		if (version != latestVersion) {
-			return -1;
-		}
-
 		// set into versioning kv storage before adding to merkle tree, in order to
 		// check version confliction first;
 		long newVersion;

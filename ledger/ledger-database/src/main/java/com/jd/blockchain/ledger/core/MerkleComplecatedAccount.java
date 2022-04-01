@@ -27,14 +27,14 @@ import utils.Transactional;
  */
 public class MerkleComplecatedAccount implements CompositeAccount, HashProvable, AccountSnapshot, Transactional {
 
-    private static final Bytes HEADER_PREFIX = Bytes.fromString("HD/");
-    private static final Bytes DATA_PREFIX = Bytes.fromString("DT/");
+    private static final Bytes HEADER_PREFIX = Bytes.fromString("H/");
+    private static final Bytes DATA_PREFIX = Bytes.fromString("D/");
 
 //	private static final Bytes KEY_HEADER_ROOT = Bytes.fromString("HEADER");
 
 //	private static final Bytes KEY_DATA_ROOT = Bytes.fromString("DATA");
 
-    private static final String KEY_PUBKEY = "PUBKEY";
+    private static final String KEY_PUBKEY = "PK";
 
     private BlockchainIdentity accountID;
 

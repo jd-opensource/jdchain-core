@@ -38,20 +38,20 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 //	private static final TransactionRequestConverter REQUEST_CONVERTER = new TransactionRequestConverter();
 	private static final HashDigestBytesConverter HASH_DIGEST_CONVERTER = new HashDigestBytesConverter();
 
-	private static final String TX_STATE_PREFIX = "STA" + LedgerConsts.KEY_SEPERATOR;
+	private static final String TX_STATE_PREFIX = "ST" + LedgerConsts.KEY_SEPERATOR;
 
 	/**
 	 * 交易请求列表的根哈希保存在交易状态集的 key ；
 	 */
 	private static final Bytes TX_REQUEST_ROOT_HASH = Bytes.fromString("TX-REQUEST-BLOCKS");
 
-	private static final Bytes TX_REQUEST_KEY_PREFIX = Bytes.fromString("REQ" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes TX_REQUEST_KEY_PREFIX = Bytes.fromString("RQ" + LedgerConsts.KEY_SEPERATOR);
 
-	private static final Bytes TX_RESULT_KEY_PREFIX = Bytes.fromString("RST" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes TX_RESULT_KEY_PREFIX = Bytes.fromString("RT" + LedgerConsts.KEY_SEPERATOR);
 
-	private static final Bytes TX_SEQUENCE_KEY_PREFIX = Bytes.fromString("SEQ" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes TX_SEQUENCE_KEY_PREFIX = Bytes.fromString("SQ" + LedgerConsts.KEY_SEPERATOR);
 
-	private static final Bytes TX_TOTOAL_KEY_PREFIX = Bytes.fromString("TOTAL" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes TX_TOTOAL_KEY_PREFIX = Bytes.fromString("T" + LedgerConsts.KEY_SEPERATOR);
 
 
 	/**
