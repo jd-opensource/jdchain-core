@@ -603,13 +603,13 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		}
 
 		System.out.println("USER_SET_PREFIX = "+ USER_SET_PREFIX.toBytes().length);
-		nv = baseStorage.set(USER_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getUserAccountSet().getTotal()), baseStorage.getVersion(USER_SET_PREFIX));
+		nv = baseStorage.set(USER_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getUserAccountSet().getTotal()), (currentBlock.getHeight() - 1));
 		if (nv < 0) {
 			throw new IllegalStateException(
 					"UserAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
 		}
 
-		nv = baseStorage.set(DATA_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getDataAccountSet().getTotal()), baseStorage.getVersion(DATA_SET_PREFIX));
+		nv = baseStorage.set(DATA_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getDataAccountSet().getTotal()), (currentBlock.getHeight() - 1));
 		if (nv < 0) {
 			throw new IllegalStateException(
 					"DataAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
@@ -626,7 +626,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			}
 		}
 
-		nv = baseStorage.set(CONTRACT_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getContractAccountSet().getTotal()), baseStorage.getVersion(CONTRACT_SET_PREFIX));
+		nv = baseStorage.set(CONTRACT_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getContractAccountSet().getTotal()), (currentBlock.getHeight() - 1));
 		if (nv < 0) {
 			throw new IllegalStateException(
 					"ContractAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");

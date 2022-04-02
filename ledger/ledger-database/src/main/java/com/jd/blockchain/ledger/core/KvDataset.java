@@ -145,15 +145,16 @@ public class KvDataset implements BaseDataset<Bytes, byte[]> {
 
 	@Override
 	public long getDataCount() {
-		// prefix/T
-		Bytes totalKey;
+		byte[] value = null;
 
-		if (datasetType == DatasetType.TX) {
-			totalKey = dataKeyPrefix.concat(Bytes.fromString("T/").concat(Bytes.fromString(String.valueOf(preBlockHeight))));
+		// prefix/T
+		Bytes totalKey = dataKeyPrefix.concat(Bytes.fromString("T"));
+
+		if (datasetType == DatasetType.TX || datasetType == DatasetType.USERS || datasetType == DatasetType.DATAS || datasetType == DatasetType.CONTS) {
+			value = valueStorage.get(totalKey, preBlockHeight);
 		} else {
-			totalKey = dataKeyPrefix.concat(Bytes.fromString("T"));
+			value = valueStorage.get(totalKey, -1);
 		}
-		byte[] value = valueStorage.get(totalKey, -1);
 		if (value == null) {
 			return 0;
 		}

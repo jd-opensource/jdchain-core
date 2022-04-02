@@ -47,7 +47,7 @@ public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Byte
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			dataset = new MerkleHashDataset(cryptoSetting, prefix, exPolicyStorage, verStorage);
 		} else {
-			dataset = new KvDataset(DatasetType.NONE, cryptoSetting, prefix, exPolicyStorage, verStorage);
+			dataset = new KvDataset(DatasetType.USERRS, cryptoSetting, prefix, exPolicyStorage, verStorage);
 		}
 	}
 
@@ -58,7 +58,7 @@ public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Byte
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage, verStorage, readonly);
 		} else {
-			dataset = new KvDataset(preBlockHeight, merkleRootHash, DatasetType.NONE, cryptoSetting, prefix, exPolicyStorage, verStorage, readonly);
+			dataset = new KvDataset(preBlockHeight, merkleRootHash, DatasetType.USERRS, cryptoSetting, prefix, exPolicyStorage, verStorage, readonly);
 		}
 	}
 

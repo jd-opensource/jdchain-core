@@ -30,7 +30,7 @@ public class EventAccountSetEditor implements EventAccountSet, Transactional {
         if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
             accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
         } else {
-            accountSet = new KvAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+            accountSet = new KvAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy, DatasetType.EVENTS);
         }
     }
 
@@ -42,7 +42,7 @@ public class EventAccountSetEditor implements EventAccountSet, Transactional {
                     readonly, accessPolicy);
         } else {
             accountSet = new KvAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
-                    readonly, accessPolicy);
+                    readonly, accessPolicy, DatasetType.EVENTS);
         }
     }
 

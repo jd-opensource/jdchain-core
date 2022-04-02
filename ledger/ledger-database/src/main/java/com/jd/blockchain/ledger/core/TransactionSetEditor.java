@@ -51,7 +51,7 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 
 	private static final Bytes TX_SEQUENCE_KEY_PREFIX = Bytes.fromString("SQ" + LedgerConsts.KEY_SEPERATOR);
 
-	private static final Bytes TX_TOTOAL_KEY_PREFIX = Bytes.fromString("T" + LedgerConsts.KEY_SEPERATOR);
+	private static final Bytes TX_TOTOAL_KEY_PREFIX = Bytes.fromString("T");
 
 
 	/**
@@ -356,8 +356,8 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		return TX_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(seq)));
 	}
 
-	private Bytes encodeTotalNumKey(long blockHeight) {
-		return TX_TOTOAL_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(blockHeight)));
+	private Bytes encodeTotalNumKey() {
+		return TX_TOTOAL_KEY_PREFIX;
 	}
 
 	public boolean isReadonly() {
@@ -382,7 +382,7 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 			txRequestBlockID = v;
 		} else {
 			origin_txIndex = txIndex;
-			saveTotalByHeight(preBlockHeight + 1);
+			saveTotalByHeight();
 			txStateSet.commit();
 		}
 	}
@@ -412,13 +412,12 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 	}
 
 	// 按照区块高度记录交易总数
-	private void saveTotalByHeight(long blockHeight) {
-
-		// key = keyprefix + TOTAL/blockheight
-		Bytes key = encodeTotalNumKey(blockHeight);
+	private void saveTotalByHeight() {
+		// key = keyprefix/T
+		Bytes key = encodeTotalNumKey();
 
 		// 交易序号只有唯一的版本；
-		long v = txStateSet.setValue(key, BytesUtils.toBytes(getTotalCount()));
+		long v = txStateSet.setValue(key, BytesUtils.toBytes(getTotalCount()), preBlockHeight);
 		if (v < 0) {
 			throw new IllegalTransactionException("Repeated transaction request sequence! --[" + key + "]");
 		}

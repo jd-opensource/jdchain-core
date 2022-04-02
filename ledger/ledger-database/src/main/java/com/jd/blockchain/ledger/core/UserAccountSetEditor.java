@@ -31,7 +31,7 @@ public class UserAccountSetEditor implements Transactional, UserAccountSet {
 				accessPolicy);
 		} else {
 			accountSet = new KvAccountSetEditor(cryptoSetting, Bytes.fromString(keyPrefix), simpleStorage, versioningStorage,
-					accessPolicy);
+					accessPolicy, DatasetType.USERS);
 		}
 	}
 
@@ -43,7 +43,7 @@ public class UserAccountSetEditor implements Transactional, UserAccountSet {
 					verStorage, readonly, accessPolicy);
 		} else {
 			accountSet = new KvAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(keyPrefix), exStorage,
-				verStorage, readonly, accessPolicy);
+				verStorage, readonly, accessPolicy, DatasetType.USERS);
 		}
 	}
 	

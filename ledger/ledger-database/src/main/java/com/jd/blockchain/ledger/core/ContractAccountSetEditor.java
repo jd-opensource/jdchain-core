@@ -19,7 +19,7 @@ public class ContractAccountSetEditor implements Transactional, ContractAccountS
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
 		} else {
-			accountSet = new KvAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+			accountSet = new KvAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy, DatasetType.CONTS);
 		}
 	}
 
@@ -31,7 +31,7 @@ public class ContractAccountSetEditor implements Transactional, ContractAccountS
 					readonly, accessPolicy);
 		} else {
 			accountSet = new KvAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
-					readonly, accessPolicy);
+					readonly, accessPolicy, DatasetType.CONTS);
 		}
 	}
 	

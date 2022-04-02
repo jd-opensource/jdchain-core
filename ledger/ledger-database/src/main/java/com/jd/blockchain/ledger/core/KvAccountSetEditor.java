@@ -67,19 +67,19 @@ public class KvAccountSetEditor implements BaseAccountSetEditor{
 	private static final Bytes ACCOUNTSET_SEQUENCE_KEY_PREFIX = Bytes.fromString("SQ" + LedgerConsts.KEY_SEPERATOR);
 
 	public KvAccountSetEditor(CryptoSetting cryptoSetting, Bytes keyPrefix, ExPolicyKVStorage exStorage,
-							  VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
-		this(-1, null, cryptoSetting, keyPrefix, exStorage, verStorage, false, accessPolicy);
+							  VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy, DatasetType datasetType) {
+		this(-1, null, cryptoSetting, keyPrefix, exStorage, verStorage, false, accessPolicy, datasetType);
 	}
 
 	public KvAccountSetEditor(long preBlockHeight, HashDigest rootHash, CryptoSetting cryptoSetting, Bytes keyPrefix,
 							  ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
-							  AccountAccessPolicy accessPolicy) {
+							  AccountAccessPolicy accessPolicy, DatasetType datasetType) {
 		this.keyPrefix = keyPrefix;
 		this.cryptoSetting = cryptoSetting;
 		this.baseExStorage = exStorage;
 		this.baseVerStorage = verStorage;
 		this.preBlockHeight = preBlockHeight;
-		this.kvDataset = new KvDataset(preBlockHeight, rootHash, DatasetType.NONE, cryptoSetting, keyPrefix, this.baseExStorage,
+		this.kvDataset = new KvDataset(preBlockHeight, rootHash, datasetType, cryptoSetting, keyPrefix, this.baseExStorage,
 				this.baseVerStorage, readonly);
 
 		this.accessPolicy = accessPolicy;
