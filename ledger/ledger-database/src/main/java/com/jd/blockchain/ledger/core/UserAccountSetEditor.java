@@ -157,4 +157,9 @@ public class UserAccountSetEditor implements Transactional, UserAccountSet {
 	public void clearCachedIndex() {
 		accountSet.clearCachedIndex();
 	}
+
+	// used only by kv type ledger structure, update preblockheight after block commit
+	public void updatePreBlockHeight(long newBlockHeight) {
+		accountSet.updatePreBlockHeight(newBlockHeight);
+	}
 }

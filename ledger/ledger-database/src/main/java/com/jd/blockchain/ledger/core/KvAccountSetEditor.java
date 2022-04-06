@@ -279,12 +279,18 @@ public class KvAccountSetEditor implements BaseAccountSetEditor{
 			throw new LedgerException("Account Registering was rejected for the access policy!");
 		}
 
-		Bytes prefix = keyPrefix.concat(address);
+		long accountIndex = kvDataset.getDataCount() + account_index_in_block;
+		Bytes indexBytes = Bytes.fromString(String.valueOf(accountIndex));
+		Bytes prefix = keyPrefix.concat(indexBytes);
+
 		InnerSimpleAccount acc = createInstance(accountId, cryptoSetting, prefix);
 		latestAccountsCache.put(address, acc);
 		// 该设置用来维护注册用户的顺序
-		// keyprefix = LDG://ledgerhash/USRS/KV/SEQ/index
-		long nv = kvDataset.setValue(ACCOUNTSET_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(kvDataset.getDataCount() + account_index_in_block))), BinaryProtocol.encode(accountId, BlockchainIdentity.class), -1);
+		// 写入数据库的前缀为L:/*S/SQ/accountindex
+		long nv = kvDataset.setValue(ACCOUNTSET_SEQUENCE_KEY_PREFIX.concat(indexBytes), BinaryProtocol.encode(accountId, BlockchainIdentity.class), -1);
+
+		// 写入数据库的前缀为L:/accountset/I/accountaddr, index, -1
+		nv = kvDataset.setValue(Bytes.fromString("I/").concat(address), BytesUtils.toBytes(accountIndex), -1);
 
 		if (nv < 0) {
 			throw new LedgerException("Account Registering sequence already exist!");
@@ -331,7 +337,11 @@ public class KvAccountSetEditor implements BaseAccountSetEditor{
 	private InnerSimpleAccount createAccount(Bytes address, HashDigest headerRoot, HashDigest dataRoot, long version,
 			boolean readonly) {
 		// prefix;
-		Bytes accountPrefix = keyPrefix.concat(address);
+		Bytes accountIndexPrefix = Bytes.fromString("I/").concat(address);
+
+		long accountIndex = BytesUtils.toLong(kvDataset.getValue(accountIndexPrefix));
+
+		Bytes accountPrefix = keyPrefix.concat(Bytes.fromString(String.valueOf(accountIndex)));
 
 		return new InnerSimpleAccount(address, version, headerRoot, dataRoot, cryptoSetting, accountPrefix,
 				baseExStorage, baseVerStorage, readonly);
@@ -509,6 +519,11 @@ public class KvAccountSetEditor implements BaseAccountSetEditor{
 	@Override
 	public void clearCachedIndex() {
 		account_index_in_block = 0;
+	}
+
+	@Override
+	public void updatePreBlockHeight(long newBlockHeight) {
+		kvDataset.updatePreBlockHeight(newBlockHeight);
 	}
 
 }

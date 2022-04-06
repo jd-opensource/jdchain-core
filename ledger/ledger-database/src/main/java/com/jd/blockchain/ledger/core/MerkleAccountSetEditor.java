@@ -478,4 +478,9 @@ public class MerkleAccountSetEditor implements BaseAccountSetEditor {
 		return null;
 	}
 
+	@Override
+	public void updatePreBlockHeight(long newBlockHeight) {
+		// do nothing in merkle ledger structure
+	}
+
 }

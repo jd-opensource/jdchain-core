@@ -188,12 +188,18 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 		});
 	}
 
+	// used only by kv type ledger structure
 	public boolean isAddNew() {
 		return parti_index_in_block != 0;
 	}
 
+	// used only by kv type ledger structure
 	public void clearCachedIndex() {
 		parti_index_in_block = 0;
 	}
 
+	// used only by kv type ledger structure, update preblockheight after block commit
+	public void updatePreBlockHeight(long newBlockHeight) {
+		dataset.updatePreBlockHeight(newBlockHeight);
+	}
 }

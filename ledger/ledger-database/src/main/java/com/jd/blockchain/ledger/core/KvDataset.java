@@ -595,4 +595,9 @@ public class KvDataset implements BaseDataset<Bytes, byte[]> {
 			return getKvDataEntryAt(total - cursor - 1);
 		}
 	}
+
+	@Override
+	public void updatePreBlockHeight(long newBlockHeight) {
+		this.preBlockHeight = newBlockHeight;
+	}
 }

@@ -5,4 +5,6 @@ public interface BaseDataset<K, V> extends IteratorDataset<K, V> {
 
 	boolean isReadonly();
 
+	void updatePreBlockHeight(long newBlockHeight);
+
 }

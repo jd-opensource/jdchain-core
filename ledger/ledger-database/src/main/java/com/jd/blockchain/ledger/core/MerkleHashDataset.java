@@ -375,6 +375,11 @@ public class MerkleHashDataset implements BaseDataset<Bytes, byte[]> {
 	}
 
 	@Override
+	public void updatePreBlockHeight(long newBlockHeight) {
+		// do nothing in merkle ledger structure
+	}
+
+	@Override
 	public SkippingIterator<DataEntry<Bytes, byte[]>> idIterator() {
 		return new AscDataInterator(getDataCount());
 	}

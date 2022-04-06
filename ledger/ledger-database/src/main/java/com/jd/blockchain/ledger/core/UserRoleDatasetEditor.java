@@ -245,4 +245,9 @@ public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Byte
 		userrole_index_in_block = 0;
 	}
 
+	// used only by kv type ledger structure, update preblockheight after block commit
+	public void updatePreBlockHeight(long newBlockHeight) {
+		dataset.updatePreBlockHeight(newBlockHeight);
+	}
+
 }

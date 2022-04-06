@@ -263,6 +263,11 @@ public class DatasetHelper {
 			return dataset.isReadonly();
 		}
 
+		@Override
+		public void updatePreBlockHeight(long newBlockHeight) {
+			// do nothing
+		}
+
 	}
 
 	/**
@@ -387,6 +392,11 @@ public class DatasetHelper {
 		@Override
 		public boolean isReadonly() {
 			return dataset.isReadonly();
+		}
+
+		@Override
+		public void updatePreBlockHeight(long newBlockHeight) {
+			// do nothing
 		}
 
 		@Override

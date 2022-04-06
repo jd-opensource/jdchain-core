@@ -60,6 +60,11 @@ public class LedgerEventSetEditor implements LedgerEventSet, Transactional {
 		userEventSet.clearCachedIndex();
 	}
 
+	public void updatePreBlockHeight(long newBlockHeight) {
+		systemEventPublisher.updatePreBlockHeight(newBlockHeight);
+		userEventSet.updatePreBlockHeight(newBlockHeight);
+	}
+
 //	void setReadonly() {
 //		this.readonly = true;
 //		this.systemEventSet.setReadonly();

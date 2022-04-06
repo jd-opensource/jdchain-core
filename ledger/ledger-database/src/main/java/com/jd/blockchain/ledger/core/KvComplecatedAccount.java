@@ -139,14 +139,14 @@ public class KvComplecatedAccount implements CompositeAccount, HashProvable, Acc
 		// 加载“头数据集”；
 //		HashDigest headerRoot = loadHeaderRoot();
 		Bytes headerPrefix = keyPrefix.concat(HEADER_PREFIX);
-		this.headerDataset = new KvDataset(preblockHeight, headerRoot, DatasetType.NONE, cryptoSetting, headerPrefix, exStorage, verStorage,
+		this.headerDataset = new KvDataset(preblockHeight, headerRoot, DatasetType.HDKVS, cryptoSetting, headerPrefix, exStorage, verStorage,
 				readonly);
 		this.typedHeader = DatasetHelper.listen(DatasetHelper.map(headerDataset, valueMapper), dataChangedListenerHeader);
 
 		// 加载“主数据集”
 //		HashDigest dataRoot = loadDataRoot();
 		Bytes dataPrefix = keyPrefix.concat(DATA_PREFIX);
-		this.dataDataset = new KvDataset(preblockHeight, dataRoot, DatasetType.NONE, cryptoSetting, dataPrefix, exStorage, verStorage, readonly);
+		this.dataDataset = new KvDataset(preblockHeight, dataRoot, DatasetType.DTKVS, cryptoSetting, dataPrefix, exStorage, verStorage, readonly);
 		this.typedData = DatasetHelper.listen(DatasetHelper.map(dataDataset, valueMapper), dataChangedListenerData);
 	}
 

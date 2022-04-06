@@ -163,6 +163,11 @@ public class MerkleSequenceDataset implements BaseDataset<Bytes, byte[]> {
 	}
 
 	@Override
+	public void updatePreBlockHeight(long newBlockHeight) {
+		// do nothing in merkle ledger structure
+	}
+
+	@Override
 	public DataEntry<Bytes, byte[]>[] getDataEntries(long fromIndex, int count) {
 		return null;
 	}

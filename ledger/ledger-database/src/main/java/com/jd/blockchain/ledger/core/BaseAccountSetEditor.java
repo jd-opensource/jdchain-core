@@ -24,4 +24,6 @@ public interface BaseAccountSetEditor extends Transactional, BaseAccountSet<Comp
 
     Map<Bytes, Long> getKvNumCache(); // used only by kv ledger structure
 
+    void updatePreBlockHeight(long newBlockHeight); // used only by kv ledger structure
+
 }

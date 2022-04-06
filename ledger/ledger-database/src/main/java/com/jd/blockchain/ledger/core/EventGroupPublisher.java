@@ -183,4 +183,9 @@ public class EventGroupPublisher implements EventGroup, EventPublisher, Transact
     public void clearCachedIndex() {
         event_index_in_block = 0;
     }
+
+    // used only by kv type ledger structure, update preblockheight after block commit
+    public void updatePreBlockHeight(long newBlockHeight) {
+        events.updatePreBlockHeight(newBlockHeight);
+    }
 }

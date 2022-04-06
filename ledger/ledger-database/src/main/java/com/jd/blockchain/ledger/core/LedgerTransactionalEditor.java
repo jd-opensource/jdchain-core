@@ -509,7 +509,9 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			throw new BlockRollbackException(e.getMessage(), e);
 		}
 
-		clearCachedIndex(latestLedgerDataset, latestLedgerEventSet);
+		clearCachedIndex(latestLedgerDataset, latestLedgerEventSet, txset);
+
+		updatePreBlockHeight(latestLedgerDataset, latestLedgerEventSet, txset);
 
 		committed = true;
 	}
@@ -540,7 +542,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		}
 	}
 
-	private void clearCachedIndex(LedgerDataSetEditor latestLedgerDataset, LedgerEventSetEditor latestLedgerEventSet) {
+	private void clearCachedIndex(LedgerDataSetEditor latestLedgerDataset, LedgerEventSetEditor latestLedgerEventSet, TransactionSetEditor latestLedgerTxSet) {
 
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			return;
@@ -549,7 +551,26 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		latestLedgerDataset.clearCachedIndex();
 		// 注意此处的实现
 		latestLedgerEventSet.clearCachedIndex();
+
+		latestLedgerTxSet.clearCachedIndex();
 	}
+
+	private void updatePreBlockHeight(LedgerDataSetEditor latestLedgerDataset, LedgerEventSetEditor latestLedgerEventSet, TransactionSetEditor latestLedgerTxSet) {
+
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			return;
+		}
+
+		long currBlockHeight = currentBlock.getHeight();
+
+		latestLedgerDataset.updatePreBlockHeight(currBlockHeight);
+
+		latestLedgerEventSet.updatePreBlockHeight(currBlockHeight);
+
+		latestLedgerTxSet.updatePreBlockHeight(currBlockHeight);
+
+	}
+
 
 	private void saveTotal() {
 
@@ -558,8 +579,6 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		}
 
 		final Bytes DATA_PREFIX = Bytes.fromString("D/");
-
-//		final Bytes KV_PREFIX = Bytes.fromString("KV/");
 
 		final Bytes LEDGER_PARTICIPANT_PREFIX = Bytes.fromString(ledgerKeyPrefix + "PAR/").concat(Bytes.fromString("T"));
 
@@ -602,7 +621,6 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			}
 		}
 
-		System.out.println("USER_SET_PREFIX = "+ USER_SET_PREFIX.toBytes().length);
 		nv = baseStorage.set(USER_SET_PREFIX, BytesUtils.toBytes(latestLedgerDataset.getUserAccountSet().getTotal()), (currentBlock.getHeight() - 1));
 		if (nv < 0) {
 			throw new IllegalStateException(
@@ -615,10 +633,13 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 					"DataAccounts total set exception! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
 		}
 
-
 		Map<Bytes, Long> kvNumCache = latestLedgerDataset.getDataAccountSet().getKvNumCache();
 		for (Bytes address : kvNumCache.keySet()) {
-			Bytes dataKvTotalPrefix = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("DS/")).concat(address).concat(DATA_PREFIX).concat(Bytes.fromString("T"));
+			// 首先查询账户地址对应的顺序号
+			byte[] indexBytes = baseStorage.get(Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("DS/")).concat(Bytes.fromString("I/").concat(address)), -1);
+			long accountIndex = BytesUtils.toLong(indexBytes);
+
+			Bytes dataKvTotalPrefix = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("DS/")).concat(Bytes.fromString(String.valueOf(accountIndex))).concat(DATA_PREFIX).concat(Bytes.fromString("T"));
 			nv = baseStorage.set(dataKvTotalPrefix, BytesUtils.toBytes(latestLedgerDataset.getDataAccountSet().getAccount(address).getDataset().getDataCount() + kvNumCache.get(address).longValue()), baseStorage.getVersion(dataKvTotalPrefix));
 			if (nv < 0) {
 				throw new IllegalStateException(
@@ -650,7 +671,10 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 		Map<Bytes, Long> kvNumCacheEvent = latestLedgerEventSet.getEventAccountSet().getKvNumCache();
 		for (Bytes address : kvNumCacheEvent.keySet()) {
-			Bytes eventNameTotalPrefix = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("UE/")).concat(address).concat(DATA_PREFIX).concat(Bytes.fromString("T"));
+			// 首先查询账户地址对应的顺序号
+			byte[] indexBytes = baseStorage.get(Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("UE/")).concat(Bytes.fromString("I/")).concat(address), -1);
+			long accountIndex = BytesUtils.toLong(indexBytes);
+			Bytes eventNameTotalPrefix = Bytes.fromString(ledgerKeyPrefix + Bytes.fromString("UE/")).concat(Bytes.fromString(String.valueOf(accountIndex))).concat(DATA_PREFIX).concat(Bytes.fromString("T"));
 			nv = baseStorage.set(eventNameTotalPrefix, BytesUtils.toBytes(latestLedgerEventSet.getEventAccountSet().getAccount(address).totalEventNames() + kvNumCacheEvent.get(address).longValue()), baseStorage.getVersion(eventNameTotalPrefix));
 			if (nv < 0) {
 				throw new IllegalStateException(

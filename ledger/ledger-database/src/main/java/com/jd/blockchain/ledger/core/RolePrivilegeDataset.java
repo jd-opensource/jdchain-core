@@ -357,4 +357,9 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	public void clearCachedIndex() {
 		rolepri_index_in_block = 0;
 	}
+
+	// used only by kv type ledger structure, update preblockheight after block commit
+	public void updatePreBlockHeight(long newBlockHeight) {
+		dataset.updatePreBlockHeight(newBlockHeight);
+	}
 }

@@ -225,7 +225,7 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		if (ledgerDataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			return txSequence.size();
 		} else {
-			return txStateSet.getDataCount() + origin_txIndex;
+			return txStateSet.getDataCount() + txIndex;
 		}
 
 	}
@@ -435,6 +435,14 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 			return Crypto.resolveAsHashDigest(bytes);
 		}
 
+	}
+
+	public void clearCachedIndex() {
+		txIndex = 0;
+	}
+
+	public void updatePreBlockHeight(long newBlockHeight) {
+		txStateSet.updatePreBlockHeight(newBlockHeight);
 	}
 
 }
