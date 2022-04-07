@@ -336,15 +336,30 @@ public class KvAccountSetEditor implements BaseAccountSetEditor{
 
 	private InnerSimpleAccount createAccount(Bytes address, HashDigest headerRoot, HashDigest dataRoot, long version,
 			boolean readonly) {
-		// prefix;
+
 		Bytes accountIndexPrefix = Bytes.fromString("I/").concat(address);
 
 		long accountIndex = BytesUtils.toLong(kvDataset.getValue(accountIndexPrefix));
 
-		Bytes accountPrefix = keyPrefix.concat(Bytes.fromString(String.valueOf(accountIndex)));
+		Bytes accountIndexBytes = Bytes.fromString(String.valueOf(accountIndex));
 
-		return new InnerSimpleAccount(address, version, headerRoot, dataRoot, cryptoSetting, accountPrefix,
+		// 根据账户的顺序号查找其身份信息（ID), 前缀为：L:/DS/SQ/accountindex
+		Bytes idkeyPrefix = Bytes.fromString("SQ/").concat(accountIndexBytes);
+
+		BlockchainIdentity id = loadId(idkeyPrefix);
+
+		// 数据账户集下具体账户的完整前缀：L:/DS/accountindex
+		Bytes accountPrefix = keyPrefix.concat(accountIndexBytes);
+		
+		return new InnerSimpleAccount(id, version, headerRoot, dataRoot, cryptoSetting, accountPrefix,
 				baseExStorage, baseVerStorage, readonly);
+	}
+
+	private BlockchainIdentity loadId(Bytes idkeyPrefix) {
+		byte[] idbytes = kvDataset.getValue(idkeyPrefix, -1);
+
+		BlockchainIdentity identity = BinaryProtocol.decode(idbytes, BlockchainIdentity.class);
+		return new BlockchainIdentityData(identity.getAddress(), identity.getPubKey());
 	}
 
 	// TODO:优化：区块链身份(地址+公钥)与其Merkle树根哈希分开独立存储；
@@ -435,10 +450,10 @@ public class KvAccountSetEditor implements BaseAccountSetEditor{
 			this.version = -1;
 		}
 
-		public InnerSimpleAccount(Bytes address, long version, HashDigest headerRootHash, HashDigest dataRootHash,
+		public InnerSimpleAccount(BlockchainIdentity accountID, long version, HashDigest headerRootHash, HashDigest dataRootHash,
 				CryptoSetting cryptoSetting, Bytes keyPrefix, ExPolicyKVStorage exStorage,
 				VersioningKVStorage verStorage, boolean readonly) {
-			super(preBlockHeight, address, headerRootHash, dataRootHash, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
+			super(preBlockHeight, accountID, headerRootHash, dataRootHash, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
 			this.version = version;
 		}
 

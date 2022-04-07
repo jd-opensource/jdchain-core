@@ -170,8 +170,9 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 			ledgerTransactions = new LedgerTransaction[txCount];
 
 			for (int i = 0; i < txCount; i++) {
-				HashDigest txHash = loadReqHash(fromIndex + i);
-				ledgerTransactions[i] = getTransaction(txHash);
+//				HashDigest txHash = loadReqHash(fromIndex + i);
+//				ledgerTransactions[i] = getTransaction(txHash);
+				ledgerTransactions[i] = getTransaction(fromIndex + i);
 			}
 		}
 		return ledgerTransactions;
@@ -202,8 +203,8 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 			transactionResults = new TransactionResult[txCount];
 
 			for (int i = 0; i < txCount; i++) {
-				HashDigest txHash = loadReqHash(fromIndex + i);
-				transactionResults[i] = loadResult(txHash);
+//				HashDigest txHash = loadReqHash(fromIndex + i);
+				transactionResults[i] = loadResultKv(fromIndex + i);
 			}
 
 		}
@@ -269,7 +270,20 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		}
 		return new LedgerTransactionData(txRequest, txResult);
 	}
-	
+
+	@Override
+	public LedgerTransaction getTransaction(long txSeq) {
+		TransactionRequest txRequest = loadRequestKv(txSeq);
+		if(null == txRequest) {
+			return null;
+		}
+		TransactionResult txResult = loadResultKv(txSeq);
+		if(null == txResult) {
+			return null;
+		}
+		return new LedgerTransactionData(txRequest, txResult);
+	}
+
 	@Override
 	public TransactionRequest getTransactionRequest(HashDigest txContentHash) {
 		return loadRequest(txContentHash);
@@ -290,16 +304,6 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		return tx.getResult().getExecutionState();
 	}
 
-	// 以账本为维度，加载指定交易索引的交易请求hash
-	private HashDigest loadReqHash(long seq) {
-		Bytes key = encodeSeqKey(seq);
-		byte[] txHashBytes = txStateSet.getValue(key, 0);
-		if (txHashBytes == null) {
-			return null;
-		}
-		return Crypto.resolveAsHashDigest(txHashBytes);
-	}
-
 	private TransactionResult loadResult(HashDigest txContentHash) {
 		// transaction has only one version;
 		Bytes key = encodeResultKey(txContentHash);
@@ -310,18 +314,34 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		return BinaryProtocol.decode(txBytes, TransactionResult.class);
 	}
 
+	private TransactionResult loadResultKv(long seq) {
+		// transaction has only one version;
+		Bytes key = encodeKvResultKey(seq);
+		byte[] txBytes = txStateSet.getValue(key, 0);
+		if (txBytes == null) {
+			return null;
+		}
+		return BinaryProtocol.decode(txBytes, TransactionResult.class);
+	}
+
 	private void saveResult(TransactionResult txResult) {
 		// 序列化交易内容；
 		byte[] txResultBytes = BinaryProtocol.encode(txResult, TransactionResult.class);
-		// 以交易内容的 hash 为 key；
-		Bytes key = encodeResultKey(txResult.getTransactionHash());
+		Bytes key;
+
+		if (ledgerDataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			// 以交易内容的 hash 为 key；
+			key = encodeResultKey(txResult.getTransactionHash());
+		} else {
+			key = encodeKvResultKey(txStateSet.getDataCount() + txIndex);
+		}
 		// 交易只有唯一的版本；
 		long v = txStateSet.setValue(key, txResultBytes);
 		if (v < 0) {
 			throw new IllegalTransactionException("Repeated transaction request! --[" + key + "]");
 		}
 	}
-	
+
 	private TransactionRequest loadRequest(HashDigest txContentHash) {
 		// transaction has only one version;
 		Bytes key = encodeRequestKey(txContentHash);
@@ -331,12 +351,28 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		}
 		return BinaryProtocol.decode(txBytes, TransactionRequest.class);
 	}
-	
-	private void saveRequest(TransactionRequest txResult) {
+
+	// 以账本为维度，加载指定交易索引的交易请求hash
+	private TransactionRequest loadRequestKv(long seq) {
+		Bytes key = encodeKvRequestKey(seq);
+		byte[] txHashBytes = txStateSet.getValue(key, 0);
+		if (txHashBytes == null) {
+			return null;
+		}
+		return BinaryProtocol.decode(txHashBytes, TransactionRequest.class);
+	}
+
+	private void saveRequest(TransactionRequest txRequest) {
 		// 序列化交易内容；
-		byte[] txResultBytes = BinaryProtocol.encode(txResult, TransactionRequest.class);
-		// 以交易内容的 hash 为 key；
-		Bytes key = encodeRequestKey(txResult.getTransactionHash());
+		byte[] txResultBytes = BinaryProtocol.encode(txRequest, TransactionRequest.class);
+
+		Bytes key;
+		if (ledgerDataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			// 以交易内容的 hash 为 key；
+			key = encodeRequestKey(txRequest.getTransactionHash());
+		} else {
+			key = encodeKvRequestKey(txStateSet.getDataCount() + txIndex);
+		}
 		// 交易只有唯一的版本；
 		long v = txStateSet.setValue(key, txResultBytes);
 		if (v < 0) {
@@ -352,8 +388,20 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		return TX_REQUEST_KEY_PREFIX.concat(txContentHash);
 	}
 
-	private Bytes encodeSeqKey(long seq) {
-		return TX_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(seq)));
+	private Bytes encodeKvRequestKey(long seq) {
+		return TX_REQUEST_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(seq)));
+	}
+
+	private Bytes encodeKvResultKey(long seq) {
+		return TX_RESULT_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(seq)));
+	}
+
+//	private Bytes encodeSeqKey(long seq) {
+//		return TX_SEQUENCE_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(seq)));
+//	}
+
+	private Bytes encodeSeqKey(HashDigest txContentHash) {
+		return TX_SEQUENCE_KEY_PREFIX.concat(txContentHash);
 	}
 
 	private Bytes encodeTotalNumKey() {
@@ -399,12 +447,13 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		}
 	}
 
-	// 以账本为维度记录交易索引号
+	// 以账本为维度记录交易哈希对应的索引号
 	private void saveSequence(TransactionRequest txRequest) {
-		// key = keyprefix + SEQ/txindex
-		Bytes key = encodeSeqKey(txStateSet.getDataCount() + txIndex);
+		// key = keyprefix/SQ/txHash
+		Bytes key = encodeSeqKey(txRequest.getTransactionHash());
+
 		// 交易序号只有唯一的版本；
-		long v = txStateSet.setValue(key, txRequest.getTransactionHash().toBytes());
+		long v = txStateSet.setValue(key, BytesUtils.toBytes(txStateSet.getDataCount() + txIndex));
 		if (v < 0) {
 			throw new IllegalTransactionException("Repeated transaction request sequence! --[" + key + "]");
 		}

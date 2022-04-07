@@ -48,6 +48,9 @@ public class KvComplecatedAccount implements CompositeAccount, HashProvable, Acc
 	private BaseDataset<String, TypedValue> typedData;
 
 	private long preblockHeight;
+
+	private boolean isNewInstance = false;
+
 	/**
 	 * Create a new Account with the specified identity(address and pubkey); <br>
 	 *
@@ -68,7 +71,10 @@ public class KvComplecatedAccount implements CompositeAccount, HashProvable, Acc
 		// 初始化数据集；
 		initializeDatasets(null, null, cryptoSetting, keyPrefix, exStorage, verStorage, false);
 
-		initPubKey(accountID.getPubKey());
+//		initPubKey(accountID.getPubKey());
+
+		isNewInstance = true;
+
 		this.accountID = accountID;
 	}
 
@@ -85,12 +91,12 @@ public class KvComplecatedAccount implements CompositeAccount, HashProvable, Acc
 	 * @param verStorage    The base storage for versioning operation;
 	 * @param readonly      Readonly about this account's dataset;
 	 */
-	public KvComplecatedAccount(long preblockHeight, Bytes address, HashDigest headerRoot, HashDigest dataRoot, CryptoSetting cryptoSetting,
+	public KvComplecatedAccount(long preblockHeight, BlockchainIdentity accountID, HashDigest headerRoot, HashDigest dataRoot, CryptoSetting cryptoSetting,
 								Bytes keyPrefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
-		if (headerRoot == null && dataRoot == null) {
-			throw new IllegalArgumentException(
-					"Specified a null header-root hash and data-root hash for account[" + address.toBase58() + "]!");
-		}
+//		if (headerRoot == null && dataRoot == null) {
+//			throw new IllegalArgumentException(
+//					"Specified a null header-root hash and data-root hash for account[" + accountID.getAddress().toBase58() + "]!");
+//		}
 
 		this.preblockHeight = preblockHeight;
 
@@ -98,14 +104,12 @@ public class KvComplecatedAccount implements CompositeAccount, HashProvable, Acc
 		initializeDatasets(headerRoot, dataRoot, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
 
 		// 初始化账户的身份；
-		PubKey pubKey = loadPubKey();
-		this.accountID = new AccountID(address, pubKey);
+//		PubKey pubKey = loadPubKey();
+		this.accountID = accountID;
 	}
 
 	private void initializeDatasets(HashDigest headerRoot, HashDigest dataRoot, CryptoSetting cryptoSetting,
 			Bytes keyPrefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
-//		// 加载“根数据集”
-//		this.rootDataset = new MerkleHashDataset(rootHash, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
 
 		// 初始化数据修改监听器；
 		DataChangedListener<String, TypedValue> dataChangedListenerHeader = new DataChangedListener<String, TypedValue>() {
@@ -255,25 +259,25 @@ public class KvComplecatedAccount implements CompositeAccount, HashProvable, Acc
 	 * 
 	 * @param pubKey
 	 */
-	private void initPubKey(PubKey pubKey) {
-		long v = typedHeader.setValue(KEY_PUBKEY, TypedValue.fromPubKey(pubKey), -1);
-		if (v < 0) {
-			throw new LedgerException("PubKey storage conflict!");
-		}
-	}
+//	private void initPubKey(PubKey pubKey) {
+//		long v = typedHeader.setValue(KEY_PUBKEY, TypedValue.fromPubKey(pubKey), -1);
+//		if (v < 0) {
+//			throw new LedgerException("PubKey storage conflict!");
+//		}
+//	}
 
 	/**
 	 * 加载公钥；
 	 * 
 	 * @return
 	 */
-	private PubKey loadPubKey() {
-		TypedValue value = typedHeader.getValue(KEY_PUBKEY);
-		if (value == null) {
-			return null;
-		}
-		return value.pubKeyValue();
-	}
+//	private PubKey loadPubKey() {
+//		TypedValue value = typedHeader.getValue(KEY_PUBKEY);
+//		if (value == null) {
+//			return null;
+//		}
+//		return value.pubKeyValue();
+//	}
 
 	/**
 	 * 当写入新值时触发此方法；
@@ -327,10 +331,11 @@ public class KvComplecatedAccount implements CompositeAccount, HashProvable, Acc
 //			onCommited(previousRootHash, rootDataset.getRootHash());
 //		}
 
-		if (updated) {
+		if (updated || isNewInstance) {
 			onCommited(headerRoot, dataRoot);
 		}
 
+		isNewInstance = false;
 	}
 
 	@Override

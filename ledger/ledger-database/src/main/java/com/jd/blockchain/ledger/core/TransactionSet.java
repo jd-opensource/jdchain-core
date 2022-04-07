@@ -22,6 +22,8 @@ public interface TransactionSet extends MerkleProvable<Bytes> {
 	 * @return
 	 */
 	LedgerTransaction getTransaction(HashDigest txContentHash);
+
+	LedgerTransaction getTransaction(long txSeq);
 	/**
 	 * @param txContentHash
 	 *            Base58 编码的交易内容的哈希；
