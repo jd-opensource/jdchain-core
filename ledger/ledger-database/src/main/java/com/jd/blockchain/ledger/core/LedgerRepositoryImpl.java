@@ -19,6 +19,7 @@ import com.jd.blockchain.storage.service.VersioningKVStorage;
 
 import utils.Bytes;
 import utils.codec.Base58Utils;
+import utils.io.BytesUtils;
 
 /**
  * 账本的存储结构： <br>
@@ -196,12 +197,17 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		if (height < 0) {
 			return null;
 		}
-		// get block hash by height;
-		byte[] hashBytes = versioningStorage.get(ledgerIndexKey, height);
-		if (hashBytes == null || hashBytes.length == 0) {
-			return null;
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			// get block hash by height;
+			byte[] hashBytes = versioningStorage.get(ledgerIndexKey, height);
+			if (hashBytes == null || hashBytes.length == 0) {
+				return null;
+			}
+			return Crypto.resolveAsHashDigest(hashBytes);
+		} else {
+			byte[] blockContent = versioningStorage.get(ledgerIndexKey, height);
+			return deserialize(blockContent).getHash();
 		}
-		return Crypto.resolveAsHashDigest(hashBytes);
 	}
 
 	@Override
@@ -239,7 +245,14 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		if(null == blockBytes) {
 			return null;
 		}
-		LedgerBlockData block = new LedgerBlockData(deserialize(blockBytes));
+		LedgerBlockData block;
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			block = new LedgerBlockData(deserialize(blockBytes));
+		} else {
+			long blockHeight = BytesUtils.toLong(blockBytes);
+			byte[] blockContent =  versioningStorage.get(LEDGER_PREFIX, blockHeight);
+			block = new LedgerBlockData(deserialize(blockContent));
+		}
 
 		if (!blockHash.equals(block.getHash())) {
 			throw new RuntimeException("Block hash not equals to it's storage key!");
@@ -522,7 +535,8 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 	
 	static Bytes encodeLedgerIndexKey(HashDigest ledgerHash) {
-		return LEDGER_PREFIX.concat(ledgerHash);
+//		return LEDGER_PREFIX.concat(ledgerHash);
+		return LEDGER_PREFIX;
 	}
 
 	static Bytes encodeBlockStorageKey(HashDigest blockHash) {

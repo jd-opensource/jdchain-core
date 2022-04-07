@@ -260,15 +260,29 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 	 */
 	@Override
 	public LedgerTransaction getTransaction(HashDigest txContentHash) {
-		TransactionRequest txRequest = loadRequest(txContentHash);
-		if(null == txRequest) {
-			return null;
+
+		if (ledgerDataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			TransactionRequest txRequest = loadRequest(txContentHash);
+			if (null == txRequest) {
+				return null;
+			}
+			TransactionResult txResult = loadResult(txContentHash);
+			if (null == txResult) {
+				return null;
+			}
+			return new LedgerTransactionData(txRequest, txResult);
+		} else {
+
+			long seq = loadReqSeq(txContentHash);
+			return getTransaction(seq);
 		}
-		TransactionResult txResult = loadResult(txContentHash);
-		if(null == txResult) {
-			return null;
-		}
-		return new LedgerTransactionData(txRequest, txResult);
+	}
+
+	private long loadReqSeq(HashDigest txContentHash) {
+		Bytes key = encodeSeqKey(txContentHash);
+		byte[] txReqIndex = txStateSet.getValue(key, 0);
+
+		return BytesUtils.toLong(txReqIndex);
 	}
 
 	@Override

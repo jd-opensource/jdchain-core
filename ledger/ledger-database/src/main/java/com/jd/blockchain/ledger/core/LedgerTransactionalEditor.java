@@ -466,7 +466,13 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		// only one version per block;
 		byte[] blockBytes = BinaryProtocol.encode(currentBlock, LedgerBlock.class);
 		Bytes blockStorageKey = LedgerRepositoryImpl.encodeBlockStorageKey(currentBlock.getHash());
-		long v = baseStorage.set(blockStorageKey, blockBytes, -1);
+		long v;
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			v = baseStorage.set(blockStorageKey, blockBytes, -1);
+		} else {
+			// key = BK/blockhash, value = blockheight, version = -1;
+			v = baseStorage.set(blockStorageKey, BytesUtils.toBytes(currentBlock.getHeight()), -1);
+		}
 		if (v < 0) {
 			throw new IllegalStateException(
 					"Block already exist! --[BlockHash=" + Base58Utils.encode(currentBlock.getHash().toBytes()) + "]");
@@ -479,7 +485,14 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		}
 		Bytes ledgerIndexKey = LedgerRepositoryImpl.encodeLedgerIndexKey(ledgerHash);
 		long expectedVersion = currentBlock.getHeight() - 1;
-		v = baseStorage.set(ledgerIndexKey, currentBlock.getHash().toBytes(), expectedVersion);
+
+		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
+			v = baseStorage.set(ledgerIndexKey, currentBlock.getHash().toBytes(), expectedVersion);
+		} else {
+			// key = IX/, value = blockcontent, version = blockheight
+			v = baseStorage.set(ledgerIndexKey, blockBytes, expectedVersion);
+		}
+
 		if (v < 0) {
 			throw new IllegalStateException(
 					String.format("Index of BlockHash already exist! --[BlockHeight=%s][BlockHash=%s]",
