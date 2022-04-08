@@ -7,7 +7,9 @@ import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.AccountSnapshot;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BlockchainIdentityData;
+import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.CryptoSetting;
+import com.jd.blockchain.ledger.DataType;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.TransactionState;
@@ -105,8 +107,9 @@ public class KvAccountSetEditor implements BaseAccountSetEditor{
 						if (source == null) {
 							return null;
 						}
-						BlockchainIdentity identity = BinaryProtocol.decode(source.getValue(), BlockchainIdentity.class);
-						return new BlockchainIdentityData(identity.getAddress(), identity.getPubKey());
+						BytesValue pubBytesValue = BinaryProtocol.decode(source.getValue(), BytesValue.class);
+						PubKey pubKey = (PubKey) TypedValue.wrap(pubBytesValue).getValue();
+						return new BlockchainIdentityData(AddressEncoding.generateAddress(pubKey), pubKey);
 					}
 				});
 
@@ -287,7 +290,10 @@ public class KvAccountSetEditor implements BaseAccountSetEditor{
 		latestAccountsCache.put(address, acc);
 		// 该设置用来维护注册用户的顺序
 		// 写入数据库的前缀为L:/*S/SQ/accountindex
-		long nv = kvDataset.setValue(ACCOUNTSET_SEQUENCE_KEY_PREFIX.concat(indexBytes), BinaryProtocol.encode(accountId, BlockchainIdentity.class), -1);
+
+		byte[] pubKeyBytes = BinaryProtocol.encode(TypedValue.fromPubKey(accountId.getPubKey()), BytesValue.class);
+
+		long nv = kvDataset.setValue(ACCOUNTSET_SEQUENCE_KEY_PREFIX.concat(indexBytes), pubKeyBytes, -1);
 
 		// 写入数据库的前缀为L:/accountset/I/accountaddr, index, -1
 		nv = kvDataset.setValue(Bytes.fromString("I/").concat(address), BytesUtils.toBytes(accountIndex), -1);
@@ -356,10 +362,13 @@ public class KvAccountSetEditor implements BaseAccountSetEditor{
 	}
 
 	private BlockchainIdentity loadId(Bytes idkeyPrefix) {
-		byte[] idbytes = kvDataset.getValue(idkeyPrefix, -1);
+		byte[] pubBytes = kvDataset.getValue(idkeyPrefix, -1);
 
-		BlockchainIdentity identity = BinaryProtocol.decode(idbytes, BlockchainIdentity.class);
-		return new BlockchainIdentityData(identity.getAddress(), identity.getPubKey());
+		BytesValue pubBytesValue =  BinaryProtocol.decode(pubBytes, BytesValue.class);
+
+		PubKey pubKey = (PubKey) TypedValue.wrap(pubBytesValue).getValue();
+
+		return new BlockchainIdentityData(AddressEncoding.generateAddress(pubKey), pubKey);
 	}
 
 	// TODO:优化：区块链身份(地址+公钥)与其Merkle树根哈希分开独立存储；
