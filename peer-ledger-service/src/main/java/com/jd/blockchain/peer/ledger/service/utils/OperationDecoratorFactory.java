@@ -53,8 +53,8 @@ public class OperationDecoratorFactory {
             return decorateContractStateUpdateOperation((ContractStateUpdateOperation) op);
         } else if (op instanceof AccountPermissionSetOperation) {
             return decorateAccountPermissionSetOperation((AccountPermissionSetOperation) op);
-        } else if (op instanceof HashAlgorithmUpdateOperation){
-            return decorateCryptoHashAlgoUpdateOperation((HashAlgorithmUpdateOperation)op);
+        } else if (op instanceof HashAlgorithmUpdateOperation) {
+            return decorateCryptoHashAlgoUpdateOperation((HashAlgorithmUpdateOperation) op);
         }
 
         return null;
@@ -137,7 +137,11 @@ public class OperationDecoratorFactory {
         ledgerInitData.setConsensusProvider(op.getInitSetting().getConsensusProvider());
         ledgerInitData.setCreatedTime(op.getInitSetting().getCreatedTime());
         ledgerInitData.setLedgerDataStructure(op.getInitSetting().getLedgerDataStructure());
-        ledgerInitData.setContractRuntimeConfig(new JVMContractRuntimeConfig(op.getInitSetting().getContractRuntimeConfig().getTimeout()));
+        ledgerInitData.setContractRuntimeConfig(new JVMContractRuntimeConfig(
+                        op.getInitSetting().getContractRuntimeConfig().getTimeout(),
+                        op.getInitSetting().getContractRuntimeConfig().getMaxStackDepth()
+                )
+        );
         ParticipantNode[] participantNodes = op.getInitSetting().getConsensusParticipants();
         if (participantNodes != null && participantNodes.length > 0) {
             ParticipantNode[] participants = new ParticipantNode[participantNodes.length];
