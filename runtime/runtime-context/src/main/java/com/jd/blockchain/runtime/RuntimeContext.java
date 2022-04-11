@@ -103,6 +103,20 @@ public abstract class RuntimeContext {
 
 	protected abstract URLClassLoader createDynamicModuleClassLoader(URL jarURL);
 
+	public static void enableSecurityManager() {
+		RuntimeSecurityManager securityManager = get().getSecurityManager();
+		if (null != securityManager) {
+			securityManager.enable();
+		}
+	}
+
+	public static void disableSecurityManager() {
+		RuntimeSecurityManager securityManager = get().getSecurityManager();
+		if (null != securityManager) {
+			securityManager.disable();
+		}
+	}
+
 	// ------------------------- inner types --------------------------
 
 	private static class EnvSettings implements Environment {

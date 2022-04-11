@@ -417,7 +417,7 @@ class InitConfig implements Runnable {
                 "system.server.rpc.connect.timeout=10000\n" +
                 "system.server.rpc.default.timeout=10000\n" +
                 "system.server.rpc.snapshot.timeout=300000\n" +
-                "system.server.rpc.request.timeout=20000\n" +
+                "system.server.rpc.request.timeout=120000\n" +
                 "\n" +
                 "system.raft.maxByteCountPerRpc=131072\n" +
                 "system.raft.maxEntriesSize=1024\n" +
