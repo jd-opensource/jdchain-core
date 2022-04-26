@@ -9,7 +9,6 @@ import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.Value;
 import utils.Bytes;
 import utils.io.BytesUtils;
-import utils.serialize.json.JSONSerializeUtils;
 
 /**
  * 基于 Python 源码加载合约；
@@ -41,8 +40,6 @@ public class PythonContractCode extends AbstractContractCode {
         Value contextBindings = context.getBindings(LANG);
         // 传递合约上下文
         contextBindings.putMember("eventContext", eventContext);
-        // 传递 JSON 序列化工具
-        contextBindings.putMember("JSONUtils", new JSONUtils());
         // 传递日志组件
         contextBindings.putMember("LOGGER", LOGGER);
         // 执行 beforeEvent 方法
@@ -121,16 +118,5 @@ public class PythonContractCode extends AbstractContractCode {
     @Override
     protected void disableSecurityManager() {
         // Using graalvm supported access controlling
-    }
-
-    /**
-     * 提供给嵌套JS代码使用的JSON序列化工具
-     */
-    class JSONUtils {
-
-        // JSON序列化，JD Chain账本数据库部分数据结构序列化存在特殊处理，在序列化JD Chain定义的数据结构时请使用此方法
-        public String stringify(Object obj) {
-            return JSONSerializeUtils.serializeToJSON(obj);
-        }
     }
 }

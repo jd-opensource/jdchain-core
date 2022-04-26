@@ -1,6 +1,6 @@
 package com.jd.blockchain.ledger.core.handles;
 
-import com.jd.blockchain.contract.LocalContractEventContext;
+import com.jd.blockchain.contract.jvm.LocalContractEventContext;
 import com.jd.blockchain.contract.engine.ContractCode;
 import com.jd.blockchain.contract.engine.ContractEngine;
 import com.jd.blockchain.contract.engine.ContractServiceProviders;
