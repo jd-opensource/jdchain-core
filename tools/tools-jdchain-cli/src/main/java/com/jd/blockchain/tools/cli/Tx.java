@@ -401,7 +401,7 @@ class TxUserCAUpdate implements Runnable {
             return;
         }
         CertificateUtils.checkCertificateRolesAny(certificate, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
-        CertificateUtils.checkValidity(certificate);
+//        CertificateUtils.checkValidity(certificate);
         txTemp.user(address).ca(certificate);
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);

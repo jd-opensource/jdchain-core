@@ -69,6 +69,14 @@ public class LedgerSecurityManagerImpl implements LedgerSecurityManager {
 
 	@Override
 	public UserRolesPrivileges getUserRolesPrivilegs(Bytes userAddress) {
+
+		UserAccount account = userAccountsQuery.getAccount(userAddress);
+
+		if (account == null) {
+			throw new LedgerSecurityException(
+					"This user account does not exist!");
+		}
+
 		UserRolesPrivileges userPrivileges = userPrivilegesCache.get(userAddress);
 		if (userPrivileges != null) {
 			return userPrivileges;

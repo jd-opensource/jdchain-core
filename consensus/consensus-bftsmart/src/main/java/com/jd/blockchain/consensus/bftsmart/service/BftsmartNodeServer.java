@@ -769,9 +769,9 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 
 	// 获得checkpoint检查点处的状态快照：区块哈希
 	@Override
-	public byte[] getCheckPointSnapshot(int cid) {
+	public byte[] getBlockHashByCid(int cid) {
 
-		byte[] checkPointSnapshot = messageHandle.getSnapshotByHeight(realmName, cid);
+		byte[] checkPointSnapshot = messageHandle.getBlockHashByCid(realmName, cid);
 
 		LOGGER.info("------- GetCheckPointSnapshot...replica.id= {}, checkPointSnapshot = {}", this.getId(), Base58Utils.encode(checkPointSnapshot));
 
