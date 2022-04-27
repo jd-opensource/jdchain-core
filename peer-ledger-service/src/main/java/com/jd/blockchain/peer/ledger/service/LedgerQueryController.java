@@ -3,7 +3,7 @@ package com.jd.blockchain.peer.ledger.service;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.jd.blockchain.ledger.LedgerDataStructure;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.ComplecatedSimpleAccount;
 import com.jd.blockchain.ledger.core.ContractAccountSetEditorSimple;
 import com.jd.blockchain.ledger.core.DataAccountSetEditorSimple;
@@ -21,27 +21,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.BlockchainIdentity;
-import com.jd.blockchain.ledger.BytesValue;
-import com.jd.blockchain.ledger.ContractInfo;
-import com.jd.blockchain.ledger.DataAccountInfo;
-import com.jd.blockchain.ledger.Event;
-import com.jd.blockchain.ledger.KVDataVO;
-import com.jd.blockchain.ledger.KVInfoVO;
-import com.jd.blockchain.ledger.LedgerAdminInfo;
-import com.jd.blockchain.ledger.LedgerBlock;
-import com.jd.blockchain.ledger.LedgerInfo;
-import com.jd.blockchain.ledger.LedgerMetadata;
-import com.jd.blockchain.ledger.LedgerTransaction;
-import com.jd.blockchain.ledger.LedgerTransactions;
-import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.PrivilegeSet;
-import com.jd.blockchain.ledger.TransactionState;
-import com.jd.blockchain.ledger.TypedKVData;
-import com.jd.blockchain.ledger.TypedKVEntry;
-import com.jd.blockchain.ledger.TypedValue;
-import com.jd.blockchain.ledger.UserInfo;
-import com.jd.blockchain.ledger.UserPrivilegeSet;
 import com.jd.blockchain.ledger.core.ContractAccountSet;
 import com.jd.blockchain.ledger.core.DataAccount;
 import com.jd.blockchain.ledger.core.DataAccountSet;
@@ -119,6 +98,12 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerAdminInfo ledgerAdministration = ledger.getAdminInfo();
 		return ledgerAdminInfoDecorator(ledgerAdministration);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = GET_LEDGER_SETTINGS_CRYPTO)
+	@Override
+	public CryptoSetting getLedgerCryptoSetting(@PathVariable(name = "ledgerHash") HashDigest ledgerHash) {
+		return getLedgerAdminInfo(ledgerHash).getSettings().getCryptoSetting();
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = GET_LEDGER_METADATA)

@@ -325,6 +325,11 @@ public class ContractLedgerContext implements LedgerContext {
     }
 
     @Override
+    public CryptoSetting getLedgerCryptoSetting(HashDigest ledgerHash) {
+        return multiLedgerQueryService.getLedgerAdminInfo(ledgerHash).getSettings().getCryptoSetting();
+    }
+
+    @Override
     @Deprecated
     public ParticipantNode[] getConsensusParticipants(HashDigest ledgerHash) {
         return multiLedgerQueryService.getConsensusParticipants(ledgerHash);
