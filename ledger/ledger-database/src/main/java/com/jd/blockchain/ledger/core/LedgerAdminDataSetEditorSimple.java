@@ -466,6 +466,8 @@ public class LedgerAdminDataSetEditorSimple implements Transactional, LedgerAdmi
 			}
 			if(null != metadata.getContractRuntimeConfig()) {
 				this.contractRuntimeConfig = new JVMContractRuntimeConfig(metadata.getContractRuntimeConfig());
+			} else {
+				this.contractRuntimeConfig = new JVMContractRuntimeConfig();
 			}
 		}
 
