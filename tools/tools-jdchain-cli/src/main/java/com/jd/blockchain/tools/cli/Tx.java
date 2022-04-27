@@ -713,6 +713,9 @@ class TxContractCall implements Runnable {
     @CommandLine.Option(names = "--args", split = ",", description = "Method arguments", scope = CommandLine.ScopeType.INHERIT)
     String[] args;
 
+    @CommandLine.Option(names = "--ver", defaultValue = "-1", description = "Contract version", scope = CommandLine.ScopeType.INHERIT)
+    long version;
+
     @CommandLine.ParentCommand
     private Tx txCommand;
 
@@ -729,7 +732,7 @@ class TxContractCall implements Runnable {
             tvs = new TypedValue[]{};
         }
 
-        txTemp.contract(Bytes.fromBase58(address)).invoke(method, new BytesDataList(tvs));
+        txTemp.contract(Bytes.fromBase58(address)).invoke(method, new BytesDataList(tvs), version);
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);
         if (null != txFile) {

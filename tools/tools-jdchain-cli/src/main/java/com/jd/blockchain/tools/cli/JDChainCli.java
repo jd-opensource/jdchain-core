@@ -9,7 +9,7 @@ import java.io.File;
  * @author: imuge
  * @date: 2021/7/23
  **/
-@CommandLine.Command(name = "jdchain-cli", mixinStandardHelpOptions = true, version = "JD Chain 1.6.1 RELEASE",
+@CommandLine.Command(name = "jdchain-cli", mixinStandardHelpOptions = true, version = "JD Chain 1.6.3 RELEASE",
         description = "JDChain Cli is a convenient tool to manage jdchain keys, " +
                 "sign and send transactions to jdchain network, " +
                 "query data from jdchain network.",
