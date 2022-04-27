@@ -72,7 +72,7 @@ public class TransactionEngineImpl implements TransactionEngine {
 
 	}
 
-	public byte[] getSnapshotByHeight(HashDigest ledgerHash, int height) {
+	public byte[] getBlockHashByCid(HashDigest ledgerHash, int height) {
 
 		LedgerRepository ledgerRepo = ledgerService.getLedger(ledgerHash);
 
