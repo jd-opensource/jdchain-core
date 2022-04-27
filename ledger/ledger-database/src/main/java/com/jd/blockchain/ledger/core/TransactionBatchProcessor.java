@@ -5,6 +5,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.ledger.*;
@@ -23,6 +26,8 @@ import com.jd.blockchain.transaction.TxResponseMessage;
 public class TransactionBatchProcessor implements TransactionBatchProcess, BlockQuery {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TransactionBatchProcessor.class);
+
+	private ExecutorService signCheckingExecutor = Executors.newSingleThreadExecutor();
 
 	private LedgerSecurityManager securityManager;
 
@@ -106,7 +111,9 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 			TransactionRequestExtension reqExt = new TransactionRequestExtensionImpl(request);
 
 			// 验证交易请求；
-			checkRequest(reqExt);
+			Future<Void> submit = (Future<Void>) signCheckingExecutor.submit(() -> {
+				checkRequest(reqExt);
+			});
 			LOGGER.debug("after checkRequest... --[BlockHeight={}][RequestHash={}]",
 					newBlockEditor.getBlockHeight(), request.getTransactionHash());
 
@@ -123,6 +130,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 			LOGGER.debug("Complete handling transaction.  --[BlockHeight={}][TxHash={}]",
 					newBlockEditor.getBlockHeight(), request.getTransactionHash());
 
+			submit.get();
 		} catch (IllegalTransactionException e) {
 			// 抛弃发生处理异常的交易请求；
 			resp = discard(request, e.getTxState());
@@ -189,7 +197,6 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 	}
 
 	private void checkRequest(TransactionRequestExtension reqExt) {
-		// TODO: 把验签和创建交易并行化；
 		checkTxContentHash(reqExt);
 		checkEndpointSignatures(reqExt);
 		checkNodeSignatures(reqExt);
