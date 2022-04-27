@@ -68,7 +68,7 @@ public class JavaContractCode extends AbstractContractCode {
         }
     }
 
-    protected Object getContractInstance() {
+    protected Object getContractInstance(ContractEventContext eventContext) {
         try {
             // 每一次调用都通过反射创建合约的实例；
             return contractDefinition.getMainClass().newInstance();
