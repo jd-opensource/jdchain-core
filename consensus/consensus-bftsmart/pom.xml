@@ -31,7 +31,7 @@
 		</dependency>
 		<dependency>
 			<groupId>com.jd.utils</groupId>
-			<artifactId>utils-sm-tls</artifactId>
+			<artifactId>utils-crypto-sm</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>

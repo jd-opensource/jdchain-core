@@ -6,10 +6,10 @@ import org.springframework.boot.web.server.Ssl;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
 import org.springframework.stereotype.Component;
-import utils.GmSSLProvider;
+import utils.crypto.sm.GmSSLProvider;
 import utils.net.SSLSecurity;
 
-@ConditionalOnExpression("#{T(utils.GmSSLProvider).supportGMSSL(environment['server.ssl.enabled'], environment['server.ssl.protocol'])}")
+@ConditionalOnExpression("#{T(utils.crypto.sm.GmSSLProvider).supportGMSSL(environment['server.ssl.enabled'], environment['server.ssl.protocol'])}")
 @Component
 public class CustomizationBean implements WebServerFactoryCustomizer<ConfigurableServletWebServerFactory> {
 

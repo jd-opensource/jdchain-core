@@ -11,7 +11,7 @@ import com.jd.blockchain.transaction.*;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 import utils.Bytes;
-import utils.GmSSLProvider;
+import utils.crypto.sm.GmSSLProvider;
 import utils.PropertiesUtils;
 import utils.StringUtils;
 import utils.codec.Base58Utils;

@@ -7,7 +7,7 @@ import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.sdk.BlockchainService;
 import com.jd.blockchain.sdk.client.GatewayServiceFactory;
 import picocli.CommandLine;
-import utils.GmSSLProvider;
+import utils.crypto.sm.GmSSLProvider;
 import utils.StringUtils;
 import utils.codec.Base58Utils;
 import utils.net.SSLSecurity;

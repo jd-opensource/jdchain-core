@@ -69,10 +69,15 @@
         </dependency>
         <dependency>
             <groupId>com.alipay.sofa</groupId>
-            <artifactId>bola_ext</artifactId>
+            <artifactId>bolt</artifactId>
             <version>1.6.4</version>
             <scope>system</scope>
-            <systemPath>${basedir}/lib/bola_ext-1.6.4.jar</systemPath>
+            <systemPath>${basedir}/lib/bolt-1.6.4.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>com.alipay.sofa.common</groupId>
+            <artifactId>sofa-common-tools</artifactId>
+            <version>1.0.12</version>
         </dependency>
     </dependencies>
 
