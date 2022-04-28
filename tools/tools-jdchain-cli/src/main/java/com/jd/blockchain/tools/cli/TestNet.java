@@ -397,7 +397,10 @@ class InitConfig implements Runnable {
                 "system.bft = true\n" +
                 "\n" +
                 "#Custom View Storage;\n" +
-                "#view.storage.handler=bftsmart.reconfiguration.views.DefaultViewStorage");
+                "#view.storage.handler=bftsmart.reconfiguration.views.DefaultViewStorage\n" +
+                "\n" +
+                "#block delay;\n" +
+                "system.epoch.delay=50");
         FileUtils.deleteFile(file);
         FileUtils.writeText(sb.toString(), new File(file));
     }
@@ -685,7 +688,7 @@ class InitConfig implements Runnable {
                 "fi\n" +
                 "\n" +
                 "#定义程序启动的参数\n" +
-                "JAVA_OPTS=\"-jar -server -Xms2048m -Xmx2048m $opens -Djdchain.log=$APP_HOME/logs -Dlog4j.configurationFile=file:$APP_HOME/config/log4j2-peer.xml\"\n" +
+                "JAVA_OPTS=\"-jar -server -Xms6144m -Xmx6144m $opens -Djdchain.log=$APP_HOME/logs -Dlog4j.configurationFile=file:$APP_HOME/config/log4j2-peer.xml\"\n" +
                 "\n" +
                 "#APP具体相关命令\n" +
                 "APP_CMD=$APP_SYSTEM_PATH/$APP_JAR\" -home=\"$APP_HOME\" -c \"$LEDGER_BINDING_CONFIG\" -p \"$WEB_PORT\" -sp \"$SPRING_CONFIG\n" +
