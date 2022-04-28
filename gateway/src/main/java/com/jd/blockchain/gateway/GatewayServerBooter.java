@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
+import utils.crypto.sm.GmSSLProvider;
 import utils.net.SSLSecurity;
 import org.apache.commons.io.FileUtils;
 import org.springframework.boot.SpringApplication;
@@ -96,6 +97,7 @@ public class GatewayServerBooter implements SignalHandler {
 		HOME_DIR = TypeUtils.getCodeDirOf(GatewayServerBooter.class);
 		RUNTIME_STORAGE_DIR = new File(HOME_DIR, RUNTIME_FOLDER_NAME).getAbsolutePath();
 		GatewayAuthRequest();
+		GmSSLProvider.enableGMSupport(GmSSLProvider.GMTLS);
 	}
 
 	public static void main(String[] args) {

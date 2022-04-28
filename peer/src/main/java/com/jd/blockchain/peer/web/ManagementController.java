@@ -638,7 +638,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
             }
 
             ServiceEndpoint remoteEndpoint = new ServiceEndpoint(new NetworkAddress(remoteManageHost, remoteManagePort, remoteManageSecure));
-
+            remoteEndpoint.setSslSecurity(bindingConfigs.get(ledgerHash).getSslSecurity());
             LedgerRepository ledgerRepo = (LedgerRepository) ledgerQuerys.get(ledgerHash);
 
             WebResponse webResponse = checkLedgerDiff(ledgerHash, ledgerRepo, ledgerRepo.retrieveLatestBlock(), remoteEndpoint);
