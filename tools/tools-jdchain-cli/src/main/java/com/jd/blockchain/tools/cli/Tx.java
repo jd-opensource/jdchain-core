@@ -11,7 +11,7 @@ import com.jd.blockchain.transaction.*;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 import utils.Bytes;
-import utils.GmSSLProvider;
+import utils.crypto.sm.GmSSLProvider;
 import utils.PropertiesUtils;
 import utils.StringUtils;
 import utils.codec.Base58Utils;
@@ -401,7 +401,7 @@ class TxUserCAUpdate implements Runnable {
             return;
         }
         CertificateUtils.checkCertificateRolesAny(certificate, CertificateRole.PEER, CertificateRole.GW, CertificateRole.USER);
-        CertificateUtils.checkValidity(certificate);
+//        CertificateUtils.checkValidity(certificate);
         txTemp.user(address).ca(certificate);
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);
@@ -713,6 +713,9 @@ class TxContractCall implements Runnable {
     @CommandLine.Option(names = "--args", split = ",", description = "Method arguments", scope = CommandLine.ScopeType.INHERIT)
     String[] args;
 
+    @CommandLine.Option(names = "--ver", defaultValue = "-1", description = "Contract version", scope = CommandLine.ScopeType.INHERIT)
+    long version;
+
     @CommandLine.ParentCommand
     private Tx txCommand;
 
@@ -729,7 +732,7 @@ class TxContractCall implements Runnable {
             tvs = new TypedValue[]{};
         }
 
-        txTemp.contract(Bytes.fromBase58(address)).invoke(method, new BytesDataList(tvs));
+        txTemp.contract(Bytes.fromBase58(address)).invoke(method, new BytesDataList(tvs), version);
         PreparedTransaction ptx = txTemp.prepare();
         String txFile = txCommand.export(ptx);
         if (null != txFile) {
@@ -743,6 +746,7 @@ class TxContractCall implements Runnable {
                         BytesValue content = response.getOperationResults()[i].getResult();
                         switch (content.getType()) {
                             case TEXT:
+                            case JSON:
                                 System.out.println("return string: " + content.getBytes().toUTF8String());
                                 break;
                             case INT64:

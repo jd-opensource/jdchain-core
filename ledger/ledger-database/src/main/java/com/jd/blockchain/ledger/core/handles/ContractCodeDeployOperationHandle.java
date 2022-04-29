@@ -73,6 +73,8 @@ public class ContractCodeDeployOperationHandle extends AbstractLedgerOperationHa
 			ContractAccount account = ((ContractAccountSetEditor)(transactionContext.getDataset().getContractAccountSet())).deploy(op.getContractID().getAddress(),
 				op.getContractID().getPubKey(), op.getAddressSignature(), op.getChainCode(), op.getLang());
 
+			LOGGER.info("Update contract {}:{}", account.getAddress().toString(), account.getChainCodeVersion());
+
 			account.setPermission(new AccountDataPermission(AccountType.CONTRACT, requestContext.getEndpointAddresses().toArray(new Bytes[0])));
 		}
 	}

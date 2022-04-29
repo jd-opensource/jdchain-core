@@ -218,7 +218,7 @@ public class LedgerInitConfiguration {
 		initSetting.setCreatedTime(ledgerProps.getCreatedTime());
 
 		initSetting.setLedgerDataStructure(ledgerProps.getLedgerDataStructure());
-		initSetting.setContractRuntimeConfig(new JVMContractRuntimeConfig(ledgerProps.getContractTimeout()));
+		initSetting.setContractRuntimeConfig(new JVMContractRuntimeConfig(ledgerProps.getContractTimeout(), ledgerProps.getMaxStackDepth()));
 
 		// 创建共识配置；
 		try {

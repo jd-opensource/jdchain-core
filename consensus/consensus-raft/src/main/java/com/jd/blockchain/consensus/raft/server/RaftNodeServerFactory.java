@@ -8,17 +8,14 @@ import com.jd.blockchain.consensus.raft.settings.RaftConsensusSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftNodeSettings;
 import com.jd.blockchain.consensus.raft.settings.RaftServerSettings;
 import com.jd.blockchain.consensus.service.*;
-import utils.GmSSLProvider;
+import utils.StringUtils;
+import utils.crypto.sm.GmSSLProvider;
 import utils.io.Storage;
 import utils.net.SSLSecurity;
 
-import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class RaftNodeServerFactory implements NodeServerFactory {
-
-    private static Map<String, NodeSettings[]> realmNodesMap = new ConcurrentHashMap<>();
 
     @Override
     public ServerSettings buildServerSettings(String realmName, ConsensusViewSettings viewSettings, String nodeAddress) {
@@ -34,7 +31,7 @@ public class RaftNodeServerFactory implements NodeServerFactory {
             throw new IllegalStateException("view settings should be raft-consensus settings");
         }
 
-        if(null == properties || properties.size() == 0) {
+        if (null == properties || properties.size() == 0) {
             throw new IllegalStateException("Extra properties empty");
         }
 
@@ -57,34 +54,35 @@ public class RaftNodeServerFactory implements NodeServerFactory {
         settingsConfig.setReplicaSettings(currentNodeSettings);
         settingsConfig.setExtraProperties(properties);
 
-        if(sslSecurity == null){
-            return  settingsConfig;
+        if (sslSecurity == null) {
+            return settingsConfig;
         }
 
         //TLS适配
         boolean enableTLS = false;
         RaftNodeSettings raftNodeConfig = (RaftNodeSettings) currentNodeSettings;
-        if(raftNodeConfig.getNetworkAddress().isSecure() && !Strings.isNullOrEmpty(sslSecurity.getKeyStore())){
+        if (raftNodeConfig.getNetworkAddress().isSecure() && !Strings.isNullOrEmpty(sslSecurity.getKeyStore())) {
             enableTLS = true;
             GmSSLProvider.enableGMSupport(sslSecurity.getProtocol());
         }
 
-        if(!enableTLS){
-            return  settingsConfig;
+        if (!enableTLS) {
+            return settingsConfig;
         }
 
         //Node节点作为服务端时， 配置私钥信息
         setSystemProperty("bolt.ssl.protocol", sslSecurity.getProtocol());
         setSystemProperty("bolt.server.ssl.enable", "true");
         setSystemProperty("bolt.server.ssl.keystore", sslSecurity.getKeyStore());
+        setSystemProperty("bolt.server.ssl.keyalias", sslSecurity.getKeyAlias());
         setSystemProperty("bolt.server.ssl.keystore.password", sslSecurity.getKeyStorePassword());
         setSystemProperty("bolt.server.ssl.keystore.type", sslSecurity.getKeyStoreType());
 
-        if(sslSecurity.getEnabledProtocols() != null){
+        if (sslSecurity.getEnabledProtocols() != null) {
             setSystemProperty("bolt.ssl.enabled-protocols", String.join(",", sslSecurity.getEnabledProtocols()));
         }
 
-        if(sslSecurity.getCiphers() != null){
+        if (sslSecurity.getCiphers() != null) {
             setSystemProperty("bolt.ssl.ciphers", String.join(",", sslSecurity.getCiphers()));
         }
 
@@ -93,7 +91,7 @@ public class RaftNodeServerFactory implements NodeServerFactory {
 
 
         //Node节点配置信任证书，以及作为客户端链接其他节点时的信任证书
-        if(!Strings.isNullOrEmpty(sslSecurity.getTrustStore())){
+        if (!Strings.isNullOrEmpty(sslSecurity.getTrustStore())) {
             //服务端配置: 此时服务端有keystore, truststore， 此时开启双向认证
             setSystemProperty("bolt.server.ssl.clientAuth", "true");
             setSystemProperty("bolt.client.ssl.keystore", sslSecurity.getTrustStore());
@@ -104,21 +102,11 @@ public class RaftNodeServerFactory implements NodeServerFactory {
         return settingsConfig;
     }
 
-    private void setSystemProperty(String key, String value){
-        if(value != null){
+    private void setSystemProperty(String key, String value) {
+        if (!StringUtils.isEmpty(value)) {
             System.getProperties().setProperty(key, value);
         }
     }
-
-
-    private String nullToEmpty(String str){
-        if(str == null){
-            return "";
-        }
-
-        return str;
-    }
-
 
     @Override
     public NodeServer setupServer(ServerSettings serverSettings, MessageHandle messageHandler, StateMachineReplicate stateMachineReplicator, Storage runtimeStorage) {

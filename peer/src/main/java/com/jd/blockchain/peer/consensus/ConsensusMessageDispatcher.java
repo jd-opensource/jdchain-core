@@ -122,14 +122,14 @@ public class ConsensusMessageDispatcher implements MessageHandle {
 	}
 
 	@Override
-	public byte[] getSnapshotByHeight(String realName, int cid) {
+	public byte[] getBlockHashByCid(String realName, int cid) {
 
 		byte[] hashBytes = Base58Utils.decode(realName);
 
 		HashDigest ledgerHash =  Crypto.resolveAsHashDigest(hashBytes);
 
 		//获得区块高度为cid + 1的区块哈希
-		return ((TransactionEngineImpl)txEngine).getSnapshotByHeight(ledgerHash, cid + 1);
+		return ((TransactionEngineImpl)txEngine).getBlockHashByCid(ledgerHash, cid + 1);
 	}
 
 	@Override

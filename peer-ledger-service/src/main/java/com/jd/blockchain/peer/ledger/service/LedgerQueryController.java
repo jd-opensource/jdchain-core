@@ -3,20 +3,10 @@ package com.jd.blockchain.peer.ledger.service;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.jd.blockchain.ledger.core.IteratorDataset;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.jd.blockchain.contract.ContractException;
-import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.BlockchainIdentity;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractInfo;
+import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.DataAccountInfo;
 import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.KVDataVO;
@@ -35,6 +25,17 @@ import com.jd.blockchain.ledger.TypedKVEntry;
 import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
 import com.jd.blockchain.ledger.UserPrivilegeSet;
+import com.jd.blockchain.ledger.core.IteratorDataset;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.jd.blockchain.contract.ContractException;
+import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.core.ContractAccountSet;
 import com.jd.blockchain.ledger.core.DataAccount;
 import com.jd.blockchain.ledger.core.DataAccountSet;
@@ -111,6 +112,12 @@ public class LedgerQueryController implements BlockchainQueryService {
 		LedgerQuery ledger = ledgerService.getLedger(ledgerHash);
 		LedgerAdminInfo ledgerAdministration = ledger.getAdminInfo();
 		return ledgerAdminInfoDecorator(ledgerAdministration);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, path = GET_LEDGER_SETTINGS_CRYPTO)
+	@Override
+	public CryptoSetting getLedgerCryptoSetting(@PathVariable(name = "ledgerHash") HashDigest ledgerHash) {
+		return getLedgerAdminInfo(ledgerHash).getSettings().getCryptoSetting();
 	}
 
 	@RequestMapping(method = RequestMethod.GET, path = GET_LEDGER_METADATA)

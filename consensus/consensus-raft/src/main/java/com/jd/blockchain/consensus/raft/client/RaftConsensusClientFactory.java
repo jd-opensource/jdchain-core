@@ -18,7 +18,8 @@ import com.jd.blockchain.crypto.AsymmetricKeypair;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.SignatureDigest;
 import com.jd.blockchain.crypto.SignatureFunction;
-import utils.GmSSLProvider;
+import utils.StringUtils;
+import utils.crypto.sm.GmSSLProvider;
 import utils.net.SSLSecurity;
 
 import java.security.cert.X509Certificate;
@@ -83,20 +84,24 @@ public class RaftConsensusClientFactory implements ClientFactory, ManageClientFa
         //仅作为网关连接共识节点时所配置的TLS信息， 作为客户端进行配置， 仅使用truststore信息
         //判断TLS是否启用规则: client为网关使用，仅作为客户端连接共识节点。 因此根据共识服务是否启用TLS来进行判断
         RaftNodeSettings node = (RaftNodeSettings) incomingSettings.getViewSettings().getNodes()[0];
-        boolean enableTLS = false;
         if (node.getNetworkAddress().isSecure()) {
-            enableTLS = true;
             GmSSLProvider.enableGMSupport(sslSecurity.getProtocol());
-        }
 
-        if (enableTLS) {
             setSystemProperty("bolt.client.ssl.enable", "true");
             setSystemProperty("bolt.client.ssl.keystore", sslSecurity.getTrustStore());
             setSystemProperty("bolt.client.ssl.keystore.password", sslSecurity.getTrustStorePassword());
             setSystemProperty("bolt.client.ssl.keystore.type", sslSecurity.getTrustStoreType() == null ? "JKS" : sslSecurity.getTrustStoreType());
-
-            if (GmSSLProvider.isGMSSL(sslSecurity.getProtocol())) {
-                System.getProperties().setProperty("bolt.ssl.protocol", GmSSLProvider.GMTLS);
+            setSystemProperty("bolt.ssl.protocol", sslSecurity.getProtocol());
+            setSystemProperty("bolt.server.ssl.enable", "true");
+            setSystemProperty("bolt.server.ssl.keystore", sslSecurity.getKeyStore());
+            setSystemProperty("bolt.server.ssl.keyalias", sslSecurity.getKeyAlias());
+            setSystemProperty("bolt.server.ssl.keystore.password", sslSecurity.getKeyStorePassword());
+            setSystemProperty("bolt.server.ssl.keystore.type", sslSecurity.getKeyStoreType());
+            if (sslSecurity.getEnabledProtocols() != null && sslSecurity.getEnabledProtocols().length > 0) {
+                setSystemProperty("bolt.ssl.enabled-protocols", String.join(",", sslSecurity.getEnabledProtocols()));
+            }
+            if (sslSecurity.getCiphers() != null && sslSecurity.getCiphers().length > 0) {
+                setSystemProperty("bolt.ssl.ciphers", String.join(",", sslSecurity.getCiphers()));
             }
         }
 
@@ -104,7 +109,7 @@ public class RaftConsensusClientFactory implements ClientFactory, ManageClientFa
     }
 
     private void setSystemProperty(String key, String value) {
-        if (value != null) {
+        if (!StringUtils.isEmpty(value)) {
             System.getProperties().setProperty(key, value);
         }
     }

@@ -5,28 +5,7 @@ import java.util.List;
 
 import com.jd.blockchain.contract.ContractException;
 import com.jd.blockchain.crypto.HashDigest;
-import com.jd.blockchain.ledger.BlockchainIdentity;
-import com.jd.blockchain.ledger.BytesValue;
-import com.jd.blockchain.ledger.ContractInfo;
-import com.jd.blockchain.ledger.DataAccountInfo;
-import com.jd.blockchain.ledger.Event;
-import com.jd.blockchain.ledger.EventAccountInfo;
-import com.jd.blockchain.ledger.KVDataVO;
-import com.jd.blockchain.ledger.KVInfoVO;
-import com.jd.blockchain.ledger.LedgerAdminInfo;
-import com.jd.blockchain.ledger.LedgerBlock;
-import com.jd.blockchain.ledger.LedgerException;
-import com.jd.blockchain.ledger.LedgerInfo;
-import com.jd.blockchain.ledger.LedgerMetadata;
-import com.jd.blockchain.ledger.LedgerTransaction;
-import com.jd.blockchain.ledger.ParticipantNode;
-import com.jd.blockchain.ledger.PrivilegeSet;
-import com.jd.blockchain.ledger.TransactionState;
-import com.jd.blockchain.ledger.TypedKVData;
-import com.jd.blockchain.ledger.TypedKVEntry;
-import com.jd.blockchain.ledger.TypedValue;
-import com.jd.blockchain.ledger.UserInfo;
-import com.jd.blockchain.ledger.UserPrivilegeSet;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.transaction.BlockchainQueryService;
 
 import utils.Bytes;
@@ -79,6 +58,11 @@ public class MultiLedgerQueryService implements BlockchainQueryService {
 		LedgerBlock block = ledger.getLatestBlock();
 		LedgerAdminInfo administration = ledger.getAdminInfo(block);
 		return administration;
+	}
+
+	@Override
+	public CryptoSetting getLedgerCryptoSetting(HashDigest ledgerHash) {
+		return getLedgerAdminInfo(ledgerHash).getSettings().getCryptoSetting();
 	}
 
 	@Override

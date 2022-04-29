@@ -4,19 +4,22 @@ import com.jd.blockchain.contract.ContractEventContext;
 import com.jd.blockchain.contract.engine.ContractCode;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.runtime.RuntimeContext;
-import com.jd.blockchain.runtime.RuntimeSecurityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.Bytes;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.*;
 
 /**
- * @author huanghaiquan
+ * 可执行合约代码
+ * 非线程安全
  */
 public abstract class AbstractContractCode implements ContractCode {
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractContractCode.class);
-    private static final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private static Map<String, Integer> contractRunningDepth = new HashMap<>();
+
     private Bytes address;
     private long version;
 
@@ -37,12 +40,47 @@ public abstract class AbstractContractCode implements ContractCode {
 
     @Override
     public BytesValue processEvent(ContractEventContext eventContext) {
-        ContractRuntimeConfig contractRuntimeConfig = eventContext.getContractRuntimeConfig();
-        // 判断存在合约运行时配置
-        if (null != contractRuntimeConfig) {
-            return timeLimitedInvoke(eventContext, contractRuntimeConfig);
-        } else {
-            return invoke(eventContext);
+        String ledger = eventContext.getCurrentLedgerHash().toString();
+        Integer depth = contractRunningDepth.get(ledger);
+        try {
+            if (null == depth) {
+                depth = 0;
+            }
+            contractRunningDepth.put(ledger, ++depth);
+            // 合约调用栈最大深度检查，超过则回滚交易
+            if (depth > eventContext.getContractRuntimeConfig().getMaxStackDepth()) {
+                throw new ContractExecuteException(String.format("Size of contract event stack is greater than %d", eventContext.getContractRuntimeConfig().getMaxStackDepth()));
+            }
+            if (depth == 1) {
+                return timeLimitedInvoke(eventContext);
+            } else {
+                return invoke(eventContext);
+            }
+        } finally {
+            contractRunningDepth.put(ledger, --depth);
+        }
+    }
+
+    private BytesValue timeLimitedInvoke(ContractEventContext eventContext) {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            SecurityPolicy usersPolicy = SecurityContext.getContextUsersPolicy();
+            Future<Object> future = executor.submit(() -> {
+                SecurityContext.setContextUsersPolicy(usersPolicy);
+                return invoke(eventContext);
+            });
+            return (BytesValue) future.get(eventContext.getContractRuntimeConfig().getTimeout(), TimeUnit.MILLISECONDS);
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof LedgerException) {
+                throw (LedgerException) e.getCause();
+            }
+            throw new ContractExecuteException("Error occurred while get contract result ", e);
+        } catch (InterruptedException | TimeoutException e) {
+            throw new BlockRollbackException(TransactionState.SYSTEM_ERROR, "Contract Interrupted or Timeout", e);
+        } catch (Exception e) {
+            throw new BlockRollbackException(TransactionState.SYSTEM_ERROR, "Contract Interrupted or Timeout", e);
+        } finally {
+            executor.shutdownNow();
         }
     }
 
@@ -53,7 +91,7 @@ public abstract class AbstractContractCode implements ContractCode {
         try {
             try {
                 // 生成合约类对象
-                contractInstance = getContractInstance();
+                contractInstance = getContractInstance(eventContext);
                 // 开启安全管理器
                 enableSecurityManager();
 
@@ -93,41 +131,15 @@ public abstract class AbstractContractCode implements ContractCode {
         }
     }
 
-    private BytesValue timeLimitedInvoke(ContractEventContext eventContext, ContractRuntimeConfig runtimeConfig) {
-        try {
-            SecurityPolicy usersPolicy = SecurityContext.getContextUsersPolicy();
-            Future<Object> future = executor.submit(() -> {
-                SecurityContext.setContextUsersPolicy(usersPolicy);
-                return invoke(eventContext);
-            });
-            return (BytesValue) future.get(runtimeConfig.getTimeout(), TimeUnit.MILLISECONDS);
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof LedgerException) {
-                throw (LedgerException) e.getCause();
-            }
-            throw new ContractExecuteException("Error occurred while get contract result ", e);
-        } catch (InterruptedException | TimeoutException e) {
-            throw new BlockRollbackException(TransactionState.SYSTEM_ERROR, "Contract Interrupted or Timeout", e);
-        } catch (Exception e) {
-            throw new BlockRollbackException(TransactionState.SYSTEM_ERROR, "Contract Interrupted or Timeout", e);
-        }
-    }
-
     protected void enableSecurityManager() {
-        RuntimeSecurityManager securityManager = RuntimeContext.get().getSecurityManager();
-        if (null != securityManager) {
-            securityManager.enable();
-        }
+        RuntimeContext.enableSecurityManager();
     }
 
     protected void disableSecurityManager() {
-        RuntimeSecurityManager securityManager = RuntimeContext.get().getSecurityManager();
-        if (null != securityManager) {
-            securityManager.disable();
-        }
+        RuntimeContext.disableSecurityManager();
     }
 
-    protected abstract Object getContractInstance();
+    protected abstract Object getContractInstance(ContractEventContext eventContext);
 
     protected abstract void beforeEvent(Object contractInstance, ContractEventContext eventContext);
 

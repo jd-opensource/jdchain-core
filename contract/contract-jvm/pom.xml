@@ -42,6 +42,13 @@
 			<groupId>org.graalvm.truffle</groupId>
 			<artifactId>truffle-api</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.wasmer</groupId>
+			<artifactId>wasmer-jni</artifactId>
+			<version>0.3.0</version>
+			<scope>system</scope>
+			<systemPath>${basedir}/lib/wasmer-jni-amd64-linux-0.3.0.jar</systemPath>
+		</dependency>
 	</dependencies>
 
 	<build>

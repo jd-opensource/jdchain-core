@@ -19,6 +19,7 @@ public class JVMContractEngine implements ContractEngine {
         loaders.put(ContractLang.Java, new JavaContractCodeLoader());
         loaders.put(ContractLang.JavaScript, new JavaScriptContractCodeLoader());
         loaders.put(ContractLang.Python, new PythonContractCodeLoader());
+        loaders.put(ContractLang.Rust, new RustContractCodeLoader());
     }
 
     private String getCodeName(Bytes address, long version) {

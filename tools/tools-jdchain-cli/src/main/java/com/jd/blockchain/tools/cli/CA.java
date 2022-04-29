@@ -25,7 +25,6 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import picocli.CommandLine;
 import utils.StringUtils;
-import utils.certs.CertsHelper;
 import utils.io.FileUtils;
 
 import java.io.*;
@@ -33,6 +32,7 @@ import java.math.BigInteger;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.*;
 
@@ -41,19 +41,7 @@ import java.util.*;
  * @author: imuge
  * @date: 2021/9/1
  **/
-@CommandLine.Command(name = "ca",
-        mixinStandardHelpOptions = true,
-        showDefaultValues = true,
-        description = "List, create, update certificates.",
-        subcommands = {
-                CAShow.class,
-                CACsr.class,
-                CACrt.class,
-                CARenew.class,
-                CATest.class,
-                CommandLine.HelpCommand.class
-        }
-)
+@CommandLine.Command(name = "ca", mixinStandardHelpOptions = true, showDefaultValues = true, description = "List, create, update certificates.", subcommands = {CAShow.class, CACsr.class, CACrt.class, CARenew.class, CATest.class, CATestPlus.class, CommandLine.HelpCommand.class})
 
 public class CA implements Runnable {
     static final String CA_HOME = "certs";
@@ -174,6 +162,97 @@ public class CA implements Runnable {
         }
         System.out.println(" )");
         return values[Integer.parseInt(ScannerUtils.read())];
+    }
+
+    protected X500Name buildRDN(String organization, CertificateRole ou, String country, String province, String locality, String name, String email) {
+        X500NameBuilder nameBuilder = new X500NameBuilder(BCStyle.INSTANCE);
+        nameBuilder.addRDN(BCStyle.O, organization);
+        nameBuilder.addRDN(BCStyle.OU, ou.name());
+        nameBuilder.addRDN(BCStyle.C, country);
+        nameBuilder.addRDN(BCStyle.ST, province);
+        nameBuilder.addRDN(BCStyle.L, locality);
+        nameBuilder.addRDN(BCStyle.CN, name);
+        nameBuilder.addRDN(BCStyle.EmailAddress, email);
+        return nameBuilder.build();
+    }
+
+    protected X509Certificate genCert(CertificateUsage usage, String algorithm, String name, X500Name subject, CertificateRole ou, PublicKey publicKey, PrivateKey issuerPrivateKey, X509Certificate issuerCrt) throws Exception {
+        boolean isCa = ou.equals(CertificateRole.ROOT) || ou.equals(CertificateRole.CA);
+        X509v3CertificateBuilder certificateBuilder;
+        if (null != issuerCrt) {
+            certificateBuilder = new JcaX509v3CertificateBuilder(issuerCrt, BigInteger.valueOf(new Random().nextInt() & 0x7fffffff), new Date(), new Date(System.currentTimeMillis() + 3650 * 1000L * 24L * 60L * 60L), subject, publicKey);
+        } else {
+            certificateBuilder = new JcaX509v3CertificateBuilder(subject, BigInteger.valueOf(new Random().nextInt() & 0x7fffffff), new Date(), new Date(System.currentTimeMillis() + 3650 * 1000L * 24L * 60L * 60L), subject, publicKey);
+        }
+        if (isCa) {
+            certificateBuilder.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign));
+        } else if (usage.equals(CertificateUsage.SIGN)) {
+            certificateBuilder.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature));
+        } else if (usage.equals(CertificateUsage.TLS)) {
+            certificateBuilder.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.dataEncipherment | KeyUsage.keyAgreement | KeyUsage.digitalSignature));
+            certificateBuilder.addExtension(Extension.extendedKeyUsage, true, new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_serverAuth, KeyPurposeId.id_kp_clientAuth}));
+            certificateBuilder.addExtension(Extension.subjectAlternativeName, false, new GeneralNames(new GeneralName(GeneralName.iPAddress, name)));
+        } else if (usage.equals(CertificateUsage.TLS_SIGN)) {
+            certificateBuilder.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.dataEncipherment | KeyUsage.keyAgreement | KeyUsage.digitalSignature));
+            certificateBuilder.addExtension(Extension.extendedKeyUsage, true, new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_serverAuth, KeyPurposeId.id_kp_clientAuth}));
+            certificateBuilder.addExtension(Extension.subjectAlternativeName, false, new GeneralNames(new GeneralName(GeneralName.iPAddress, name)));
+        } else if (usage.equals(CertificateUsage.TLS_ENC)) {
+            certificateBuilder.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.dataEncipherment | KeyUsage.keyAgreement));
+            certificateBuilder.addExtension(Extension.extendedKeyUsage, true, new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_serverAuth, KeyPurposeId.id_kp_clientAuth}));
+            certificateBuilder.addExtension(Extension.subjectAlternativeName, false, new GeneralNames(new GeneralName(GeneralName.iPAddress, name)));
+        }
+        certificateBuilder.addExtension(Extension.subjectKeyIdentifier, true, new JcaX509ExtensionUtils().createSubjectKeyIdentifier(publicKey));
+        certificateBuilder.addExtension(Extension.basicConstraints, true, new BasicConstraints(isCa));
+
+        ContentSigner signer = new JcaContentSignerBuilder(CA_ALGORITHM_MAP.get(algorithm.toUpperCase())).build(issuerPrivateKey);
+        X509CertificateHolder holder = certificateBuilder.build(signer);
+        return new JcaX509CertificateConverter().getCertificate(holder);
+    }
+
+    protected void doubleKeysStore(String alias, PrivateKey signKey, PrivateKey encKey, String password, X509Certificate signCert, X509Certificate encCert, X509Certificate ca) throws Exception {
+        char[] phrase = password.toCharArray();
+
+        KeyStore bothStore = KeyStore.getInstance("PKCS12");
+        bothStore.load(null, phrase);
+        bothStore.setCertificateEntry(alias + ".root", ca);
+        bothStore.setCertificateEntry(alias + ".enc", encCert);
+        bothStore.setCertificateEntry(alias + ".sig", signCert);
+        bothStore.setKeyEntry(alias + ".enc", encKey, phrase, new X509Certificate[]{encCert, ca});
+        bothStore.setKeyEntry(alias + ".sig", signKey, phrase, new X509Certificate[]{signCert, ca});
+
+        OutputStream jksStream = new FileOutputStream(getTlsHome() + File.separator + alias + ".keystore");
+        bothStore.store(jksStream, phrase);
+        jksStream.close();
+    }
+
+    protected void trustStore(File trustStoreFile, String alias, String password, X509Certificate cert) throws Exception {
+        KeyStore trustStore = KeyStore.getInstance("JKS");
+        if (trustStoreFile.exists()) {
+            try (FileInputStream storeIn = new FileInputStream(trustStoreFile)) {
+                trustStore.load(storeIn, password.toCharArray());
+            }
+        } else {
+            trustStore.load(null, password.toCharArray());
+        }
+        trustStore.setCertificateEntry(alias, cert);
+        try (FileOutputStream storeOut = new FileOutputStream(trustStoreFile)) {
+            trustStore.store(storeOut, password.toCharArray());
+        }
+    }
+
+    protected void keyStore(PrivateKey privateKey, String alias, String password, X509Certificate cert, X509Certificate ca) throws Exception {
+        char[] phrase = password.toCharArray();
+        X509Certificate[] outChain = {cert, ca};
+        KeyStore p12Store = KeyStore.getInstance("PKCS12");
+        p12Store.load(null, phrase);
+        p12Store.setKeyEntry(alias, privateKey, phrase, outChain);
+
+        KeyStore jksStore = KeyStore.getInstance("PKCS12");
+        jksStore.load(null, phrase);
+        jksStore.setKeyEntry(alias, p12Store.getKey(alias, phrase), phrase, outChain);
+        OutputStream jksStream = new FileOutputStream(getTlsHome() + File.separator + alias + ".keystore");
+        jksStore.store(jksStream, phrase);
+        jksStream.close();
     }
 }
 
@@ -433,7 +512,7 @@ class CARenew implements Runnable {
 @CommandLine.Command(name = "test", mixinStandardHelpOptions = true, header = "Create certificates for a testnet.")
 class CATest implements Runnable {
 
-    @CommandLine.Option(names = {"-a", "--algorithm"}, required = true, description = "Crypto algorithm. defaultValue: ED25519. Use `-a GMSSL` generate GMSSL certs`", defaultValue = "ED25519")
+    @CommandLine.Option(names = {"-a", "--algorithm"}, required = true, description = "Crypto algorithm. defaultValue: ED25519.", defaultValue = "ED25519")
     String algorithm;
 
     @CommandLine.Option(names = "--nodes", required = true, description = "Node size", defaultValue = "4")
@@ -463,8 +542,14 @@ class CATest implements Runnable {
     @CommandLine.Option(names = "--email", required = true, description = "Email address")
     String email;
 
-    @CommandLine.Option(names = "--out", required = false, description = "certs out path")
-    String outPath;
+    @CommandLine.Option(names = "--node-ips", split = ",", description = "node ip list for tls certificates", defaultValue = "127.0.0.1")
+    String[] nodeIPs;
+
+    @CommandLine.Option(names = "--gw-ips", split = ",", description = "gw ip list for tls certificates", defaultValue = "127.0.0.1")
+    String[] gwIPs;
+
+    @CommandLine.Option(names = "--user-ips", split = ",", description = "user ip list for tls certificates", defaultValue = "127.0.0.1")
+    String[] userIPs;
 
     @CommandLine.ParentCommand
     private CA caCli;
@@ -481,36 +566,12 @@ class CATest implements Runnable {
                 password = caCli.scanValue("password for all private keys");
             }
 
-            if ("GMSSL".equalsIgnoreCase(algorithm)) {
+            Security.removeProvider("SunEC");
 
-                String sm2CertsOutPath = caCli.getCaHome() + File.separator + "sm2";
-                if (!StringUtils.isEmpty(outPath)) {
-                    sm2CertsOutPath = outPath;
-                }
-
-                //生成国密测试证书
-                File gmsslHome = new File(sm2CertsOutPath);
-                gmsslHome.mkdirs();
-
-                long expireTime = 10L * 365 * 24 * 60 * 60 * 1000;
-
-                CertsHelper.makeSMCaTestCerts(gmsslHome, nodes, gws, users, expireTime, password,
-                        new HashMap<ASN1ObjectIdentifier, String>() {{
-                            put(BCStyle.O, organization);
-                            put(BCStyle.C, country);
-                            put(BCStyle.ST, province);
-                            put(BCStyle.L, locality);
-                            put(BCStyle.EmailAddress, email);
-                        }}
-                );
-
-                System.out.println("create test gmssl certificates in [" + gmsslHome.getAbsolutePath() + "] success");
-                return;
-            }
-
-            // 初始化公私钥对 root,peer[0~nodes-1],user[1~users]
             PrivKey issuerPrivKey = null;
+            PrivateKey issuerPrivateKey = null;
             X509Certificate issuerCrt = null;
+            File trustStoreFile = new File(caCli.getTlsHome() + File.separator + "trust.jks");
             for (int i = 0; i < nodes + users + gws + 1; i++) {
                 String name;
                 CertificateRole ou;
@@ -521,10 +582,10 @@ class CATest implements Runnable {
                     name = "peer" + (i - 1);
                     ou = CertificateRole.PEER;
                 } else if (i <= nodes + gws) {
-                    name = "gw" + (i - nodes);
+                    name = "gw" + (i - nodes - 1);
                     ou = CertificateRole.GW;
                 } else {
-                    name = "user" + (i - nodes - gws);
+                    name = "user" + (i - nodes - gws - 1);
                     ou = CertificateRole.USER;
                 }
                 algorithm = algorithm.toUpperCase();
@@ -535,23 +596,72 @@ class CATest implements Runnable {
                 FileUtils.writeText(pubkey, new File(caCli.getKeysHome() + File.separator + name + ".pub"));
                 FileUtils.writeText(privkey, new File(caCli.getKeysHome() + File.separator + name + ".priv"));
                 FileUtils.writeText(base58pwd, new File(caCli.getKeysHome() + File.separator + name + ".pwd"));
-                PrivateKey privateKey = CertificateUtils.retrievePrivateKey(keypair.getPrivKey(), keypair.getPubKey());
-                FileUtils.writeText(CertificateUtils.toPEMString(algorithm, privateKey), new File(caCli.getKeysHome() + File.separator + name + ".key"));
 
                 if (i == 0) {
                     issuerPrivKey = keypair.getPrivKey();
+                    issuerPrivateKey = CertificateUtils.retrievePrivateKey(issuerPrivKey);
                 }
-                X509Certificate certificate = genCert(CertificateUsage.SIGN, name, ou, CertificateUtils.retrievePublicKey(keypair.getPubKey()), CertificateUtils.retrievePrivateKey(issuerPrivKey), issuerCrt);
+
+                X500Name subject = caCli.buildRDN(organization, ou, country, province, locality, name, email);
+                X509Certificate certificate = caCli.genCert(CertificateUsage.SIGN, algorithm, name, subject, ou, CertificateUtils.retrievePublicKey(keypair.getPubKey()), issuerPrivateKey, issuerCrt);
                 if (i == 0) {
                     FileUtils.writeText(CertificateUtils.toPEMString(certificate), new File(caCli.getCaHome() + File.separator + name + ".crt"));
                     issuerCrt = certificate;
+                    caCli.trustStore(trustStoreFile, name, password, certificate);
                 } else {
                     FileUtils.writeText(CertificateUtils.toPEMString(certificate), new File(caCli.getSignHome() + File.separator + name + ".crt"));
-                    certificate = genCert(CertificateUsage.TLS, "127.0.0.1", ou, CertificateUtils.retrievePublicKey(keypair.getPubKey()), CertificateUtils.retrievePrivateKey(issuerPrivKey), issuerCrt);
-                    FileUtils.writeText(CertificateUtils.toPEMString(certificate), new File(caCli.getTlsHome() + File.separator + name + ".crt"));
-                    ksyStore(privateKey, name, "123456", certificate, issuerCrt);
+                    String ip = "127.0.0.1";
+                    switch (ou) {
+                        case PEER:
+                            if (nodeIPs.length >= i) {
+                                ip = nodeIPs[i - 1];
+                            }
+                            break;
+                        case GW:
+                            if (gwIPs.length >= i - nodes) {
+                                ip = gwIPs[i - nodes - 1];
+                            }
+                            break;
+                        case USER:
+                            if (gwIPs.length >= i - nodes - gws) {
+                                ip = userIPs[i - nodes - gws - 1];
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+
+                    PrivateKey privateKey = CertificateUtils.retrievePrivateKey(keypair.getPrivKey(), keypair.getPubKey());
+                    FileUtils.writeText(CertificateUtils.toPEMString(algorithm, privateKey), new File(caCli.getKeysHome() + File.separator + name + ".key"));
+
+                    if (!algorithm.equalsIgnoreCase("SM2")) {
+                        subject = caCli.buildRDN(organization, ou, country, province, locality, ip, email);
+                        X509Certificate tlsCertificate = caCli.genCert(CertificateUsage.TLS, algorithm, ip, subject, ou, CertificateUtils.retrievePublicKey(keypair.getPubKey()), issuerPrivateKey, issuerCrt);
+                        FileUtils.writeText(CertificateUtils.toPEMString(tlsCertificate), new File(caCli.getTlsHome() + File.separator + name + ".crt"));
+                        caCli.keyStore(privateKey, name, password, tlsCertificate, issuerCrt);
+
+                        caCli.trustStore(trustStoreFile, name, password, tlsCertificate);
+                    } else {
+                        AsymmetricKeypair signKeypair = Crypto.getSignatureFunction(algorithm).generateKeypair();
+                        subject = caCli.buildRDN(organization, ou, country, province, locality, ip, email);
+                        X509Certificate signCertificate = caCli.genCert(CertificateUsage.TLS_SIGN, algorithm, ip, subject, ou, CertificateUtils.retrievePublicKey(signKeypair.getPubKey()), issuerPrivateKey, issuerCrt);
+                        FileUtils.writeText(CertificateUtils.toPEMString(signCertificate), new File(caCli.getTlsHome() + File.separator + name + ".sign.crt"));
+                        PrivateKey signPrivateKey = CertificateUtils.retrievePrivateKey(signKeypair.getPrivKey(), signKeypair.getPubKey());
+                        FileUtils.writeText(CertificateUtils.toPEMString(signPrivateKey), new File(caCli.getKeysHome() + File.separator + name + ".sign.key"));
+                        caCli.keyStore(signPrivateKey, name + ".sign", password, signCertificate, issuerCrt);
+
+                        AsymmetricKeypair encKeypair = Crypto.getSignatureFunction(algorithm).generateKeypair();
+                        X509Certificate encCertificate = caCli.genCert(CertificateUsage.TLS_ENC, algorithm, ip, subject, ou, CertificateUtils.retrievePublicKey(encKeypair.getPubKey()), issuerPrivateKey, issuerCrt);
+                        FileUtils.writeText(CertificateUtils.toPEMString(encCertificate), new File(caCli.getTlsHome() + File.separator + name + ".enc.crt"));
+                        PrivateKey encPrivateKey = CertificateUtils.retrievePrivateKey(encKeypair.getPrivKey(), encKeypair.getPubKey());
+                        FileUtils.writeText(CertificateUtils.toPEMString(encPrivateKey), new File(caCli.getKeysHome() + File.separator + name + ".enc.key"));
+                        caCli.keyStore(encPrivateKey, name + ".enc", password, encCertificate, issuerCrt);
+
+                        caCli.doubleKeysStore(name, signPrivateKey, encPrivateKey, password, signCertificate, encCertificate, issuerCrt);
+                        caCli.trustStore(trustStoreFile, name + ".sign", password, signCertificate);
+                        caCli.trustStore(trustStoreFile, name + ".enc", password, encCertificate);
+                    }
                 }
-                trustStore(name, "123456", certificate);
             }
 
             System.out.println("create test certificates in [" + caCli.getCaHome() + "] success");
@@ -559,83 +669,118 @@ class CATest implements Runnable {
             e.printStackTrace();
         }
     }
+}
 
-    private void ksyStore(PrivateKey privateKey, String alias, String password, X509Certificate cert, X509Certificate ca) throws Exception {
-        char[] phrase = password.toCharArray();
-        X509Certificate[] outChain = {cert, ca};
-        KeyStore p12Store = KeyStore.getInstance("PKCS12");
-        p12Store.load(null, phrase);
-        p12Store.setKeyEntry(alias, privateKey, phrase, outChain);
+@CommandLine.Command(name = "test-plus", mixinStandardHelpOptions = true, header = "Create certificates for an existing testnet.")
+class CATestPlus implements Runnable {
+    @CommandLine.Option(names = "--name", required = true, description = "Name for new certificate.")
+    String name;
 
-        KeyStore jksStore = KeyStore.getInstance("PKCS12");
-        jksStore.load(null, phrase);
-        jksStore.setKeyEntry(alias, p12Store.getKey(alias, phrase), phrase, outChain);
-        OutputStream jksStream = new FileOutputStream(caCli.getTlsHome() + File.separator + alias + ".keystore");
-        jksStore.store(jksStream, phrase);
-        jksStream.close();
-    }
+    @CommandLine.Option(names = "--issuer-priv", required = true, description = "Path of the issuer private key file")
+    String issuerPrivPath;
 
-    private void trustStore(String alias, String password, X509Certificate cert) throws Exception {
-        File store = new File(caCli.getTlsHome() + File.separator + "trust.jks");
-        KeyStore trustStore = KeyStore.getInstance("JKS");
-        if (store.exists()) {
-            try (FileInputStream storeIn = new FileInputStream(store)) {
-                trustStore.load(storeIn, password.toCharArray());
+    @CommandLine.Option(names = "--issuer-crt", required = true, description = "Path of the issuer certificate file")
+    String issuerCrtPath;
+
+    @CommandLine.Option(names = "--issuer-password", required = true, description = "Password of issuer password")
+    String issuerPassword;
+
+    @CommandLine.Option(names = "--trust", required = true, description = "Trust keystore file.")
+    String trustKeyStore;
+
+    @CommandLine.Option(names = "--trust-password", required = true, description = "Trust keystore password.")
+    String trustKeyStorePassword;
+
+    @CommandLine.Option(names = {"-p", "--password"}, description = "Password of the key")
+    String password;
+
+    @CommandLine.Option(names = "--org", required = true, description = "Organization name")
+    String organization;
+
+    @CommandLine.Option(names = "--country", required = true, description = "Country")
+    String country;
+
+    @CommandLine.Option(names = "--locality", required = true, description = "Locality")
+    String locality;
+
+    @CommandLine.Option(names = "--province", required = true, description = "Province")
+    String province;
+
+    @CommandLine.Option(names = "--email", required = true, description = "Email address")
+    String email;
+
+    @CommandLine.Option(names = "--role", required = true, description = "Certificate Role: PEER/GW/USER")
+    CertificateRole role;
+
+    @CommandLine.Option(names = "--ip", description = "ip for tls certificates", defaultValue = "127.0.0.1")
+    String ip;
+
+    @CommandLine.ParentCommand
+    private CA caCli;
+
+    @Override
+    public void run() {
+        try {
+            if (StringUtils.isEmpty(password)) {
+                password = caCli.scanValue("password for all private keys");
             }
-        } else {
-            trustStore.load(null, password.toCharArray());
-        }
-        trustStore.setCertificateEntry(alias, cert);
-        try (FileOutputStream storeOut = new FileOutputStream(store)) {
-            trustStore.store(storeOut, password.toCharArray());
-        }
-    }
 
-    private X509Certificate genCert(CertificateUsage usage, String name, CertificateRole ou, PublicKey publicKey, PrivateKey issuerPrivateKey, X509Certificate issuerCrt) throws Exception {
-        boolean isCa = ou.equals(CertificateRole.ROOT) || ou.equals(CertificateRole.CA);
-        boolean forSign = usage.equals(CertificateUsage.SIGN);
-        X500NameBuilder nameBuilder = new X500NameBuilder(BCStyle.INSTANCE);
-        nameBuilder.addRDN(BCStyle.O, organization);
-        nameBuilder.addRDN(BCStyle.OU, ou.name());
-        nameBuilder.addRDN(BCStyle.C, country);
-        nameBuilder.addRDN(BCStyle.ST, province);
-        nameBuilder.addRDN(BCStyle.L, locality);
-        nameBuilder.addRDN(BCStyle.CN, name);
-        nameBuilder.addRDN(BCStyle.EmailAddress, email);
-        X500Name subject = nameBuilder.build();
-        X509v3CertificateBuilder certificateBuilder;
-        if (null != issuerCrt) {
-            certificateBuilder = new JcaX509v3CertificateBuilder(
-                    issuerCrt,
-                    BigInteger.valueOf(new Random().nextInt() & 0x7fffffff),
-                    new Date(),
-                    new Date(System.currentTimeMillis() + 3650 * 1000L * 24L * 60L * 60L),
-                    subject,
-                    publicKey
-            );
-        } else {
-            certificateBuilder = new JcaX509v3CertificateBuilder(
-                    subject,
-                    BigInteger.valueOf(new Random().nextInt() & 0x7fffffff),
-                    new Date(),
-                    new Date(System.currentTimeMillis() + 3650 * 1000L * 24L * 60L * 60L),
-                    subject,
-                    publicKey
-            );
-        }
-        if (isCa) {
-            certificateBuilder.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign));
-        } else if (forSign) {
-            certificateBuilder.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature));
-        } else {
-            certificateBuilder.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.dataEncipherment | KeyUsage.keyAgreement | KeyUsage.digitalSignature));
-            certificateBuilder.addExtension(Extension.extendedKeyUsage, true, new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_serverAuth, KeyPurposeId.id_kp_clientAuth}));
-        }
-        certificateBuilder.addExtension(Extension.subjectKeyIdentifier, true, new JcaX509ExtensionUtils().createSubjectKeyIdentifier(publicKey));
-        certificateBuilder.addExtension(Extension.basicConstraints, true, new BasicConstraints(isCa));
+            Security.removeProvider("SunEC");
 
-        ContentSigner signer = new JcaContentSignerBuilder(caCli.CA_ALGORITHM_MAP.get(algorithm.toUpperCase())).build(issuerPrivateKey);
-        X509CertificateHolder holder = certificateBuilder.build(signer);
-        return new JcaX509CertificateConverter().getCertificate(holder);
+            String issuerCrt = FileUtils.readText(issuerCrtPath);
+            X509Certificate signerCrt = CertificateUtils.parseCertificate(issuerCrt);
+            String issuerKey = FileUtils.readText(issuerPrivPath);
+            PrivKey issuerPrivKey = KeyGenUtils.decodePrivKeyWithRawPassword(issuerKey, issuerPassword);
+            PrivateKey issuerPrivateKey = CertificateUtils.retrievePrivateKey(issuerPrivKey);
+            String algorithm = Crypto.getAlgorithm(issuerPrivKey.getAlgorithm()).name();
+
+            AsymmetricKeypair keypair = Crypto.getSignatureFunction(algorithm).generateKeypair();
+            String pubkey = KeyGenUtils.encodePubKey(keypair.getPubKey());
+            String base58pwd = KeyGenUtils.encodePasswordAsBase58(password);
+            String privkey = KeyGenUtils.encodePrivKey(keypair.getPrivKey(), base58pwd);
+            FileUtils.writeText(pubkey, new File(caCli.getKeysHome() + File.separator + name + ".pub"));
+            FileUtils.writeText(privkey, new File(caCli.getKeysHome() + File.separator + name + ".priv"));
+            FileUtils.writeText(base58pwd, new File(caCli.getKeysHome() + File.separator + name + ".pwd"));
+
+            X500Name subject = caCli.buildRDN(organization, role, country, province, locality, name, email);
+            X509Certificate certificate = caCli.genCert(CertificateUsage.SIGN, algorithm, name, subject, role, CertificateUtils.retrievePublicKey(keypair.getPubKey()), issuerPrivateKey, signerCrt);
+            FileUtils.writeText(CertificateUtils.toPEMString(certificate), new File(caCli.getSignHome() + File.separator + name + ".crt"));
+
+            PrivateKey privateKey = CertificateUtils.retrievePrivateKey(keypair.getPrivKey(), keypair.getPubKey());
+            FileUtils.writeText(CertificateUtils.toPEMString(algorithm, privateKey), new File(caCli.getKeysHome() + File.separator + name + ".key"));
+
+            File trustStoreFile = new File(trustKeyStore);
+            if (!algorithm.equalsIgnoreCase("SM2")) {
+                subject = caCli.buildRDN(organization, role, country, province, locality, ip, email);
+                X509Certificate tlsCertificate = caCli.genCert(CertificateUsage.TLS, algorithm, ip, subject, role, CertificateUtils.retrievePublicKey(keypair.getPubKey()), issuerPrivateKey, signerCrt);
+                FileUtils.writeText(CertificateUtils.toPEMString(tlsCertificate), new File(caCli.getTlsHome() + File.separator + name + ".crt"));
+                caCli.keyStore(privateKey, name, password, tlsCertificate, signerCrt);
+
+                caCli.trustStore(trustStoreFile, name, trustKeyStorePassword, tlsCertificate);
+            } else {
+                AsymmetricKeypair signKeypair = Crypto.getSignatureFunction(algorithm).generateKeypair();
+                subject = caCli.buildRDN(organization, role, country, province, locality, ip, email);
+                X509Certificate signCertificate = caCli.genCert(CertificateUsage.TLS_SIGN, algorithm, ip, subject, role, CertificateUtils.retrievePublicKey(signKeypair.getPubKey()), issuerPrivateKey, signerCrt);
+                FileUtils.writeText(CertificateUtils.toPEMString(signCertificate), new File(caCli.getTlsHome() + File.separator + name + ".sign.crt"));
+                PrivateKey signPrivateKey = CertificateUtils.retrievePrivateKey(signKeypair.getPrivKey(), signKeypair.getPubKey());
+                FileUtils.writeText(CertificateUtils.toPEMString(signPrivateKey), new File(caCli.getKeysHome() + File.separator + name + ".sign.key"));
+                caCli.keyStore(signPrivateKey, name + ".sign", password, signCertificate, signerCrt);
+
+                AsymmetricKeypair encKeypair = Crypto.getSignatureFunction(algorithm).generateKeypair();
+                X509Certificate encCertificate = caCli.genCert(CertificateUsage.TLS_ENC, algorithm, ip, subject, role, CertificateUtils.retrievePublicKey(encKeypair.getPubKey()), issuerPrivateKey, signerCrt);
+                FileUtils.writeText(CertificateUtils.toPEMString(encCertificate), new File(caCli.getTlsHome() + File.separator + name + ".enc.crt"));
+                PrivateKey encPrivateKey = CertificateUtils.retrievePrivateKey(encKeypair.getPrivKey(), encKeypair.getPubKey());
+                FileUtils.writeText(CertificateUtils.toPEMString(encPrivateKey), new File(caCli.getKeysHome() + File.separator + name + ".enc.key"));
+                caCli.keyStore(encPrivateKey, name + ".enc", password, encCertificate, signerCrt);
+
+                caCli.doubleKeysStore(name, signPrivateKey, encPrivateKey, password, signCertificate, encCertificate, signerCrt);
+                caCli.trustStore(trustStoreFile, name + ".sign", trustKeyStorePassword, signCertificate);
+                caCli.trustStore(trustStoreFile, name + ".enc", trustKeyStorePassword, encCertificate);
+            }
+
+            System.out.println("create test certificates in [" + caCli.getCaHome() + "] success");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

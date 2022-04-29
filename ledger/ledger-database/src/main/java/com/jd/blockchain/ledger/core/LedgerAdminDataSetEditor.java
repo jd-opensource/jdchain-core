@@ -453,6 +453,8 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 			}
 			if(null != metadata.getContractRuntimeConfig()) {
 				this.contractRuntimeConfig = new JVMContractRuntimeConfig(metadata.getContractRuntimeConfig());
+			} else {
+				this.contractRuntimeConfig = new JVMContractRuntimeConfig();
 			}
 		}
 

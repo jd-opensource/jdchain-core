@@ -325,6 +325,11 @@ public class ContractLedgerContext implements LedgerContext {
     }
 
     @Override
+    public CryptoSetting getLedgerCryptoSetting(HashDigest ledgerHash) {
+        return multiLedgerQueryService.getLedgerAdminInfo(ledgerHash).getSettings().getCryptoSetting();
+    }
+
+    @Override
     @Deprecated
     public ParticipantNode[] getConsensusParticipants(HashDigest ledgerHash) {
         return multiLedgerQueryService.getConsensusParticipants(ledgerHash);
@@ -724,7 +729,12 @@ public class ContractLedgerContext implements LedgerContext {
 
         @Override
         public ContractEventSendOperation invoke(String event, BytesValueList args) {
-            ContractEventSendOperation op = new ContractEventSendOpTemplate(address, event, args);
+            return invoke(event, args, -1);
+        }
+
+        @Override
+        public ContractEventSendOperation invoke(String event, BytesValueList args, long version) {
+            ContractEventSendOperation op = new ContractEventSendOpTemplate(address, event, args, version);
             derivedOperations.add(op);
             return new ContractCrossEventSendOpTemplate(op, opHandleContext.handle(op));
         }

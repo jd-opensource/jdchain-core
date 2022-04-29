@@ -18,8 +18,9 @@ import com.jd.httpservice.utils.web.WebResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import utils.GmSSLProvider;
 import utils.Property;
+import utils.StringUtils;
+import utils.crypto.sm.GmSSLProvider;
 import utils.net.NetworkAddress;
 import utils.net.SSLSecurity;
 
@@ -252,13 +253,23 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
         SSLSecurity sslSecurity = context.sslSecurity();
         //启用TLS
         if (sslSecurity != null && sslSecurity.getKeyStore() != null) {
+            GmSSLProvider.enableGMSupport(sslSecurity.getProtocol());
+
             setSystemProperty("bolt.client.ssl.enable", "true");
             setSystemProperty("bolt.client.ssl.keystore", sslSecurity.getTrustStore());
             setSystemProperty("bolt.client.ssl.keystore.password", sslSecurity.getTrustStorePassword());
             setSystemProperty("bolt.client.ssl.keystore.type", sslSecurity.getTrustStoreType() == null ? "JKS" : sslSecurity.getTrustStoreType());
-
-            if (GmSSLProvider.isGMSSL(sslSecurity.getProtocol())) {
-                System.getProperties().setProperty("bolt.ssl.protocol", GmSSLProvider.GMTLS);
+            setSystemProperty("bolt.ssl.protocol", sslSecurity.getProtocol());
+            setSystemProperty("bolt.server.ssl.enable", "true");
+            setSystemProperty("bolt.server.ssl.keystore", sslSecurity.getKeyStore());
+            setSystemProperty("bolt.server.ssl.keyalias", sslSecurity.getKeyAlias());
+            setSystemProperty("bolt.server.ssl.keystore.password", sslSecurity.getKeyStorePassword());
+            setSystemProperty("bolt.server.ssl.keystore.type", sslSecurity.getKeyStoreType());
+            if (sslSecurity.getEnabledProtocols() != null && sslSecurity.getEnabledProtocols().length > 0) {
+                setSystemProperty("bolt.ssl.enabled-protocols", String.join(",", sslSecurity.getEnabledProtocols()));
+            }
+            if (sslSecurity.getCiphers() != null && sslSecurity.getCiphers().length > 0) {
+                setSystemProperty("bolt.ssl.ciphers", String.join(",", sslSecurity.getCiphers()));
             }
         }
 
@@ -299,7 +310,7 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
     }
 
     private void setSystemProperty(String key, String value) {
-        if (value != null) {
+        if (!StringUtils.isEmpty(value)) {
             System.getProperties().setProperty(key, value);
         }
     }

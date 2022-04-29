@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 import utils.net.SSLSecurity;
 
-@ConditionalOnExpression("#{T(utils.GmSSLProvider).supportGMSSL(environment['server.ssl.enabled'], environment['server.ssl.protocol'])}")
+@ConditionalOnExpression("#{T(utils.crypto.sm.GmSSLProvider).supportGMSSL(environment['server.ssl.enabled'], environment['server.ssl.protocol'])}")
 @Component
 @EnableConfigurationProperties(SSLProperties.class)
 public class SMSSLConfiguration {
@@ -48,7 +48,7 @@ class SmSslCustomizer implements TomcatConnectorCustomizer {
     @Override
     public void customize(Connector connector) {
         Http11NioProtocol protocol = (Http11NioProtocol) connector.getProtocolHandler();
-        protocol.setSslImplementationName("utils.tomcat.ssl.GMJSSEImplementation");
+        protocol.setSslImplementationName("utils.crypto.sm.tomcat.ssl.GMJSSEImplementation");
         protocol.setDisableUploadTimeout(false);
     }
 }

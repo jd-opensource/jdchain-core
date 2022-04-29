@@ -37,17 +37,24 @@ public class DataSearchController {
         return AddressEncoding.generateAddress(pubKey).toBase58();
     }
 
-    @RequestMapping(method = RequestMethod.GET, value = "ledgers/{ledgerHash}/all/search")
-    public Object dataRetrievalSearchAll(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+    @RequestMapping(method = RequestMethod.GET, value = "ledgers/{ledgerHash}/*/search")
+    public Object dataRetrievalSearch(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
                                          HttpServletRequest request,
                                          @RequestParam(name = "keyword") String keyword) {
         return search(ledgerHash, request, keyword);
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "ledgers/{ledgerHash}/*/*/search")
-    public Object dataRetrievalSearch(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+    public Object dataRetrievalSearchDouble(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
                                       HttpServletRequest request,
                                       @RequestParam(name = "keyword") String keyword) {
+        return search(ledgerHash, request, keyword);
+    }
+
+    @RequestMapping(method = RequestMethod.GET, value = "ledgers/{ledgerHash}/*/*/*/search")
+    public Object dataRetrievalSearchTriple(@PathVariable(name = "ledgerHash") HashDigest ledgerHash,
+                                            HttpServletRequest request,
+                                            @RequestParam(name = "keyword") String keyword) {
         return search(ledgerHash, request, keyword);
     }
 
