@@ -25,6 +25,11 @@
 			<artifactId>crypto-sm</artifactId>
 			<version>${framework.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>com.jd.blockchain</groupId>
+			<artifactId>crypto-adv</artifactId>
+			<version>${framework.version}</version>
+		</dependency>
 	</dependencies>
 
 	<build>

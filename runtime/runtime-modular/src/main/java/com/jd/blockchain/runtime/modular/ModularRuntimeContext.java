@@ -14,20 +14,22 @@ public class ModularRuntimeContext extends RuntimeContext {
 
     private String runtimeDir;
 
+    private String libsDir;
+
     private JarsModule libModule;
 
     private EnvSettings environment;
 
     protected RuntimeSecurityManager securityManager;
 
-    public ModularRuntimeContext(String runtimeDir, JarsModule libModule,
-                                 boolean productMode) {
+    public ModularRuntimeContext(String runtimeDir, String libsDir, JarsModule libModule, boolean productMode) {
         this.environment = new EnvSettings();
         this.environment.setProductMode(productMode);
         this.environment.setRuntimeDir(runtimeDir);
         this.runtimeDir = runtimeDir;
+        this.libsDir = libsDir;
         this.libModule = libModule;
-        this.securityManager = new RuntimeSecurityManager(false);
+        this.securityManager = new RuntimeSecurityManager(libsDir, false);
         System.setSecurityManager(securityManager);
     }
 

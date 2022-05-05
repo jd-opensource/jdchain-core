@@ -197,6 +197,8 @@ public abstract class RuntimeContext {
 
 		protected String runtimeDir;
 
+		protected String libsDir;
+
 		protected EnvSettings environment;
 
 		protected RuntimeSecurityManager securityManager;
@@ -209,8 +211,9 @@ public abstract class RuntimeContext {
 			try {
 				this.homeDir = new File("./").getCanonicalPath();
 				this.runtimeDir = new File(homeDir, "runtime").getAbsolutePath();
+				this.libsDir = new File(homeDir, "libs").getAbsolutePath();
 				this.environment.setRuntimeDir(runtimeDir);
-				this.securityManager = new RuntimeSecurityManager(false);
+				this.securityManager = new RuntimeSecurityManager(libsDir, false);
 				System.setSecurityManager(securityManager);
 			} catch (IOException e) {
 				throw new RuntimeIOException(e.getMessage(), e);

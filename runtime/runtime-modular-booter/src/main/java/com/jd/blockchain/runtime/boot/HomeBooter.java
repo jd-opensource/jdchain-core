@@ -103,7 +103,7 @@ public class HomeBooter {
 		URLClassLoader systemClassLoader = new URLClassLoader(systemJars, libClassLoader);
 
 		return new HomeContext(libClassLoader, systemClassLoader, homeAbsPath, runtimeDir.getAbsolutePath(),
-				productMode, peerArgs);
+				libDir.getAbsolutePath(), productMode, peerArgs);
 	}
 
 	private static void showJars(String msg, URL[] jars) {

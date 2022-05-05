@@ -6,6 +6,8 @@ public class HomeContext {
 
 	private String runtimeDir;
 
+	private String libsDir;
+
 	private boolean productMode;
 
 	private ClassLoader libsClassLoader;
@@ -15,11 +17,12 @@ public class HomeContext {
 	private String[] startingArgs;
 
 	public HomeContext(ClassLoader libsClassLoader, ClassLoader systemClassLoader, String homeDir, String runtimeDir,
-			boolean productMode, String[] startingArgs) {
+			String libsDir, boolean productMode, String[] startingArgs) {
 		this.libsClassLoader = libsClassLoader;
 		this.systemClassLoader = systemClassLoader;
 		this.homeDir = homeDir;
 		this.runtimeDir = runtimeDir;
+		this.libsDir = libsDir;
 		this.productMode = productMode;
 		this.startingArgs = startingArgs;
 	}
@@ -48,4 +51,7 @@ public class HomeContext {
 		return startingArgs;
 	}
 
+	public String getLibsDir() {
+		return libsDir;
+	}
 }
