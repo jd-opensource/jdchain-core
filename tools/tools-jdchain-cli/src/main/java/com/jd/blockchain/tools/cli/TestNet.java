@@ -553,7 +553,7 @@ class InitConfig implements Runnable {
                 "#密码服务提供者列表，以英文逗点“,”分隔；必须；\n" +
                 "crypto.service-providers=com.jd.blockchain.crypto.service.classic.ClassicCryptoService, \\\n" +
                 "com.jd.blockchain.crypto.service.sm.SMCryptoService, \\\n" +
-                "com.jd.blockchain.crypto.service.sm.AdvCryptoService\n" +
+                "com.jd.blockchain.crypto.service.adv.AdvCryptoService\n" +
                 "\n" +
                 "#从存储中加载账本数据时，是否校验哈希；可选；\n" +
                 "crypto.verify-hash=true\n" +
