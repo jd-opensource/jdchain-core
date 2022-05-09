@@ -6,6 +6,7 @@ import com.jd.blockchain.gateway.service.LedgersManager;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.HashAlgorithmUpdateOperation;
 import com.jd.blockchain.sdk.service.ErrorTransactionResponse;
+import com.jd.blockchain.transaction.TxBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,15 +48,16 @@ public class TxProcessingController implements TransactionService {
 		try {
 			LOGGER.info("receive transaction -> [contentHash={}, timestamp ={}]", txRequest.getTransactionHash(), txRequest.getTransactionContent().getTimestamp());
 
+			TransactionContent txContent = txRequest.getTransactionContent();
 			// 检查交易请求的信息是否完整；
-			ledgerHash = txRequest.getTransactionContent().getLedgerHash();
+			ledgerHash = txContent.getLedgerHash();
 			if (ledgerHash == null) {
 				// 未指定交易的账本；
 				return new ErrorTransactionResponse(txRequest.getTransactionHash(), TransactionState.LEDGER_HASH_EMPTY);
 			}
 
 			// 校验交易中部署合约的合法性，同时检验该交易是否包含更新账本配置环境的操作
-			Operation[] operations = txRequest.getTransactionContent().getOperations();
+			Operation[] operations = txContent.getOperations();
 			boolean ledgerSettingUpdate = false;
 			if (operations != null && operations.length > 0) {
 				for (Operation op : operations) {
@@ -74,6 +76,11 @@ public class TxProcessingController implements TransactionService {
 			// 预期的请求中不应该包含节点签名，首个节点签名应该由当前网关提供；
 			if (txRequest.getNodeSignatures() != null && txRequest.getNodeSignatures().length > 0) {
 				return new ErrorTransactionResponse(txRequest.getTransactionHash(), TransactionState.ILLEGAL_NODE_SIGNATURE);
+			}
+
+			// 校验交易哈希
+			if (!TxBuilder.verifyTxContentHash(txContent, txRequest.getTransactionHash())) {
+				return new ErrorTransactionResponse(txRequest.getTransactionHash(), TransactionState.INVALID_ENDPOINT_SIGNATURE);
 			}
 
 			// 终端签名校验
