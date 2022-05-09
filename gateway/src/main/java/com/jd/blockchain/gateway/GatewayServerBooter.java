@@ -97,7 +97,6 @@ public class GatewayServerBooter implements SignalHandler {
 		HOME_DIR = TypeUtils.getCodeDirOf(GatewayServerBooter.class);
 		RUNTIME_STORAGE_DIR = new File(HOME_DIR, RUNTIME_FOLDER_NAME).getAbsolutePath();
 		GatewayAuthRequest();
-		GmSSLProvider.enableGMSupport(GmSSLProvider.GMTLS);
 	}
 
 	public static void main(String[] args) {
