@@ -1,17 +1,8 @@
 package com.jd.blockchain.ledger.core;
 
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-
 import com.jd.blockchain.ca.CertificateUtils;
-import com.jd.blockchain.ledger.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.jd.blockchain.crypto.HashDigest;
+import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension.Credential;
 import com.jd.blockchain.service.TransactionBatchProcess;
 import com.jd.blockchain.service.TransactionBatchResult;
@@ -19,6 +10,14 @@ import com.jd.blockchain.service.TransactionBatchResultHandle;
 import com.jd.blockchain.transaction.SignatureUtils;
 import com.jd.blockchain.transaction.TxBuilder;
 import com.jd.blockchain.transaction.TxResponseMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 
 public class TransactionBatchProcessor implements TransactionBatchProcess, BlockQuery {
 
@@ -44,6 +43,9 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 	private IdentityMode identityMode;
 	private X509Certificate[] ledgerCAs;
 
+    private static final String IGNORE_SIGNATURE_PROPERTY = "ignoreSignature";
+	private boolean ignoreSignature;
+
 	/**
 	 * @param newBlockEditor 新区块的数据编辑器；
 	 * @param newBlockEditor  账本查询器，只包含新区块的前一个区块的数据集；即未提交新区块之前的经过共识的账本最新数据集；
@@ -51,6 +53,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 	 */
 	public TransactionBatchProcessor(LedgerSecurityManager securityManager, LedgerEditor newBlockEditor,
 			LedgerQuery ledger, OperationHandleRegisteration opHandles) {
+        this.ignoreSignature = Boolean.getBoolean(IGNORE_SIGNATURE_PROPERTY);
 		this.securityManager = securityManager;
 		this.newBlockEditor = newBlockEditor;
 		this.ledger = ledger;
@@ -64,6 +67,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 	}
 
 	public TransactionBatchProcessor(LedgerRepository ledgerRepo, OperationHandleRegisteration handlesRegisteration) {
+        this.ignoreSignature = Boolean.getBoolean(IGNORE_SIGNATURE_PROPERTY);
 		this.ledger = ledgerRepo;
 		this.handlesRegisteration = handlesRegisteration;
 		this.securityManager = ledgerRepo.getSecurityManager();
@@ -91,7 +95,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see
 	 * com.jd.blockchain.ledger.core.impl.TransactionBatchProcess#schedule(com.jd.
 	 * blockchain.ledger.TransactionRequest)
@@ -158,7 +162,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 			resp = discard(request, TransactionState.SYSTEM_ERROR);
 			LOGGER.error(String.format(
 					"Ignore transaction caused by the system exception! --[BlockHeight=%s][TxHash=%s] --%s",
-					newBlockEditor.getBlockHeight(), request.getTransactionHash(), 
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(),
 					e.getMessage()), e);
 
 		} finally {
@@ -189,10 +193,11 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 	}
 
 	private void checkRequest(TransactionRequestExtension reqExt) {
-		// TODO: 把验签和创建交易并行化；
-		checkTxContentHash(reqExt);
-		checkEndpointSignatures(reqExt);
-		checkNodeSignatures(reqExt);
+		if(!ignoreSignature) {
+			checkTxContentHash(reqExt);
+			checkEndpointSignatures(reqExt);
+			checkNodeSignatures(reqExt);
+		}
 	}
 
 	private void checkTxContentHash(TransactionRequestExtension requestExt) {
@@ -239,9 +244,9 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 
 	/**
 	 * 处理交易；<br>
-	 * 
+	 *
 	 * 此方法会处理所有的异常，以不同结果的 {@link TransactionResponse} 返回；
-	 * 
+	 *
 	 * @param request
 	 * @param txCtx
 	 * @return
@@ -334,7 +339,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 			txCtx.discardAndCommit(result, operationResults);
 			LOGGER.error(String.format(
 					"Due to ledger security exception, the data changes resulting from transaction execution will be rolled back and the results of the transaction will be committed! --[BlockHeight=%s][TxHash=%s] --%s",
-					newBlockEditor.getBlockHeight(), request.getTransactionHash(), 
+					newBlockEditor.getBlockHeight(), request.getTransactionHash(),
 					e.getMessage()), e);
 		} catch (Throwable e) {
 			result = TransactionState.SYSTEM_ERROR;
@@ -355,7 +360,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 
 	/**
 	 * 直接丢弃交易；
-	 * 
+	 *
 	 * @param request
 	 * @param txState
 	 * @return 丢弃交易的回复；只包含原始请求中的交易内容哈希和交易被丢弃的原因，而不包含区块信息；
@@ -366,14 +371,14 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 		resp.setExecutionState(txState);
 
 		LOGGER.error("Discard transaction request! --[BlockHeight={}][RequestHash={}][ResponseState={}]",
-				newBlockEditor.getBlockHeight(), request.getTransactionHash(), 
+				newBlockEditor.getBlockHeight(), request.getTransactionHash(),
 				resp.getExecutionState());
 		return resp;
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see com.jd.blockchain.ledger.core.impl.TransactionBatchProcess#prepare()
 	 */
 	@Override
@@ -388,7 +393,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see
 	 * com.jd.blockchain.ledger.core.impl.TransactionBatchProcess#cancel(com.jd.
 	 * blockchain.ledger.ExecutionState)
