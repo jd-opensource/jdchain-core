@@ -400,7 +400,7 @@ class InitConfig implements Runnable {
                 "#view.storage.handler=bftsmart.reconfiguration.views.DefaultViewStorage\n" +
                 "\n" +
                 "#block delay;\n" +
-                "system.epoch.delay=50");
+                "system.epoch.delay=" + (dataStructure.equals(LedgerDataStructure.KV) ? 25 : 50));
         FileUtils.deleteFile(file);
         FileUtils.writeText(sb.toString(), new File(file));
     }
@@ -599,13 +599,9 @@ class InitConfig implements Runnable {
                         "\n" +
                         "#当前参与方的公钥，用于非证书模式\n" +
                         "local.parti.pubkey=" + pubkey + "\n" +
-                        "#当前参与方的证书信息，用于证书模式\n" +
-                        "local.parti.ca-path=\n" +
                         "\n" +
                         "#当前参与方的私钥（密文编码）\n" +
                         "local.parti.privkey=" + privkey + "\n" +
-                        "#当前参与方的私钥文件，PEM格式,用于证书模式\n" +
-                        "local.parti.privkey-path=\n" +
                         "\n" +
                         "#当前参与方的私钥解密密钥(原始口令的一次哈希，Base58格式)，如果不设置，则启动过程中需要从控制台输入;\n" +
                         "local.parti.pwd=" + pwd + "\n" +
@@ -803,17 +799,8 @@ class InitConfig implements Runnable {
                 "#共识节点的服务提供解析器\n" +
                 "peer.providers=" + consensus.getProvider() +
                 "\n" +
-                "#数据检索服务对应URL，格式：http://{ip}:{port}，例如：http://127.0.0.1:10001\n" +
-                "#若该值不配置或配置不正确，则浏览器模糊查询部分无法正常显示\n" +
-                "data.retrieval.url=\n" +
-                "schema.retrieval.url=\n" +
-                "\n" +
                 "#默认公钥的内容（Base58编码数据），非CA模式下必填；\n" +
                 "keys.default.pubkey=" + pubkey + "\n" +
-                "#默认网关证书路径（X509,PEM），CA模式下必填；\n" +
-                "keys.default.ca-path=\n" +
-                "#默认私钥的路径；在 pk-path 和 pk 之间必须设置其一；\n" +
-                "keys.default.privkey-path=\n" +
                 "#默认私钥的内容；在 pk-path 和 pk 之间必须设置其一；\n" +
                 "keys.default.privkey=" + privkey + "\n" +
                 "#默认私钥的解码密码；\n" +
