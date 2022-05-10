@@ -341,7 +341,7 @@ class InitConfig implements Runnable {
                 "system.communication.useSignatures = 0\n" +
                 "\n" +
                 "#Set to 1 if SMaRt should use MAC's, set to 0 if otherwise\n" +
-                "system.communication.useMACs = 1\n" +
+                "system.communication.useMACs = 0\n" +
                 "\n" +
                 "#Set to 1 if SMaRt should use the standard output to display debug messages, set to 0 if otherwise\n" +
                 "system.debug = 0\n" +
@@ -467,7 +467,7 @@ class InitConfig implements Runnable {
                 "system.msg.queue.block.txsize=1000\n" +
                 "\n" +
                 "# 当前账本结块最大时长（单位：毫秒）\n" +
-                "system.msg.queue.block.maxdelay=10\n" +
+                "system.msg.queue.block.maxdelay=1\n" +
                 "\n" +
                 "# 当前账本节点总数\n" +
                 "system.servers.num=" + peerHosts.length + "\n" +
