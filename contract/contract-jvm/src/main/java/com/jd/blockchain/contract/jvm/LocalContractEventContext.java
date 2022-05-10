@@ -8,6 +8,7 @@ import com.jd.blockchain.runtime.RuntimeContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.Bytes;
+import utils.serialize.json.GenericType;
 import utils.serialize.json.JSONSerializeUtils;
 
 import java.util.Set;
@@ -147,7 +148,22 @@ public class LocalContractEventContext implements ContractEventContext, Cloneabl
     }
 
     @Override
-    public <T> T jsonDeserialize(String json, Class<T> dataClazz) {
+    public String jsonSerialize(Object data, Class<?> serializedType) {
+        boolean enabled = null != RuntimeContext.get().getSecurityManager() && RuntimeContext.get().getSecurityManager().isEnabled();
+        if (enabled) {
+            try {
+                RuntimeContext.disableSecurityManager();
+                return JSONSerializeUtils.serializeToJSON(data, serializedType);
+            } finally {
+                RuntimeContext.enableSecurityManager();
+            }
+        } else {
+            return JSONSerializeUtils.serializeToJSON(data, serializedType);
+        }
+    }
+
+    @Override
+    public <T> T jsonDeserializeFromJSON(String json, Class<T> dataClazz) {
         boolean enabled = null != RuntimeContext.get().getSecurityManager() && RuntimeContext.get().getSecurityManager().isEnabled();
         if (enabled) {
             try {
@@ -158,6 +174,36 @@ public class LocalContractEventContext implements ContractEventContext, Cloneabl
             }
         } else {
             return JSONSerializeUtils.deserializeFromJSON(json, dataClazz);
+        }
+    }
+
+    @Override
+    public <T> T jsonDeserializeFromJSON(String json, GenericType<T> type) {
+        boolean enabled = null != RuntimeContext.get().getSecurityManager() && RuntimeContext.get().getSecurityManager().isEnabled();
+        if (enabled) {
+            try {
+                RuntimeContext.disableSecurityManager();
+                return JSONSerializeUtils.deserializeFromJSON(json, type);
+            } finally {
+                RuntimeContext.enableSecurityManager();
+            }
+        } else {
+            return JSONSerializeUtils.deserializeFromJSON(json, type);
+        }
+    }
+
+    @Override
+    public <T> T jsonDeserializeAs(String json, Class<T> dataClazz) {
+        boolean enabled = null != RuntimeContext.get().getSecurityManager() && RuntimeContext.get().getSecurityManager().isEnabled();
+        if (enabled) {
+            try {
+                RuntimeContext.disableSecurityManager();
+                return JSONSerializeUtils.deserializeAs(json, dataClazz);
+            } finally {
+                RuntimeContext.enableSecurityManager();
+            }
+        } else {
+            return JSONSerializeUtils.deserializeAs(json, dataClazz);
         }
     }
 
