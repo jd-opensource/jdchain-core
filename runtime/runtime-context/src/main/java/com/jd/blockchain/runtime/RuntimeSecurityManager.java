@@ -37,9 +37,11 @@ public class RuntimeSecurityManager extends SecurityManager {
     @Override
     public void checkPermission(Permission permission, Object context) {
         if (isEnabled()) {
-            if (permission.getName().equals("createClassLoader") && permission.getClass().getName().equals(RuntimePermission.class.getName())) {
+            if (permission.getName().equals("createClassLoader") && permission.getClass().equals(RuntimePermission.class)) {
                 return;
-            } else if (permission.getName().equals("suppressAccessChecks") && permission.getClass().getName().equals(ReflectPermission.class.getName())) {
+            } else if (permission.getName().equals("accessDeclaredMembers") && permission.getClass().equals(RuntimePermission.class)) {
+                return;
+            } else if (permission.getName().equals("suppressAccessChecks") && permission.getClass().equals(ReflectPermission.class)) {
                 return;
             } else if (permission.getName().startsWith(libsDir + File.separator) &&
                     permission.getClass().getName().equals(FilePermission.class.getName()) &&
