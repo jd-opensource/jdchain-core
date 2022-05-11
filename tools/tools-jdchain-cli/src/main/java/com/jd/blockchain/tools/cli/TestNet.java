@@ -371,7 +371,7 @@ class InitConfig implements Runnable {
                 "\n" +
                 "system.totalordermulticast.log = true\n" +
                 "system.totalordermulticast.log_parallel = false\n" +
-                "system.totalordermulticast.log_to_disk = true\n" +
+                "system.totalordermulticast.log_to_disk = false\n" +
                 "system.totalordermulticast.sync_log = false\n" +
                 "\n" +
                 "#Period at which BFT-SMaRt requests the state to the application (for the state transfer state protocol)\n" +
