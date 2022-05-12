@@ -1,12 +1,11 @@
 package com.jd.blockchain.ledger.core.handles;
 
-import com.jd.blockchain.contract.jvm.LocalContractEventContext;
 import com.jd.blockchain.contract.engine.ContractCode;
 import com.jd.blockchain.contract.engine.ContractEngine;
 import com.jd.blockchain.contract.engine.ContractServiceProviders;
+import com.jd.blockchain.contract.jvm.LocalContractEventContext;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.*;
-import com.jd.blockchain.runtime.RuntimeContext;
 
 import java.util.stream.Collectors;
 
@@ -55,7 +54,6 @@ public class ContractEventSendOperationHandle implements OperationHandle {
 
         localContractEventContext.setTxSigners(request.getEndpoints().stream().map(s -> s.getIdentity()).collect(Collectors.toSet()));
 
-        RuntimeContext.disableSecurityManager();
         // 装载合约；
         ContractCode contractCode = ENGINE.setupContract(contract);
 

@@ -4,6 +4,7 @@ import com.jd.blockchain.ca.CertificateUtils;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.core.TransactionRequestExtension.Credential;
+import com.jd.blockchain.runtime.RuntimeContext;
 import com.jd.blockchain.service.TransactionBatchProcess;
 import com.jd.blockchain.service.TransactionBatchResult;
 import com.jd.blockchain.service.TransactionBatchResultHandle;
@@ -12,6 +13,7 @@ import com.jd.blockchain.transaction.TxBuilder;
 import com.jd.blockchain.transaction.TxResponseMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.serialize.json.JSONSerializeUtils;
 
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -278,7 +280,17 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 					// assert; Instance of operation are one of User related operations or
 					// DataAccount related operations;
 					OperationHandle hdl = handlesRegisteration.getHandle(operation.getClass());
-					return hdl.process(operation, txCtx, request, ledger, this, eventManager);
+					boolean enabled = null != RuntimeContext.get().getSecurityManager() && RuntimeContext.get().getSecurityManager().isEnabled();
+					if (enabled) {
+						try {
+							RuntimeContext.disableSecurityManager();
+							return hdl.process(operation, txCtx, request, ledger, this, eventManager);
+						} finally {
+							RuntimeContext.enableSecurityManager();
+						}
+					} else {
+						return hdl.process(operation, txCtx, request, ledger, this, eventManager);
+					}
 				}
 			};
 			OperationHandle opHandle;
