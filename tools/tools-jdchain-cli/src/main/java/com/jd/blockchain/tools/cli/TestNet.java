@@ -614,7 +614,7 @@ class InitConfig implements Runnable {
                         "#rocksdb数据库连接格式：rocksdb://{path}，例如：rocksdb:///export/App08/peer/rocks.db/rocksdb0.db\n" +
                         "#redis数据库连接格式：redis://{ip}:{prot}/{db}，例如：redis://127.0.0.1:6379/0\n" +
                         "#kvdb数据库连接格式：kvdb://{ip}:{prot}/{db}，例如：kvdb://127.0.0.1:7078/test\n" +
-                        "ledger.db.uri=" + ("rocksdb://" + peerDir + File.separator + ledgerName + "-db?bloom=100000000,0.01&lru=5000,5000") + "\n" +
+                        "ledger.db.uri=" + ("rocksdb://" + peerDir + File.separator + ledgerName + "-db") + "\n" +
                         "\n" +
                         "#账本数据库的连接口令\n" +
                         "ledger.db.pwd=\n" +
