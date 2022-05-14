@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import utils.concurrent.AsyncFuture;
 import utils.concurrent.CompletableAsyncFuture;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,6 +47,7 @@ public class MsgQueueMessageLeaderDispatcher implements MsgQueueMessageDispatche
     private MsgQueueProducer msgResultProducer;
     private int nodeId;
     private volatile boolean singleNode;
+    private TxEventHandler txEventHandler;
 
     public MsgQueueMessageLeaderDispatcher(MsgQueueServerSettings serverSettings, MessageHandle messageHandle) {
         this.serverSettings = serverSettings;
@@ -82,8 +84,9 @@ public class MsgQueueMessageLeaderDispatcher implements MsgQueueMessageDispatche
 
     @Override
     public void connect() throws Exception {
-        txConsumer.connect(new MsgQueueDisruptorHandler(new TxEventHandler(serverSettings.getBlockSettings().getTxSizePerBlock(),
-                serverSettings.getBlockSettings().getMaxDelayMilliSecondsPerBlock())));
+        txEventHandler = new TxEventHandler(serverSettings.getBlockSettings().getTxSizePerBlock(),
+                serverSettings.getBlockSettings().getMaxDelayMilliSecondsPerBlock());
+        txConsumer.connect(new MsgQueueDisruptorHandler(txEventHandler));
         txResultProducer.connect();
         msgConsumer.connect(new ExtendMessageHandler());
         msgResultProducer.connect();
@@ -97,9 +100,10 @@ public class MsgQueueMessageLeaderDispatcher implements MsgQueueMessageDispatche
         txResultProducer.close();
         msgResultProducer.close();
         blockProducer.close();
+        txEventHandler.close();
     }
 
-    private class TxEventHandler implements EventHandler<EventEntity<byte[]>> {
+    private class TxEventHandler implements EventHandler<EventEntity<byte[]>>, Closeable {
         private final ScheduledThreadPoolExecutor blockExecutor = new ScheduledThreadPoolExecutor(1);
         private final ExecutorService resultExecutor = Executors.newFixedThreadPool(2);
         private final AtomicInteger messageId = new AtomicInteger();
@@ -211,6 +215,12 @@ public class MsgQueueMessageLeaderDispatcher implements MsgQueueMessageDispatche
                 messageHandle.rollbackBatch(TransactionState.CONSENSUS_ERROR.CODE, consensusContext);
             }
             return asyncFutureMap;
+        }
+
+        @Override
+        public void close() throws IOException {
+            blockExecutor.shutdown();
+            resultExecutor.shutdown();
         }
     }
 

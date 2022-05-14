@@ -126,6 +126,7 @@ public class DefaultMessageTransmitter implements MessageTransmitter, MessageSer
     @Override
     public void close() {
         try {
+            messageExecutor.shutdownNow();
             if (null != txProducer) {
                 txProducer.close();
             }
