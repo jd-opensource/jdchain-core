@@ -685,7 +685,7 @@ class InitConfig implements Runnable {
                 "fi\n" +
                 "\n" +
                 "#定义程序启动的参数\n" +
-                "JAVA_OPTS=\"-jar -server -Xms6144m -Xmx6144m $opens -Djdchain.log=$APP_HOME/logs -Dlog4j.configurationFile=file:$APP_HOME/config/log4j2-peer.xml\"\n" +
+                "JAVA_OPTS=\"-jar -server -Xms2048m -Xmx2048m $opens -Djdchain.log=$APP_HOME/logs -Dlog4j.configurationFile=file:$APP_HOME/config/log4j2-peer.xml\"\n" +
                 "\n" +
                 "#APP具体相关命令\n" +
                 "APP_CMD=$APP_SYSTEM_PATH/$APP_JAR\" -home=\"$APP_HOME\" -c \"$LEDGER_BINDING_CONFIG\" -p \"$WEB_PORT\" -sp \"$SPRING_CONFIG\n" +
@@ -793,7 +793,7 @@ class InitConfig implements Runnable {
                 "\n" +
                 "# 节点连接心跳（毫秒），及时感知连接有效性，0及负值表示关闭\n" +
                 "peer.connection.ping=3000\n" +
-                "# 节点连接认证（毫秒），及时感知连接合法性，0及负值表示关闭。对于不存在权限变更的场景可关闭\n" +
+                "# 节点连接认证（毫秒），及时感知连接合法性，0及负值表示关闭。对于不存在账本数量变更、权限变更的场景可关闭\n" +
                 "peer.connection.auth=0" +
                 "\n" +
                 "#共识节点的服务提供解析器\n" +
