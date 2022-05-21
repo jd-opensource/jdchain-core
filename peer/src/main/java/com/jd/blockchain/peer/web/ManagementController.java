@@ -24,6 +24,7 @@ import com.jd.blockchain.peer.ConsensusRealm;
 import com.jd.blockchain.peer.LedgerBindingConfigAware;
 import com.jd.blockchain.peer.PeerManage;
 import com.jd.blockchain.peer.consensus.LedgerStateManager;
+import com.jd.blockchain.peer.mysql.service.MapperService;
 import com.jd.blockchain.peer.service.ConsensusServiceFactory;
 import com.jd.blockchain.peer.service.IParticipantManagerService;
 import com.jd.blockchain.peer.service.ParticipantContext;
@@ -94,6 +95,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
     @Autowired
     private DbConnectionFactory connFactory;
+
+    @Autowired
+    private MapperService mapperService;
 
     private Map<HashDigest, NodeServer> ledgerPeers = new ConcurrentHashMap<>();
 
@@ -392,6 +396,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                         currentNode.getAddress().toBase58(), bindingConfig.getSslSecurity(), bindingConfig.getExtraProperties());
                 ((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
                 Storage consensusRuntimeStorage = getConsensusRuntimeStorage(ledgerHash);
+
+                if (bindingConfig.isWriteMysql()) {
+                    mapperService.init(ledgerRepository);
+                }
                 server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
                         consensusStateManager, consensusRuntimeStorage);
                 ledgerPeers.put(ledgerHash, server);

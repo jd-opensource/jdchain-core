@@ -67,6 +67,8 @@ public class LedgerBindingConfig {
 	public static final String LEDGER_NAME = "name";
 	public static final String LEDGER_DATA_STRUCTURE = "data.structure";
 
+	public static final String LEDGER_DATA_WRITE_MYSQL = "data.write.mysql";
+
 	// ------------------------------
 
 	private Map<HashDigest, BindingConfig> bindings = new LinkedHashMap<>();
@@ -110,6 +112,7 @@ public class LedgerBindingConfig {
 			writeLine(builder, "#第 %s 个账本[%s]的配置；", i + 1, hashs[i].toBase58());
 			BindingConfig binding = getLedger(hashs[i]);
 			writeLedger(builder, hashs[i], binding);
+			writeMysql(builder, hashs[i], binding);
 			writeParticipant(builder, hashs[i], binding);
 			writeDB(builder, hashs[i], binding);
 			writeLine(builder);
@@ -219,6 +222,14 @@ public class LedgerBindingConfig {
 		writeLine(builder, "%s=%s", ledgerNameKey, stringOf(binding.getLedgerName()));
 		writeLine(builder, "#账本的存储数据库的锚定类型；");
 		writeLine(builder, "%s=%s", ledgerDataStructure, stringOf(binding.getDataStructure()));
+		writeLine(builder);
+	}
+
+	private void writeMysql(StringBuilder builder, HashDigest ledgerHash, BindingConfig binding) {
+		String ledgerPrefix = String.join(ATTR_SEPERATOR, BINDING_PREFIX, ledgerHash.toBase58());
+		String ledgerDataWriteMysql = String.join(ATTR_SEPERATOR, ledgerPrefix, LEDGER_DATA_WRITE_MYSQL);
+		writeLine(builder, "#账本数据是否同步写Mysql；");
+		writeLine(builder, "%s=%s", ledgerDataWriteMysql, stringOf(binding.isWriteMysql()));
 		writeLine(builder);
 	}
 
@@ -372,6 +383,10 @@ public class LedgerBindingConfig {
 		String structure = getProperty(props, ledgerDataStructure, false);
 		binding.dataStructure = StringUtils.isEmpty(structure) ? LedgerDataStructure.MERKLE_TREE : LedgerDataStructure.valueOf(structure);
 
+		String ledgerDataWriteMysql = String.join(ATTR_SEPERATOR, ledgerPrefix, LEDGER_DATA_WRITE_MYSQL);
+		String writeMysql = getProperty(props, ledgerDataWriteMysql, false);
+		binding.writeMysql = StringUtils.isEmpty(writeMysql) ? false : Boolean.parseBoolean(writeMysql);
+
 		binding.setExtraProperties(PropertiesUtils.getPrefixedValues(props, ledgerPrefix + ATTR_SEPERATOR));
 
 		return binding;
@@ -427,6 +442,7 @@ public class LedgerBindingConfig {
 		private LedgerDataStructure dataStructure = LedgerDataStructure.MERKLE_TREE;
 		private SSLSecurity sslSecurity;
 		private Properties extraProperties;
+		private boolean writeMysql;
 
 		// 账本名字
 		private ParticipantBindingConfig participant = new ParticipantBindingConfig();
@@ -453,6 +469,10 @@ public class LedgerBindingConfig {
 			return dataStructure;
 		}
 
+		public boolean isWriteMysql() {
+			return writeMysql;
+		}
+
 		public void setDataStructure(LedgerDataStructure dataStructure) {
 			this.dataStructure = dataStructure;
 		}
@@ -471,6 +491,10 @@ public class LedgerBindingConfig {
 
 		public void setExtraProperties(Properties extraProperties) {
 			this.extraProperties = extraProperties;
+		}
+
+		public void setWriteMysql(boolean writeMysql) {
+			this.writeMysql = writeMysql;
 		}
 	}
 

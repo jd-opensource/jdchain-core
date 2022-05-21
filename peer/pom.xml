@@ -128,7 +128,31 @@
 			<version>1.8.1</version>
 		</dependency>
 
-		<!-- <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot-starter-test</artifactId>
+		<dependency>
+			<groupId>org.mybatis.spring.boot</groupId>
+			<artifactId>mybatis-spring-boot-starter</artifactId>
+			<version>2.2.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!--<dependency>-->
+			<!--<groupId>org.springframework.boot</groupId>-->
+			<!--<artifactId>spring-boot-starter-jdbc</artifactId>-->
+		<!--</dependency>-->
+
+		<!--<dependency>-->
+			<!--<groupId>com.alibaba</groupId>-->
+			<!--<artifactId>druid-spring-boot-starter</artifactId>-->
+			<!--<version>1.2.6</version>-->
+		<!--</dependency>-->
+
+		<!-- <dependency> <groupId>org.springframework.boot</groupId> <artifa
+		ctId>spring-boot-starter-test</artifactId>
 			</dependency> -->
 	</dependencies>
 

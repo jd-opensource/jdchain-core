@@ -10,6 +10,11 @@ import com.jd.blockchain.tools.initializer.LedgerBindingConfig.BindingConfig;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.dao.PersistenceExceptionTranslationAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration;
+import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -33,7 +38,8 @@ import java.util.UUID;
  * @author huanghaiquan
  *
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class, DataSourceTransactionManagerAutoConfiguration.class,
+		PersistenceExceptionTranslationAutoConfiguration.class, TransactionAutoConfiguration.class})
 @EnableConfigurationProperties
 public class LedgerInitCommand {
 
@@ -188,6 +194,8 @@ public class LedgerInitCommand {
 		bindingConf.setLedgerName(ledgerInitProperties.getLedgerName());
 		bindingConf.setDataStructure(ledgerInitProperties.getLedgerDataStructure());
 
+		bindingConf.setWriteMysql(ledgerInitProperties.isLedgerDataWriteMysql());
+
 		bindingConf.getParticipant()
 				.setAddress(ledgerInitProperties.getConsensusParticipant(currId).getAddress().toBase58());
 		// 设置参与方名称
@@ -287,6 +295,8 @@ public class LedgerInitCommand {
 
 		//设置账本存储数据库的锚定类型
 		bindingConf.setDataStructure(ledgerInitProperties.getLedgerDataStructure());
+
+		bindingConf.setWriteMysql(ledgerInitProperties.isLedgerDataWriteMysql());
 
 		// 设置额外参数
 		bindingConf.setExtraProperties(localConfig.getExtraProperties());
