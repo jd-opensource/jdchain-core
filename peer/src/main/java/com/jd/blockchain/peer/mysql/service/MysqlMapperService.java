@@ -26,6 +26,7 @@ import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.UserStateUpdateOperation;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 import com.jd.blockchain.ledger.core.TransactionSet;
+import com.jd.blockchain.peer.ledger.service.utils.TransactionDecorator;
 import com.jd.blockchain.peer.mysql.entity.BlockInfo;
 import com.jd.blockchain.peer.mysql.entity.ContractInfo;
 import com.jd.blockchain.peer.mysql.entity.DataInfo;
@@ -48,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import utils.Bytes;
 
 import java.util.HashSet;
@@ -86,7 +88,7 @@ public class MysqlMapperService implements MapperService {
 
     private static final long WRITE_MYSQL_TASK_DELAY = 2000;
 
-    private static final long WRITE_MYSQL_TASK_TIMEOUT = 1000;
+    private static final long WRITE_MYSQL_TASK_TIMEOUT = 1000000000;
 
     private static final Lock writeMysqlLock = new ReentrantLock();
 
@@ -132,6 +134,7 @@ public class MysqlMapperService implements MapperService {
                 // 查询目前已入库的区块高度信息
                 mysqlBlockHeight = blockInfoMapper.getBlockInfoTotal(ledgerQuery.getHash().toBase58()) - 1;
 
+
                 if (mysqlBlockHeight < ledgerQuery.getLatestBlockHeight()) {
                     if (mysqlBlockHeight + WRITE_BATCH_SIZE < ledgerQuery.getLatestBlockHeight()) {
                         endBlockHeight = mysqlBlockHeight + WRITE_BATCH_SIZE;
@@ -140,11 +143,13 @@ public class MysqlMapperService implements MapperService {
                     }
 
                     for (long i = mysqlBlockHeight + 1; i < endBlockHeight + 1; i++) {
+                        logger.info("will writeAppToMysql!");
                         writeAppToMysql(ledgerQuery, i);
                     }
                 }
             } catch (Exception e) {
                 logger.error("[MysqlMapperService] write mysql exception occur!");
+                e.printStackTrace();
             } finally {
                 writeMysqlLock.unlock();
             }
@@ -152,6 +157,7 @@ public class MysqlMapperService implements MapperService {
     }
 
     private void insertUserInfo(String ledger, long blockHeight, String txHashBase58, UserRegisterOperation userRegisterOperation) {
+        logger.info("insertUserInfo start!");
         String user_address = userRegisterOperation.getUserID().getAddress().toBase58();
         String user_pubkey = userRegisterOperation.getUserID().getPubKey().toBase58();
         String user_key_algorithm =  Crypto.getAlgorithm(userRegisterOperation.getUserID().getPubKey().getAlgorithm()).name();
@@ -161,6 +167,7 @@ public class MysqlMapperService implements MapperService {
     }
 
     private void insertDataInfo(String ledger, long blockHeight, String txHashBase58, DataAccountRegisterOperation dataAccountRegisterOperation, String endpointPubKey) {
+        logger.info("insertDataInfo start!");
         String data_account_address = dataAccountRegisterOperation.getAccountID().getAddress().toBase58();
         String data_account_pubkey = dataAccountRegisterOperation.getAccountID().getPubKey().toBase58();
         DataInfo dataInfo = new DataInfo(ledger, data_account_address, data_account_pubkey, "DEFAULT", "777", endpointPubKey, txHashBase58, blockHeight);
@@ -168,6 +175,7 @@ public class MysqlMapperService implements MapperService {
     }
 
     private void insertContractInfo(String ledger, long blockHeight, String txHashBase58, ContractCodeDeployOperation contractCodeDeployOperation, String endpointPubKey) {
+        logger.info("insertContractInfo start!");
         String contract_address = contractCodeDeployOperation.getContractID().getAddress().toBase58();
         String contract_pubkey = contractCodeDeployOperation.getContractID().getPubKey().toBase58();
         String contract_lang = contractCodeDeployOperation.getLang().name();
@@ -179,6 +187,7 @@ public class MysqlMapperService implements MapperService {
     }
 
     private void insertEventInfo(String ledger, long blockHeight, String txHashBase58, EventAccountRegisterOperation eventAccountRegisterOperation, String endpointPubKey) {
+        logger.info("insertEventInfo start!");
         String event_account_address = eventAccountRegisterOperation.getEventAccountID().getAddress().toBase58();
         String event_account_pubkey = eventAccountRegisterOperation.getEventAccountID().getPubKey().toBase58();
         EventInfo eventInfo = new EventInfo(ledger, event_account_address, event_account_pubkey, "DEFAULT", "777", endpointPubKey, txHashBase58, blockHeight);
@@ -187,7 +196,7 @@ public class MysqlMapperService implements MapperService {
 
     private void insertDataKvInfo(String ledger, long blockHeight, String txHashBase58, DataAccountKVSetOperation dataAccountKVSetOperation) {
         String data_account_address = dataAccountKVSetOperation.getAccountAddress().toBase58();
-
+        logger.info("insertDataKvInfo start!");
         for (DataAccountKVSetOperation.KVWriteEntry kvw : dataAccountKVSetOperation.getWriteSet()) {
             String data_key = kvw.getKey();
             String data_type = kvw.getValue().getType().name();
@@ -200,7 +209,7 @@ public class MysqlMapperService implements MapperService {
 
     private void insertEventKvInfo(String ledger, long blockHeight, String txHashBase58, EventPublishOperation eventPublishOperation) {
         String event_account_address = eventPublishOperation.getEventAddress().toBase58();
-
+        logger.info("insertEventKvInfo start!");
         for (EventPublishOperation.EventEntry eventEntry : eventPublishOperation.getEvents()) {
             String event_name = eventEntry.getName();
             String event_type = eventEntry.getContent().getType().name();
@@ -212,11 +221,13 @@ public class MysqlMapperService implements MapperService {
     }
 
     private void insertTxInfo(String ledger, long blockHeight, String txHashBase58, int txIndex, String endpointPubKey, String ndoePubKey, int exeState, byte[] txContent) {
+        logger.info("insertTxInfo start!");
         TxInfo txInfo = new TxInfo(ledger, blockHeight, txHashBase58, txIndex, ndoePubKey, endpointPubKey, exeState, txContent);
         txInfoMapper.insert(txInfo);
     }
 
     private void insertBlockInfo(String ledger, LedgerBlock ledgerBlock) {
+        logger.info("insertBlockInfo start!");
         BlockInfo blockInfo = new BlockInfo(ledger, ledgerBlock.getHeight(), ledgerBlock.getHash().toBase58(),
                 ledgerBlock.getPreviousHash().toBase58(),  ledgerBlock.getTransactionSetHash().toBase58(), ledgerBlock.getUserAccountSetHash().toBase58(),
                 ledgerBlock.getDataAccountSetHash().toBase58(), ledgerBlock.getContractAccountSetHash().toBase58(), ledgerBlock.getUserEventSetHash().toBase58(),
@@ -226,16 +237,18 @@ public class MysqlMapperService implements MapperService {
     }
 
     private void updateUserState(String ledger, UserStateUpdateOperation userStateUpdateOperation) {
+        logger.info("updateUserState start!");
         userInfoMapper.updateStatus(ledger, userStateUpdateOperation.getUserAddress().toBase58(), userStateUpdateOperation.getState().name());
     }
 
     private void updateContratState(String ledger, ContractStateUpdateOperation contractStateUpdateOperation) {
+        logger.info("updateContratState start!");
         contractInfoMapper.updateStatus(ledger, contractStateUpdateOperation.getContractAddress().toBase58(), contractStateUpdateOperation.getState().name());
     }
 
     // 更新用户角色组合，以及角色组合的策略
     private void updateUserAuthorize(String ledger, UserAuthorizeOperation userAuthorizeOperation) {
-
+        logger.info("updateUserAuthorize start!");
         for (UserAuthorizeOperation.UserRolesEntry userRolesEntry: userAuthorizeOperation.getUserRolesAuthorizations()) {
             for (Bytes userAddr : userRolesEntry.getUserAddresses()) {
                 String userBase58 = userAddr.toBase58();
@@ -247,12 +260,17 @@ public class MysqlMapperService implements MapperService {
                     logger.error("[MysqlMapperService] updateRolePolicy error, user does not exist!");
                     return;
                 }
-                String [] existRoles = userInfo.getUser_roles().split(",");
-                Set<String>  updateRolesSet = new HashSet<String>();
-                String updateRolesString = "";
 
-                for (String existRole : existRoles) {
-                    updateRolesSet.add(existRole);
+                String[] existRoles = null;
+                Set<String>  updateRolesSet = new HashSet<String>();
+                String updateRolesString = null;
+                if (userInfo.getUser_roles().contains(",")) {
+                    existRoles = userInfo.getUser_roles().split(",");
+                    for (String existRole : existRoles) {
+                        updateRolesSet.add(existRole);
+                    }
+                } else {
+                    updateRolesSet.add(userInfo.getUser_roles());
                 }
 
                 for (String authorizedRole : authorizedRoles) {
@@ -264,7 +282,11 @@ public class MysqlMapperService implements MapperService {
                 }
 
                 for (String updateRole : updateRolesSet) {
-                    updateRolesString = updateRolesString.concat(updateRole).concat(",");
+                    if (updateRolesString == null) {
+                        updateRolesString = updateRole + ",";
+                    } else {
+                        updateRolesString = updateRolesString + updateRole + ",";
+                    }
                 }
 
                 userInfoMapper.updateRolePolicy(ledger, userBase58, updateRolesString.substring(0, updateRolesString.length() - 1), rolesPolicy);
@@ -273,6 +295,7 @@ public class MysqlMapperService implements MapperService {
     }
 
     private void updateRolePrivilege(String ledger, long blockHeight, String txHashBase58, RolesConfigureOperation rolesConfigureOperation) {
+        logger.info("updateRolePrivilege start!");
         for (RolesConfigureOperation.RolePrivilegeEntry rolePrivilegeEntry : rolesConfigureOperation.getRoles()) {
 
             String role = rolePrivilegeEntry.getRoleName();
@@ -289,11 +312,19 @@ public class MysqlMapperService implements MapperService {
                 String insert_tx_permissions = null;
 
                 for (LedgerPermission ledgerPermission : enableLedgerPermissions) {
-                    insert_ledger_permissions.concat(ledgerPermission.name()).concat(",");
+                    if (insert_ledger_permissions == null) {
+                        insert_ledger_permissions = ledgerPermission.name() + ",";
+                    } else {
+                        insert_ledger_permissions = insert_ledger_permissions + ledgerPermission.name() + ",";
+                    }
                 }
 
                 for (TransactionPermission transactionPermission : enableTransactionPermissions) {
-                    insert_tx_permissions.concat(transactionPermission.name()).concat(",");
+                    if (insert_tx_permissions == null) {
+                        insert_tx_permissions = transactionPermission.name() + ",";
+                    } else {
+                        insert_tx_permissions = insert_tx_permissions + transactionPermission.name() + ",";
+                    }
                 }
 
                 rolePrivilegeMapper.insert(new RolePrivilegeInfo(ledger, role, insert_ledger_permissions.substring(0, insert_ledger_permissions.length() - 1), insert_tx_permissions.substring(0, insert_tx_permissions.length() - 1), blockHeight, txHashBase58));
@@ -305,8 +336,8 @@ public class MysqlMapperService implements MapperService {
                 Set<String> updateLedgerPermissions = new HashSet<String>();
                 Set<String> updateTransactionPermissions = new HashSet<String>();
 
-                String update_ledger_privileges = "";
-                String update_tx_privileges = "";
+                String update_ledger_privileges = null;
+                String update_tx_privileges = null;
 
                 for (String ledgerPermission : existLedgerPermissions) {
                     updateLedgerPermissions.add(ledgerPermission);
@@ -333,11 +364,19 @@ public class MysqlMapperService implements MapperService {
                 }
 
                 for (String ledgerPermission : updateLedgerPermissions) {
-                    update_ledger_privileges = update_ledger_privileges.concat(ledgerPermission).concat(",");
+                    if (update_ledger_privileges == null) {
+                        update_ledger_privileges = ledgerPermission + ",";
+                    } else {
+                        update_ledger_privileges = update_ledger_privileges + ledgerPermission + ",";
+                    }
                 }
 
                 for (String transactionPermission : updateTransactionPermissions) {
-                    update_tx_privileges = update_tx_privileges.concat(transactionPermission).concat(",");
+                    if (update_tx_privileges == null) {
+                        update_tx_privileges = transactionPermission + ",";
+                    } else {
+                        update_tx_privileges = update_tx_privileges + transactionPermission + ",";
+                    }
                 }
 
                 rolePrivilegeMapper.updateRolePrivInfo(ledger, role, update_ledger_privileges.substring(0, update_ledger_privileges.length() - 1), update_tx_privileges.substring(0, update_tx_privileges.length() - 1));
@@ -372,7 +411,9 @@ public class MysqlMapperService implements MapperService {
         }
     }
 
-    private void writeAppToMysql(LedgerQuery ledgerQuery, long blockHeight) {
+
+    @Transactional
+    public void writeAppToMysql(LedgerQuery ledgerQuery, long blockHeight) {
 
         LedgerBlock ledgerBlock = ledgerQuery.getBlock(blockHeight);
         String ledger = ledgerQuery.getHash().toBase58();
@@ -380,22 +421,34 @@ public class MysqlMapperService implements MapperService {
         LedgerTransaction[] ledgerTransactions = getTransactionsInBlock(ledgerQuery, ledgerBlock);
 
         for (int i = 0; i < ledgerTransactions.length; i++) {
-            String tx_node_pubkeys = "";
-            String tx_endpoint_pubkeys = "";
+            String tx_node_pubkeys = null;
+            String tx_endpoint_pubkeys = null;
             TransactionRequest transactionRequest = ledgerTransactions[i].getRequest();
             TransactionResult transactionResult = ledgerTransactions[i].getResult();
             Operation[] txDerivedOps = transactionResult.getDerivedOperations();
             String txHashBase58 = transactionRequest.getTransactionHash().toBase58();
             byte[] tx_contents = BinaryProtocol.encode(transactionRequest.getTransactionContent(), TransactionContent.class);
 
-            for (i = 0; i < transactionRequest.getNodeSignatures().length; i++) {
-                String nodePubKey = transactionRequest.getEndpointSignatures()[i].getPubKey().toBase58();
-                tx_node_pubkeys = tx_node_pubkeys.concat(nodePubKey).concat(",");
+            if (transactionRequest.getNodeSignatures() != null) {
+                for (i = 0; i < transactionRequest.getNodeSignatures().length; i++) {
+                    String nodePubKey = transactionRequest.getNodeSignatures()[i].getPubKey().toBase58();
+                    if (tx_node_pubkeys == null) {
+                        tx_node_pubkeys = nodePubKey + ",";
+                    } else {
+                        tx_node_pubkeys = tx_node_pubkeys + nodePubKey + ",";
+                    }
+                }
             }
 
-            for (i = 0; i < transactionRequest.getEndpointSignatures().length; i++) {
-                String endpointPubKey = transactionRequest.getEndpointSignatures()[i].getPubKey().toBase58();
-                tx_endpoint_pubkeys = tx_endpoint_pubkeys.concat(endpointPubKey).concat(",");
+            if (transactionRequest.getEndpointSignatures() != null) {
+                for (i = 0; i < transactionRequest.getEndpointSignatures().length; i++) {
+                    String endpointPubKey = transactionRequest.getEndpointSignatures()[i].getPubKey().toBase58();
+                    if (tx_endpoint_pubkeys == null) {
+                        tx_endpoint_pubkeys = endpointPubKey + ",";
+                    } else {
+                        tx_endpoint_pubkeys = tx_endpoint_pubkeys + endpointPubKey + ",";
+                    }
+                }
             }
 
             for (Operation op : transactionRequest.getTransactionContent().getOperations()) {
@@ -410,7 +463,7 @@ public class MysqlMapperService implements MapperService {
             }
             insertTxInfo(ledger, blockHeight, txHashBase58, i, tx_node_pubkeys, tx_endpoint_pubkeys, transactionResult.getExecutionState().CODE, tx_contents);
         }
-
+        
         insertBlockInfo(ledger, ledgerBlock);
     }
 
@@ -439,15 +492,14 @@ public class MysqlMapperService implements MapperService {
             currTxs[i] = ledgerTransactions[0];
         }
 
-//        return txsDecorator(currTxs);
-        return currTxs;
+        return txsDecorator(currTxs);
     }
 
-//    private LedgerTransaction[] txsDecorator(LedgerTransaction[] ledgerTransactions) {
-//        LedgerTransaction[] transactionDecorators = new LedgerTransaction[ledgerTransactions.length];
-//        for (int i = 0; i < ledgerTransactions.length; i++) {
-//            transactionDecorators[i] = new TransactionDecorator(ledgerTransactions[i]);
-//        }
-//        return transactionDecorators;
-//    }
+    private LedgerTransaction[] txsDecorator(LedgerTransaction[] ledgerTransactions) {
+        LedgerTransaction[] transactionDecorators = new LedgerTransaction[ledgerTransactions.length];
+        for (int i = 0; i < ledgerTransactions.length; i++) {
+            transactionDecorators[i] = new TransactionDecorator(ledgerTransactions[i]);
+        }
+        return transactionDecorators;
+    }
 }
