@@ -194,7 +194,12 @@ public class LedgerLoadTimer implements ApplicationContextAware {
                     }
                     LOGGER.info("--- New ledger [{}] need to be init... ", ledgerHash.toBase58());
                     for (LedgerBindingConfigAware aware : bindingConfigAwares.values()) {
-                        nodeServers.add(aware.setConfig(ledgerBindingConfig.getLedger(ledgerHash), ledgerHash));
+                        NodeServer nodeServer = aware.setConfig(ledgerBindingConfig.getLedger(ledgerHash), ledgerHash);
+
+                        if (nodeServer == null) {
+                            continue;
+                        }
+                        nodeServers.add(nodeServer);
                     }
                 } catch (Exception e) {
                     LOGGER.error(String.format("--- New ledger [%s] setConfig exception!", ledgerHash.toBase58()), e);

@@ -347,6 +347,15 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         ParticipantNode currentNode = null;
         LedgerAdminInfo ledgerAdminAccount = null;
 
+        HashDigest[] existingLedgerHashs = ledgerManager.getLedgerHashs();
+        if (existingLedgerHashs != null) {
+            for (HashDigest lh : existingLedgerHashs) {
+                if (lh.toBase58().equals(ledgerHash.toBase58())) {
+                    return null;
+                }
+            }
+        }
+
         try {
             DbConnection dbConnNew = connFactory.connect(bindingConfig.getDbConnection().getUri(),
                     bindingConfig.getDbConnection().getPassword());
