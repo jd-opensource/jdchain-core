@@ -28,12 +28,4 @@ public interface UserInfoMapper {
     @Update("UPDATE jdchain_users SET `user_roles` = #{user_roles}, `user_roles_policy` = #{user_roles_policy} where `ledger` = #{ledger} and `user_address` = #{user_address}")
     void updateRolePolicy(String ledger, String user_address, String user_roles, String user_roles_policy);
 
-
-//    UserInfo getUserInfoByHeight(long height);
-//
-//    UserInfo getUserInfoByHash(String hash);
-
-//    List<UserInfo> getUserInfosByLimit(int limit);
-//
-//    List<UserInfo> getAllUserInfos();
 }

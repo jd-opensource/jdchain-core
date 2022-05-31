@@ -1,5 +1,6 @@
 package com.jd.blockchain.peer.mysql.service;
 
+import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.core.LedgerQuery;
 
 /**
@@ -9,8 +10,7 @@ import com.jd.blockchain.ledger.core.LedgerQuery;
  */
 public interface MapperService {
 
-    void init(LedgerQuery ledgerQuery);
+    long getBlockTotal(HashDigest ledgerHash);
 
-    void destroy();
-
+    void writeAppToMysql(LedgerQuery ledgerQuery, long blockHeight);
 }

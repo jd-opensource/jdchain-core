@@ -13,7 +13,7 @@ public class DataKv {
     private String data_type;
     private String data_tx_hash;
     private byte[] data_value;
-    private long create_time;
+//    private long create_time;
     private long  data_block_height;
     private long data_version;
     private int state;
@@ -58,9 +58,9 @@ public class DataKv {
         return data_type;
     }
 
-    public long getCreate_time() {
-        return create_time;
-    }
+//    public long getCreate_time() {
+//        return create_time;
+//    }
 
     public int getState() {
         return state;
@@ -106,9 +106,9 @@ public class DataKv {
         this.state = state;
     }
 
-    public void setCreate_time(long create_time) {
-        this.create_time = create_time;
-    }
+//    public void setCreate_time(long create_time) {
+//        this.create_time = create_time;
+//    }
 
     public void setData_block_height(long data_block_height) {
         this.data_block_height = data_block_height;
@@ -129,7 +129,7 @@ public class DataKv {
                 ", data_tx_hash='" + data_tx_hash + '\'' +
                 ", data_version=" + data_version +
                 ", data_block_height=" + data_block_height +
-                ", create_time=" + create_time +
+//                ", create_time=" + create_time +
                 ", state=" + state +
                 '}';
     }

@@ -12,22 +12,10 @@ import org.apache.ibatis.annotations.Options;
  */
 @Mapper
 public interface EventKvMapper {
-    @Insert("INSERT INTO jdchain_contracts (`ledger`, `event_account_address`, `event_name`, `event_sequence`, `event_tx_hash`, `event_block_height`, " +
+    @Insert("INSERT INTO jdchain_event_account_events (`ledger`, `event_account_address`, `event_name`, `event_sequence`, `event_tx_hash`, `event_block_height`, " +
             "`event_type`, `event_value`, `event_contract_address`) " +
             "VALUES (#{ledger}, #{event_account_address}, #{event_name}, #{event_sequence}, #{event_tx_hash}, " +
             "#{event_block_height}, #{event_type}, #{event_value}, #{event_contract_address})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insert(EventKv info);
-
-//    void updateStatus(int id, int state);
-//
-//    EventKv getEventKvById(int id);
-
-//    EventKv getEventKvByHeight(long height);
-//
-//    EventKv getEventKvByHash(String hash);
-
-//    List<EventKv> getEventKvsByLimit(int limit);
-//
-//    List<EventKv> getAllEventKvs();
 }

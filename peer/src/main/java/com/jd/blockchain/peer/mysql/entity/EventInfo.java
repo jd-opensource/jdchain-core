@@ -11,20 +11,20 @@ public class EventInfo {
     private String event_account_address;
     private String event_account_pubkey;
     private String event_account_roles;
-    private String event_account_rpriviledges;
+    private String event_account_privileges;
     private String event_account_creator;
     private String event_account_tx_hash;
-    private long create_time;
+//    private long create_time;
     private long event_account_block_height;
     private int state;
 
     public EventInfo(String ledger, String event_account_address, String event_account_pubkey, String event_account_roles,
-                     String event_account_rpriviledges, String event_account_creator, String event_account_tx_hash, long event_account_block_height) {
+                     String event_account_privileges, String event_account_creator, String event_account_tx_hash, long event_account_block_height) {
         this.ledger = ledger;
         this.event_account_address = event_account_address;
         this.event_account_pubkey = event_account_pubkey;
         this.event_account_roles = event_account_roles;
-        this.event_account_rpriviledges = event_account_rpriviledges;
+        this.event_account_privileges = event_account_privileges;
         this.event_account_creator = event_account_creator;
         this.event_account_tx_hash = event_account_tx_hash;
         this.event_account_block_height = event_account_block_height;
@@ -42,8 +42,8 @@ public class EventInfo {
         return event_account_roles;
     }
 
-    public String getEvent_account_rpriviledges() {
-        return event_account_rpriviledges;
+    public String getEvent_account_privileges() {
+        return event_account_privileges;
     }
 
     public String getEvent_account_creator() {
@@ -62,16 +62,16 @@ public class EventInfo {
         return state;
     }
 
-    public long getCreate_time() {
-        return create_time;
-    }
+//    public long getCreate_time() {
+//        return create_time;
+//    }
 
     public long getEvent_account_block_height() {
         return event_account_block_height;
     }
 
-    public void setEvent_account_rpriviledges(String event_account_rpriviledges) {
-        this.event_account_rpriviledges = event_account_rpriviledges;
+    public void setEvent_account_privileges(String event_account_privileges) {
+        this.event_account_privileges = event_account_privileges;
     }
 
     public String getEvent_account_tx_hash() {
@@ -102,9 +102,9 @@ public class EventInfo {
         this.event_account_creator = event_account_creator;
     }
 
-    public void setCreate_time(long create_time) {
-        this.create_time = create_time;
-    }
+//    public void setCreate_time(long create_time) {
+//        this.create_time = create_time;
+//    }
 
     public void setState(int state) {
         this.state = state;
@@ -113,8 +113,6 @@ public class EventInfo {
     public void setEvent_account_block_height(long event_account_block_height) {
         this.event_account_block_height = event_account_block_height;
     }
-
-
 
     public void setEvent_account_tx_hash(String event_account_tx_hash) {
         this.event_account_tx_hash = event_account_tx_hash;
@@ -127,10 +125,10 @@ public class EventInfo {
                 ", event_account_address='" + event_account_address + '\'' +
                 ", event_account_pubkey='" + event_account_pubkey + '\'' +
                 ", event_account_roles='" + event_account_roles + '\'' +
-                ", event_account_rpriviledges='" + event_account_rpriviledges + '\'' +
+                ", event_account_privileges='" + event_account_privileges + '\'' +
                 ", event_account_creator='" + event_account_creator + '\'' +
                 ", event_account_tx_hash='" + event_account_tx_hash + '\'' +
-                ", create_time=" + create_time +
+//                ", create_time=" + create_time +
                 ", event_account_block_height=" + event_account_block_height +
                 ", state=" + state +
                 '}';

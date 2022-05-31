@@ -12,14 +12,14 @@ public class TxInfo {
     private String tx_node_pubkeys;
     private String tx_endpoint_pubkeys;
     private String tx_response_msg;
-    private long create_time;
+//    private long create_time;
     private long tx_block_height;
     private int tx_index;
     private int tx_response_state;
-    private byte[] tx_contents;
+    private String tx_contents;
     private int state;
 
-    public TxInfo(String ledger, long tx_block_height, String tx_hash, int tx_index, String tx_node_pubkeys, String tx_endpoint_pubkeys, int tx_response_state, byte[] tx_contents) {
+    public TxInfo(String ledger, long tx_block_height, String tx_hash, int tx_index, String tx_node_pubkeys, String tx_endpoint_pubkeys, int tx_response_state, String  tx_contents) {
         this.ledger = ledger;
         this.tx_block_height = tx_block_height;
         this.tx_hash = tx_hash;
@@ -66,13 +66,13 @@ public class TxInfo {
         return tx_response_msg;
     }
 
-    public byte[] getTx_contents() {
+    public String getTx_contents() {
         return tx_contents;
     }
 
-    public long getCreate_time() {
-        return create_time;
-    }
+//    public long getCreate_time() {
+//        return create_time;
+//    }
 
     public int getState() {
         return state;
@@ -90,7 +90,7 @@ public class TxInfo {
         this.tx_block_height = tx_block_height;
     }
 
-    public void setTx_contents(byte[] tx_contents) {
+    public void setTx_contents(String tx_contents) {
         this.tx_contents = tx_contents;
     }
 
@@ -110,9 +110,9 @@ public class TxInfo {
         this.tx_index = tx_index;
     }
 
-    public void setCreate_time(long create_time) {
-        this.create_time = create_time;
-    }
+//    public void setCreate_time(long create_time) {
+//        this.create_time = create_time;
+//    }
 
     public void setTx_response_msg(String tx_response_msg) {
         this.tx_response_msg = tx_response_msg;
@@ -138,7 +138,7 @@ public class TxInfo {
                 ", tx_endpoint_pubkeys='" + tx_endpoint_pubkeys + '\'' +
 //                ", tx_response_msg='" + tx_response_msg + '\'' +
                 ", tx_contents='" + tx_contents + '\'' +
-                ", create_time=" + create_time +
+//                ", create_time=" + create_time +
                 ", state=" + state +
                 '}';
     }

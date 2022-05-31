@@ -1,5 +1,7 @@
 package com.jd.blockchain.peer.mysql.entity;
 
+import java.util.Date;
+
 /**
  * @Author: zhangshuang
  * @Date: 2022/5/9 3:13 PM
@@ -17,13 +19,13 @@ public class BlockInfo {
     private String configurations_set_hash;
     private String dataaccounts_set_hash;
     private String eventaccounts_set_hash;
-    private long block_timestamp;
-    private long create_time;
+    private Date block_timestamp;
+//    private long create_time;
     private int state;
 
     public BlockInfo(String ledger, long block_height, String block_hash, String pre_block_hash, String txs_set_hash, String users_set_hash,
                       String dataaccounts_set_hash, String contracts_set_hash, String eventaccounts_set_hash, String configurations_set_hash,
-                      long block_timestamp) {
+                      Date block_timestamp) {
         this.ledger = ledger;
         this.block_height = block_height;
         this.block_hash = block_hash;
@@ -49,7 +51,7 @@ public class BlockInfo {
         return block_height;
     }
 
-    public long getBlock_timestamp() {
+    public Date getBlock_timestamp() {
         return block_timestamp;
     }
 
@@ -85,9 +87,9 @@ public class BlockInfo {
         return users_set_hash;
     }
 
-    public long getCreate_time() {
-        return create_time;
-    }
+//    public long getCreate_time() {
+//        return create_time;
+//    }
 
     public int getState() {
         return state;
@@ -137,13 +139,13 @@ public class BlockInfo {
         this.users_set_hash = users_set_hash;
     }
 
-    public void setBlock_timestamp(long block_timestamp) {
+    public void setBlock_timestamp(Date block_timestamp) {
         this.block_timestamp = block_timestamp;
     }
 
-    public void setCreate_time(long create_time) {
-        this.create_time = create_time;
-    }
+    //    public void setCreate_time(long create_time) {
+//        this.create_time = create_time;
+//    }
 
     public void setState(int state) {
         this.state = state;
@@ -162,8 +164,8 @@ public class BlockInfo {
                 ", configurations_set_hash='" + configurations_set_hash + '\'' +
                 ", dataaccounts_set_hash='" + dataaccounts_set_hash + '\'' +
                 ", eventaccounts_set_hash='" + dataaccounts_set_hash + '\'' +
-                ", block_timestamp=" + block_timestamp +
-                ", create_time=" + create_time +
+                ", block_timestamp=" + block_timestamp.toString() +
+//                ", create_time=" + create_time +
                 ", state=" + state +
             '}';
     }

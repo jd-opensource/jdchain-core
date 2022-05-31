@@ -18,15 +18,4 @@ public interface TxInfoMapper {
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insert(TxInfo info);
 
-//    void updateStatus(int id, int state);
-//
-//    TxInfo getTxInfoById(int id);
-//
-//    TxInfo getTxInfoByHeight(long height);
-//
-//    TxInfo getTxInfoByHash(String hash);
-//
-//    List<TxInfo> getTxInfosByLimit(int limit);
-//
-//    List<TxInfo> getAllTxInfos();
 }

@@ -2,7 +2,9 @@ package com.jd.blockchain.peer.mysql.service;
 
 import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.Crypto;
+import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.AccountPermissionSetOperation;
+import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractCodeDeployOperation;
 import com.jd.blockchain.ledger.ContractCrossEventSendOperation;
 import com.jd.blockchain.ledger.ContractEventSendOperation;
@@ -21,6 +23,7 @@ import com.jd.blockchain.ledger.TransactionContent;
 import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.TransactionRequest;
 import com.jd.blockchain.ledger.TransactionResult;
+import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserAuthorizeOperation;
 import com.jd.blockchain.ledger.UserRegisterOperation;
 import com.jd.blockchain.ledger.UserStateUpdateOperation;
@@ -51,14 +54,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import utils.Bytes;
-
+import utils.io.BytesUtils;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @Author: zhangshuang
@@ -86,78 +85,106 @@ public class MysqlMapperService implements MapperService {
     @Autowired
     RolePrivilegeMapper rolePrivilegeMapper;
 
-    private static final long WRITE_MYSQL_TASK_DELAY = 2000;
-
-    private static final long WRITE_MYSQL_TASK_TIMEOUT = 1000000000;
-
-    private static final Lock writeMysqlLock = new ReentrantLock();
-
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(10);
-
     private static final Logger logger = LoggerFactory.getLogger(MysqlMapperService.class);
 
-    @Override
-    public void init(LedgerQuery ledgerQuery) {
-        logger.info("[MysqlMapperService]-------Start write mysql task!-------");
-        scheduledExecutorService.scheduleWithFixedDelay(new WriteMysqlTask(ledgerQuery), WRITE_MYSQL_TASK_DELAY,
-                WRITE_MYSQL_TASK_TIMEOUT, TimeUnit.MILLISECONDS);
-    }
 
     @Override
-    public void destroy() {
-        if (scheduledExecutorService != null) {
-            scheduledExecutorService.shutdownNow();
-        }
+    public long getBlockTotal(HashDigest ledgerHash) {
+        return blockInfoMapper.getBlockInfoTotal(ledgerHash.toBase58()) - 1;
     }
 
-    // 写mysql的定时任务
-    private class WriteMysqlTask implements Runnable {
+    // write all kinds of ledger app datas to mysql
+    @Transactional(rollbackFor = {Exception.class, Error.class})
+    @Override
+    public void writeAppToMysql(LedgerQuery ledgerQuery, long blockHeight) {
+        try {
+            LedgerBlock ledgerBlock = ledgerQuery.getBlock(blockHeight);
+            String ledger = ledgerQuery.getHash().toBase58();
 
-        LedgerQuery ledgerQuery;
+            LedgerTransaction[] ledgerTransactions = getTransactionsInBlock(ledgerQuery, ledgerBlock);
 
-        int WRITE_BATCH_SIZE = 10;
+            for (int i = 0; i < ledgerTransactions.length; i++) {
+                String tx_node_pubkeys = null;
+                String tx_endpoint_pubkeys = null;
+                TransactionRequest transactionRequest = ledgerTransactions[i].getRequest();
+                TransactionResult transactionResult = ledgerTransactions[i].getResult();
+                Operation[] txDerivedOps = transactionResult.getDerivedOperations();
+                String txHashBase58 = transactionRequest.getTransactionHash().toBase58();
+                byte[] tx_contents = BinaryProtocol.encode(transactionRequest.getTransactionContent(), TransactionContent.class);
 
-        public WriteMysqlTask(LedgerQuery ledgerQuery) {
-            this.ledgerQuery = ledgerQuery;
-        }
-
-        @Override
-        public void run() {
-
-            long mysqlBlockHeight;
-
-            long endBlockHeight;
-
-            try {
-
-                writeMysqlLock.lock();
-                // 查询目前已入库的区块高度信息
-                mysqlBlockHeight = blockInfoMapper.getBlockInfoTotal(ledgerQuery.getHash().toBase58()) - 1;
-
-
-                if (mysqlBlockHeight < ledgerQuery.getLatestBlockHeight()) {
-                    if (mysqlBlockHeight + WRITE_BATCH_SIZE < ledgerQuery.getLatestBlockHeight()) {
-                        endBlockHeight = mysqlBlockHeight + WRITE_BATCH_SIZE;
-                    } else {
-                        endBlockHeight = ledgerQuery.getLatestBlockHeight();
-                    }
-
-                    for (long i = mysqlBlockHeight + 1; i < endBlockHeight + 1; i++) {
-                        logger.info("will writeAppToMysql!");
-                        writeAppToMysql(ledgerQuery, i);
+                if (transactionRequest.getNodeSignatures() != null) {
+                    for (int j = 0; j < transactionRequest.getNodeSignatures().length; j++) {
+                        String nodePubKey = transactionRequest.getNodeSignatures()[j].getPubKey().toBase58();
+                        if (tx_node_pubkeys == null) {
+                            tx_node_pubkeys = nodePubKey + ",";
+                        } else {
+                            tx_node_pubkeys = tx_node_pubkeys + nodePubKey + ",";
+                        }
                     }
                 }
-            } catch (Exception e) {
-                logger.error("[MysqlMapperService] write mysql exception occur!");
-                e.printStackTrace();
-            } finally {
-                writeMysqlLock.unlock();
+
+                if (transactionRequest.getEndpointSignatures() != null) {
+                    for (int j = 0; j < transactionRequest.getEndpointSignatures().length; j++) {
+                        String endpointPubKey = transactionRequest.getEndpointSignatures()[j].getPubKey().toBase58();
+                        if (tx_endpoint_pubkeys == null) {
+                            tx_endpoint_pubkeys = endpointPubKey + ",";
+                        } else {
+                            tx_endpoint_pubkeys = tx_endpoint_pubkeys + endpointPubKey + ",";
+                        }
+                    }
+                }
+
+                for (Operation op : transactionRequest.getTransactionContent().getOperations()) {
+                    // contract event op and cross contract invoke op process
+                    if (op instanceof ContractEventSendOperation || op instanceof ContractCrossEventSendOperation) {
+                        for(Operation operation : txDerivedOps) {
+                            // todo:txDerivedOps 处理不完善，不适应复杂场景, 暂不处理
+                            nativeOpHandler(ledger, blockHeight, txHashBase58, tx_endpoint_pubkeys, operation);
+                        }
+                    } else {
+                        // normal op process
+                        nativeOpHandler(ledger, blockHeight, txHashBase58, tx_endpoint_pubkeys, op);
+                    }
+                }
+
+                insertTxInfo(ledger, blockHeight, txHashBase58, i, tx_node_pubkeys.substring(0, tx_node_pubkeys.length() - 1), tx_endpoint_pubkeys, transactionResult.getExecutionState().CODE, tx_contents);
             }
+
+            insertBlockInfo(ledger, ledgerBlock);
+        } catch (Throwable e) {
+            throw new RuntimeException("writeAppToMysql exception occur, error = !" + e.getMessage());
+        }
+
+    }
+
+    private void nativeOpHandler(String ledger, long blockHeight, String txHashBase58, String endpointPubKey, Operation op) {
+        if (op instanceof UserRegisterOperation) {
+            insertUserInfo(ledger, blockHeight, txHashBase58, (UserRegisterOperation)op);
+        } else if (op instanceof DataAccountRegisterOperation) {
+            insertDataInfo(ledger, blockHeight, txHashBase58, (DataAccountRegisterOperation)op, endpointPubKey);
+        } else if (op instanceof ContractCodeDeployOperation) {
+            insertContractInfo(ledger, blockHeight, txHashBase58, (ContractCodeDeployOperation)op, endpointPubKey);
+        } else if (op instanceof EventAccountRegisterOperation) {
+            insertEventInfo(ledger, blockHeight, txHashBase58, (EventAccountRegisterOperation)op, endpointPubKey);
+        } else if (op instanceof DataAccountKVSetOperation) {
+            insertDataKvInfo(ledger, blockHeight, txHashBase58, (DataAccountKVSetOperation)op);
+        } else if (op instanceof EventPublishOperation) {
+            insertEventKvInfo(ledger, blockHeight, txHashBase58, (EventPublishOperation)op);
+        } else if (op instanceof UserStateUpdateOperation) {
+            updateUserState(ledger, (UserStateUpdateOperation)op);
+        } else if (op instanceof ContractStateUpdateOperation) {
+            updateContratState(ledger, (ContractStateUpdateOperation)op);
+        } else if (op instanceof UserAuthorizeOperation) {
+            updateUserAuthorize(ledger, (UserAuthorizeOperation)op);
+        } else if (op instanceof AccountPermissionSetOperation) {
+            AccountPermissionSetOperation accountPermissionSetOperation = (AccountPermissionSetOperation)op;
+            // todo later
+        } else if (op instanceof RolesConfigureOperation) {
+            updateRolePrivilege(ledger, blockHeight, txHashBase58, (RolesConfigureOperation)op);
         }
     }
 
     private void insertUserInfo(String ledger, long blockHeight, String txHashBase58, UserRegisterOperation userRegisterOperation) {
-        logger.info("insertUserInfo start!");
         String user_address = userRegisterOperation.getUserID().getAddress().toBase58();
         String user_pubkey = userRegisterOperation.getUserID().getPubKey().toBase58();
         String user_key_algorithm =  Crypto.getAlgorithm(userRegisterOperation.getUserID().getPubKey().getAlgorithm()).name();
@@ -167,7 +194,6 @@ public class MysqlMapperService implements MapperService {
     }
 
     private void insertDataInfo(String ledger, long blockHeight, String txHashBase58, DataAccountRegisterOperation dataAccountRegisterOperation, String endpointPubKey) {
-        logger.info("insertDataInfo start!");
         String data_account_address = dataAccountRegisterOperation.getAccountID().getAddress().toBase58();
         String data_account_pubkey = dataAccountRegisterOperation.getAccountID().getPubKey().toBase58();
         DataInfo dataInfo = new DataInfo(ledger, data_account_address, data_account_pubkey, "DEFAULT", "777", endpointPubKey, txHashBase58, blockHeight);
@@ -175,19 +201,17 @@ public class MysqlMapperService implements MapperService {
     }
 
     private void insertContractInfo(String ledger, long blockHeight, String txHashBase58, ContractCodeDeployOperation contractCodeDeployOperation, String endpointPubKey) {
-        logger.info("insertContractInfo start!");
         String contract_address = contractCodeDeployOperation.getContractID().getAddress().toBase58();
         String contract_pubkey = contractCodeDeployOperation.getContractID().getPubKey().toBase58();
         String contract_lang = contractCodeDeployOperation.getLang().name();
         long contract_version = contractCodeDeployOperation.getChainCodeVersion();
         byte[] contract_content = contractCodeDeployOperation.getChainCode();
 
-        ContractInfo contractInfo = new ContractInfo(ledger, contract_address, contract_pubkey, "NORMAL", "DEFAULT", "777", endpointPubKey, contract_lang, contract_version, contract_content, txHashBase58, blockHeight);
+        ContractInfo contractInfo = new ContractInfo(ledger, contract_address, contract_pubkey, "NORMAL", "DEFAULT", "777", endpointPubKey, contract_lang, contract_version, BytesUtils.toString(contract_content), txHashBase58, blockHeight);
         contractInfoMapper.insert(contractInfo);
     }
 
     private void insertEventInfo(String ledger, long blockHeight, String txHashBase58, EventAccountRegisterOperation eventAccountRegisterOperation, String endpointPubKey) {
-        logger.info("insertEventInfo start!");
         String event_account_address = eventAccountRegisterOperation.getEventAccountID().getAddress().toBase58();
         String event_account_pubkey = eventAccountRegisterOperation.getEventAccountID().getPubKey().toBase58();
         EventInfo eventInfo = new EventInfo(ledger, event_account_address, event_account_pubkey, "DEFAULT", "777", endpointPubKey, txHashBase58, blockHeight);
@@ -196,12 +220,11 @@ public class MysqlMapperService implements MapperService {
 
     private void insertDataKvInfo(String ledger, long blockHeight, String txHashBase58, DataAccountKVSetOperation dataAccountKVSetOperation) {
         String data_account_address = dataAccountKVSetOperation.getAccountAddress().toBase58();
-        logger.info("insertDataKvInfo start!");
         for (DataAccountKVSetOperation.KVWriteEntry kvw : dataAccountKVSetOperation.getWriteSet()) {
             String data_key = kvw.getKey();
             String data_type = kvw.getValue().getType().name();
-            byte[] data_value = kvw.getValue().getBytes().toBytes();
-            long data_version = kvw.getExpectedVersion();
+            byte[] data_value = BinaryProtocol.encode(TypedValue.wrap(kvw.getValue()), BytesValue.class);
+            long data_version = kvw.getExpectedVersion() + 1;
             DataKv dataKv = new DataKv(ledger, data_account_address, data_key, data_value, data_version, data_type, txHashBase58, blockHeight);
             dataKvMapper.insert(dataKv);
         }
@@ -209,46 +232,44 @@ public class MysqlMapperService implements MapperService {
 
     private void insertEventKvInfo(String ledger, long blockHeight, String txHashBase58, EventPublishOperation eventPublishOperation) {
         String event_account_address = eventPublishOperation.getEventAddress().toBase58();
-        logger.info("insertEventKvInfo start!");
         for (EventPublishOperation.EventEntry eventEntry : eventPublishOperation.getEvents()) {
             String event_name = eventEntry.getName();
             String event_type = eventEntry.getContent().getType().name();
-            String event_value = eventEntry.getContent().getBytes().toBase58();
-            long event_sequence = eventEntry.getSequence();
+            String event_value = BinaryProtocol.encode(TypedValue.wrap(eventEntry.getContent()), BytesValue.class).toString();
+            long event_sequence = eventEntry.getSequence() + 1;
             EventKv eventKv = new EventKv(ledger, event_account_address, event_name, event_sequence, event_type, event_value, txHashBase58, blockHeight);
             eventKvMapper.insert(eventKv);
         }
     }
 
     private void insertTxInfo(String ledger, long blockHeight, String txHashBase58, int txIndex, String endpointPubKey, String ndoePubKey, int exeState, byte[] txContent) {
-        logger.info("insertTxInfo start!");
-        TxInfo txInfo = new TxInfo(ledger, blockHeight, txHashBase58, txIndex, ndoePubKey, endpointPubKey, exeState, txContent);
+        TxInfo txInfo = new TxInfo(ledger, blockHeight, txHashBase58, txIndex, ndoePubKey, endpointPubKey, exeState, BytesUtils.toString(txContent));
         txInfoMapper.insert(txInfo);
     }
 
     private void insertBlockInfo(String ledger, LedgerBlock ledgerBlock) {
-        logger.info("insertBlockInfo start!");
+        String previousHash = ledgerBlock.getPreviousHash() == null? null : ledgerBlock.getPreviousHash().toBase58();
+        String dataAccountSetHash = ledgerBlock.getDataAccountSetHash() == null? null : ledgerBlock.getDataAccountSetHash().toBase58();
+        String contractAccountSetHash = ledgerBlock.getContractAccountSetHash() == null? null : ledgerBlock.getContractAccountSetHash().toBase58();
+        String userEventSetHash = ledgerBlock.getUserEventSetHash() == null? null : ledgerBlock.getUserEventSetHash().toBase58();
+
         BlockInfo blockInfo = new BlockInfo(ledger, ledgerBlock.getHeight(), ledgerBlock.getHash().toBase58(),
-                ledgerBlock.getPreviousHash().toBase58(),  ledgerBlock.getTransactionSetHash().toBase58(), ledgerBlock.getUserAccountSetHash().toBase58(),
-                ledgerBlock.getDataAccountSetHash().toBase58(), ledgerBlock.getContractAccountSetHash().toBase58(), ledgerBlock.getUserEventSetHash().toBase58(),
-                ledgerBlock.getAdminAccountHash().toBase58(), ledgerBlock.getTimestamp());
+                previousHash,  ledgerBlock.getTransactionSetHash().toBase58(), ledgerBlock.getUserAccountSetHash().toBase58(),
+                dataAccountSetHash, contractAccountSetHash, userEventSetHash, ledgerBlock.getAdminAccountHash().toBase58(), new Date(ledgerBlock.getTimestamp()));
 
         blockInfoMapper.insert(blockInfo);
     }
 
     private void updateUserState(String ledger, UserStateUpdateOperation userStateUpdateOperation) {
-        logger.info("updateUserState start!");
         userInfoMapper.updateStatus(ledger, userStateUpdateOperation.getUserAddress().toBase58(), userStateUpdateOperation.getState().name());
     }
 
     private void updateContratState(String ledger, ContractStateUpdateOperation contractStateUpdateOperation) {
-        logger.info("updateContratState start!");
         contractInfoMapper.updateStatus(ledger, contractStateUpdateOperation.getContractAddress().toBase58(), contractStateUpdateOperation.getState().name());
     }
 
-    // 更新用户角色组合，以及角色组合的策略
+    // update user's role group and role group policy
     private void updateUserAuthorize(String ledger, UserAuthorizeOperation userAuthorizeOperation) {
-        logger.info("updateUserAuthorize start!");
         for (UserAuthorizeOperation.UserRolesEntry userRolesEntry: userAuthorizeOperation.getUserRolesAuthorizations()) {
             for (Bytes userAddr : userRolesEntry.getUserAddresses()) {
                 String userBase58 = userAddr.toBase58();
@@ -295,7 +316,6 @@ public class MysqlMapperService implements MapperService {
     }
 
     private void updateRolePrivilege(String ledger, long blockHeight, String txHashBase58, RolesConfigureOperation rolesConfigureOperation) {
-        logger.info("updateRolePrivilege start!");
         for (RolesConfigureOperation.RolePrivilegeEntry rolePrivilegeEntry : rolesConfigureOperation.getRoles()) {
 
             String role = rolePrivilegeEntry.getRoleName();
@@ -382,89 +402,6 @@ public class MysqlMapperService implements MapperService {
                 rolePrivilegeMapper.updateRolePrivInfo(ledger, role, update_ledger_privileges.substring(0, update_ledger_privileges.length() - 1), update_tx_privileges.substring(0, update_tx_privileges.length() - 1));
             }
         }
-    }
-
-    private void nativeOpHandler(String ledger, long blockHeight, String txHashBase58, String endpointPubKey, Operation op) {
-        if (op instanceof UserRegisterOperation) {
-            insertUserInfo(ledger, blockHeight, txHashBase58, (UserRegisterOperation)op);
-        } else if (op instanceof DataAccountRegisterOperation) {
-            insertDataInfo(ledger, blockHeight, txHashBase58, (DataAccountRegisterOperation)op, endpointPubKey);
-        } else if (op instanceof ContractCodeDeployOperation) {
-            insertContractInfo(ledger, blockHeight, txHashBase58, (ContractCodeDeployOperation)op, endpointPubKey);
-        } else if (op instanceof EventAccountRegisterOperation) {
-            insertEventInfo(ledger, blockHeight, txHashBase58, (EventAccountRegisterOperation)op, endpointPubKey);
-        } else if (op instanceof DataAccountKVSetOperation) {
-            insertDataKvInfo(ledger, blockHeight, txHashBase58, (DataAccountKVSetOperation)op);
-        } else if (op instanceof EventPublishOperation) {
-            insertEventKvInfo(ledger, blockHeight, txHashBase58, (EventPublishOperation)op);
-        } else if (op instanceof UserStateUpdateOperation) {
-            updateUserState(ledger, (UserStateUpdateOperation)op);
-        } else if (op instanceof ContractStateUpdateOperation) {
-            updateContratState(ledger, (ContractStateUpdateOperation)op);
-        } else if (op instanceof UserAuthorizeOperation) {
-            updateUserAuthorize(ledger, (UserAuthorizeOperation)op);
-        } else if (op instanceof AccountPermissionSetOperation) {
-            AccountPermissionSetOperation accountPermissionSetOperation = (AccountPermissionSetOperation)op;
-            // todo
-        } else if (op instanceof RolesConfigureOperation) {
-            updateRolePrivilege(ledger, blockHeight, txHashBase58, (RolesConfigureOperation)op);
-        }
-    }
-
-
-    @Transactional
-    public void writeAppToMysql(LedgerQuery ledgerQuery, long blockHeight) {
-
-        LedgerBlock ledgerBlock = ledgerQuery.getBlock(blockHeight);
-        String ledger = ledgerQuery.getHash().toBase58();
-
-        LedgerTransaction[] ledgerTransactions = getTransactionsInBlock(ledgerQuery, ledgerBlock);
-
-        for (int i = 0; i < ledgerTransactions.length; i++) {
-            String tx_node_pubkeys = null;
-            String tx_endpoint_pubkeys = null;
-            TransactionRequest transactionRequest = ledgerTransactions[i].getRequest();
-            TransactionResult transactionResult = ledgerTransactions[i].getResult();
-            Operation[] txDerivedOps = transactionResult.getDerivedOperations();
-            String txHashBase58 = transactionRequest.getTransactionHash().toBase58();
-            byte[] tx_contents = BinaryProtocol.encode(transactionRequest.getTransactionContent(), TransactionContent.class);
-
-            if (transactionRequest.getNodeSignatures() != null) {
-                for (i = 0; i < transactionRequest.getNodeSignatures().length; i++) {
-                    String nodePubKey = transactionRequest.getNodeSignatures()[i].getPubKey().toBase58();
-                    if (tx_node_pubkeys == null) {
-                        tx_node_pubkeys = nodePubKey + ",";
-                    } else {
-                        tx_node_pubkeys = tx_node_pubkeys + nodePubKey + ",";
-                    }
-                }
-            }
-
-            if (transactionRequest.getEndpointSignatures() != null) {
-                for (i = 0; i < transactionRequest.getEndpointSignatures().length; i++) {
-                    String endpointPubKey = transactionRequest.getEndpointSignatures()[i].getPubKey().toBase58();
-                    if (tx_endpoint_pubkeys == null) {
-                        tx_endpoint_pubkeys = endpointPubKey + ",";
-                    } else {
-                        tx_endpoint_pubkeys = tx_endpoint_pubkeys + endpointPubKey + ",";
-                    }
-                }
-            }
-
-            for (Operation op : transactionRequest.getTransactionContent().getOperations()) {
-                if (op instanceof ContractEventSendOperation || op instanceof ContractCrossEventSendOperation) {
-                    for(Operation operation : txDerivedOps) {
-                        // todo:txDerivedOps 处理不完善，不适应复杂场景, 暂不处理
-                        nativeOpHandler(ledger, blockHeight, txHashBase58, tx_endpoint_pubkeys, operation);
-                    }
-                } else {
-                    nativeOpHandler(ledger, blockHeight, txHashBase58, tx_endpoint_pubkeys, op);
-                }
-            }
-            insertTxInfo(ledger, blockHeight, txHashBase58, i, tx_node_pubkeys, tx_endpoint_pubkeys, transactionResult.getExecutionState().CODE, tx_contents);
-        }
-        
-        insertBlockInfo(ledger, ledgerBlock);
     }
 
     private LedgerTransaction[] getTransactionsInBlock(LedgerQuery ledgerQuery, LedgerBlock ledgerBlock) {

@@ -23,17 +23,4 @@ public interface BlockInfoMapper {
 
     @Select("SELECT COUNT(*) FROM jdchain_blocks where `ledger` = #{ledger}")
     long getBlockInfoTotal(String ledger);
-
-
-//    void updateStatus(int id, int state);
-
-//    BlockInfo getBlockInfoById(int id);
-
-//    BlockInfo getBlockInfoByHeight(long height);
-
-//    BlockInfo getBlockInfoByHash(String hash);
-
-//    List<BlockInfo> getBlockInfosByLimit(int limit);
-
-//    List<BlockInfo> getAllBlockInfos();
 }

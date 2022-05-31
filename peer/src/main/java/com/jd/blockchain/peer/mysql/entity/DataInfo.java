@@ -11,20 +11,20 @@ public class DataInfo {
     private String data_account_address;
     private String data_account_pubkey;
     private String data_account_roles;
-    private String data_account_priviledges;
+    private String data_account_privileges;
     private String data_account_creator;
     private String data_account_tx_hash;
-    private long create_time;
+//    private long create_time;
     private long data_account_block_height;
     private int state;
 
-    public DataInfo(String ledger, String data_account_address, String data_account_pubkey, String data_account_roles, String data_account_priviledges,
+    public DataInfo(String ledger, String data_account_address, String data_account_pubkey, String data_account_roles, String data_account_privileges,
                     String data_account_creator, String data_account_tx_hash, long data_account_block_height) {
         this.ledger = ledger;
         this.data_account_address = data_account_address;
         this.data_account_pubkey = data_account_pubkey;
         this.data_account_roles = data_account_roles;
-        this.data_account_priviledges = data_account_priviledges;
+        this.data_account_privileges = data_account_privileges;
         this.data_account_creator = data_account_creator;
         this.data_account_tx_hash = data_account_tx_hash;
         this.data_account_block_height = data_account_block_height;
@@ -46,13 +46,9 @@ public class DataInfo {
         return data_account_roles;
     }
 
-    public String getData_account_priviledges() {
-        return data_account_priviledges;
-    }
-
-    public long getCreate_time() {
-        return create_time;
-    }
+//    public long getCreate_time() {
+//        return create_time;
+//    }
 
     public String getData_account_creator() {
         return data_account_creator;
@@ -62,8 +58,8 @@ public class DataInfo {
         return data_account_block_height;
     }
 
-    public void setData_account_priviledges(String data_account_priviledges) {
-        this.data_account_priviledges = data_account_priviledges;
+    public String getData_account_privileges() {
+        return data_account_privileges;
     }
 
     public String getData_account_tx_hash() {
@@ -103,9 +99,9 @@ public class DataInfo {
         this.data_account_creator = data_account_creator;
     }
 
-    public void setCreate_time(long create_time) {
-        this.create_time = create_time;
-    }
+//    public void setCreate_time(long create_time) {
+//        this.create_time = create_time;
+//    }
 
     public void setState(int state) {
         this.state = state;
@@ -120,6 +116,10 @@ public class DataInfo {
         this.data_account_tx_hash = data_account_tx_hash;
     }
 
+    public void setData_account_privileges(String data_account_privileges) {
+        this.data_account_privileges = data_account_privileges;
+    }
+
     @Override
     public String toString() {
         return "DataInfo{" +
@@ -127,10 +127,10 @@ public class DataInfo {
                 ", data_account_address='" + data_account_address + '\'' +
                 ", data_account_pubkey='" + data_account_pubkey + '\'' +
                 ", data_account_roles='" + data_account_roles + '\'' +
-                ", data_account_priviledges='" + data_account_priviledges + '\'' +
+                ", data_account_privileges='" + data_account_privileges + '\'' +
                 ", data_account_creator='" + data_account_creator + '\'' +
                 ", data_account_tx_hash='" + data_account_tx_hash + '\'' +
-                ", create_time=" + create_time +
+//                ", create_time=" + create_time +
                 ", data_account_block_height=" + data_account_block_height +
                 ", state=" + state +
                 '}';

@@ -14,7 +14,7 @@ public class EventKv {
     private String event_type;
     private String event_value;
     private String event_contract_address;
-    private long create_time;
+//    private long create_time;
     private long event_block_height;
     private int state;
     private long event_sequence;
@@ -71,9 +71,9 @@ public class EventKv {
         return event_value;
     }
 
-    public long getCreate_time() {
-        return create_time;
-    }
+//    public long getCreate_time() {
+//        return create_time;
+//    }
 
     public int getState() {
         return state;
@@ -119,9 +119,9 @@ public class EventKv {
         this.event_value = event_value;
     }
 
-    public void setCreate_time(long create_time) {
-        this.create_time = create_time;
-    }
+//    public void setCreate_time(long create_time) {
+//        this.create_time = create_time;
+//    }
 
     public void setState(int state) {
         this.state = state;
@@ -139,7 +139,7 @@ public class EventKv {
                 ", event_type='" + event_type + '\'' +
                 ", event_value='" + event_value + '\'' +
                 ", event_contract_address='" + event_contract_address + '\'' +
-                ", create_time=" + create_time +
+//                ", create_time=" + create_time +
                 ", state=" + state +
                 '}';
     }

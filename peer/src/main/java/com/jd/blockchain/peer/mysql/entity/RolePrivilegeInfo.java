@@ -13,7 +13,7 @@ public class RolePrivilegeInfo {
     private String tx_privileges;
     private long block_height;
     private String tx_hash;
-    private long create_time;
+//    private long create_time;
     private int state;
 
     public RolePrivilegeInfo(String ledger, String role, String ledger_privileges, String tx_privileges, long block_height, String tx_hash) {
@@ -29,9 +29,9 @@ public class RolePrivilegeInfo {
         return state;
     }
 
-    public long getCreate_time() {
-        return create_time;
-    }
+//    public long getCreate_time() {
+//        return create_time;
+//    }
 
     public String getLedger() {
         return ledger;
@@ -65,9 +65,9 @@ public class RolePrivilegeInfo {
         this.state = state;
     }
 
-    public void setCreate_time(long create_time) {
-        this.create_time = create_time;
-    }
+//    public void setCreate_time(long create_time) {
+//        this.create_time = create_time;
+//    }
 
     public void setLedger(String ledger) {
         this.ledger = ledger;
@@ -106,7 +106,7 @@ public class RolePrivilegeInfo {
                 ", ledger_privileges='" + ledger_privileges + '\'' +
                 ", tx_privileges='" + tx_privileges + '\'' +
                 ", tx_hash='" + tx_hash + '\'' +
-                ", create_time=" + create_time +
+//                ", create_time=" + create_time +
                 ", state=" + state +
                 '}';
     }

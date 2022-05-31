@@ -1,5 +1,7 @@
 package com.jd.blockchain.peer.mysql.entity;
 
+import java.util.Date;
+
 /**
  * @Author: zhangshuang
  * @Date: 2022/5/9 3:09 PM
@@ -17,7 +19,7 @@ public class UserInfo {
     private String user_roles;
     private String user_roles_policy;
     private String user_tx_hash;
-    private long create_time;
+//    private Date create_time;
     private long user_block_height;
     private int state;
 
@@ -70,9 +72,9 @@ public class UserInfo {
         return user_state;
     }
 
-    public long getCreate_time() {
-        return create_time;
-    }
+//    public long getCreate_time() {
+//        return create_time;
+//    }
 
     public int getState() {
         return state;
@@ -118,9 +120,9 @@ public class UserInfo {
         this.user_roles_policy = user_roles_policy;
     }
 
-    public void setCreate_time(long create_time) {
-        this.create_time = create_time;
-    }
+//    public void setCreate_time(long create_time) {
+//        this.create_time = create_time;
+//    }
 
     public void setState(int state) {
         this.state = state;
@@ -150,7 +152,7 @@ public class UserInfo {
                 ", user_roles='" + user_roles + '\'' +
                 ", user_roles_policy='" + user_roles_policy + '\'' +
                 ", user_tx_hash='" + user_tx_hash + '\'' +
-                ", create_time=" + create_time +
+//                ", create_time=" + create_time +
                 ", user_block_height=" + user_block_height +
                 ", state=" + state +
                 '}';

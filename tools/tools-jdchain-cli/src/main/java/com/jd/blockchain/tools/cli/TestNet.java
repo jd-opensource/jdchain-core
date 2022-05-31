@@ -558,6 +558,9 @@ class InitConfig implements Runnable {
                 "#从存储中加载账本数据时，是否校验哈希；可选；\n" +
                 "crypto.verify-hash=true\n" +
                 "\n" +
+                "#账本数据是否异步写Mysql；\n" +
+                "ledger.data.write.mysql=false\n" +
+                "\n" +
                 "#哈希算法；\n" +
                 "crypto.hash-algorithm=SHA256\n" +
                 "\n" +

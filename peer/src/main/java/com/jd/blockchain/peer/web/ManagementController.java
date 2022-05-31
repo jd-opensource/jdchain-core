@@ -25,6 +25,7 @@ import com.jd.blockchain.peer.LedgerBindingConfigAware;
 import com.jd.blockchain.peer.PeerManage;
 import com.jd.blockchain.peer.consensus.LedgerStateManager;
 import com.jd.blockchain.peer.mysql.service.MapperService;
+import com.jd.blockchain.peer.mysql.thread.ScheduleWriteMysqllmpl;
 import com.jd.blockchain.peer.service.ConsensusServiceFactory;
 import com.jd.blockchain.peer.service.IParticipantManagerService;
 import com.jd.blockchain.peer.service.ParticipantContext;
@@ -398,7 +399,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                 Storage consensusRuntimeStorage = getConsensusRuntimeStorage(ledgerHash);
 
                 if (bindingConfig.isWriteMysql()) {
-                    mapperService.init(ledgerRepository);
+                    new ScheduleWriteMysqllmpl().init(ledgerRepository, mapperService);
                 }
                 server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
                         consensusStateManager, consensusRuntimeStorage);

@@ -12,22 +12,10 @@ import org.apache.ibatis.annotations.Options;
  */
 @Mapper
 public interface DataKvMapper {
-    @Insert("INSERT INTO jdchain_contracts (`ledger`, `data_account_address`, `data_account_key`, `data_account_value`, `data_account_type`, `data_account_version`, " +
+    @Insert("INSERT INTO jdchain_data_account_kvs (`ledger`, `data_account_address`, `data_key`, `data_value`, `data_type`, `data_version`, " +
             "`data_block_height`, `data_tx_hash`)" +
-            "VALUES (#{ledger}, #{data_account_address}, #{data_account_key}, #{data_account_value}, #{data_account_type}, #{data_account_version}, " +
+            "VALUES (#{ledger}, #{data_account_address}, #{data_key}, #{data_value}, #{data_type}, #{data_version}, " +
             "#{data_block_height}, #{data_tx_hash})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insert(DataKv info);
-
-//    void updateStatus(int id, int state);
-//
-//    DataKv getDataKvById(int id);
-
-//    DataKv getDataKvByHeight(long height);
-//
-//    DataKv getDataKvByHash(String hash);
-
-//    List<DataKv> getDataKvsByLimit(int limit);
-//
-//    List<DataKv> getAllDataKvs();
 }
