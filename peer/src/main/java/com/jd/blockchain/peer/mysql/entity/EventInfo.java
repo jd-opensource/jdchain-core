@@ -11,7 +11,7 @@ public class EventInfo {
     private String event_account_address;
     private String event_account_pubkey;
     private String event_account_roles;
-    private String event_account_privileges;
+    private int event_account_privileges;
     private String event_account_creator;
     private String event_account_tx_hash;
 //    private long create_time;
@@ -19,7 +19,7 @@ public class EventInfo {
     private int state;
 
     public EventInfo(String ledger, String event_account_address, String event_account_pubkey, String event_account_roles,
-                     String event_account_privileges, String event_account_creator, String event_account_tx_hash, long event_account_block_height) {
+                     int event_account_privileges, String event_account_creator, String event_account_tx_hash, long event_account_block_height) {
         this.ledger = ledger;
         this.event_account_address = event_account_address;
         this.event_account_pubkey = event_account_pubkey;
@@ -42,7 +42,7 @@ public class EventInfo {
         return event_account_roles;
     }
 
-    public String getEvent_account_privileges() {
+    public int getEvent_account_privileges() {
         return event_account_privileges;
     }
 
@@ -70,7 +70,7 @@ public class EventInfo {
         return event_account_block_height;
     }
 
-    public void setEvent_account_privileges(String event_account_privileges) {
+    public void setEvent_account_privileges(int event_account_privileges) {
         this.event_account_privileges = event_account_privileges;
     }
 

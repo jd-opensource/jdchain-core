@@ -24,4 +24,7 @@ public interface ContractInfoMapper {
     @Update("UPDATE jdchain_contracts SET `contract_status` = #{contract_status} where `ledger` = #{ledger} and `contract_address` = #{contract_address}")
     void updateStatus(String ledger, String contract_address, String contract_status);
 
+    @Update("UPDATE jdchain_contracts SET `contract_roles` = #{contract_roles}, `contract_privileges` = #{contract_privileges} where `ledger` = #{ledger} and `contract_address` = #{contract_address}")
+    void updateDataPermission(String ledger, String contract_address, String contract_roles, int contract_privileges);
+
 }

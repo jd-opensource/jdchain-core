@@ -11,7 +11,7 @@ public class ContractInfo {
     private String contract_address;
     private String contract_pubkey;
     private String contract_roles;
-    private String contract_privileges;
+    private int contract_privileges;
     private String contract_status;
     private String contract_creator;
     private String contract_lang;
@@ -22,7 +22,7 @@ public class ContractInfo {
     private long contract_version;
     private String contract_content;
 
-    public ContractInfo(String ledger, String contract_address, String contract_pubkey, String contract_status, String contract_roles, String contract_privileges,
+    public ContractInfo(String ledger, String contract_address, String contract_pubkey, String contract_status, String contract_roles, int contract_privileges,
                         String contract_creator, String contract_lang, long contract_version, String contract_content, String contract_tx_hash, long contract_block_height) {
         this.ledger = ledger;
         this.contract_address = contract_address;
@@ -58,7 +58,7 @@ public class ContractInfo {
         return contract_roles;
     }
 
-    public String contract_privileges() {
+    public int getContract_privileges() {
         return contract_privileges;
     }
 
@@ -151,7 +151,7 @@ public class ContractInfo {
         this.contract_block_height = contract_block_height;
     }
 
-    public void setContract_privileges(String contract_privileges) {
+    public void setContract_privileges(int contract_privileges) {
         this.contract_privileges = contract_privileges;
     }
 

@@ -4,6 +4,7 @@ import com.jd.binaryproto.BinaryProtocol;
 import com.jd.blockchain.crypto.Crypto;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.ledger.AccountPermissionSetOperation;
+import com.jd.blockchain.ledger.AccountType;
 import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.ContractCodeDeployOperation;
 import com.jd.blockchain.ledger.ContractCrossEventSendOperation;
@@ -134,6 +135,9 @@ public class MysqlMapperService implements MapperService {
                     }
                 }
 
+                tx_endpoint_pubkeys = tx_endpoint_pubkeys == null? null : (tx_endpoint_pubkeys.substring(0, tx_endpoint_pubkeys.length() - 1));
+                tx_node_pubkeys = tx_node_pubkeys == null? null : (tx_node_pubkeys.substring(0, tx_node_pubkeys.length() - 1));
+
                 for (Operation op : transactionRequest.getTransactionContent().getOperations()) {
                     // contract event op and cross contract invoke op process
                     if (op instanceof ContractEventSendOperation || op instanceof ContractCrossEventSendOperation) {
@@ -147,7 +151,7 @@ public class MysqlMapperService implements MapperService {
                     }
                 }
 
-                insertTxInfo(ledger, blockHeight, txHashBase58, i, tx_node_pubkeys.substring(0, tx_node_pubkeys.length() - 1), tx_endpoint_pubkeys, transactionResult.getExecutionState().CODE, tx_contents);
+                insertTxInfo(ledger, blockHeight, txHashBase58, i, tx_node_pubkeys, tx_endpoint_pubkeys, transactionResult.getExecutionState().CODE, tx_contents);
             }
 
             insertBlockInfo(ledger, ledgerBlock);
@@ -177,8 +181,7 @@ public class MysqlMapperService implements MapperService {
         } else if (op instanceof UserAuthorizeOperation) {
             updateUserAuthorize(ledger, (UserAuthorizeOperation)op);
         } else if (op instanceof AccountPermissionSetOperation) {
-            AccountPermissionSetOperation accountPermissionSetOperation = (AccountPermissionSetOperation)op;
-            // todo later
+            updateDataPermission(ledger, (AccountPermissionSetOperation)op);
         } else if (op instanceof RolesConfigureOperation) {
             updateRolePrivilege(ledger, blockHeight, txHashBase58, (RolesConfigureOperation)op);
         }
@@ -196,7 +199,7 @@ public class MysqlMapperService implements MapperService {
     private void insertDataInfo(String ledger, long blockHeight, String txHashBase58, DataAccountRegisterOperation dataAccountRegisterOperation, String endpointPubKey) {
         String data_account_address = dataAccountRegisterOperation.getAccountID().getAddress().toBase58();
         String data_account_pubkey = dataAccountRegisterOperation.getAccountID().getPubKey().toBase58();
-        DataInfo dataInfo = new DataInfo(ledger, data_account_address, data_account_pubkey, "DEFAULT", "777", endpointPubKey, txHashBase58, blockHeight);
+        DataInfo dataInfo = new DataInfo(ledger, data_account_address, data_account_pubkey, null, 777, endpointPubKey, txHashBase58, blockHeight);
         dataInfoMapper.insert(dataInfo);
     }
 
@@ -207,14 +210,14 @@ public class MysqlMapperService implements MapperService {
         long contract_version = contractCodeDeployOperation.getChainCodeVersion();
         byte[] contract_content = contractCodeDeployOperation.getChainCode();
 
-        ContractInfo contractInfo = new ContractInfo(ledger, contract_address, contract_pubkey, "NORMAL", "DEFAULT", "777", endpointPubKey, contract_lang, contract_version, BytesUtils.toString(contract_content), txHashBase58, blockHeight);
+        ContractInfo contractInfo = new ContractInfo(ledger, contract_address, contract_pubkey, "NORMAL", null, 777, endpointPubKey, contract_lang, contract_version, BytesUtils.toString(contract_content), txHashBase58, blockHeight);
         contractInfoMapper.insert(contractInfo);
     }
 
     private void insertEventInfo(String ledger, long blockHeight, String txHashBase58, EventAccountRegisterOperation eventAccountRegisterOperation, String endpointPubKey) {
         String event_account_address = eventAccountRegisterOperation.getEventAccountID().getAddress().toBase58();
         String event_account_pubkey = eventAccountRegisterOperation.getEventAccountID().getPubKey().toBase58();
-        EventInfo eventInfo = new EventInfo(ledger, event_account_address, event_account_pubkey, "DEFAULT", "777", endpointPubKey, txHashBase58, blockHeight);
+        EventInfo eventInfo = new EventInfo(ledger, event_account_address, event_account_pubkey, null, 777, endpointPubKey, txHashBase58, blockHeight);
         eventInfoMapper.insert(eventInfo);
     }
 
@@ -242,7 +245,7 @@ public class MysqlMapperService implements MapperService {
         }
     }
 
-    private void insertTxInfo(String ledger, long blockHeight, String txHashBase58, int txIndex, String endpointPubKey, String ndoePubKey, int exeState, byte[] txContent) {
+    private void insertTxInfo(String ledger, long blockHeight, String txHashBase58, int txIndex, String ndoePubKey, String endpointPubKey, int exeState, byte[] txContent) {
         TxInfo txInfo = new TxInfo(ledger, blockHeight, txHashBase58, txIndex, ndoePubKey, endpointPubKey, exeState, BytesUtils.toString(txContent));
         txInfoMapper.insert(txInfo);
     }
@@ -266,6 +269,26 @@ public class MysqlMapperService implements MapperService {
 
     private void updateContratState(String ledger, ContractStateUpdateOperation contractStateUpdateOperation) {
         contractInfoMapper.updateStatus(ledger, contractStateUpdateOperation.getContractAddress().toBase58(), contractStateUpdateOperation.getState().name());
+    }
+
+    // update data/event/contract permission info
+    private void updateDataPermission(String ledger, AccountPermissionSetOperation op) {
+
+        AccountType accountType = op.getAccountType();
+        String accountAddress = op.getAddress().toBase58();
+
+        if (rolePrivilegeMapper.getRolePrivInfo(ledger, op.getRole()) == null) {
+            logger.info("updateDataPermission, role info is not exist in rolePrivilege table!");
+            return;
+        }
+
+        if (accountType.name().equals("DATA")) {
+            dataInfoMapper.updateDataPermission(ledger, accountAddress, op.getRole(), op.getMode());
+        } else if (accountType.name().equals("EVENT")) {
+            eventInfoMapper.updateDataPermission(ledger, accountAddress, op.getRole(), op.getMode());
+        } else if (accountType.name().equals("CONTRACT")) {
+            contractInfoMapper.updateDataPermission(ledger, accountAddress, op.getRole(), op.getMode());
+        }
     }
 
     // update user's role group and role group policy
@@ -310,7 +333,9 @@ public class MysqlMapperService implements MapperService {
                     }
                 }
 
-                userInfoMapper.updateRolePolicy(ledger, userBase58, updateRolesString.substring(0, updateRolesString.length() - 1), rolesPolicy);
+                updateRolesString = updateRolesString == null? null : (updateRolesString.substring(0, updateRolesString.length() - 1));
+
+                userInfoMapper.updateRolePolicy(ledger, userBase58, updateRolesString, rolesPolicy);
             }
         }
     }
@@ -347,7 +372,10 @@ public class MysqlMapperService implements MapperService {
                     }
                 }
 
-                rolePrivilegeMapper.insert(new RolePrivilegeInfo(ledger, role, insert_ledger_permissions.substring(0, insert_ledger_permissions.length() - 1), insert_tx_permissions.substring(0, insert_tx_permissions.length() - 1), blockHeight, txHashBase58));
+                insert_ledger_permissions = insert_ledger_permissions == null? null : (insert_ledger_permissions.substring(0, insert_ledger_permissions.length() - 1));
+                insert_tx_permissions = insert_tx_permissions == null? null : (insert_tx_permissions.substring(0, insert_tx_permissions.length() - 1));
+
+                rolePrivilegeMapper.insert(new RolePrivilegeInfo(ledger, role, insert_ledger_permissions, insert_tx_permissions, blockHeight, txHashBase58));
             } else {
                 // 已存在的角色
                 String[] existLedgerPermissions = rolePrivilegeInfo.getLedger_privileges().split(",");
@@ -399,7 +427,10 @@ public class MysqlMapperService implements MapperService {
                     }
                 }
 
-                rolePrivilegeMapper.updateRolePrivInfo(ledger, role, update_ledger_privileges.substring(0, update_ledger_privileges.length() - 1), update_tx_privileges.substring(0, update_tx_privileges.length() - 1));
+                update_ledger_privileges = update_ledger_privileges == null? null : (update_ledger_privileges.substring(0, update_ledger_privileges.length() - 1));
+                update_tx_privileges = update_tx_privileges == null? null : (update_tx_privileges.substring(0, update_tx_privileges.length() - 1));
+
+                rolePrivilegeMapper.updateRolePrivInfo(ledger, role, update_ledger_privileges, update_tx_privileges);
             }
         }
     }

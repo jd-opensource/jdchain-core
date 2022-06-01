@@ -11,14 +11,14 @@ public class DataInfo {
     private String data_account_address;
     private String data_account_pubkey;
     private String data_account_roles;
-    private String data_account_privileges;
+    private int data_account_privileges;
     private String data_account_creator;
     private String data_account_tx_hash;
 //    private long create_time;
     private long data_account_block_height;
     private int state;
 
-    public DataInfo(String ledger, String data_account_address, String data_account_pubkey, String data_account_roles, String data_account_privileges,
+    public DataInfo(String ledger, String data_account_address, String data_account_pubkey, String data_account_roles, int data_account_privileges,
                     String data_account_creator, String data_account_tx_hash, long data_account_block_height) {
         this.ledger = ledger;
         this.data_account_address = data_account_address;
@@ -58,7 +58,7 @@ public class DataInfo {
         return data_account_block_height;
     }
 
-    public String getData_account_privileges() {
+    public int getData_account_privileges() {
         return data_account_privileges;
     }
 
@@ -116,7 +116,7 @@ public class DataInfo {
         this.data_account_tx_hash = data_account_tx_hash;
     }
 
-    public void setData_account_privileges(String data_account_privileges) {
+    public void setData_account_privileges(int data_account_privileges) {
         this.data_account_privileges = data_account_privileges;
     }
 
