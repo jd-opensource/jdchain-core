@@ -59,9 +59,16 @@ public class LedgerBindingConfig {
 	// DB Connection Config Key Prefix;
 	public static final String DB_PREFIX = "db.";
 
+	// Archive DB Connection Config Key Prefix;
+	public static final String ARCHIVE_DB_PREFIX = "archivedb.";
+
 	// DB Connction Attribute Key;
 	public static final String DB_CONN = DB_PREFIX + "uri";
 	public static final String DB_PASSWORD = DB_PREFIX + "pwd";
+
+	// Archive DB Connction Attribute Key;
+	public static final String ARCHIVE_DB_CONN = ARCHIVE_DB_PREFIX + "uri";
+	public static final String ARCHIVE_DB_PASSWORD = ARCHIVE_DB_PREFIX + "pwd";
 
 	// 账本名字
 	public static final String LEDGER_NAME = "name";
@@ -112,6 +119,7 @@ public class LedgerBindingConfig {
 			writeLedger(builder, hashs[i], binding);
 			writeParticipant(builder, hashs[i], binding);
 			writeDB(builder, hashs[i], binding);
+			writeArchiveDB(builder, hashs[i], binding);
 			writeLine(builder);
 		}
 		return builder.toString();
@@ -210,6 +218,18 @@ public class LedgerBindingConfig {
 		writeLine(builder);
 	}
 
+	private void writeArchiveDB(StringBuilder builder, HashDigest ledgerHash, BindingConfig binding) {
+		String ledgerPrefix = String.join(ATTR_SEPERATOR, BINDING_PREFIX, ledgerHash.toBase58());
+		// 归档目的地存储配置；
+		String dbConnKey = String.join(ATTR_SEPERATOR, ledgerPrefix, ARCHIVE_DB_CONN);
+		String dbPwdKey = String.join(ATTR_SEPERATOR, ledgerPrefix, ARCHIVE_DB_PASSWORD);
+
+		writeLine(builder, "#账本的归档数据库的连接字符串；");
+		writeLine(builder, "%s=%s", dbConnKey, stringOf(binding.getArchiveDbConnection().getUri()));
+		writeLine(builder, "#账本的归档数据库的连接口令；");
+		writeLine(builder, "%s=%s", dbPwdKey, stringOf(binding.getArchiveDbConnection().getPassword()));
+		writeLine(builder);
+	}
 	private void writeLedger(StringBuilder builder, HashDigest ledgerHash, BindingConfig binding) {
 		String ledgerPrefix = String.join(ATTR_SEPERATOR, BINDING_PREFIX, ledgerHash.toBase58());
 		// 账本相关信息配置；
@@ -365,6 +385,13 @@ public class LedgerBindingConfig {
 					String.format("No db connection config of participant of ledger binding[%s]!", ledgerHash));
 		}
 
+		// 归档数据库存储配置；
+		String archiveDbConnKey = String.join(ATTR_SEPERATOR, ledgerPrefix, ARCHIVE_DB_CONN);
+		String archiveDbPwdKey = String.join(ATTR_SEPERATOR, ledgerPrefix, ARCHIVE_DB_PASSWORD);
+
+		binding.archiveDbConnection.setConnectionUri(getProperty(props, archiveDbConnKey, false));
+		binding.archiveDbConnection.setPassword(getProperty(props, archiveDbPwdKey, false));
+
 		// 设置账本名称
 		String ledgerNameKey = String.join(ATTR_SEPERATOR, ledgerPrefix, LEDGER_NAME);
 		binding.ledgerName = getProperty(props, ledgerNameKey, true);
@@ -433,12 +460,18 @@ public class LedgerBindingConfig {
 
 		private DBConnectionConfig dbConnection = new DBConnectionConfig();
 
+		private DBConnectionConfig archiveDbConnection = new DBConnectionConfig();
+
 		public ParticipantBindingConfig getParticipant() {
 			return participant;
 		}
 
 		public DBConnectionConfig getDbConnection() {
 			return dbConnection;
+		}
+
+		public DBConnectionConfig getArchiveDbConnection() {
+			return archiveDbConnection;
 		}
 
 		public void setLedgerName(String ledgerName) {

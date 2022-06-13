@@ -86,6 +86,26 @@ public class RedisVerioningStorage implements VersioningKVStorage {
 		}
 	}
 
+	@Override
+	public byte[] archiveGet(Bytes key, long version) {
+		return new byte[0];
+	}
+
+	@Override
+	public long archiveRemove(Bytes key, long version) {
+		return 0;
+	}
+
+	@Override
+	public long archiveSet(Bytes key, byte[] value, long version) {
+		return 0;
+	}
+
+	@Override
+	public void iterateAllKeys() {
+
+	}
+
 	private byte[] encodeVersionKey(long version) {
 		return SafeEncoder.encode("" + version);
 	}

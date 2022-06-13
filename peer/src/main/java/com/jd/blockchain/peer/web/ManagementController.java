@@ -1,6 +1,7 @@
 package com.jd.blockchain.peer.web;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.jd.binaryproto.BinaryProtocol;
 import com.jd.binaryproto.DataContractRegistry;
 import com.jd.blockchain.ca.CertificateRole;
 import com.jd.blockchain.ca.CertificateUtils;
@@ -36,6 +37,8 @@ import com.jd.blockchain.setting.GatewayAuthResponse;
 import com.jd.blockchain.setting.LedgerIncomingSettings;
 import com.jd.blockchain.storage.service.DbConnection;
 import com.jd.blockchain.storage.service.DbConnectionFactory;
+import com.jd.blockchain.storage.service.KVStorageService;
+import com.jd.blockchain.storage.service.VersioningKVStorage;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig;
 import com.jd.blockchain.tools.initializer.LedgerBindingConfig.BindingConfig;
 import com.jd.blockchain.transaction.SignatureUtils;
@@ -108,6 +111,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
     private Map<HashDigest, IdentityMode> ledgerIdMode = new ConcurrentHashMap<>();
 
     private Map<HashDigest, BindingConfig> bindingConfigs = new ConcurrentHashMap<>();
+
+    private Map<HashDigest, KVStorageService> ledgerDbStorages = new ConcurrentHashMap<>();
+
+    private Map<HashDigest, KVStorageService> ledgerArchiveDbStorages = new ConcurrentHashMap<>();
 
     @Autowired
     private MessageHandle consensusMessageHandler;
@@ -357,9 +364,15 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         }
 
         try {
-            DbConnection dbConnNew = connFactory.connect(bindingConfig.getDbConnection().getUri(),
-                    bindingConfig.getDbConnection().getPassword());
-            ledgerRepository = ledgerManager.register(ledgerHash, dbConnNew.getStorageService(), bindingConfig.getDataStructure());
+            DbConnection dbConnNew = connFactory.connect(bindingConfig.getDbConnection().getUri(), bindingConfig.getDbConnection().getPassword());
+
+            // 获取归档数据库存储服务
+            KVStorageService archiveKVStorageService = null;
+            if (bindingConfig.getArchiveDbConnection().getUri() != null) {
+                archiveKVStorageService = connFactory.connect(bindingConfig.getArchiveDbConnection().getUri(), bindingConfig.getArchiveDbConnection().getPassword()).getStorageService();
+            }
+
+            ledgerRepository = ledgerManager.register(ledgerHash, dbConnNew.getStorageService(), archiveKVStorageService, bindingConfig.getDataStructure());
 
             ledgerAdminAccount = ledgerRepository.getAdminInfo();
 
@@ -410,6 +423,10 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
             ledgerCryptoSettings.put(ledgerHash, ledgerAdminAccount.getSettings().getCryptoSetting());
             ledgerKeypairs.put(ledgerHash, loadIdentity(currentNode, bindingConfig));
             bindingConfigs.put(ledgerHash, bindingConfig);
+            ledgerDbStorages.put(ledgerHash, dbConnNew.getStorageService());
+            if (archiveKVStorageService != null) {
+                ledgerArchiveDbStorages.put(ledgerHash, archiveKVStorageService);
+            }
         } catch (Exception e) {
             ledgerManager.unregister(ledgerHash);
             throw e;
@@ -500,6 +517,49 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
     }
 
     /**
+     * @description: 提供直接篡改交易的接口,临时开放的接口
+     * @param base58LedgerHash base58格式的账本哈希；
+     * @param blockHeight  被篡改交易所在的区块高度
+     * @param
+     * @return
+     */
+    @RequestMapping(path = "/ledger/tx/tamper", method = RequestMethod.POST)
+    public WebResponse txTamper(@RequestParam("ledgerHash") String base58LedgerHash,
+                                     @RequestParam("blockHeight") long blockHeight) {
+
+        HashDigest ledgerHash = Crypto.resolveAsHashDigest(Base58Utils.decode(base58LedgerHash));
+
+        LedgerRepository ledgerRepo = (LedgerRepository) ledgerQuerys.get(ledgerHash);
+
+        if (ledgerKeypairs.get(ledgerHash) == null) {
+            return WebResponse.createFailureResult(-1, "Ledger hash not exist!");
+        }
+        if (ledgerRepo.retrieveLatestBlock().getHeight() < blockHeight || blockHeight < 1) {
+            return WebResponse.createFailureResult(-1, "BlockHeight parameter invalid!");
+        }
+
+        if (ledgerRepo.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
+            return WebResponse.createFailureResult(-1, "MERKLE_TREE type ledger database not support tx tamper op!");
+        }
+
+        VersioningKVStorage ledgerDdStorage = ledgerDbStorages.get(ledgerHash).getVersioningKVStorage();
+
+        TransactionSet lastTransactionSet = null;
+        int lastHeightTxTotalNums = 0;
+
+        lastTransactionSet = ledgerRepo.getTransactionSet(ledgerRepo.getBlock(blockHeight - 1));
+        lastHeightTxTotalNums = (int) lastTransactionSet.getTotalCount();
+
+        String txsetKeyPrefix = "L:/" + Bytes.fromString("TS" + LedgerConsts.KEY_SEPERATOR);
+
+        Bytes txReqKey = new Bytes(Bytes.fromString(txsetKeyPrefix), Bytes.fromString("RQ" + LedgerConsts.KEY_SEPERATOR).concat(Bytes.fromString(String.valueOf(lastHeightTxTotalNums))));
+
+        ledgerDdStorage.archiveSet(txReqKey, BinaryProtocol.encode(ledgerRepo.getTransactionSet(ledgerRepo.getBlock(0)).getTransaction(0).getRequest()),-1);
+
+        return WebResponse.createSuccessResult("Tx tamper succ!");
+    }
+
+    /**
      * KV类型的账本数据库支持检验账本区块内交易是否被篡改
      *
      * @return
@@ -524,6 +584,9 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
             LOGGER.info("MERKLE_TREE type ledger database not support anti tamper verify!");
             return false;
         }
+
+        VersioningKVStorage ledgerDdStorage = ledgerDbStorages.get(ledgerHash).getVersioningKVStorage();
+
         TransactionSet currTransactionSet = ledgerRepo.getTransactionSet(ledgerRepo.getBlock(blockHeight));
         int currentHeightTxTotalNums = (int) ledgerRepo.getTransactionSet(ledgerRepo.getBlock(blockHeight)).getTotalCount();
 
@@ -536,14 +599,31 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         // 取当前高度的增量交易数，在增量交易里进行查找
         int currentHeightTxNums = currentHeightTxTotalNums - lastHeightTxTotalNums;
 
-        ArrayList<HashDigest> transactions = new ArrayList<>();
+        ArrayList<HashDigest> values = new ArrayList<>();
+        ConcurrentHashMap<Bytes, HashDigest> keyValues = new ConcurrentHashMap<>();
+        String txsetKeyPrefix = "L:/" + Bytes.fromString("TS" + LedgerConsts.KEY_SEPERATOR);
+        Bytes txTotalKey = new Bytes(Bytes.fromString(txsetKeyPrefix), Bytes.fromString("T"));
+
+        HashFunction hashFunction = Crypto.getHashFunction(ledgerRepo.getAdminInfo().getSettings().getCryptoSetting().getHashAlgorithm());
 
         for (int i = 0; i < currentHeightTxNums; i++) {
-            transactions.add(currTransactionSet.getTransactions(lastHeightTxTotalNums + i, 1)[0].getRequest().getTransactionHash());
+            Bytes txReqKey = new Bytes(Bytes.fromString(txsetKeyPrefix), Bytes.fromString("RQ" + LedgerConsts.KEY_SEPERATOR).concat(Bytes.fromString(String.valueOf(lastHeightTxTotalNums + i))));
+            keyValues.put(txReqKey, hashFunction.hash(ledgerDdStorage.archiveGet(txReqKey, 0)));
+            Bytes txResKey = new Bytes(Bytes.fromString(txsetKeyPrefix), Bytes.fromString("RT" + LedgerConsts.KEY_SEPERATOR).concat(Bytes.fromString(String.valueOf(lastHeightTxTotalNums + i))));
+            keyValues.put(txResKey, hashFunction.hash(ledgerDdStorage.archiveGet(txResKey, 0)));
+            HashDigest txHash = ledgerRepo.getTransactionSet(ledgerRepo.getBlock(blockHeight)).getTransaction(lastHeightTxTotalNums + i).getRequest().getTransactionHash();
+            Bytes txSeqkey = new Bytes(Bytes.fromString(txsetKeyPrefix), Bytes.fromString("SQ" + LedgerConsts.KEY_SEPERATOR).concat(txHash));
+            keyValues.put(txSeqkey, hashFunction.hash(BytesUtils.toBytes((long)(lastHeightTxTotalNums + i))));
+        }
+        keyValues.put(txTotalKey, hashFunction.hash(BytesUtils.toBytes((long)currentHeightTxTotalNums)));
+
+        if (keyValues != null && keyValues.size() != 0) {
+            for (HashDigest vallue : keyValues.values()) {
+                    values.add(vallue);
+            }
         }
 
-        HashDigest computeTxSetRootHash = new KvTree(Crypto.getHashFunction(ledgerRepo.getAdminInfo().getSettings().getCryptoSetting().getHashAlgorithm()), lastTransactionSet.getRootHash(), transactions).root();
-
+        HashDigest computeTxSetRootHash = new KvTree(hashFunction, lastTransactionSet.getRootHash(), values).root();
 
         return computeTxSetRootHash.toBase58().equals(currTransactionSet.getRootHash().toBase58());
     }
@@ -602,6 +682,246 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         } catch (Exception e) {
             LOGGER.error("sync block failed!", e);
             return WebResponse.createFailureResult(-1, "sync block failed! " + e.getMessage());
+        }
+
+    }
+
+    /**
+     * @description:Kv数据归档/把指定节点指定范围的区块归档到链外数据库
+     * @param base58LedgerHash base58格式的账本哈希；
+     * @param fromBlockHeight  数据归档起始区块高度
+     * @param toBlockHeight    数据归档结束区块高度
+     * @return
+     */
+    @RequestMapping(path = "/delegate/kvdataarchive", method = RequestMethod.POST)
+    public WebResponse kvdataArchive(@RequestParam("ledgerHash") String base58LedgerHash,
+                                           @RequestParam("fromHeight") String fromBlockHeight,
+                                           @RequestParam("toHeight") String toBlockHeight) {
+        try {
+            HashDigest ledgerHash = Crypto.resolveAsHashDigest(Base58Utils.decode(base58LedgerHash));
+
+            if (ledgerQuerys.get(ledgerHash) == null) {
+                return WebResponse.createFailureResult(-1, "ledger hash not exist!");
+            }
+
+            if (ledgerArchiveDbStorages.get(ledgerHash) == null) {
+                return WebResponse.createFailureResult(-1, "ledger archive storage service not exist!");
+            }
+
+            LedgerRepository ledgerRepo = (LedgerRepository) ledgerQuerys.get(ledgerHash);
+
+            if (ledgerRepo.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
+                return WebResponse.createFailureResult(-1, "MERKLE_TREE type ledger database not support kvdata archive!");
+            }
+
+            long startBlockHeight = Long.parseLong(fromBlockHeight);
+
+            long endBlockHeight = Long.parseLong(toBlockHeight);
+
+            long latestBlockHeight = ledgerRepo.retrieveLatestBlockHeight();
+
+            // 不对创世区块，最新区块，以及最新区块的前置区块进行归档操作
+            if (startBlockHeight <= 0 || endBlockHeight <= 0 || endBlockHeight < startBlockHeight || latestBlockHeight - 1 <= endBlockHeight) {
+                return WebResponse.createFailureResult(-1, "kvdata archive block height parameter error!");
+            }
+
+            VersioningKVStorage offChainDbStorage = ledgerArchiveDbStorages.get(ledgerHash).getVersioningKVStorage();
+
+            VersioningKVStorage ledgerDdStorage = ledgerDbStorages.get(ledgerHash).getVersioningKVStorage();
+
+            Map<Bytes, byte[]> txReqMap = new ConcurrentHashMap<>();
+            Map<Bytes, byte[]> txResMap = new ConcurrentHashMap<>();
+
+            for (long i = startBlockHeight; i <= endBlockHeight; i++) {
+
+                // todo : get block kv from ledger database
+                Bytes ledgerKey = Bytes.fromString("IX" + LedgerConsts.KEY_SEPERATOR);
+                byte[] blockBytes = ledgerDdStorage.get(ledgerKey, i);
+
+                // todo : get tx kvs and total for each block from ledger database
+                long preBlockTxTotal = ledgerRepo.getTransactionSet(ledgerRepo.getBlock(i - 1)).getTotalCount();
+                long currBlockTxTotal = ledgerRepo.getTransactionSet(ledgerRepo.getBlock(i)).getTotalCount();
+                String txsetKeyPrefix = "L:/" + Bytes.fromString("TS" + LedgerConsts.KEY_SEPERATOR);
+
+                for (long txIndex = preBlockTxTotal; txIndex < currBlockTxTotal; txIndex++) {
+                    Bytes txReqKey = new Bytes(Bytes.fromString(txsetKeyPrefix), Bytes.fromString("RQ" + LedgerConsts.KEY_SEPERATOR).concat(Bytes.fromString(String.valueOf(txIndex))));
+                    byte[] txReqBytes = ledgerDdStorage.get(txReqKey, 0);
+
+                    Bytes txResKey = new Bytes(Bytes.fromString(txsetKeyPrefix), Bytes.fromString("RT" + LedgerConsts.KEY_SEPERATOR).concat(Bytes.fromString(String.valueOf(txIndex))));
+                    byte[] txResBytes = ledgerDdStorage.get(txResKey, 0);
+
+                    txReqMap.put(txReqKey, txReqBytes);
+                    txResMap.put(txResKey, txResBytes);
+
+                    TransactionRequest txReq = BinaryProtocol.decode(txReqBytes);
+                }
+
+                Bytes txTotalKey = new Bytes(Bytes.fromString(txsetKeyPrefix), Bytes.fromString("T"));
+                byte[] preBlockTxTotalBytes = BytesUtils.toBytes(preBlockTxTotal);
+                byte[] currBlockTxTotalBytes = BytesUtils.toBytes(currBlockTxTotal);
+
+                Bytes archivedBlockKey = new Bytes(Bytes.fromString(txsetKeyPrefix), Bytes.fromString("Archive"));
+
+                // todo : batch write block ,tx req, tx res kv to off chain database
+                offChainDbStorage.batchBegin();
+
+                offChainDbStorage.archiveSet(ledgerKey, blockBytes, i - 1);
+                // 此处在链外记录前置区块交易总数是为了数据恢复时进行交易数据的寻址，归档时不必从链上删除
+                if (i == startBlockHeight) {
+                    // 避免重复数据写入
+                    offChainDbStorage.archiveSet(txTotalKey, preBlockTxTotalBytes, i - 2);
+                }
+                offChainDbStorage.archiveSet(txTotalKey, currBlockTxTotalBytes, i - 1);
+                for (Map.Entry<Bytes, byte[]> entry : txReqMap.entrySet()) {
+                    offChainDbStorage.archiveSet(entry.getKey(), entry.getValue(), -1);
+                }
+                for (Map.Entry<Bytes, byte[]> entry : txResMap.entrySet()) {
+                    offChainDbStorage.archiveSet(entry.getKey(), entry.getValue(), -1);
+                }
+
+                // 为该区块设置已归档标记，1表示已归档
+                offChainDbStorage.archiveSet(archivedBlockKey, BytesUtils.toBytes(1), i - 1);
+
+                offChainDbStorage.batchCommit();
+
+               // todo : delete archived kvs from ledger database;
+                ledgerDdStorage.archiveRemove(ledgerKey,i - 1);
+                for (Map.Entry<Bytes, byte[]> entry : txReqMap.entrySet()) {
+                    ledgerDdStorage.archiveRemove(entry.getKey(), -1);
+                }
+
+                for (Map.Entry<Bytes, byte[]> entry : txResMap.entrySet()) {
+                    ledgerDdStorage.archiveRemove(entry.getKey(), -1);
+                }
+                txReqMap.clear();
+                txResMap.clear();
+            }
+            // 遍历offChainDbStorage，确认归档写入是否正确
+            LOGGER.info("after kvdata archive op, off chain database data:");
+            offChainDbStorage.iterateAllKeys();
+
+            return WebResponse.createSuccessResult("kvdata archive completed!");
+        } catch (Exception e) {
+            LOGGER.error("kvdata archive failed! ", e);
+            e.printStackTrace();
+            return WebResponse.createFailureResult(-1, "kvdata archive failed! " + e.getMessage());
+        }
+    }
+
+    /**
+     * @description:Kv数据恢复/把指定节点指定范围的区块数据从链外数据库恢复到链上
+     * @param base58LedgerHash base58格式的账本哈希；
+     * @param fromBlockHeight  数据恢复起始区块高度
+     * @param toBlockHeight    数据恢复结束区块高度
+     * @return
+     */
+    @RequestMapping(path = "/delegate/kvdatarecovery", method = RequestMethod.POST)
+    public WebResponse kvdataRecovery(@RequestParam("ledgerHash") String base58LedgerHash,
+                                           @RequestParam("fromHeight") String fromBlockHeight,
+                                           @RequestParam("toHeight") String toBlockHeight) {
+        try {
+            HashDigest ledgerHash = Crypto.resolveAsHashDigest(Base58Utils.decode(base58LedgerHash));
+
+            if (ledgerQuerys.get(ledgerHash) == null) {
+                return WebResponse.createFailureResult(-1, "ledger hash not exist!");
+            }
+
+            if (ledgerArchiveDbStorages.get(ledgerHash) == null) {
+                return WebResponse.createFailureResult(-1, "ledger recovery storage service not exist!");
+            }
+
+            LedgerRepository ledgerRepo = (LedgerRepository) ledgerQuerys.get(ledgerHash);
+
+            if (ledgerRepo.getLedgerDataStructure().equals(LedgerDataStructure.MERKLE_TREE)) {
+                return WebResponse.createFailureResult(-1, "MERKLE_TREE type ledger database not support kvdata recovery!");
+            }
+
+            long startBlockHeight = Long.parseLong(fromBlockHeight);
+
+            long endBlockHeight = Long.parseLong(toBlockHeight);
+
+            long latestBlockHeight = ledgerRepo.retrieveLatestBlockHeight();
+
+            // 不对创世区块，最新区块，以及最新区块的前置区块进行数据恢复操作
+            if (startBlockHeight <= 0 || endBlockHeight <= 0 || endBlockHeight < startBlockHeight || latestBlockHeight - 1 <= endBlockHeight) {
+                return WebResponse.createFailureResult(-1, "kvdata recovery block height parameter error!");
+            }
+
+            VersioningKVStorage offChainDbStorage = ledgerArchiveDbStorages.get(ledgerHash).getVersioningKVStorage();
+
+            VersioningKVStorage ledgerDdStorage = ledgerDbStorages.get(ledgerHash).getVersioningKVStorage();
+
+            Map<Bytes, byte[]> txReqMap = new ConcurrentHashMap<>();
+            Map<Bytes, byte[]> txResMap = new ConcurrentHashMap<>();
+
+            // 按照区块高度从高向低，依次恢复已归档数据
+            for (long i = endBlockHeight; i >= startBlockHeight; i--) {
+
+                // todo : get block kv from off chain database
+                Bytes ledgerKey = Bytes.fromString("IX" + LedgerConsts.KEY_SEPERATOR);
+                byte[] blockBytes = offChainDbStorage.archiveGet(ledgerKey, i);
+
+                // todo : get tx kvs for each block from off chain database
+                String txsetKeyPrefix = "L:/" + Bytes.fromString("TS" + LedgerConsts.KEY_SEPERATOR);
+                Bytes txTotalKey = new Bytes(Bytes.fromString(txsetKeyPrefix), Bytes.fromString("T"));
+                Bytes archivedBlockKey = new Bytes(Bytes.fromString(txsetKeyPrefix), Bytes.fromString("Archive"));
+                long preBlockTxTotal = BytesUtils.toLong(offChainDbStorage.archiveGet(txTotalKey, i - 1));
+                long currBlockTxTotal = BytesUtils.toLong(offChainDbStorage.archiveGet(txTotalKey, i));
+
+
+                for (long txIndex = preBlockTxTotal; txIndex < currBlockTxTotal; txIndex++) {
+                    Bytes txReqKey = new Bytes(Bytes.fromString(txsetKeyPrefix), Bytes.fromString("RQ" + LedgerConsts.KEY_SEPERATOR).concat(Bytes.fromString(String.valueOf(txIndex))));
+                    byte[] txReqBytes = offChainDbStorage.archiveGet(txReqKey, 0);
+
+                    Bytes txResKey = new Bytes(Bytes.fromString(txsetKeyPrefix), Bytes.fromString("RT" + LedgerConsts.KEY_SEPERATOR).concat(Bytes.fromString(String.valueOf(txIndex))));
+                    byte[] txResBytes = offChainDbStorage.archiveGet(txResKey, 0);
+
+                    txReqMap.put(txReqKey, txReqBytes);
+                    txResMap.put(txResKey, txResBytes);
+
+                    TransactionRequest txReq = BinaryProtocol.decode(txReqBytes);
+                }
+
+                // todo : batch write block ,tx req, tx res kv to ledger database
+                ledgerDdStorage.batchBegin();
+                ledgerDdStorage.archiveSet(ledgerKey, blockBytes, i - 1);
+                for (Map.Entry<Bytes, byte[]> entry : txReqMap.entrySet()) {
+                    ledgerDdStorage.archiveSet(entry.getKey(), entry.getValue(), -1);
+                }
+                for (Map.Entry<Bytes, byte[]> entry : txResMap.entrySet()) {
+                    ledgerDdStorage.archiveSet(entry.getKey(), entry.getValue(), -1);
+                }
+                ledgerDdStorage.batchCommit();
+
+                // todo : delete archived kvs from off chain database;
+                offChainDbStorage.archiveRemove(ledgerKey,i - 1);
+                if ((i == startBlockHeight) &&  (offChainDbStorage.archiveGet(archivedBlockKey, i - 1) == null)) {
+                    offChainDbStorage.archiveRemove(txTotalKey, i - 2);
+                }
+                offChainDbStorage.archiveRemove(txTotalKey, i - 1);
+                for (Map.Entry<Bytes, byte[]> entry : txReqMap.entrySet()) {
+                    offChainDbStorage.archiveRemove(entry.getKey(), -1);
+                }
+
+                for (Map.Entry<Bytes, byte[]> entry : txResMap.entrySet()) {
+                    offChainDbStorage.archiveRemove(entry.getKey(), -1);
+                }
+
+                // 移除区块归档标记
+                offChainDbStorage.archiveRemove(archivedBlockKey, i - 1);
+                txReqMap.clear();
+                txResMap.clear();
+            }
+
+            // 遍历offChainDbStorage，确认恢复是否完成，预期不再有kv存在
+            LOGGER.info("after kvdata recovery op, off chain database data:");
+            offChainDbStorage.iterateAllKeys();
+
+            return WebResponse.createSuccessResult("kvdata recovery completed!");
+        } catch (Exception e) {
+            LOGGER.error("kvdata recovery failed! ", e);
+            e.printStackTrace();
+            return WebResponse.createFailureResult(-1, "kvdata recovery failed! " + e.getMessage());
         }
     }
 

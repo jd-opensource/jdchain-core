@@ -94,7 +94,7 @@ public class TransactionBatchProcessorTest {
 
 		// 加载账本；
 		LedgerManager ledgerManager = new LedgerManager();
-		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, LedgerDataStructure.MERKLE_TREE);
+		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, null, LedgerDataStructure.MERKLE_TREE);
 
 		//验证交易总数；创始区块的交易数预期为 1 ——只有一笔账本初始化的交易；
 		long totalCount = ledgerRepo.getTransactionSet().getTotalCount();
@@ -126,7 +126,7 @@ public class TransactionBatchProcessorTest {
 
 		// 验证正确性；
 		ledgerManager = new LedgerManager();
-		ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, LedgerDataStructure.MERKLE_TREE);
+		ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, null, LedgerDataStructure.MERKLE_TREE);
 
 		LedgerBlock latestBlock = ledgerRepo.getLatestBlock();
 		assertEquals(newBlock.getHash(), latestBlock.getHash());
@@ -162,7 +162,7 @@ public class TransactionBatchProcessorTest {
 
 		// 加载账本；
 		LedgerManager ledgerManager = new LedgerManager();
-		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, LedgerDataStructure.MERKLE_TREE);
+		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, null, LedgerDataStructure.MERKLE_TREE);
 
 		// 验证参与方账户的存在；
 		LedgerDataSet previousBlockDataset = ledgerRepo.getLedgerDataSet(ledgerRepo.getLatestBlock());
@@ -198,7 +198,7 @@ public class TransactionBatchProcessorTest {
 
 		// 验证正确性；
 		ledgerManager = new LedgerManager();
-		ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, LedgerDataStructure.MERKLE_TREE);
+		ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, null, LedgerDataStructure.MERKLE_TREE);
 
 		LedgerBlock latestBlock = ledgerRepo.getLatestBlock();
 		assertEquals(newBlock.getHash(), latestBlock.getHash());
@@ -233,7 +233,7 @@ public class TransactionBatchProcessorTest {
 
 		// 加载账本；
 		LedgerManager ledgerManager = new LedgerManager();
-		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, LedgerDataStructure.MERKLE_TREE);
+		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, null, LedgerDataStructure.MERKLE_TREE);
 		CryptoSetting cryptoSetting = ledgerRepo.getAdminSettings().getSettings().getCryptoSetting();
 
 		// 验证参与方账户的存在；
@@ -309,7 +309,7 @@ public class TransactionBatchProcessorTest {
 		HashDigest txsetRootHash = ledgerRepo.getTransactionSet().getRootHash();
 
 		// 单独加载交易集合；
-		TransactionSetEditor txset = new TransactionSetEditor(-1, txsetRootHash, cryptoSetting, "LDG://3A3dP4", STORAGE, STORAGE, LedgerDataStructure.MERKLE_TREE,
+		TransactionSetEditor txset = new TransactionSetEditor(-1, txsetRootHash, cryptoSetting, "LDG://3A3dP4", STORAGE, STORAGE, null, null, LedgerDataStructure.MERKLE_TREE,
 				false);
 		tx1 = txset.getTransaction(transactionRequest1.getTransactionHash());
 //		tx2 = txset.get(transactionRequest2.getTransactionHash());
@@ -321,7 +321,7 @@ public class TransactionBatchProcessorTest {
 
 		// 重新加载之后验证正确性；
 		ledgerManager = new LedgerManager();
-		ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, LedgerDataStructure.MERKLE_TREE);
+		ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, null, LedgerDataStructure.MERKLE_TREE);
 
 		LedgerBlock latestBlock = ledgerRepo.getLatestBlock();
 		assertEquals(blockHash, latestBlock.getHash());
@@ -358,7 +358,7 @@ public class TransactionBatchProcessorTest {
 
 		// 加载账本；
 		LedgerManager ledgerManager = new LedgerManager();
-		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, LedgerDataStructure.MERKLE_TREE);
+		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE, null, LedgerDataStructure.MERKLE_TREE);
 
 		// 验证参与方账户的存在；
 		LedgerDataSet previousBlockDataset = ledgerRepo.getLedgerDataSet(ledgerRepo.getLatestBlock());

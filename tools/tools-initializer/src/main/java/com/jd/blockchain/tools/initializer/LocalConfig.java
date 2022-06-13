@@ -45,6 +45,12 @@ public class LocalConfig {
 	// 账本数据库的连接口令；
 	public static final String LEDGER_DB_PWD = "ledger.db.pwd";
 
+	// 归档数据库的连接字符串；
+	public static final String LEDGER_ARCHIVE_DB_URI = "ledger.archivedb.uri";
+
+	// 归档数据库的连接口令；
+	public static final String LEDGER_ARCHIVE_DB_PWD = "ledger.archivedb.pwd";
+
 	public static final String EXTRA_PROPERTIES_PREFIX = "extra.properties.";
 
 	private LocalParticipantConfig local = new LocalParticipantConfig();
@@ -52,6 +58,8 @@ public class LocalConfig {
 	private String bindingOutDir;
 
 	private DBConnectionConfig storagedDb = new DBConnectionConfig();
+
+	private DBConnectionConfig archiveStoragedDb = new DBConnectionConfig();
 
 	private Properties extraProperties;
 
@@ -75,8 +83,16 @@ public class LocalConfig {
 		return storagedDb;
 	}
 
+	public DBConnectionConfig getArchiveStoragedDb() {
+		return archiveStoragedDb;
+	}
+
 	public void setStoragedDb(DBConnectionConfig storagedDb) {
 		this.storagedDb = storagedDb;
+	}
+
+	public void setArchiveStoragedDb(DBConnectionConfig archiveStoragedDb) {
+		this.archiveStoragedDb = archiveStoragedDb;
 	}
 
 	public Properties getExtraProperties() {
@@ -116,6 +132,9 @@ public class LocalConfig {
 
 		conf.storagedDb.setConnectionUri(PropertiesUtils.getRequiredProperty(props, LEDGER_DB_URI));
 		conf.storagedDb.setPassword(PropertiesUtils.getProperty(props, LEDGER_DB_PWD, false));
+
+		conf.archiveStoragedDb.setConnectionUri(PropertiesUtils.getProperty(props, LEDGER_ARCHIVE_DB_URI, false));
+		conf.archiveStoragedDb.setPassword(PropertiesUtils.getProperty(props, LEDGER_ARCHIVE_DB_PWD, false));
 
 		if (initSettingFile == null) {
 			conf.bindingOutDir = PropertiesUtils.getRequiredProperty(props, LEDGER_BINDING_OUT);

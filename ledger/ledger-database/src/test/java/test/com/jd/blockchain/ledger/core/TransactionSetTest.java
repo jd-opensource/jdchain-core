@@ -98,7 +98,7 @@ public class TransactionSetTest {
 
 		// Reload ;
 		TransactionSetEditor reloadTxset = new TransactionSetEditor(-1,  txsetRootHash, cryptoSetting, keyPrefix, testStorage,
-				testStorage, LedgerDataStructure.MERKLE_TREE, true);
+				testStorage, null, null, LedgerDataStructure.MERKLE_TREE, true);
 
 		assertEquals(1, reloadTxset.getTotalCount());
 
@@ -146,7 +146,7 @@ public class TransactionSetTest {
 		// 重新加载交易集合；
 		HashDigest txsetRootHash = txset.getRootHash();
 		TransactionSetEditor reloadTxset = new TransactionSetEditor(-1, txsetRootHash, cryptoSetting, keyPrefix, testStorage,
-				testStorage, LedgerDataStructure.MERKLE_TREE, true);
+				testStorage, null, null, LedgerDataStructure.MERKLE_TREE, true);
 
 		// 验证重新加载之后的交易集合中记录的交易顺序；
 		assertEquals(txCount0, reloadTxset.getTotalCount());
@@ -163,7 +163,7 @@ public class TransactionSetTest {
 		buildRequestAndResult(ledgerHash, blockHeight, cryptoSetting, txCount1, txRequests_1, txResults_1);
 
 		// add tx to trasaction set;
-		TransactionSetEditor newTxset = new TransactionSetEditor(-1, txsetRootHash, cryptoSetting, keyPrefix, testStorage, testStorage, LedgerDataStructure.MERKLE_TREE,
+		TransactionSetEditor newTxset = new TransactionSetEditor(-1, txsetRootHash, cryptoSetting, keyPrefix, testStorage, testStorage, null, null, LedgerDataStructure.MERKLE_TREE,
 				false);
 		for (int i = 0; i < txCount1; i++) {
 			newTxset.addTransaction(txRequests_1[i], txResults_1[i]);
@@ -346,7 +346,7 @@ public class TransactionSetTest {
 
 		HashDigest txsetRootHash = txset.getRootHash();
 
-		txset = new TransactionSetEditor(-1, txsetRootHash, defCryptoSetting, keyPrefix, testStorage, testStorage, LedgerDataStructure.MERKLE_TREE, false);
+		txset = new TransactionSetEditor(-1, txsetRootHash, defCryptoSetting, keyPrefix, testStorage, testStorage, null, null, LedgerDataStructure.MERKLE_TREE, false);
 		tx_query = txset.getTransaction(transactionRequest1.getTransactionHash());
 		tx_state = txset.getState(transactionRequest1.getTransactionHash());
 

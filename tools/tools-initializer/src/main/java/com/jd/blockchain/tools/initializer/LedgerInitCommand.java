@@ -322,6 +322,9 @@ public class LedgerInitCommand {
 		bindingConf.getDbConnection().setConnectionUri(localConfig.getStoragedDb().getUri());
 		bindingConf.getDbConnection().setPassword(localConfig.getStoragedDb().getPassword());
 
+		bindingConf.getArchiveDbConnection().setConnectionUri(localConfig.getArchiveStoragedDb().getUri());
+		bindingConf.getArchiveDbConnection().setPassword(localConfig.getArchiveStoragedDb().getPassword());
+
 		// confirm continue；
 		prompter.info("\r\n\r\n This is participant [%s], the ledger initialization is ready to start!\r\n", currId);
 

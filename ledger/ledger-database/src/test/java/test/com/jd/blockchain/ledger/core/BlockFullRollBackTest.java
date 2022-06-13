@@ -83,7 +83,7 @@ public class BlockFullRollBackTest {
         // 加载账本；
         LedgerManager ledgerManager = new LedgerManager();
 
-        LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE_Mock, LedgerDataStructure.MERKLE_TREE);
+        LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, STORAGE_Mock, null, LedgerDataStructure.MERKLE_TREE);
 
         // 构造存储错误，并产生区块回滚
         doThrow(BlockRollbackException.class).when(STORAGE_Mock).set(any(), any(), anyLong());
@@ -110,7 +110,7 @@ public class BlockFullRollBackTest {
 
         // 验证正确性；
         ledgerManager = new LedgerManager();
-        ledgerRepo = ledgerManager.register(ledgerHash, STORAGE_Mock, LedgerDataStructure.MERKLE_TREE);
+        ledgerRepo = ledgerManager.register(ledgerHash, STORAGE_Mock, null, LedgerDataStructure.MERKLE_TREE);
         LedgerBlock latestBlock = ledgerRepo.getLatestBlock();
         assertEquals(ledgerRepo.getBlockHash(0), latestBlock.getHash());
         assertEquals(0, latestBlock.getHeight());
@@ -146,7 +146,7 @@ public class BlockFullRollBackTest {
         }
 
         ledgerManager = new LedgerManager();
-        ledgerRepo = ledgerManager.register(ledgerHash, STORAGE_Mock, LedgerDataStructure.MERKLE_TREE);
+        ledgerRepo = ledgerManager.register(ledgerHash, STORAGE_Mock, null, LedgerDataStructure.MERKLE_TREE);
         LedgerBlock latestBlock1 = ledgerRepo.getLatestBlock();
         assertEquals(newBlock1.getHash(), latestBlock1.getHash());
         assertEquals(1, latestBlock1.getHeight());

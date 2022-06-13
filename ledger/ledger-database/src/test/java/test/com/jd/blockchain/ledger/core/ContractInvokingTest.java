@@ -84,7 +84,7 @@ public class ContractInvokingTest {
 
 		// 重新加载账本；
 		LedgerManager ledgerManager = new LedgerManager();
-		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, storage, LedgerDataStructure.MERKLE_TREE);
+		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, storage, null, LedgerDataStructure.MERKLE_TREE);
 
 		// 创建合约处理器；
 		ContractInvokingHandle contractInvokingHandle = new ContractInvokingHandle();
@@ -165,7 +165,7 @@ public class ContractInvokingTest {
 
 		// 重新加载账本；
 		LedgerManager ledgerManager = new LedgerManager();
-		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, storage, LedgerDataStructure.MERKLE_TREE);
+		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, storage, null, LedgerDataStructure.MERKLE_TREE);
 
 		// 创建合约处理器；
 		ContractInvokingHandle contractInvokingHandle = new ContractInvokingHandle();
@@ -248,7 +248,7 @@ public class ContractInvokingTest {
 
 		// 重新加载账本；
 		LedgerManager ledgerManager = new LedgerManager();
-		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, storage, LedgerDataStructure.MERKLE_TREE);
+		LedgerRepository ledgerRepo = ledgerManager.register(ledgerHash, storage, null, LedgerDataStructure.MERKLE_TREE);
 
 		// 创建合约处理器；
 		ContractInvokingHandle contractInvokingHandle = new ContractInvokingHandle();

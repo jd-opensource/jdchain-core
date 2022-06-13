@@ -619,6 +619,12 @@ class InitConfig implements Runnable {
                         "#账本数据库的连接口令\n" +
                         "ledger.db.pwd=\n" +
                         "\n" +
+                        "#归档数据库的连接字符\n" +
+                        "ledger.archivedb.uri=" + ("rocksdb://" + peerDir + File.separator + ledgerName + "-archive" + "-db") + "\n" +
+                        "\n" +
+                        "#归档数据库的连接口令\n" +
+                        "ledger.archivedb.pwd=\n" +
+                        "\n" +
                         (consensus.equals(ConsensusTypeEnum.RAFT) ?
                                 ("#Raft运行时数据路径\n" + "extra.properties.raft.path=" + peerDir + File.separator + "raft") : ""),
                 new File(file));

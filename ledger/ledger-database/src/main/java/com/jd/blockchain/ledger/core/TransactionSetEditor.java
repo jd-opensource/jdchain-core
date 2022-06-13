@@ -51,6 +51,8 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 
 	private static final Bytes TX_SEQUENCE_KEY_PREFIX = Bytes.fromString("SQ" + LedgerConsts.KEY_SEPERATOR);
 
+	private static final Bytes TX_SET_KEY_PREFIX = Bytes.fromString("L:/" + Bytes.fromString("TS" + LedgerConsts.KEY_SEPERATOR));
+
 	private static final Bytes TX_TOTOAL_KEY_PREFIX = Bytes.fromString("T");
 
 
@@ -65,6 +67,10 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 	private MerkleList<HashDigest> txSequence;
 
 	private LedgerDataStructure ledgerDataStructure;
+
+	private ExPolicyKVStorage archiveExStorage;
+
+	private VersioningKVStorage archiveDataStorage;
 
 	/**
 	 * 交易请求列表的根哈希在交易状态集合中的版本；(key 为 {@link #TX_REQUEST_ROOT_HASH} );
@@ -120,8 +126,14 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 	 * @param dataStorage
 	 */
 	public TransactionSetEditor(long preBlockHeight, HashDigest txRootHash, CryptoSetting setting, String keyPrefix,
-								ExPolicyKVStorage merkleTreeStorage, VersioningKVStorage dataStorage, LedgerDataStructure dataStructure, boolean readonly) {
+								ExPolicyKVStorage merkleTreeStorage, VersioningKVStorage dataStorage,
+								ExPolicyKVStorage archiveExStorage, VersioningKVStorage archiveDataStorage,
+								LedgerDataStructure dataStructure, boolean readonly) {
 		ledgerDataStructure = dataStructure;
+
+		// archive storage used in kv database mode
+		this.archiveExStorage = archiveExStorage;
+		this.archiveDataStorage = archiveDataStorage;
 
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			Bytes txStatePrefix = Bytes.fromString(keyPrefix + TX_STATE_PREFIX);
@@ -285,6 +297,7 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 		return BytesUtils.toLong(txReqIndex);
 	}
 
+	// 当底层存储模式为KV时才会调用该方法，可以根据交易序号获取交易内容
 	@Override
 	public LedgerTransaction getTransaction(long txSeq) {
 		TransactionRequest txRequest = loadRequestKv(txSeq);
@@ -329,13 +342,20 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 	}
 
 	private TransactionResult loadResultKv(long seq) {
+		byte[] txResBytes;
 		// transaction has only one version;
 		Bytes key = encodeKvResultKey(seq);
-		byte[] txBytes = txStateSet.getValue(key, 0);
-		if (txBytes == null) {
-			return null;
+		try {
+			txResBytes = txStateSet.getValue(key, 0);
+		} catch (DataExistException e) {
+			// 增加对归档数据库的交易结果数据查询
+			txResBytes = archiveGetTxRes(seq);
+			if (txResBytes == null) {
+				throw e;
+			}
 		}
-		return BinaryProtocol.decode(txBytes, TransactionResult.class);
+
+		return BinaryProtocol.decode(txResBytes, TransactionResult.class);
 	}
 
 	private void saveResult(TransactionResult txResult) {
@@ -368,17 +388,37 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 
 	// 以账本为维度，加载指定交易索引的交易请求hash
 	private TransactionRequest loadRequestKv(long seq) {
+		byte[] txReqBytes;
+
 		Bytes key = encodeKvRequestKey(seq);
-		byte[] txHashBytes = txStateSet.getValue(key, 0);
-		if (txHashBytes == null) {
-			return null;
+		try {
+			txReqBytes = txStateSet.getValue(key, 0);
+		} catch (DataExistException e) {
+			// 增加对归档数据库的交易内容数据查询
+			txReqBytes = archiveGetTxReq(seq);
+			if (txReqBytes == null) {
+				throw e;
+			}
 		}
-		return BinaryProtocol.decode(txHashBytes, TransactionRequest.class);
+
+		return BinaryProtocol.decode(txReqBytes, TransactionRequest.class);
+	}
+
+	// 从归档数据库查询交易结果
+	private byte[] archiveGetTxRes(long txSeq) {
+		Bytes txResKey = new Bytes(TX_SET_KEY_PREFIX, TX_RESULT_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(txSeq))));
+		return archiveDataStorage.archiveGet(txResKey, 0);
+	}
+
+	// 从归档数据库查询交易内容
+	private byte[] archiveGetTxReq(long txSeq) {
+		Bytes txReqKey = new Bytes(TX_SET_KEY_PREFIX, TX_REQUEST_KEY_PREFIX.concat(Bytes.fromString(String.valueOf(txSeq))));
+		return archiveDataStorage.archiveGet(txReqKey, 0);
 	}
 
 	private void saveRequest(TransactionRequest txRequest) {
 		// 序列化交易内容；
-		byte[] txResultBytes = BinaryProtocol.encode(txRequest, TransactionRequest.class);
+		byte[] txRequestBytes = BinaryProtocol.encode(txRequest, TransactionRequest.class);
 
 		Bytes key;
 		if (ledgerDataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
@@ -388,7 +428,7 @@ public class TransactionSetEditor implements Transactional, TransactionSet {
 			key = encodeKvRequestKey(txStateSet.getDataCount() + txIndex);
 		}
 		// 交易只有唯一的版本；
-		long v = txStateSet.setValue(key, txResultBytes);
+		long v = txStateSet.setValue(key, txRequestBytes);
 		if (v < 0) {
 			throw new IllegalTransactionException("Repeated transaction request! --[" + key + "]");
 		}

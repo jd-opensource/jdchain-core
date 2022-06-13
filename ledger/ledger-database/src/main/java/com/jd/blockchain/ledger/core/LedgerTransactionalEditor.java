@@ -134,7 +134,8 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	 */
 	public static LedgerTransactionalEditor createEditor(LedgerBlock previousBlock, LedgerSettings ledgerSetting,
 														 String ledgerKeyPrefix, ExPolicyKVStorage ledgerExStorage,
-														 VersioningKVStorage ledgerVerStorage, LedgerDataStructure dataStructure) {
+														 VersioningKVStorage ledgerVerStorage, ExPolicyKVStorage archiveExStorage,
+                                                         VersioningKVStorage archiveVerStorage, LedgerDataStructure dataStructure) {
 		// new block;
 		HashDigest ledgerHash = previousBlock.getLedgerHash();
 		if (ledgerHash == null) {
@@ -150,7 +151,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		BufferedKVStorage txStagedStorage = new BufferedKVStorage(Crypto.getHashFunction(ledgerSetting.getCryptoSetting().getHashAlgorithm()), ledgerExStorage, ledgerVerStorage, PARALLEL_DB_WRITE);
 
 		TransactionSetEditor txset = LedgerRepositoryImpl.loadTransactionSet(previousBlock.getHeight(), previousBlock.getTransactionSetHash(),
-				ledgerSetting.getCryptoSetting(), ledgerKeyPrefix, txStagedStorage, txStagedStorage,  dataStructure, false);
+				ledgerSetting.getCryptoSetting(), ledgerKeyPrefix, txStagedStorage, txStagedStorage,  archiveExStorage, archiveVerStorage, dataStructure, false);
 
 		StagedSnapshot startingPoint = new TxSnapshot(null, previousBlock);
 

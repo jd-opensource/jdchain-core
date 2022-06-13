@@ -64,6 +64,10 @@ class LedgerRepositoryImpl implements LedgerRepository {
 
 	private ExPolicyKVStorage exPolicyStorage;
 
+	private ExPolicyKVStorage archiveExPolicyStorage;
+
+	private VersioningKVStorage archiveVersioningStorage;
+
 	private volatile LedgerState latestState;
 
 	private volatile LedgerEditor nextBlockEditor;
@@ -79,11 +83,13 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	private volatile boolean closed = false;
 
 	public LedgerRepositoryImpl(HashDigest ledgerHash, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
-			VersioningKVStorage versioningStorage, LedgerDataStructure dataStructure) {
+			VersioningKVStorage versioningStorage, ExPolicyKVStorage archiveExPolicyStorage, VersioningKVStorage archiveVersioningStorage, LedgerDataStructure dataStructure) {
 		this.keyPrefix = keyPrefix;
 		this.ledgerHash = ledgerHash;
 		this.versioningStorage = versioningStorage;
 		this.exPolicyStorage = exPolicyStorage;
+		this.archiveVersioningStorage = archiveVersioningStorage;
+		this.archiveExPolicyStorage = archiveExPolicyStorage;
 		this.ledgerIndexKey = encodeLedgerIndexKey(ledgerHash);
 		this.dataStructure = dataStructure;
 
@@ -148,7 +154,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		ledgerDataset = innerGetLedgerDataset(latestBlock);
 		txSet = loadTransactionSet(latestBlock.getHeight(), latestBlock.getTransactionSetHash(),
 				((LedgerAdminDataSetEditor)(ledgerDataset.getAdminDataset())).getSettings().getCryptoSetting(), keyPrefix, exPolicyStorage,
-				versioningStorage, dataStructure,true);
+				versioningStorage, archiveExPolicyStorage, archiveVersioningStorage, dataStructure,true);
 		ledgerEventset = innerGetLedgerEventSet(latestBlock);
 		this.ledgerStructureVersion = ((LedgerAdminDataSetEditor)(ledgerDataset.getAdminDataset())).getMetadata().getLedgerStructureVersion();
 
@@ -206,6 +212,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
 			return Crypto.resolveAsHashDigest(hashBytes);
 		} else {
 			byte[] blockContent = versioningStorage.get(ledgerIndexKey, height);
+
+			// 增加对归档库的查询
+			if (blockContent == null) {
+				blockContent = archiveDbGetBlock(height);
+			}
+
 			return deserialize(blockContent).getHash();
 		}
 	}
@@ -251,6 +263,12 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		} else {
 			long blockHeight = BytesUtils.toLong(blockBytes);
 			byte[] blockContent =  versioningStorage.get(LEDGER_PREFIX, blockHeight);
+
+			// 增加对归档库的查询
+			if (blockContent == null) {
+				blockContent = archiveDbGetBlock(blockHeight);
+			}
+
 			block = new LedgerBlockData(deserialize(blockContent));
 		}
 
@@ -285,6 +303,20 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	/**
+	 * 在归档数据库中查找区块
+	 *
+	 * @param blockHeight
+	 * @return null / byte[]
+	 */
+	private byte[] archiveDbGetBlock(long blockHeight) {
+		if (archiveVersioningStorage != null) {
+			return archiveVersioningStorage.archiveGet(LEDGER_PREFIX, blockHeight);
+		}
+
+		return null;
+	}
+
+	/**
 	 * 获取最新区块的账本参数；
 	 * 
 	 * @return
@@ -312,7 +344,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		LedgerAdminInfo adminAccount = getAdminInfo(block);
 		// All of existing block is readonly;
 		return loadTransactionSet(block.getHeight(), block.getTransactionSetHash(), adminAccount.getSettings().getCryptoSetting(),
-				keyPrefix, exPolicyStorage, versioningStorage, dataStructure, true);
+				keyPrefix, exPolicyStorage, versioningStorage, archiveExPolicyStorage, archiveVersioningStorage, dataStructure, true);
 	}
 
 	@Override
@@ -499,7 +531,7 @@ class LedgerRepositoryImpl implements LedgerRepository {
 		LedgerBlock previousBlock = getLatestBlock();
 
 		editor = LedgerTransactionalEditor.createEditor(previousBlock, getLatestSettings(),
-				keyPrefix, exPolicyStorage, versioningStorage, dataStructure);
+				keyPrefix, exPolicyStorage, versioningStorage, archiveExPolicyStorage, archiveVersioningStorage, dataStructure);
 
 		NewBlockCommittingMonitor committingMonitor = new NewBlockCommittingMonitor(editor, this);
 		this.nextBlockEditor = committingMonitor;
@@ -652,10 +684,10 @@ class LedgerRepositoryImpl implements LedgerRepository {
 	}
 
 	static TransactionSetEditor loadTransactionSet(long preBlockHeight, HashDigest txsetHash, CryptoSetting cryptoSetting, String keyPrefix,
-			ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, LedgerDataStructure dataStructure, boolean readonly) {
+			ExPolicyKVStorage ledgerExStorage, VersioningKVStorage ledgerVerStorage, ExPolicyKVStorage archiveExStorage, VersioningKVStorage archiveVerStorage, LedgerDataStructure dataStructure, boolean readonly) {
 
 		String txsetKeyPrefix = keyPrefix + TRANSACTION_SET_PREFIX;
-		return new TransactionSetEditor(preBlockHeight, txsetHash, cryptoSetting, txsetKeyPrefix, ledgerExStorage, ledgerVerStorage, dataStructure,
+		return new TransactionSetEditor(preBlockHeight, txsetHash, cryptoSetting, txsetKeyPrefix, ledgerExStorage, ledgerVerStorage, archiveExStorage, archiveVerStorage, dataStructure,
 				readonly);
 
 	}

@@ -148,7 +148,7 @@ public class LedgerEditorTest {
 		// 验证重新加载的正确性；
 		LedgerManager manager = new LedgerManager();
 		HashDigest ledgerHash = block.getHash();
-		LedgerRepository repo = manager.register(ledgerHash, storage, LedgerDataStructure.MERKLE_TREE);
+		LedgerRepository repo = manager.register(ledgerHash, storage, null, LedgerDataStructure.MERKLE_TREE);
 
 		dataAccount = repo.getDataAccountSet().getAccount(dataKP.getAddress());
 		assertNotNull(dataAccount);
@@ -216,7 +216,7 @@ public class LedgerEditorTest {
 
 		// 验证重新加载的正确性；
 		LedgerManager manager = new LedgerManager();
-		LedgerRepository repo = manager.register(ledgerHash, STORAGE, LedgerDataStructure.MERKLE_TREE);
+		LedgerRepository repo = manager.register(ledgerHash, STORAGE, null, LedgerDataStructure.MERKLE_TREE);
 
 		LedgerBlock block = repo.getBlock(ledgerHash);
 		assertNotNull(block);
@@ -284,7 +284,7 @@ public class LedgerEditorTest {
 
 		// 重新加载和验证；
 		manager = new LedgerManager();
-		repo = manager.register(ledgerHash, STORAGE, LedgerDataStructure.MERKLE_TREE);
+		repo = manager.register(ledgerHash, STORAGE, null, LedgerDataStructure.MERKLE_TREE);
 
 		LedgerTransaction act_tx1 = repo.getTransactionSet().getTransaction(txHash1);
 		LedgerTransaction act_tx2 = repo.getTransactionSet().getTransaction(txHash2);
