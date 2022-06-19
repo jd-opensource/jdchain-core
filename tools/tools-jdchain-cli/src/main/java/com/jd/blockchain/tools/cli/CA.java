@@ -41,7 +41,7 @@ import java.util.*;
  * @author: imuge
  * @date: 2021/9/1
  **/
-@CommandLine.Command(name = "ca", mixinStandardHelpOptions = true, showDefaultValues = true, description = "List, create, update certificates.", subcommands = {CAShow.class, CACsr.class, CACrt.class, CARenew.class, CATest.class, CATestPlus.class, CommandLine.HelpCommand.class})
+@CommandLine.Command(name = "ca", mixinStandardHelpOptions = true, showDefaultValues = true, description = "List, create, update certificates.", subcommands = {CAShow.class, CACsr.class, CACrt.class, CARenew.class, CAPKCS12.class, CAGMPKCS12.class, CATest.class, CATestPlus.class, CommandLine.HelpCommand.class})
 
 public class CA implements Runnable {
     static final String CA_HOME = "certs";
@@ -176,6 +176,33 @@ public class CA implements Runnable {
         return nameBuilder.build();
     }
 
+    protected PKCS10CertificationRequest genCsr(CertificateUsage usage, String algorithm, String name, X500Name subject, CertificateRole ou, PublicKey publicKey, PrivateKey privateKey) throws Exception {
+        boolean isCa = ou.equals(CertificateRole.ROOT) || ou.equals(CertificateRole.CA);
+        ContentSigner signGen = new JcaContentSignerBuilder(CA_ALGORITHM_MAP.get(algorithm)).build(privateKey);
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(subject, publicKey);
+        if (isCa) {
+            p10Builder.setAttribute(Extension.keyUsage, new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign));
+        } else if (usage.equals(CertificateUsage.SIGN)) {
+            p10Builder.setAttribute(Extension.keyUsage, new KeyUsage(KeyUsage.digitalSignature));
+        } else if (usage.equals(CertificateUsage.TLS)) {
+            p10Builder.setAttribute(Extension.keyUsage, new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.dataEncipherment | KeyUsage.keyAgreement | KeyUsage.digitalSignature));
+            p10Builder.setAttribute(Extension.extendedKeyUsage, new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_serverAuth, KeyPurposeId.id_kp_clientAuth}));
+            p10Builder.setAttribute(Extension.subjectAlternativeName, new GeneralNames(new GeneralName(GeneralName.iPAddress, name)));
+        } else if (usage.equals(CertificateUsage.TLS_SIGN)) {
+            p10Builder.setAttribute(Extension.keyUsage, new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.dataEncipherment | KeyUsage.keyAgreement | KeyUsage.digitalSignature));
+            p10Builder.setAttribute(Extension.extendedKeyUsage, new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_serverAuth, KeyPurposeId.id_kp_clientAuth}));
+            p10Builder.setAttribute(Extension.subjectAlternativeName, new GeneralNames(new GeneralName(GeneralName.iPAddress, name)));
+        } else if (usage.equals(CertificateUsage.TLS_ENC)) {
+            p10Builder.setAttribute(Extension.keyUsage, new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.dataEncipherment | KeyUsage.keyAgreement));
+            p10Builder.setAttribute(Extension.extendedKeyUsage, new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_serverAuth, KeyPurposeId.id_kp_clientAuth}));
+            p10Builder.setAttribute(Extension.subjectAlternativeName, new GeneralNames(new GeneralName(GeneralName.iPAddress, name)));
+        }
+        p10Builder.setAttribute(Extension.subjectKeyIdentifier, new JcaX509ExtensionUtils().createSubjectKeyIdentifier(publicKey));
+        p10Builder.setAttribute(Extension.basicConstraints, new BasicConstraints(isCa));
+
+        return p10Builder.build(signGen);
+    }
+
     protected X509Certificate genCert(CertificateUsage usage, String algorithm, String name, X500Name subject, CertificateRole ou, PublicKey publicKey, PrivateKey issuerPrivateKey, X509Certificate issuerCrt) throws Exception {
         boolean isCa = ou.equals(CertificateRole.ROOT) || ou.equals(CertificateRole.CA);
         X509v3CertificateBuilder certificateBuilder;
@@ -267,6 +294,7 @@ class CAShow implements Runnable {
 
     @Override
     public void run() {
+        Security.removeProvider("SunEC");
         X509Certificate certificate = CertificateUtils.parseCertificate(FileUtils.readText(new File(cert)));
         System.out.printf(caCli.CA_LIST_FORMAT, "ALGORITHM", "ROLE", "CN", "PUBKEY");
         PubKey pubKey = CertificateUtils.resolvePubKey(certificate);
@@ -295,7 +323,8 @@ class CACsr implements Runnable {
     @Override
     public void run() {
         try {
-            String[] roles = caCli.scanValues("certificate roles", Arrays.stream(CertificateRole.values()).map(Enum::name).toArray(String[]::new));
+            Security.removeProvider("SunEC");
+            String role = caCli.scanValue("certificate roles", Arrays.stream(CertificateRole.values()).map(Enum::name).toArray(String[]::new));
             String usage = caCli.scanValue("certificate usage", Arrays.stream(CertificateUsage.values()).map(Enum::name).toArray(String[]::new));
             String country = caCli.scanValue("country");
             String locality = caCli.scanValue("locality");
@@ -303,46 +332,23 @@ class CACsr implements Runnable {
             String org = caCli.scanValue("organization name");
             String email = caCli.scanValue("email address");
             String cn = caCli.scanValue("common name");
+            X500Name subject = caCli.buildRDN(org, CertificateRole.valueOf(role), country, province, locality, cn, email);
 
-            X500NameBuilder nameBuilder = new X500NameBuilder(BCStyle.INSTANCE);
-            nameBuilder.addRDN(BCStyle.O, org);
-            boolean isCa = false;
-            for (String ou : roles) {
-                if (ou.equals(CertificateRole.ROOT.name()) || ou.equals(CertificateRole.CA.name())) {
-                    isCa = true;
-                }
-                nameBuilder.addRDN(BCStyle.OU, ou);
-            }
-            nameBuilder.addRDN(BCStyle.C, country);
-            nameBuilder.addRDN(BCStyle.ST, locality);
-            nameBuilder.addRDN(BCStyle.L, province);
-            nameBuilder.addRDN(BCStyle.CN, cn);
-            nameBuilder.addRDN(BCStyle.EmailAddress, email);
-            X500Name subject = nameBuilder.build();
             String priv = FileUtils.readText(privPath);
             String pub = FileUtils.readText(pubPath);
             String password = caCli.scanValue("password of the key");
             PrivKey privKey = KeyGenUtils.decodePrivKeyWithRawPassword(priv, password);
             PubKey pubKey = KeyGenUtils.decodePubKey(pub);
+            PublicKey publicKey = CertificateUtils.retrievePublicKey(pubKey);
             PrivateKey privateKey = CertificateUtils.retrievePrivateKey(privKey);
             String algorithm = Crypto.getAlgorithm(privKey.getAlgorithm()).name();
-            ContentSigner signGen = new JcaContentSignerBuilder(caCli.CA_ALGORITHM_MAP.get(algorithm)).build(privateKey);
-            PublicKey publicKey = CertificateUtils.retrievePublicKey(pubKey);
-            PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(subject, publicKey);
-            boolean forSign = CertificateUsage.SIGN.name().equals(usage);
-            if (isCa) {
-                p10Builder.setAttribute(Extension.keyUsage, new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign));
-            } else if (forSign) {
-                p10Builder.setAttribute(Extension.keyUsage, new KeyUsage(KeyUsage.digitalSignature));
-            } else {
-                p10Builder.setAttribute(Extension.keyUsage, new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.dataEncipherment | KeyUsage.keyAgreement | KeyUsage.digitalSignature));
-                p10Builder.setAttribute(Extension.extendedKeyUsage, new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_serverAuth, KeyPurposeId.id_kp_clientAuth}));
-            }
-            p10Builder.setAttribute(Extension.basicConstraints, new BasicConstraints(isCa));
-            p10Builder.setAttribute(Extension.subjectKeyIdentifier, new JcaX509ExtensionUtils().createSubjectKeyIdentifier(publicKey));
 
-            PKCS10CertificationRequest csr = p10Builder.build(signGen);
-            JcaPEMWriter jcaPEMWriter = new JcaPEMWriter(new FileWriter(output));
+            PKCS10CertificationRequest csr = caCli.genCsr(CertificateUsage.valueOf(usage), algorithm, cn, subject, CertificateRole.valueOf(role), publicKey, privateKey);
+            File outputFile = new File(output);
+            if (!outputFile.exists()) {
+                outputFile.getParentFile().mkdirs();
+            }
+            JcaPEMWriter jcaPEMWriter = new JcaPEMWriter(new FileWriter(outputFile));
             jcaPEMWriter.writeObject(csr);
             jcaPEMWriter.close();
             System.out.println("create [" + output + "] success");
@@ -364,7 +370,7 @@ class CACrt implements Runnable {
     @CommandLine.Option(names = "--issuer-priv", required = true, description = "Path of the issuer private key file")
     String issuerPrivPath;
 
-    @CommandLine.Option(names = "--issuer-crt", required = true, description = "Path of the issuer certificate file")
+    @CommandLine.Option(names = "--issuer-crt", description = "Path of the issuer certificate file")
     String issuerCrtPath;
 
     @CommandLine.Option(names = "--output", required = true, description = "Path of the certificate file output")
@@ -376,6 +382,7 @@ class CACrt implements Runnable {
     @Override
     public void run() {
         try {
+            Security.removeProvider("SunEC");
             PKCS10CertificationRequest csr = CertificateUtils.parseCertificationRequest(FileUtils.readText(csrPath));
             String issuerKey = FileUtils.readText(issuerPrivPath);
             String password = caCli.scanValue("password of the issuer");
@@ -389,24 +396,10 @@ class CACrt implements Runnable {
                 String issuerCrt = FileUtils.readText(issuerCrtPath);
                 X509Certificate signerCrt = CertificateUtils.parseCertificate(issuerCrt);
                 CertificateUtils.checkCertificateRolesAny(signerCrt, CertificateRole.ROOT, CertificateRole.CA);
-                certificateBuilder = new JcaX509v3CertificateBuilder(
-                        signerCrt,
-                        BigInteger.valueOf(new Random().nextInt() & 0x7fffffff),
-                        new Date(),
-                        new Date(System.currentTimeMillis() + days * 1000L * 24L * 60L * 60L),
-                        csr.getSubject(),
-                        CertificateUtils.retrievePublicKey(csrPubKey)
-                );
+                certificateBuilder = new JcaX509v3CertificateBuilder(signerCrt, BigInteger.valueOf(new Random().nextInt() & 0x7fffffff), new Date(), new Date(System.currentTimeMillis() + days * 1000L * 24L * 60L * 60L), csr.getSubject(), CertificateUtils.retrievePublicKey(csrPubKey));
             } else {
                 // 自签名证书
-                certificateBuilder = new JcaX509v3CertificateBuilder(
-                        csr.getSubject(),
-                        BigInteger.valueOf(new Random().nextInt() & 0x7fffffff),
-                        new Date(),
-                        new Date(System.currentTimeMillis() + days * 1000L * 24L * 60L * 60L),
-                        csr.getSubject(),
-                        CertificateUtils.retrievePublicKey(csrPubKey)
-                );
+                certificateBuilder = new JcaX509v3CertificateBuilder(csr.getSubject(), BigInteger.valueOf(new Random().nextInt() & 0x7fffffff), new Date(), new Date(System.currentTimeMillis() + days * 1000L * 24L * 60L * 60L), csr.getSubject(), CertificateUtils.retrievePublicKey(csrPubKey));
             }
 
             Attribute[] attrs = csr.getAttributes();
@@ -456,6 +449,7 @@ class CARenew implements Runnable {
     @Override
     public void run() {
         try {
+            Security.removeProvider("SunEC");
             X509Certificate originCrt = CertificateUtils.parseCertificate(FileUtils.readText(crtPath));
             X509CertificateHolder originHolder = new X509CertificateHolder(Certificate.getInstance(ASN1Primitive.fromByteArray(originCrt.getEncoded())));
             String issuerKey = FileUtils.readText(issuerPrivPath);
@@ -470,24 +464,10 @@ class CARenew implements Runnable {
                 String issuerCrt = FileUtils.readText(issuerCrtPath);
                 X509Certificate signerCrt = CertificateUtils.parseCertificate(issuerCrt);
                 CertificateUtils.checkCertificateRolesAny(signerCrt, CertificateRole.ROOT, CertificateRole.CA);
-                certificateBuilder = new JcaX509v3CertificateBuilder(
-                        signerCrt,
-                        BigInteger.valueOf(new Random().nextInt() & 0x7fffffff),
-                        new Date(),
-                        new Date(System.currentTimeMillis() + days * 1000L * 24L * 60L * 60L),
-                        new X500Name(originCrt.getSubjectDN().getName()),
-                        CertificateUtils.retrievePublicKey(crtPubKey)
-                );
+                certificateBuilder = new JcaX509v3CertificateBuilder(signerCrt, BigInteger.valueOf(new Random().nextInt() & 0x7fffffff), new Date(), new Date(System.currentTimeMillis() + days * 1000L * 24L * 60L * 60L), new X500Name(originCrt.getSubjectDN().getName()), CertificateUtils.retrievePublicKey(crtPubKey));
             } else {
                 // 自签名证书
-                certificateBuilder = new JcaX509v3CertificateBuilder(
-                        new X500Name(originCrt.getSubjectDN().getName()),
-                        BigInteger.valueOf(new Random().nextInt() & 0x7fffffff),
-                        new Date(),
-                        new Date(System.currentTimeMillis() + days * 1000L * 24L * 60L * 60L),
-                        new X500Name(originCrt.getSubjectDN().getName()),
-                        CertificateUtils.retrievePublicKey(crtPubKey)
-                );
+                certificateBuilder = new JcaX509v3CertificateBuilder(new X500Name(originCrt.getSubjectDN().getName()), BigInteger.valueOf(new Random().nextInt() & 0x7fffffff), new Date(), new Date(System.currentTimeMillis() + days * 1000L * 24L * 60L * 60L), new X500Name(originCrt.getSubjectDN().getName()), CertificateUtils.retrievePublicKey(crtPubKey));
             }
 
             Extensions extensions = originHolder.getExtensions();
@@ -503,6 +483,132 @@ class CARenew implements Runnable {
             FileUtils.writeText(CertificateUtils.toPEMString(cert), new File(output));
 
             System.out.println("renew [" + output + "] success");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+@CommandLine.Command(name = "pkcs12", mixinStandardHelpOptions = true, header = "Output PKCS12 file.")
+class CAPKCS12 implements Runnable {
+
+    @CommandLine.Option(names = "--name", required = true, description = "Name for new keystore.")
+    String name;
+
+    @CommandLine.Option(names = "--crt", required = true, description = "File of the certificate")
+    String crtPath;
+
+    @CommandLine.Option(names = "--priv", description = "Path of the private key file", required = true)
+    String privPath;
+
+    @CommandLine.Option(names = "--issuer-crt", required = true, description = "Path of the issuer certificate file")
+    String issuerCrtPath;
+
+    @CommandLine.Option(names = "--output", required = true, description = "Path of the keystore file output")
+    String output;
+
+    @CommandLine.Option(names = "--trust", description = "Trust keystore file.")
+    String trustKeyStore;
+
+    @CommandLine.ParentCommand
+    private CA caCli;
+
+    @Override
+    public void run() {
+        try {
+            Security.removeProvider("SunEC");
+            String issuerCrt = FileUtils.readText(issuerCrtPath);
+            X509Certificate signerCrt = CertificateUtils.parseCertificate(issuerCrt);
+            String signerPub = CertificateUtils.resolvePubKey(signerCrt).toString();
+            String crtPem = FileUtils.readText(crtPath);
+            X509Certificate crt = CertificateUtils.parseCertificate(crtPem);
+            String priv = FileUtils.readText(privPath);
+            String password = caCli.scanValue("password of the private key");
+            PrivKey privKey = KeyGenUtils.decodePrivKeyWithRawPassword(priv, password);
+            PubKey pubKey = CertificateUtils.resolvePubKey(crt);
+            PrivateKey privateKey = CertificateUtils.retrievePrivateKey(privKey, pubKey);
+            password = caCli.scanValue("password for generated keystore");
+            caCli.keyStore(privateKey, name, password, crt, signerCrt);
+            if (!StringUtils.isEmpty(trustKeyStore)) {
+                password = caCli.scanValue("password for truststore");
+                caCli.trustStore(new File(trustKeyStore), name, password, crt);
+                caCli.trustStore(new File(trustKeyStore), signerPub, password, signerCrt);
+            }
+            System.out.println("create keystore [" + output + "] success");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+@CommandLine.Command(name = "gm-pkcs12", mixinStandardHelpOptions = true, header = "Output GM PKCS12 file.")
+class CAGMPKCS12 implements Runnable {
+
+    @CommandLine.Option(names = "--name", required = true, description = "Name for new keystore.")
+    String name;
+
+    @CommandLine.Option(names = "--enc-crt", required = true, description = "File of the encrypt certificate")
+    String encCrtPath;
+
+    @CommandLine.Option(names = "--sign-crt", required = true, description = "File of the signature certificate")
+    String signCrtPath;
+
+    @CommandLine.Option(names = "--enc-priv", description = "Path of the encrypt private key file", required = true)
+    String encPrivPath;
+
+    @CommandLine.Option(names = "--sign-priv", description = "Path of the signature private key file", required = true)
+    String signPrivPath;
+
+    @CommandLine.Option(names = "--issuer-crt", required = true, description = "Path of the issuer certificate file")
+    String issuerCrtPath;
+
+    @CommandLine.Option(names = "--output", required = true, description = "Path of the keystore file output")
+    String output;
+
+    @CommandLine.Option(names = "--trust", description = "Trust keystore file.")
+    String trustKeyStore;
+
+    @CommandLine.ParentCommand
+    private CA caCli;
+
+    @Override
+    public void run() {
+        try {
+            Security.removeProvider("SunEC");
+
+            String issuerCrt = FileUtils.readText(issuerCrtPath);
+            X509Certificate signerCrt = CertificateUtils.parseCertificate(issuerCrt);
+            String signerPub = CertificateUtils.resolvePubKey(signerCrt).toString();
+
+            String encCrtPem = FileUtils.readText(encCrtPath);
+            X509Certificate enccrt = CertificateUtils.parseCertificate(encCrtPem);
+            String encPriv = FileUtils.readText(encPrivPath);
+            String password = caCli.scanValue("password of the encrypt private key");
+            PrivKey encPrivKey = KeyGenUtils.decodePrivKeyWithRawPassword(encPriv, password);
+            PubKey encPubKey = CertificateUtils.resolvePubKey(enccrt);
+            PrivateKey encPrivateKey = CertificateUtils.retrievePrivateKey(encPrivKey, encPubKey);
+
+            String signCrtPem = FileUtils.readText(signCrtPath);
+            X509Certificate signcrt = CertificateUtils.parseCertificate(signCrtPem);
+            String signPriv = FileUtils.readText(signPrivPath);
+            password = caCli.scanValue("password of the signature private key");
+            PrivKey signPrivKey = KeyGenUtils.decodePrivKeyWithRawPassword(signPriv, password);
+            PubKey signPubKey = CertificateUtils.resolvePubKey(signcrt);
+            PrivateKey signPrivateKey = CertificateUtils.retrievePrivateKey(signPrivKey, signPubKey);
+            password = caCli.scanValue("password for generated keystore");
+
+            caCli.keyStore(encPrivateKey, name + ".enc", password, enccrt, signerCrt);
+            caCli.keyStore(signPrivateKey, name + ".sign", password, signcrt, signerCrt);
+
+            caCli.doubleKeysStore(name, signPrivateKey, encPrivateKey, password, signcrt, enccrt, signerCrt);
+
+            if (!StringUtils.isEmpty(trustKeyStore)) {
+                password = caCli.scanValue("password for truststore");
+                caCli.trustStore(new File(trustKeyStore), name + ".enc", password, enccrt);
+                caCli.trustStore(new File(trustKeyStore), name + ".sign", password, signcrt);
+                caCli.trustStore(new File(trustKeyStore), signerPub, password, signerCrt);
+            }
+            System.out.println("create keystore [" + output + "] success");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -562,11 +668,11 @@ class CATest implements Runnable {
         }
 
         try {
+            Security.removeProvider("SunEC");
+
             if (StringUtils.isEmpty(password)) {
                 password = caCli.scanValue("password for all private keys");
             }
-
-            Security.removeProvider("SunEC");
 
             PrivKey issuerPrivKey = null;
             PrivateKey issuerPrivateKey = null;
@@ -721,11 +827,11 @@ class CATestPlus implements Runnable {
     @Override
     public void run() {
         try {
+            Security.removeProvider("SunEC");
+
             if (StringUtils.isEmpty(password)) {
                 password = caCli.scanValue("password for all private keys");
             }
-
-            Security.removeProvider("SunEC");
 
             String issuerCrt = FileUtils.readText(issuerCrtPath);
             X509Certificate signerCrt = CertificateUtils.parseCertificate(issuerCrt);
