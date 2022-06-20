@@ -85,6 +85,14 @@ public class KVDBVersioningStorage implements VersioningKVStorage {
     @Override
     public byte[] get(Bytes key, long version) {
         try {
+            long latestVersion = getVersion(key);
+            if (latestVersion < 0) {
+                return null;
+            }
+            if (version > latestVersion) {
+                return null;
+            }
+            version = version < 0 ? latestVersion : version;
             return db.get(encodeDataKey(key, version)).toBytes();
         } catch (KVDBException e) {
             throw new IllegalStateException("kvdb get error", e);
