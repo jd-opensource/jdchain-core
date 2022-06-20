@@ -1,11 +1,13 @@
 package com.jd.blockchain.gateway.ssl;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.web.server.Ssl;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
 import org.springframework.stereotype.Component;
+import utils.StringUtils;
 import utils.crypto.sm.GmSSLProvider;
 import utils.net.SSLSecurity;
 
@@ -15,6 +17,9 @@ public class CustomizationBean implements WebServerFactoryCustomizer<Configurabl
 
     @Autowired
     private SSLSecurity sslSecurity;
+
+    @Value("${server.ssl.client-auth}")
+    private String clientAuth;
 
     @Override
     public void customize(ConfigurableServletWebServerFactory server) {
@@ -28,6 +33,7 @@ public class CustomizationBean implements WebServerFactoryCustomizer<Configurabl
         ssl.setEnabledProtocols(sslSecurity.getEnabledProtocols());
         ssl.setProtocol(sslSecurity.getProtocol());
         ssl.setCiphers(sslSecurity.getCiphers());
+        ssl.setClientAuth(StringUtils.isEmpty(clientAuth) ? Ssl.ClientAuth.NONE : Ssl.ClientAuth.valueOf(clientAuth.toUpperCase()));
         server.setSsl(ssl);
     }
 }
