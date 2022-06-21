@@ -498,8 +498,8 @@ class CAPKCS12 implements Runnable {
     @CommandLine.Option(names = "--crt", required = true, description = "File of the certificate")
     String crtPath;
 
-    @CommandLine.Option(names = "--priv", description = "Path of the private key file", required = true)
-    String privPath;
+    @CommandLine.Option(names = "--key", description = "Path of the private key file", required = true)
+    String keyPath;
 
     @CommandLine.Option(names = "--issuer-crt", required = true, description = "Path of the issuer certificate file")
     String issuerCrtPath;
@@ -522,12 +522,12 @@ class CAPKCS12 implements Runnable {
             String signerPub = CertificateUtils.resolvePubKey(signerCrt).toString();
             String crtPem = FileUtils.readText(crtPath);
             X509Certificate crt = CertificateUtils.parseCertificate(crtPem);
-            String priv = FileUtils.readText(privPath);
-            String password = caCli.scanValue("password of the private key");
-            PrivKey privKey = KeyGenUtils.decodePrivKeyWithRawPassword(priv, password);
             PubKey pubKey = CertificateUtils.resolvePubKey(crt);
+            String priv = FileUtils.readText(keyPath);
+            PrivKey privKey = CertificateUtils.parsePrivKey(pubKey.getAlgorithm(), priv);
             PrivateKey privateKey = CertificateUtils.retrievePrivateKey(privKey, pubKey);
-            password = caCli.scanValue("password for generated keystore");
+
+            String password = caCli.scanValue("password for generated keystore");
             caCli.keyStore(privateKey, name, password, crt, signerCrt);
             if (!StringUtils.isEmpty(trustKeyStore)) {
                 password = caCli.scanValue("password for truststore");
@@ -553,11 +553,11 @@ class CAGMPKCS12 implements Runnable {
     @CommandLine.Option(names = "--sign-crt", required = true, description = "File of the signature certificate")
     String signCrtPath;
 
-    @CommandLine.Option(names = "--enc-priv", description = "Path of the encrypt private key file", required = true)
-    String encPrivPath;
+    @CommandLine.Option(names = "--enc-key", description = "Path of the encrypt private key file", required = true)
+    String encKeyPath;
 
-    @CommandLine.Option(names = "--sign-priv", description = "Path of the signature private key file", required = true)
-    String signPrivPath;
+    @CommandLine.Option(names = "--sign-key", description = "Path of the signature private key file", required = true)
+    String signKeyPath;
 
     @CommandLine.Option(names = "--issuer-crt", required = true, description = "Path of the issuer certificate file")
     String issuerCrtPath;
@@ -582,20 +582,19 @@ class CAGMPKCS12 implements Runnable {
 
             String encCrtPem = FileUtils.readText(encCrtPath);
             X509Certificate enccrt = CertificateUtils.parseCertificate(encCrtPem);
-            String encPriv = FileUtils.readText(encPrivPath);
-            String password = caCli.scanValue("password of the encrypt private key");
-            PrivKey encPrivKey = KeyGenUtils.decodePrivKeyWithRawPassword(encPriv, password);
+            String encPriv = FileUtils.readText(encKeyPath);
             PubKey encPubKey = CertificateUtils.resolvePubKey(enccrt);
+            PrivKey encPrivKey = CertificateUtils.parsePrivKey(encPubKey.getAlgorithm(), encPriv);
             PrivateKey encPrivateKey = CertificateUtils.retrievePrivateKey(encPrivKey, encPubKey);
 
             String signCrtPem = FileUtils.readText(signCrtPath);
             X509Certificate signcrt = CertificateUtils.parseCertificate(signCrtPem);
-            String signPriv = FileUtils.readText(signPrivPath);
-            password = caCli.scanValue("password of the signature private key");
-            PrivKey signPrivKey = KeyGenUtils.decodePrivKeyWithRawPassword(signPriv, password);
+            String signPriv = FileUtils.readText(signKeyPath);
             PubKey signPubKey = CertificateUtils.resolvePubKey(signcrt);
+            PrivKey signPrivKey = CertificateUtils.parsePrivKey(signPubKey.getAlgorithm(), signPriv);
             PrivateKey signPrivateKey = CertificateUtils.retrievePrivateKey(signPrivKey, signPubKey);
-            password = caCli.scanValue("password for generated keystore");
+
+            String password = caCli.scanValue("password for generated keystore");
 
             caCli.keyStore(encPrivateKey, name + ".enc", password, enccrt, signerCrt);
             caCli.keyStore(signPrivateKey, name + ".sign", password, signcrt, signerCrt);
