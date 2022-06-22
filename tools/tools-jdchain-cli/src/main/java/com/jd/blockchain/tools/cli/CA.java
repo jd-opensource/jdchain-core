@@ -41,7 +41,7 @@ import java.util.*;
  * @author: imuge
  * @date: 2021/9/1
  **/
-@CommandLine.Command(name = "ca", mixinStandardHelpOptions = true, showDefaultValues = true, description = "List, create, update certificates.", subcommands = {CAShow.class, CACsr.class, CACrt.class, CARenew.class, CAPKCS12.class, CAGMPKCS12.class, CATest.class, CATestPlus.class, CommandLine.HelpCommand.class})
+@CommandLine.Command(name = "ca", mixinStandardHelpOptions = true, showDefaultValues = true, description = "List, create, update certificates.", subcommands = {CAShow.class, CACsr.class, CACrt.class, CARenew.class, CAPKCS12.class, CAGMPKCS12.class, CATrust.class, CATest.class, CATestPlus.class, CommandLine.HelpCommand.class})
 
 public class CA implements Runnable {
     static final String CA_HOME = "certs";
@@ -252,6 +252,28 @@ public class CA implements Runnable {
         jksStream.close();
     }
 
+    protected void doubleKeysStore(String alias, PrivateKey signKey, PrivateKey encKey, String password, X509Certificate signCert, X509Certificate encCert, X509Certificate ca, String output) throws Exception {
+        File keystore = new File(output);
+        if (!keystore.exists()) {
+            keystore.getParentFile().mkdirs();
+        }
+
+        char[] phrase = password.toCharArray();
+
+        KeyStore bothStore = KeyStore.getInstance("PKCS12");
+        bothStore.load(null, phrase);
+        bothStore.setCertificateEntry(alias + ".root", ca);
+        bothStore.setCertificateEntry(alias + ".enc", encCert);
+        bothStore.setCertificateEntry(alias + ".sig", signCert);
+        bothStore.setKeyEntry(alias + ".enc", encKey, phrase, new X509Certificate[]{encCert, ca});
+        bothStore.setKeyEntry(alias + ".sig", signKey, phrase, new X509Certificate[]{signCert, ca});
+
+        OutputStream jksStream = new FileOutputStream(keystore);
+        bothStore.store(jksStream, phrase);
+        jksStream.close();
+    }
+
+
     protected void trustStore(File trustStoreFile, String alias, String password, X509Certificate cert) throws Exception {
         KeyStore trustStore = KeyStore.getInstance("JKS");
         if (trustStoreFile.exists()) {
@@ -259,6 +281,7 @@ public class CA implements Runnable {
                 trustStore.load(storeIn, password.toCharArray());
             }
         } else {
+            trustStoreFile.getParentFile().mkdirs();
             trustStore.load(null, password.toCharArray());
         }
         trustStore.setCertificateEntry(alias, cert);
@@ -278,6 +301,26 @@ public class CA implements Runnable {
         jksStore.load(null, phrase);
         jksStore.setKeyEntry(alias, p12Store.getKey(alias, phrase), phrase, outChain);
         OutputStream jksStream = new FileOutputStream(getTlsHome() + File.separator + alias + ".keystore");
+        jksStore.store(jksStream, phrase);
+        jksStream.close();
+    }
+
+    protected void keyStore(PrivateKey privateKey, String alias, String password, X509Certificate cert, X509Certificate ca, String output) throws Exception {
+        File keystore = new File(output);
+        if (!keystore.exists()) {
+            keystore.getParentFile().mkdirs();
+        }
+
+        char[] phrase = password.toCharArray();
+        X509Certificate[] outChain = {cert, ca};
+        KeyStore p12Store = KeyStore.getInstance("PKCS12");
+        p12Store.load(null, phrase);
+        p12Store.setKeyEntry(alias, privateKey, phrase, outChain);
+
+        KeyStore jksStore = KeyStore.getInstance("PKCS12");
+        jksStore.load(null, phrase);
+        jksStore.setKeyEntry(alias, p12Store.getKey(alias, phrase), phrase, outChain);
+        OutputStream jksStream = new FileOutputStream(keystore);
         jksStore.store(jksStream, phrase);
         jksStream.close();
     }
@@ -528,7 +571,7 @@ class CAPKCS12 implements Runnable {
             PrivateKey privateKey = CertificateUtils.retrievePrivateKey(privKey, pubKey);
 
             String password = caCli.scanValue("password for generated keystore");
-            caCli.keyStore(privateKey, name, password, crt, signerCrt);
+            caCli.keyStore(privateKey, name, password, crt, signerCrt, output);
             if (!StringUtils.isEmpty(trustKeyStore)) {
                 password = caCli.scanValue("password for truststore");
                 caCli.trustStore(new File(trustKeyStore), name, password, crt);
@@ -596,10 +639,7 @@ class CAGMPKCS12 implements Runnable {
 
             String password = caCli.scanValue("password for generated keystore");
 
-            caCli.keyStore(encPrivateKey, name + ".enc", password, enccrt, signerCrt);
-            caCli.keyStore(signPrivateKey, name + ".sign", password, signcrt, signerCrt);
-
-            caCli.doubleKeysStore(name, signPrivateKey, encPrivateKey, password, signcrt, enccrt, signerCrt);
+            caCli.doubleKeysStore(name, signPrivateKey, encPrivateKey, password, signcrt, enccrt, signerCrt, output);
 
             if (!StringUtils.isEmpty(trustKeyStore)) {
                 password = caCli.scanValue("password for truststore");
@@ -608,6 +648,37 @@ class CAGMPKCS12 implements Runnable {
                 caCli.trustStore(new File(trustKeyStore), signerPub, password, signerCrt);
             }
             System.out.println("create keystore [" + output + "] success");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+@CommandLine.Command(name = "trust", mixinStandardHelpOptions = true, header = "Add crt to truststore.")
+class CATrust implements Runnable {
+
+    @CommandLine.Option(names = "--name", required = true, description = "Name for new certificate.")
+    String name;
+
+    @CommandLine.Option(names = "--crt", required = true, description = "File of the certificate")
+    String crtPath;
+
+    @CommandLine.Option(names = "--trust", description = "File of the truststore.")
+    String trustKeyStore;
+
+    @CommandLine.ParentCommand
+    private CA caCli;
+
+    @Override
+    public void run() {
+        try {
+            Security.removeProvider("SunEC");
+
+            String crtPem = FileUtils.readText(crtPath);
+            X509Certificate crt = CertificateUtils.parseCertificate(crtPem);
+            String password = caCli.scanValue("password for truststore");
+            caCli.trustStore(new File(trustKeyStore), name, password, crt);
+            System.out.println("add crt [" + name + "] success");
         } catch (Exception e) {
             e.printStackTrace();
         }
