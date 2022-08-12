@@ -4,7 +4,6 @@ import com.jd.blockchain.consensus.SessionCredential;
 import com.jd.blockchain.consensus.bftsmart.BftsmartSessionCredential;
 import com.jd.blockchain.consensus.bftsmart.client.BftsmartConsensusClient;
 import com.jd.blockchain.consensus.client.ConsensusClient;
-import com.jd.blockchain.consensus.raft.client.RaftConsensusClient;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.sdk.service.ConsensusClientManager;
 import org.slf4j.Logger;
@@ -73,11 +72,9 @@ public class GatewayConsensusClientManager implements ConsensusClientManager {
             // clientId 和 clientIdRange 任何一个有差异，都表示凭证已更新；
             return oldCredential.getClientId() != newCredential.getClientId()
                     || oldCredential.getClientIdRange() != newCredential.getClientIdRange();
-        } else if (client instanceof RaftConsensusClient) {
-//            return !((RaftConsensusClient)client).isInit();
-            return !((RaftConsensusClient)client).isConnected();
+        }  else {
+            return !client.isConnected();
         }
-        return true;
     }
 
 }
