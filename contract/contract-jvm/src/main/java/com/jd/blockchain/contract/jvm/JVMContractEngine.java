@@ -31,10 +31,10 @@ public class JVMContractEngine implements ContractEngine {
         Bytes address = contractInfo.getAddress();
         long version = contractInfo.getChainCodeVersion();
         String codeName = getCodeName(address, version);
-        ContractCode contractCode = contracts.get(version);
+        ContractCode contractCode = contracts.get(codeName);
         if (null == contractCode) {
             synchronized (JVMContractEngine.class) {
-                contractCode = contracts.get(version);
+                contractCode = contracts.get(codeName);
                 if (null == contractCode) {
                     contractCode = loaders.get(contractInfo.getLang()).loadContract(address, version, contractInfo.getChainCode());
                     if (null != contractCode) {
