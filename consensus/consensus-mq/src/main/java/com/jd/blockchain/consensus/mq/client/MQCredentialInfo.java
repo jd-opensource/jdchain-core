@@ -6,7 +6,7 @@ import com.jd.binaryproto.PrimitiveType;
 import com.jd.blockchain.consensus.SessionCredential;
 import com.jd.blockchain.consts.DataCodes;
 
-@DataContract(code = DataCodes.CONSENSUS_MSGQUEUE_CLIENT_CREDENTIAL_INFO)
+@DataContract(code = DataCodes.CONSENSUS_MQ_CLIENT_CREDENTIAL_INFO)
 public interface MQCredentialInfo extends SessionCredential {
 
 	@DataField(order = 1, primitiveType = PrimitiveType.BYTES)

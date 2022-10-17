@@ -10,11 +10,7 @@ import bftsmart.tom.ReplicaConfiguration;
 import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
 import com.jd.binaryproto.BinaryProtocol;
-import com.jd.blockchain.consensus.BlockStateSnapshot;
-import com.jd.blockchain.consensus.ClientAuthencationService;
-import com.jd.blockchain.consensus.NodeNetworkAddress;
-import com.jd.blockchain.consensus.NodeNetworkAddresses;
-import com.jd.blockchain.consensus.NodeSettings;
+import com.jd.blockchain.consensus.*;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusProvider;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
@@ -336,11 +332,11 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		for (int i = 0; i < nodeNetworks.size(); i++) {
 			nodeNetworkAddresses[i] = nodeNetworkAddress(nodeNetworks.get(i));
 		}
-		return new PeerNodeNetworkAddresses(nodeNetworkAddresses);
+		return new NodeNetworkTopology(nodeNetworkAddresses);
 	}
 
 	private NodeNetworkAddress nodeNetworkAddress(NodeNetwork networkAddress) {
-		return new PeerNodeNetwork(networkAddress.getHost(), networkAddress.getConsensusPort(),
+		return new ConsensusNodeNetwork(networkAddress.getHost(), networkAddress.getConsensusPort(),
 				networkAddress.getMonitorPort(), networkAddress.isConsensusSecure(), networkAddress.isMonitorSecure());
 	}
 
@@ -953,104 +949,4 @@ public class BftsmartNodeServer extends DefaultRecoverable implements NodeServer
 		UN_EXECUTED,
 	}
 
-	static class PeerNodeNetwork implements NodeNetworkAddress {
-
-		/**
-		 * 域名
-		 */
-		String host;
-
-		/**
-		 * 共识端口
-		 */
-		int consensusPort;
-
-		/**
-		 * 管理口
-		 */
-		int monitorPort;
-
-		/**
-		 * 共识服务是否开启安全连接
-		 */
-		boolean consensusSecure;
-
-		/**
-		 * 管理服务是否开启安全连接
-		 */
-		boolean monitorSecure;
-
-		public PeerNodeNetwork() {
-		}
-
-		public PeerNodeNetwork(String host, int consensusPort, int monitorPort, boolean consensusSecure, boolean monitorSecure) {
-			this.host = host;
-			this.consensusPort = consensusPort;
-			this.monitorPort = monitorPort;
-			this.consensusSecure = consensusSecure;
-			this.monitorSecure = monitorSecure;
-		}
-
-		@Override
-		public String getHost() {
-			return host;
-		}
-
-		@Override
-		public int getConsensusPort() {
-			return consensusPort;
-		}
-
-		@Override
-		public int getMonitorPort() {
-			return monitorPort;
-		}
-
-		@Override
-		public boolean isConsensusSecure() {
-			return consensusSecure;
-		}
-
-		@Override
-		public boolean isMonitorSecure() {
-			return monitorSecure;
-		}
-
-		public void setHost(String host) {
-			this.host = host;
-		}
-
-		public void setConsensusPort(int consensusPort) {
-			this.consensusPort = consensusPort;
-		}
-
-		public void setMonitorPort(int monitorPort) {
-			this.monitorPort = monitorPort;
-		}
-
-		public void setConsensusSecure(boolean consensusSecure) {
-			this.consensusSecure = consensusSecure;
-		}
-
-		public void setMonitorSecure(boolean monitorSecure) {
-			this.monitorSecure = monitorSecure;
-		}
-	}
-
-	private static class PeerNodeNetworkAddresses implements NodeNetworkAddresses {
-
-		private NodeNetworkAddress[] nodeNetworkAddresses = null;
-
-		public PeerNodeNetworkAddresses() {
-		}
-
-		public PeerNodeNetworkAddresses(NodeNetworkAddress[] nodeNetworkAddresses) {
-			this.nodeNetworkAddresses = nodeNetworkAddresses;
-		}
-
-		@Override
-		public NodeNetworkAddress[] getNodeNetworkAddresses() {
-			return nodeNetworkAddresses;
-		}
-	}
 }

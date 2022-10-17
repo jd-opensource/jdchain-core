@@ -1,5 +1,6 @@
 package com.jd.blockchain.consensus.bftsmart.service;
 
+import com.jd.blockchain.consensus.ConsensusNodeNetwork;
 import com.jd.blockchain.consensus.NodeNetworkAddress;
 import com.jd.blockchain.consensus.service.NodeServer;
 
@@ -102,7 +103,7 @@ class BftsmartNodeStateExporter implements BftsmartNodeState {
 				if (nodeNetwork == null) {
 					continue;
 				}
-				networkAddresses[i] = new BftsmartNodeServer.PeerNodeNetwork(nodeNetwork.getHost(), nodeNetwork.getConsensusPort(), nodeNetwork.getMonitorPort(),
+				networkAddresses[i] = new ConsensusNodeNetwork(nodeNetwork.getHost(), nodeNetwork.getConsensusPort(), nodeNetwork.getMonitorPort(),
 						nodeNetwork.isConsensusSecure(), nodeNetwork.isMonitorSecure());
 			}
 
@@ -127,7 +128,7 @@ class BftsmartNodeStateExporter implements BftsmartNodeState {
 		public int getNextRegency() {
 			return replica.getTomLayer().getSynchronizer().getLCManager().getNextReg();
 		}
-		
+
 	}
 
 	private class ConsensusStateImpl implements ConsensusState {
@@ -136,20 +137,20 @@ class BftsmartNodeStateExporter implements BftsmartNodeState {
 		public int getConensusID() {
 			return replica.getTomLayer().getInExec();
 		}
-		
+
 		@Override
 		public int getLastConensusID() {
 			return replica.getTomLayer().getLastExec();
 		}
-		
+
 		@Override
 		public int getLeaderID() {
 			return replica.getTomLayer().getExecManager().getCurrentLeader();
 		}
 
 	}
-	
-	
+
+
 	private class CommunicationStateImpl implements CommunicationState{
 
 		@Override

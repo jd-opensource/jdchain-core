@@ -9,10 +9,10 @@
 package com.jd.blockchain.consensus.mq.client;
 
 
-import com.jd.blockchain.consensus.mq.producer.MsgQueueProducer;
+import com.jd.blockchain.consensus.mq.event.binaryproto.MQEvent;
+import com.jd.blockchain.consensus.mq.producer.MQProducer;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/12/12
  * @since 1.0.0
@@ -22,9 +22,7 @@ public interface MessageTransmitter {
 
     void connect() throws Exception;
 
-    void publishMessage(MsgQueueProducer producer, byte[] message) throws Exception;
-
-//    void processMsg(byte[] message);
+    void publishMessage(MQProducer producer, MQEvent event) throws Exception;
 
     void close();
 }

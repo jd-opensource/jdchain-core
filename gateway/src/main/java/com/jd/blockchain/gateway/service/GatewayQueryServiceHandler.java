@@ -8,14 +8,14 @@ import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusConfig;
 import com.jd.blockchain.consensus.bftsmart.BftsmartConsensusViewSettings;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeConfig;
 import com.jd.blockchain.consensus.bftsmart.BftsmartNodeSettings;
-import com.jd.blockchain.consensus.mq.config.MsgQueueBlockConfig;
-import com.jd.blockchain.consensus.mq.config.MsgQueueConsensusConfig;
-import com.jd.blockchain.consensus.mq.config.MsgQueueNetworkConfig;
-import com.jd.blockchain.consensus.mq.config.MsgQueueNodeConfig;
-import com.jd.blockchain.consensus.mq.settings.MsgQueueBlockSettings;
-import com.jd.blockchain.consensus.mq.settings.MsgQueueConsensusSettings;
-import com.jd.blockchain.consensus.mq.settings.MsgQueueNetworkSettings;
-import com.jd.blockchain.consensus.mq.settings.MsgQueueNodeSettings;
+import com.jd.blockchain.consensus.mq.config.MQBlockConfig;
+import com.jd.blockchain.consensus.mq.config.MQConsensusConfig;
+import com.jd.blockchain.consensus.mq.config.MQNetworkConfig;
+import com.jd.blockchain.consensus.mq.config.MQNodeConfig;
+import com.jd.blockchain.consensus.mq.settings.MQBlockSettings;
+import com.jd.blockchain.consensus.mq.settings.MQConsensusSettings;
+import com.jd.blockchain.consensus.mq.settings.MQNetworkSettings;
+import com.jd.blockchain.consensus.mq.settings.MQNodeSettings;
 import com.jd.blockchain.consensus.raft.config.RaftConfig;
 import com.jd.blockchain.consensus.raft.config.RaftConsensusConfig;
 import com.jd.blockchain.consensus.raft.config.RaftNetworkConfig;
@@ -223,17 +223,17 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 
 
 			return raftConsensusConfig;
-		}else if(consensusSettings instanceof MsgQueueConsensusSettings) {
-			MsgQueueConsensusSettings mqConsensusSettings = (MsgQueueConsensusSettings) consensusSettings;
-			MsgQueueConsensusConfig mqConsensusConfig = new MsgQueueConsensusConfig();
-			MsgQueueBlockSettings blockSettings = mqConsensusSettings.getBlockSettings();
-			MsgQueueBlockConfig mqQueueBlockConfig = new MsgQueueBlockConfig();
+		}else if(consensusSettings instanceof MQConsensusSettings) {
+			MQConsensusSettings mqConsensusSettings = (MQConsensusSettings) consensusSettings;
+			MQConsensusConfig mqConsensusConfig = new MQConsensusConfig();
+			MQBlockSettings blockSettings = mqConsensusSettings.getBlockSettings();
+			MQBlockConfig mqQueueBlockConfig = new MQBlockConfig();
 			mqQueueBlockConfig.setMaxDelayMilliSecondsPerBlock(blockSettings.getMaxDelayMilliSecondsPerBlock());
 			mqQueueBlockConfig.setTxSizePerBlock(blockSettings.getTxSizePerBlock());
 			mqConsensusConfig.setBlockSettings(mqQueueBlockConfig);
 
-			MsgQueueNetworkSettings networkSettings = mqConsensusSettings.getNetworkSettings();
-			MsgQueueNetworkConfig mqQueueNetworkConfig = new MsgQueueNetworkConfig();
+			MQNetworkSettings networkSettings = mqConsensusSettings.getNetworkSettings();
+			MQNetworkConfig mqQueueNetworkConfig = new MQNetworkConfig();
 			mqQueueNetworkConfig.setBlockTopic(networkSettings.getBlockTopic());
 			mqQueueNetworkConfig.setMsgResultTopic(networkSettings.getMsgResultTopic());
 			mqQueueNetworkConfig.setMsgTopic(networkSettings.getMsgTopic());
@@ -243,11 +243,12 @@ public class GatewayQueryServiceHandler implements GatewayQueryService {
 			mqConsensusConfig.setNetworkSettings(mqQueueNetworkConfig);
 
 			for(int i=0; i<mqConsensusSettings.getNodes().length; i++) {
-				MsgQueueNodeSettings nodeSettings = (MsgQueueNodeSettings)mqConsensusSettings.getNodes()[i];
-				MsgQueueNodeConfig msgQueueNodeConfig = new MsgQueueNodeConfig();
+				MQNodeSettings nodeSettings = (MQNodeSettings)mqConsensusSettings.getNodes()[i];
+				MQNodeConfig msgQueueNodeConfig = new MQNodeConfig();
 				msgQueueNodeConfig.setAddress(nodeSettings.getAddress());
 				msgQueueNodeConfig.setPubKey(nodeSettings.getPubKey());
 				msgQueueNodeConfig.setId(nodeSettings.getId());
+				msgQueueNodeConfig.setHost(nodeSettings.getHost());
 				mqConsensusConfig.addNodeSettings(msgQueueNodeConfig);
 			}
 

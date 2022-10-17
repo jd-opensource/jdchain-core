@@ -1,30 +1,32 @@
 package com.jd.blockchain.consensus.mq.event;
 
-import java.io.Serializable;
+import com.jd.blockchain.consensus.mq.event.binaryproto.ExtendEvent;
 
-public class ExtendMessage implements Serializable {
+public class ExtendMessage implements ExtendEvent {
 
-    private MessageType type;
-    private byte[] msg;
+  private String key;
+  private byte[] message;
 
-    public ExtendMessage(MessageType type, byte[] msg) {
-        this.type = type;
-        this.msg = msg;
-    }
+  public ExtendMessage(String key, byte[] message) {
+    this.key = key;
+    this.message = message;
+  }
 
-    public MessageType getType() {
-        return type;
-    }
+  @Override
+  public String getKey() {
+    return key;
+  }
 
-    public void setType(MessageType type) {
-        this.type = type;
-    }
+  public void setKey(String key) {
+    this.key = key;
+  }
 
-    public byte[] getMsg() {
-        return msg;
-    }
+  @Override
+  public byte[] getMessage() {
+    return message;
+  }
 
-    public void setMsg(byte[] msg) {
-        this.msg = msg;
-    }
+  public void setMessage(byte[] message) {
+    this.message = message;
+  }
 }

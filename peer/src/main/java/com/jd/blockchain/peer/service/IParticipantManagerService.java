@@ -78,7 +78,8 @@ public interface IParticipantManagerService {
      * a. ParticipantStateUpdateOperation: participant state update
      * b. ConsensusSettingsUpdateOperation: consensus settings update
      */
-    TransactionResponse submitNodeStateChangeTx(ParticipantContext context, int activeID, TransactionRequest txRequest, List<NodeSettings> origConsensusNodes);
+    TransactionResponse submitNodeStateChangeTx(ParticipantContext context, ParticipantNode node, TransactionRequest txRequest, List<NodeSettings> origConsensusNodes,
+                                                ManagementController.ParticipantUpdateType updateType);
 
     boolean startServerBeforeApplyNodeChange();
 

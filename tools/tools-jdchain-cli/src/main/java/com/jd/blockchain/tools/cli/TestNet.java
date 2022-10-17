@@ -52,8 +52,8 @@ class InitConfig implements Runnable {
     @CommandLine.Option(names = {"-a", "--algorithm"}, description = "Crypto algorithm", defaultValue = "ECDSA")
     String algorithm;
 
-    @CommandLine.Option(names = "--rabbit", description = "RabbitMQ Server address for MQ consensus")
-    String rabbit;
+    @CommandLine.Option(names = "--mq", description = "MQ Server uri for MQ consensus")
+    String mq;
 
     @CommandLine.Option(names = "--data-structure", description = "Ledger Data Struct: MERKLE_TREE,KV.", defaultValue = "MERKLE_TREE")
     LedgerDataStructure dataStructure;
@@ -165,7 +165,7 @@ class InitConfig implements Runnable {
                 for (int i = 0; i < peerSize; i++) {
                     portsForConsensus[i] = peerConsensusPorts[0];
                 }
-            } else {
+            }  else if (!consensus.equals(ConsensusTypeEnum.MQ)) {
                 System.err.println("error peer-consensus-ports value");
             }
             // 解压并配置peer节点
@@ -203,7 +203,7 @@ class InitConfig implements Runnable {
                         break;
                     case MQ:
                         // 配置 mq.config
-                        configMQ(peerDirs[i], rabbit, hostsForPeer, pubkeys);
+                        configMQ(peerDirs[i], mq, hostsForPeer, pubkeys);
                         break;
                     case BFTSMART:
                         // 配置 bftsmart.config
@@ -239,6 +239,8 @@ class InitConfig implements Runnable {
             for (int i = 0; i < peerSize; i++) {
                 initializerAddresses += hostsForInit[i] + ":" + portsForInit[i] + " ";
                 peerAddresses += hostsForPeer[i] + ":" + portsForManage[i] + " ";
+            }
+            for (int i = 0; null != portsForConsensus && i < portsForConsensus.length; i++) {
                 consensusAddresses += hostsForPeer[i] + ":" + portsForConsensus[i] + " ";
                 consensusAddresses += hostsForPeer[i] + ":" + (portsForConsensus[i] + 1) + " ";
             }
@@ -445,8 +447,9 @@ class InitConfig implements Runnable {
     private void configMQ(String peerDir, String rabbit, String[] peerHosts, String[] peerPubs) {
         String file = peerDir + File.separator + "config" + File.separator + "init" + File.separator + "mq.config";
         StringBuilder sb = new StringBuilder();
-        sb.append("# MQ连接地址，格式：{MQ类型}://{IP}:{PORT}\n" +
-                "system.msg.queue.server=amqp://" + rabbit + "\n" +
+        sb.append("# MQ服务URI，格式：{MQ类型前缀}://{MQ URI}，当前支持 RabbitMQ（固定第0个节点出块）和ActiveMQ（动态节点出块），前缀分别为：rabbitmq和activemq\n" +
+                "system.msg.queue.server=" +
+                mq +
                 "\n" +
                 "# 当前账本交易发送队列主题（不同账本需不同主题）\n" +
                 "system.msg.queue.topic.tx=tx\n" +
@@ -469,12 +472,16 @@ class InitConfig implements Runnable {
                 "# 当前账本结块最大时长（单位：毫秒）\n" +
                 "system.msg.queue.block.maxdelay=1\n" +
                 "\n" +
+                "# 服务地址上报时间间隔（单位：毫秒）, 默认1分钟\n" +
+                "system.server.ping=60000\n" +
+                "\n" +
                 "# 当前账本节点总数\n" +
                 "system.servers.num=" + peerHosts.length + "\n" +
                 "\n" +
                 "# 当前账本对应节点的公钥信息列表\n");
         for (int i = 0; i < peerHosts.length; i++) {
             sb.append("system.server." + i + ".pubkey=" + peerPubs[i] + "\n");
+            sb.append("system.server." + i + ".host=" + peerHosts[i] + "\n");
         }
         FileUtils.deleteFile(file);
         FileUtils.writeText(sb.toString(), new File(file));
@@ -787,9 +794,10 @@ class InitConfig implements Runnable {
                 "topology.store=false\n" +
                 "\n" +
                 "#是否开启共识节点自动感知，默认true. MQ不支持动态感知\n" +
-                "topology.aware=" + (consensus.equals(ConsensusTypeEnum.MQ) ? "false" : "true") + "\n" +
+                "topology.aware=true" +
+                "\n" +
                 "#共识节点自动感知间隔（毫秒），0及负值表示仅感知一次。对于不存在节点变更的场景可只感知一次\n" +
-                "topology.aware.interval=0\n" +
+                "topology.aware.interval=60000\n" +
                 "\n" +
                 "# 节点连接心跳（毫秒），及时感知连接有效性，0及负值表示关闭\n" +
                 "peer.connection.ping=3000\n" +

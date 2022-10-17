@@ -64,7 +64,7 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
 
     private volatile boolean isStart;
 
-    private final List<MonitorNodeNetwork> monitorNodeNetworks = new CopyOnWriteArrayList<>();
+    private final List<ConsensusNodeNetwork> monitorNodeNetworks = new CopyOnWriteArrayList<>();
     private volatile boolean isReloadMonitorNode = true;
     private final Object monitorLock = new Object();
 
@@ -257,9 +257,9 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
 
         return CompletableAsyncFuture.callAsync((Callable<byte[]>) () -> {
             try {
-                List<MonitorNodeNetwork> monitorNodeNetworkList = queryPeersManagerInfo(peerIds);
-                MonitorNodeNetwork[] monitorNodeNetworks = monitorNodeNetworkList.toArray(new MonitorNodeNetwork[]{});
-                MonitorNodeNetworkAddresses addresses = new MonitorNodeNetworkAddresses(monitorNodeNetworks);
+                List<ConsensusNodeNetwork> monitorNodeNetworkList = queryPeersManagerInfo(peerIds);
+                ConsensusNodeNetwork[] monitorNodeNetworks = monitorNodeNetworkList.toArray(new ConsensusNodeNetwork[]{});
+                NodeNetworkTopology addresses = new NodeNetworkTopology(monitorNodeNetworks);
                 return BinaryProtocol.encode(addresses, NodeNetworkAddresses.class);
             } catch (Exception e) {
                 LOGGER.error("refreshAndQueryPeersManagerInfo error", e);
@@ -268,7 +268,7 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
         }, monitorExecutor);
     }
 
-    private List<MonitorNodeNetwork> queryPeersManagerInfo(List<PeerId> peerIds) throws InterruptedException {
+    private List<ConsensusNodeNetwork> queryPeersManagerInfo(List<PeerId> peerIds) throws InterruptedException {
 
         if (!isReloadMonitorNode) {
             return monitorNodeNetworks;
@@ -279,7 +279,7 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
                 return monitorNodeNetworks;
             }
 
-            final List<MonitorNodeNetwork> nodeNetworkList = Collections.synchronizedList(new ArrayList<>(peerIds.size()));
+            final List<ConsensusNodeNetwork> nodeNetworkList = Collections.synchronizedList(new ArrayList<>(peerIds.size()));
             CountDownLatch countDownLatch = new CountDownLatch(peerIds.size());
             QueryManagerInfoRequest infoRequest = new QueryManagerInfoRequest();
 
@@ -294,7 +294,7 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
                                 QueryManagerInfoRequestProcessor.ManagerInfoResponse managerInfoResponse =
                                         QueryManagerInfoRequestProcessor.ManagerInfoResponse.fromBytes(response.getResult());
 
-                                MonitorNodeNetwork monitorNodeNetwork = new MonitorNodeNetwork(
+                                ConsensusNodeNetwork monitorNodeNetwork = new ConsensusNodeNetwork(
                                         managerInfoResponse.getHost(),
                                         managerInfoResponse.getConsensusPort(),
                                         managerInfoResponse.getManagerPort(),
@@ -434,87 +434,6 @@ public class RaftMessageService implements MessageService, ConsensusManageServic
         }
 
         return clientService.connect(this.leader.getEndpoint());
-    }
-
-    static class MonitorNodeNetworkAddresses implements NodeNetworkAddresses {
-        private NodeNetworkAddress[] nodeNetworkAddresses = null;
-
-        public MonitorNodeNetworkAddresses() {
-        }
-
-        public MonitorNodeNetworkAddresses(NodeNetworkAddress[] nodeNetworkAddresses) {
-            this.nodeNetworkAddresses = nodeNetworkAddresses;
-        }
-
-        @Override
-        public NodeNetworkAddress[] getNodeNetworkAddresses() {
-            return nodeNetworkAddresses;
-        }
-    }
-
-    static class MonitorNodeNetwork implements NodeNetworkAddress {
-
-        String host;
-        int consensusPort;
-        int monitorPort;
-        boolean consensusSecure;
-        boolean monitorSecure;
-
-        public MonitorNodeNetwork() {
-        }
-
-        public MonitorNodeNetwork(String host, int consensusPort, int monitorPort, boolean consensusSecure, boolean monitorSecure) {
-            this.host = host;
-            this.consensusPort = consensusPort;
-            this.monitorPort = monitorPort;
-            this.consensusSecure = consensusSecure;
-            this.monitorSecure = monitorSecure;
-        }
-
-        @Override
-        public String getHost() {
-            return host;
-        }
-
-        @Override
-        public int getConsensusPort() {
-            return consensusPort;
-        }
-
-        @Override
-        public int getMonitorPort() {
-            return monitorPort;
-        }
-
-        @Override
-        public boolean isConsensusSecure() {
-            return consensusSecure;
-        }
-
-        @Override
-        public boolean isMonitorSecure() {
-            return monitorSecure;
-        }
-
-        public void setHost(String host) {
-            this.host = host;
-        }
-
-        public void setConsensusPort(int consensusPort) {
-            this.consensusPort = consensusPort;
-        }
-
-        public void setMonitorPort(int monitorPort) {
-            this.monitorPort = monitorPort;
-        }
-
-        public void setConsensusSecure(boolean consensusSecure) {
-            this.consensusSecure = consensusSecure;
-        }
-
-        public void setMonitorSecure(boolean monitorSecure) {
-            this.monitorSecure = monitorSecure;
-        }
     }
 
 }

@@ -9,17 +9,16 @@
 package com.jd.blockchain.consensus.mq;
 
 import com.jd.blockchain.consensus.ConsensusProvider;
-import com.jd.blockchain.ledger.ConsensusTypeEnum;
 import com.jd.blockchain.consensus.SettingsFactory;
 import com.jd.blockchain.consensus.client.ClientFactory;
 import com.jd.blockchain.consensus.manage.ManageClientFactory;
-import com.jd.blockchain.consensus.mq.client.MsgQueueClientFactory;
-import com.jd.blockchain.consensus.mq.config.MsgQueueSettingsFactory;
-import com.jd.blockchain.consensus.mq.server.MsgQueueNodeServerFactory;
+import com.jd.blockchain.consensus.mq.client.MQClientFactory;
+import com.jd.blockchain.consensus.mq.config.MQSettingsFactory;
+import com.jd.blockchain.consensus.mq.server.MQNodeServerFactory;
 import com.jd.blockchain.consensus.service.NodeServerFactory;
+import com.jd.blockchain.ledger.ConsensusTypeEnum;
 
 /**
- *
  * @author shaozhuguang
  * @create 2018/12/18
  * @since 1.0.0
@@ -29,11 +28,11 @@ public class MsgQueueConsensusProvider implements ConsensusProvider {
 
     public static final String NAME = MsgQueueConsensusProvider.class.getName();
 
-    private static MsgQueueSettingsFactory settingsFactory = new MsgQueueSettingsFactory();
+    private static MQSettingsFactory settingsFactory = new MQSettingsFactory();
 
-    private static MsgQueueClientFactory clientFactory = new MsgQueueClientFactory();
+    private static MQClientFactory clientFactory = new MQClientFactory();
 
-    private static MsgQueueNodeServerFactory nodeServerFactory = new MsgQueueNodeServerFactory();
+    private static MQNodeServerFactory nodeServerFactory = new MQNodeServerFactory();
 
     @Override
     public String getName() {
@@ -60,9 +59,9 @@ public class MsgQueueConsensusProvider implements ConsensusProvider {
         return nodeServerFactory;
     }
 
-	@Override
-	public ManageClientFactory getManagerClientFactory() {
-		// TODO Auto-generated method stub
-		throw new IllegalStateException("Not implemented!");
-	}
+    @Override
+    public ManageClientFactory getManagerClientFactory() {
+        // TODO Auto-generated method stub
+        throw new IllegalStateException("Not implemented!");
+    }
 }

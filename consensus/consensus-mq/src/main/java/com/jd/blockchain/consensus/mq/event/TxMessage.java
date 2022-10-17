@@ -1,30 +1,32 @@
 package com.jd.blockchain.consensus.mq.event;
 
-import java.io.Serializable;
+import com.jd.blockchain.consensus.mq.event.binaryproto.TxEvent;
 
-public class TxMessage implements Serializable {
+public class TxMessage implements TxEvent {
 
-    String key;
-    byte[] message;
+  private String key;
+  private byte[] message;
 
-    public TxMessage(String key, byte[] message) {
-        this.key = key;
-        this.message = message;
-    }
+  public TxMessage(String key, byte[] message) {
+    this.key = key;
+    this.message = message;
+  }
 
-    public String getKey() {
-        return key;
-    }
+  @Override
+  public String getKey() {
+    return key;
+  }
 
-    public void setKey(String key) {
-        this.key = key;
-    }
+  public void setKey(String key) {
+    this.key = key;
+  }
 
-    public byte[] getMessage() {
-        return message;
-    }
+  @Override
+  public byte[] getMessage() {
+    return message;
+  }
 
-    public void setMessage(byte[] message) {
-        this.message = message;
-    }
+  public void setMessage(byte[] message) {
+    this.message = message;
+  }
 }

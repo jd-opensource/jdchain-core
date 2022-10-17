@@ -23,11 +23,7 @@
 			<artifactId>consensus-framework</artifactId>
 			<version>${framework.version}</version>
 		</dependency>
-		<dependency>
-			<groupId>com.jd.blockchain</groupId>
-			<artifactId>tools-keygen</artifactId>
-			<version>${project.version}</version>
-		</dependency>
+
 		<dependency>
 			<groupId>com.jd.blockchain</groupId>
 			<artifactId>ledger-model</artifactId>
@@ -35,17 +31,24 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.lmax</groupId>
-			<artifactId>disruptor</artifactId>
+			<groupId>com.jd.blockchain</groupId>
+			<artifactId>runtime-context</artifactId>
+			<version>${project.version}</version>
 		</dependency>
-		<dependency>
-			<groupId>io.nats</groupId>
-			<artifactId>jnats</artifactId>
-		</dependency>
-		<!-- rabbitmq -->
+
 		<dependency>
 			<groupId>com.rabbitmq</groupId>
 			<artifactId>amqp-client</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.activemq</groupId>
+			<artifactId>activemq-client</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-pool2</artifactId>
 		</dependency>
 
 		<dependency>
@@ -53,7 +56,7 @@
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
 		</dependency>
-	</dependencies>
+    </dependencies>
 
 	<build>
 		<plugins>

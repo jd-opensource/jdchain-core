@@ -78,7 +78,7 @@ public class ParticipantManagerService4Raft implements IParticipantManagerServic
     }
 
     @Override
-    public TransactionResponse submitNodeStateChangeTx(ParticipantContext context, int activeID, TransactionRequest txRequest, List<NodeSettings> origConsensusNodes) {
+    public TransactionResponse submitNodeStateChangeTx(ParticipantContext context, ParticipantNode node, TransactionRequest txRequest, List<NodeSettings> origConsensusNodes, ManagementController.ParticipantUpdateType updateType) {
 
         if (origConsensusNodes.isEmpty()) {
             throw new IllegalStateException("current consensus node list is empty");

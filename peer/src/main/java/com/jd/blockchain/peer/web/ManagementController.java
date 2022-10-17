@@ -390,7 +390,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
             if (currentNode.getParticipantNodeState() == ParticipantNodeState.CONSENSUS) {
                 ServerSettings serverSettings = provider.getServerFactory().buildServerSettings(ledgerHash.toBase58(), csSettings,
                         currentNode.getAddress().toBase58(), bindingConfig.getSslSecurity(), bindingConfig.getExtraProperties());
-                ((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
+                ((LedgerStateManager) consensusStateManager).setLedgerQuery(ledgerHash, ledgerRepository);
                 Storage consensusRuntimeStorage = getConsensusRuntimeStorage(ledgerHash);
                 server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
                         consensusStateManager, consensusRuntimeStorage);
@@ -784,7 +784,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
 
         List<NodeSettings> origConsensusNodes = SearchOtherOrigConsensusNodes(ledgerRepo, node);
         // 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行新参与方的状态激活操作
-        TransactionResponse remoteTxResponse = participantService.submitNodeStateChangeTx(context, node.getId(), txRequest, origConsensusNodes);
+        TransactionResponse remoteTxResponse = participantService.submitNodeStateChangeTx(context, node, txRequest, origConsensusNodes, ParticipantUpdateType.ACTIVE);
 
         if (remoteTxResponse.isSuccess() && replayTransaction(ledgerRepo, node, remoteEndpoint)) {
             try {
@@ -831,7 +831,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
         List<NodeSettings> origConsensusNodes = SearchOrigConsensusNodes(ledgerRepo);
 
         // 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行新参与方的状态激活操作
-        TransactionResponse remoteTxResponse = participantService.submitNodeStateChangeTx(context, node.getId(), txRequest, origConsensusNodes);
+        TransactionResponse remoteTxResponse = participantService.submitNodeStateChangeTx(context, node, txRequest, origConsensusNodes, ParticipantUpdateType.UPDATE);
 
         if (!remoteTxResponse.isSuccess()) {
             return WebResponse.createFailureResult(-1,
@@ -983,7 +983,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
             txRequest = addNodeSigner(txRequest);
 
             // 连接原有的共识网络,把交易提交到目标账本的原有共识网络进行共识，即在原有共识网络中执行参与方的去激活操作，这个原有网络包括本节点
-            TransactionResponse txResponse = participantService.submitNodeStateChangeTx(context, node.getId(), txRequest, origConsensusNodes);
+            TransactionResponse txResponse = participantService.submitNodeStateChangeTx(context, node, txRequest, origConsensusNodes, ParticipantUpdateType.DEACTIVE);
             if (!txResponse.isSuccess()) {
                 return WebResponse.createFailureResult(-1, "commit tx to orig consensus, tx execute failed, please retry deactivate participant!");
             }
@@ -1350,7 +1350,7 @@ public class ManagementController implements LedgerBindingConfigAware, PeerManag
                     ledgerHash.toBase58(), csSettings, currentNode.getAddress().toBase58(),
                     bindingConfigs.get(ledgerHash).getSslSecurity(), bindingConfigs.get(ledgerHash).getExtraProperties());
 
-            ((LedgerStateManager) consensusStateManager).setLatestStateId(ledgerRepository.retrieveLatestBlockHeight());
+            ((LedgerStateManager) consensusStateManager).setLedgerQuery(ledgerHash, ledgerRepository);
 
             Storage consensusRuntimeStorage = getConsensusRuntimeStorage(ledgerHash);
             server = provider.getServerFactory().setupServer(serverSettings, consensusMessageHandler,
