@@ -5,7 +5,9 @@ import com.jd.blockchain.contract.engine.ContractEngine;
 import com.jd.blockchain.contract.engine.ContractServiceProviders;
 import com.jd.blockchain.contract.jvm.LocalContractEventContext;
 import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.ledger.cache.ContractCache;
 import com.jd.blockchain.ledger.core.*;
+import utils.Bytes;
 
 import java.util.stream.Collectors;
 
@@ -27,12 +29,16 @@ public class ContractEventSendOperationHandle implements OperationHandle {
 
         ContractEventSendOperation contractOP = (ContractEventSendOperation) op;
 
+        Bytes address = contractOP.getContractAddress();
+        long version = contractOP.getVersion();
         // 先从账本校验合约的有效性；
         // 注意：必须在前一个区块的数据集中进行校验，因为那是经过共识的数据；从当前新区块链数据集校验则会带来攻击风险：未经共识的合约得到执行；
-        ContractAccount contract = ledger.getContractAccountset().getAccount(contractOP.getContractAddress());
+        ContractAccount contract = ledger.getContractAccountset().getAccount(address, version);
         if (null == contract) {
-            throw new ContractDoesNotExistException(String.format("Contract doesn't exist! --[Address=%s]", contractOP.getContractAddress()));
+            throw new ContractDoesNotExistException(String.format("Contract doesn't exist! --[Address=%s]", address));
         }
+        version = contract.getChainCodeVersion();
+
         // 校验合约状态
         if (contract.getState() != AccountState.NORMAL) {
             throw new IllegalAccountStateException("Can not call contract[" + contract.getAddress() + "] in " + contract.getState() + " state.");
@@ -55,7 +61,12 @@ public class ContractEventSendOperationHandle implements OperationHandle {
         localContractEventContext.setTxSigners(request.getEndpoints().stream().map(s -> s.getIdentity()).collect(Collectors.toSet()));
 
         // 装载合约；
-        ContractCode contractCode = ENGINE.setupContract(contract);
+        ContractCache cache = transactionContext.getCacheService().getContractCache();
+        ContractCode contractCode = cache.getContractCode(address, version);
+        if (null == contractCode) {
+            contractCode = ENGINE.setupContract(contract);
+            cache.setContractCode(address, contractCode);
+        }
 
         // 处理合约事件；
         BytesValue result = contractCode.processEvent(localContractEventContext);

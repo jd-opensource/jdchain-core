@@ -15,6 +15,7 @@ import com.jd.blockchain.ledger.AccountSnapshot;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.TransactionState;
 import com.jd.blockchain.ledger.TypedValue;
+import com.jd.blockchain.ledger.cache.PubkeyCache;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 
@@ -50,20 +51,23 @@ public class MerkleAccountSetEditor implements BaseAccountSetEditor {
 
 	private AccountAccessPolicy accessPolicy;
 
+	private PubkeyCache pubkeyCache;
+
 	@Override
 	public boolean isReadonly() {
 		return merkleDataset.isReadonly();
 	}
 
 	public MerkleAccountSetEditor(CryptoSetting cryptoSetting, Bytes keyPrefix, ExPolicyKVStorage exStorage,
-								  VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy) {
-		this(null, cryptoSetting, keyPrefix, exStorage, verStorage, false, accessPolicy);
+								  VersioningKVStorage verStorage, PubkeyCache pubkeyCache, AccountAccessPolicy accessPolicy) {
+		this(null, cryptoSetting, keyPrefix, exStorage, verStorage, false, pubkeyCache, accessPolicy);
 	}
 
 	public MerkleAccountSetEditor(HashDigest rootHash, CryptoSetting cryptoSetting, Bytes keyPrefix,
 								  ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly,
-								  AccountAccessPolicy accessPolicy) {
+								  PubkeyCache pubkeyCache, AccountAccessPolicy accessPolicy) {
 		this.keyPrefix = keyPrefix;
+		this.pubkeyCache = pubkeyCache;
 		this.cryptoSetting = cryptoSetting;
 		this.baseExStorage = exStorage;
 		this.baseVerStorage = verStorage;
@@ -300,7 +304,7 @@ public class MerkleAccountSetEditor implements BaseAccountSetEditor {
 	}
 
 	private InnerMerkleAccount createInstance(BlockchainIdentity header, CryptoSetting cryptoSetting, Bytes keyPrefix) {
-		return new InnerMerkleAccount(header, cryptoSetting, keyPrefix, baseExStorage, baseVerStorage);
+		return new InnerMerkleAccount(header, cryptoSetting, keyPrefix, baseExStorage, baseVerStorage, pubkeyCache);
 	}
 
 	/**
@@ -332,7 +336,7 @@ public class MerkleAccountSetEditor implements BaseAccountSetEditor {
 		Bytes accountPrefix = keyPrefix.concat(address);
 
 		return new InnerMerkleAccount(address, version, headerRoot, dataRoot, cryptoSetting, accountPrefix,
-				baseExStorage, baseVerStorage, readonly);
+				baseExStorage, baseVerStorage, pubkeyCache, readonly);
 	}
 
 	// TODO:优化：区块链身份(地址+公钥)与其Merkle树根哈希分开独立存储；
@@ -403,15 +407,15 @@ public class MerkleAccountSetEditor implements BaseAccountSetEditor {
 		private long version;
 
 		public InnerMerkleAccount(BlockchainIdentity accountID, CryptoSetting cryptoSetting, Bytes keyPrefix,
-				ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
-			super(accountID, cryptoSetting, keyPrefix, exStorage, verStorage);
+				ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, PubkeyCache pubkeyCache) {
+			super(accountID, cryptoSetting, keyPrefix, exStorage, verStorage, pubkeyCache);
 			this.version = -1;
 		}
 
 		public InnerMerkleAccount(Bytes address, long version, HashDigest headerRootHash, HashDigest dataRootHash,
 				CryptoSetting cryptoSetting, Bytes keyPrefix, ExPolicyKVStorage exStorage,
-				VersioningKVStorage verStorage, boolean readonly) {
-			super(address, headerRootHash, dataRootHash, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
+				VersioningKVStorage verStorage, PubkeyCache pubkeyCache, boolean readonly) {
+			super(address, headerRootHash, dataRootHash, cryptoSetting, keyPrefix, exStorage, verStorage, pubkeyCache, readonly);
 			this.version = version;
 		}
 

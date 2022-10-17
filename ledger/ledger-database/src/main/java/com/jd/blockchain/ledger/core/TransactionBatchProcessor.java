@@ -261,12 +261,7 @@ public class TransactionBatchProcessor implements TransactionBatchProcess, Block
 			eventManager = new EventManager(request, txCtx, ledger);
 
 			// 初始化交易的用户安全策略；
-			SecurityPolicy securityPolicy;
-			if(identityMode != IdentityMode.CA) {
-				securityPolicy = securityManager.getSecurityPolicy(request.getEndpointAddresses(), request.getNodeAddresses());
-			} else {
-				securityPolicy = securityManager.getSecurityPolicy(request.getEndpointAddresses(), request.getNodeAddresses(), ledgerCAs);
-			}
+			SecurityPolicy securityPolicy = securityManager.getSecurityPolicy(request.getEndpointAddresses(), request.getNodeAddresses());
 			SecurityContext.setContextUsersPolicy(securityPolicy);
 
 			// 安全校验；

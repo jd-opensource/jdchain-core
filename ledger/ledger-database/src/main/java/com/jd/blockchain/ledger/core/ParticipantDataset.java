@@ -8,6 +8,7 @@ import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.ParticipantNode;
+import com.jd.blockchain.ledger.cache.AdminCache;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 
@@ -23,6 +24,8 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 		DataContractRegistry.register(ParticipantNode.class);
 	}
 
+	private AdminCache cache;
+
 	private BaseDataset<Bytes, byte[]> dataset;
 
 	private LedgerDataStructure ledgerDataStructure;
@@ -37,8 +40,9 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 
 
 	public ParticipantDataset(CryptoSetting cryptoSetting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
-							  VersioningKVStorage verStorage, LedgerDataStructure dataStructure) {
+							  VersioningKVStorage verStorage, LedgerDataStructure dataStructure, AdminCache cache) {
 		ledgerDataStructure = dataStructure;
+		this.cache = cache;
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			dataset = new MerkleHashDataset(cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage, verStorage);
 		} else {
@@ -47,8 +51,10 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 	}
 
 	public ParticipantDataset(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String keyPrefix,
-									ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure, boolean readonly) {
+									ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure,
+							  AdminCache cache, boolean readonly) {
 		ledgerDataStructure = dataStructure;
+		this.cache = cache;
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(keyPrefix), exPolicyStorage,
 					verStorage, readonly);
@@ -82,6 +88,7 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 	@Override
 	public void cancel() {
 		dataset.cancel();
+		cache.clear();
 		parti_index_in_block = origin_parti_index_in_block;
 	}
 
@@ -93,7 +100,7 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 	/**
 	 * 加入新的共识参与方； <br>
 	 * 如果指定的共识参与方已经存在，则引发 {@link LedgerException} 异常；
-	 * 
+	 *
 	 * @param participant
 	 */
 	public void addConsensusParticipant(ParticipantNode participant) {
@@ -115,6 +122,8 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 
 			parti_index_in_block++;
 		}
+
+		cache.setParticipant(participant.getAddress(), participant);
 	}
 
 	/**
@@ -134,6 +143,8 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 		if (nv < 0) {
 			throw new LedgerException("Participant update failed!");
 		}
+
+		cache.setParticipant(participant.getAddress(), participant);
 	}
 
 	private Bytes encodeKey(Bytes address) {
@@ -149,21 +160,28 @@ public class ParticipantDataset implements Transactional, ParticipantCollection 
 
 	/**
 	 * 返回指定地址的参与方凭证；
-	 * 
+	 *
 	 * <br>
 	 * 如果不存在，则返回 null；
-	 * 
+	 *
 	 * @param address
 	 * @return
 	 */
 	@Override
 	public ParticipantNode getParticipant(Bytes address) {
+		ParticipantNode participantNode = cache.getParticipant(address);
+		if (null != participantNode) {
+			return participantNode;
+		}
 		Bytes key = encodeKey(address);
 		byte[] bytes = dataset.getValue(key);
 		if (bytes == null) {
 			return null;
 		}
-		return BinaryProtocol.decode(bytes);
+		participantNode = BinaryProtocol.decode(bytes);
+		cache.setParticipant(address, participantNode);
+
+		return participantNode;
 	}
 
 	@Deprecated

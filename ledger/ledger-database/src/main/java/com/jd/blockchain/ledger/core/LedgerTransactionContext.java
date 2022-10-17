@@ -1,6 +1,7 @@
 package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.ledger.cache.LedgerCache;
 
 import java.util.List;
 
@@ -104,4 +105,11 @@ public interface LedgerTransactionContext {
 	 * @return
 	 */
 	void addDerivedOperations(Operation... operations);
+
+	/**
+	 * 缓存服务
+	 *
+	 * @return
+	 */
+	LedgerCache getCacheService();
 }

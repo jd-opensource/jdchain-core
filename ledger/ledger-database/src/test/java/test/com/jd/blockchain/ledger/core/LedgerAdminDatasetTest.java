@@ -14,6 +14,7 @@ import java.util.Random;
 
 import com.jd.blockchain.ledger.IdentityMode;
 import com.jd.blockchain.ledger.LedgerDataStructure;
+import com.jd.blockchain.ledger.cache.AdminLRUCache;
 import org.junit.Test;
 
 import com.jd.blockchain.crypto.AddressEncoding;
@@ -93,12 +94,13 @@ public class LedgerAdminDatasetTest {
 		byte[] ledgerSeed = new byte[16];
 		rand.nextBytes(ledgerSeed);
 		initSetting.setLedgerSeed(ledgerSeed);
+		initSetting.setLedgerDataStructure(LedgerDataStructure.MERKLE_TREE);
 
 		MemoryKVStorage testStorage = new MemoryKVStorage();
 
 		// Create intance with init setting;
 		LedgerAdminDataSetEditor ledgerAdminDataset = new LedgerAdminDataSetEditor(initSetting, keyPrefix, testStorage,
-				testStorage);
+				testStorage, new AdminLRUCache());
 
 		ledgerAdminDataset.getRolePrivileges().addRolePrivilege("DEFAULT",
 				new LedgerPermission[] { LedgerPermission.CONFIGURE_ROLES, LedgerPermission.REGISTER_USER,
@@ -137,7 +139,7 @@ public class LedgerAdminDatasetTest {
 		// data;
 		HashDigest adminAccHash = ledgerAdminDataset.getHash();
 		LedgerAdminDataSetEditor reloadAdminAccount1 = new LedgerAdminDataSetEditor(-1, adminAccHash, keyPrefix, testStorage,
-				testStorage, LedgerDataStructure.MERKLE_TREE, true);
+				testStorage, LedgerDataStructure.MERKLE_TREE, new AdminLRUCache(), true);
 
 		LedgerMetadata_V2 meta2 = reloadAdminAccount1.getMetadata();
 		assertNotNull(meta2.getParticipantsHash());
@@ -159,7 +161,7 @@ public class LedgerAdminDatasetTest {
 		// --------------
 		// 重新加载，并进行修改;
 		LedgerAdminDataSetEditor reloadAdminAccount2 = new LedgerAdminDataSetEditor(-1, adminAccHash, keyPrefix, testStorage,
-				testStorage, LedgerDataStructure.MERKLE_TREE, false);
+				testStorage, LedgerDataStructure.MERKLE_TREE, new AdminLRUCache(), false);
 		LedgerConfiguration newSetting = new LedgerConfiguration(reloadAdminAccount2.getPreviousSetting());
 		byte[] newCsSettingBytes = new byte[64];
 		rand.nextBytes(newCsSettingBytes);
@@ -188,7 +190,7 @@ public class LedgerAdminDatasetTest {
 
 		// load the last version of account and verify again;
 		LedgerAdminDataSetEditor previousAdminAccount = new LedgerAdminDataSetEditor(-1, adminAccHash, keyPrefix, testStorage,
-				testStorage, LedgerDataStructure.MERKLE_TREE, true);
+				testStorage, LedgerDataStructure.MERKLE_TREE, new AdminLRUCache(), true);
 		verifyRealoadingSettings(previousAdminAccount, adminAccHash, ledgerAdminDataset.getMetadata(),
 				ledgerAdminDataset.getSettings());
 		verifyRealoadingParities(previousAdminAccount, parties1);
@@ -196,7 +198,7 @@ public class LedgerAdminDatasetTest {
 
 		// load the hash of new committing;
 		LedgerAdminDataSetEditor newlyAdminAccount = new LedgerAdminDataSetEditor(-1, newAccHash, keyPrefix, testStorage, testStorage, LedgerDataStructure.MERKLE_TREE,
-				true);
+				new AdminLRUCache(), true);
 		verifyRealoadingSettings(newlyAdminAccount, newAccHash, newMeta, newlyLedgerSettings);
 		verifyRealoadingParities(newlyAdminAccount, parties);
 		verifyReadonlyState(newlyAdminAccount);

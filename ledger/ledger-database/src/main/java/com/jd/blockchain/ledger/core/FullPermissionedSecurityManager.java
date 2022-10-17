@@ -17,11 +17,6 @@ class FullPermissionedSecurityManager implements LedgerSecurityManager {
 	}
 
 	@Override
-	public SecurityPolicy getSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes, X509Certificate[] ledgerCAs) {
-		return new FullPermissionedPolicy(endpoints, nodes, ledgerCAs);
-	}
-
-	@Override
 	public UserRolesPrivileges getUserRolesPrivilegs(Bytes userAddress) {
 		// TODO Auto-generated method stub
 		return null;

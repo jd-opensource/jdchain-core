@@ -7,6 +7,7 @@ import com.jd.blockchain.ledger.CryptoSetting;
 import com.jd.blockchain.ledger.DigitalSignature;
 import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.cache.DataAccountCache;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 
@@ -23,12 +24,14 @@ public class DataAccountSetEditor implements Transactional, DataAccountSet {
 	private Logger logger = LoggerFactory.getLogger(DataAccountSetEditor.class);
 
 	private BaseAccountSetEditor accountSet;
+	private DataAccountCache cache;
 
 	public DataAccountSetEditor(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage,
-			VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy, LedgerDataStructure dataStructure) {
-
+			VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy, LedgerDataStructure dataStructure,
+			DataAccountCache cache) {
+		this.cache = cache;
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
-			accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+			accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, cache, accessPolicy);
 		} else {
 			accountSet = new KvAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy, DatasetType.DATAS);
 		}
@@ -36,10 +39,11 @@ public class DataAccountSetEditor implements Transactional, DataAccountSet {
 
 	public DataAccountSetEditor(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
 									  ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly, LedgerDataStructure dataStructure,
-								AccountAccessPolicy accessPolicy) {
+								DataAccountCache cache, AccountAccessPolicy accessPolicy) {
+		this.cache = cache;
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
-					readonly, accessPolicy);
+					readonly, cache, accessPolicy);
 		} else {
 			accountSet = new KvAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
 					readonly, accessPolicy, DatasetType.DATAS);
@@ -87,7 +91,7 @@ public class DataAccountSetEditor implements Transactional, DataAccountSet {
 		if(logger.isDebugEnabled()){
 			logger.debug("after accountSet.register(),[address={}]",address.toBase58());
 		}
-		return new DataAccount(accBase);
+		return new DataAccount(accBase, cache);
 	}
 
 	@Override
@@ -108,7 +112,7 @@ public class DataAccountSetEditor implements Transactional, DataAccountSet {
 		if (accBase == null) {
 			return null;
 		}
-		return new DataAccount(accBase);
+		return new DataAccount(accBase, cache);
 	}
 
 	@Override
@@ -129,7 +133,10 @@ public class DataAccountSetEditor implements Transactional, DataAccountSet {
 
 	@Override
 	public void cancel() {
-		accountSet.cancel();
+		if(accountSet.isUpdated()) {
+			accountSet.cancel();
+			cache.clear();
+		}
 	}
 
 	// used only by kv type ledger structure, get new add kv nums

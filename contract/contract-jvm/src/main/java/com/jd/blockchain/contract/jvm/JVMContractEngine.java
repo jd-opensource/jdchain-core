@@ -12,8 +12,6 @@ import java.util.Map;
 public class JVMContractEngine implements ContractEngine {
 
     private static final Map<ContractLang, ContractCodeLoader> loaders = new HashMap<>();
-    // TODO imuge LRU
-    private Map<String, ContractCode> contracts = new HashMap<>();
 
     static {
         loaders.put(ContractLang.Java, new JavaContractCodeLoader());
@@ -22,28 +20,12 @@ public class JVMContractEngine implements ContractEngine {
         loaders.put(ContractLang.Rust, new RustContractCodeLoader());
     }
 
-    private String getCodeName(Bytes address, long version) {
-        return address.toBase58() + "_" + version;
-    }
-
     @Override
     public ContractCode setupContract(ContractInfo contractInfo) {
         Bytes address = contractInfo.getAddress();
         long version = contractInfo.getChainCodeVersion();
-        String codeName = getCodeName(address, version);
-        ContractCode contractCode = contracts.get(codeName);
-        if (null == contractCode) {
-            synchronized (JVMContractEngine.class) {
-                contractCode = contracts.get(codeName);
-                if (null == contractCode) {
-                    contractCode = loaders.get(contractInfo.getLang()).loadContract(address, version, contractInfo.getChainCode());
-                    if (null != contractCode) {
-                        contracts.put(codeName, contractCode);
-                    }
-                }
-            }
-        }
-
-        return contractCode;
+        return loaders
+                .get(contractInfo.getLang())
+                .loadContract(address, version, contractInfo.getChainCode());
     }
 }

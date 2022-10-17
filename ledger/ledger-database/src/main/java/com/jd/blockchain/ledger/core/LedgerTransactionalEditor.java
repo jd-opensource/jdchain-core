@@ -6,6 +6,8 @@ import java.util.Map;
 
 import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.Operation;
+import com.jd.blockchain.ledger.cache.LedgerCache;
+import com.jd.blockchain.ledger.cache.LedgerLRUCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,6 +98,8 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 	private volatile BufferedKVStorage eventsetStorage;
 
+	private LedgerCache cacheService;
+
 	/**
 	 * @param ledgerHash
 	 * @param cryptoSetting
@@ -107,7 +111,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	 */
 	private LedgerTransactionalEditor(HashDigest ledgerHash, CryptoSetting cryptoSetting, LedgerBlockData currentBlock,
 			StagedSnapshot startingPoint, String ledgerKeyPrefix, TransactionSetEditor txset,
-			BufferedKVStorage bufferedStorage, LedgerDataStructure dataStructure) {
+			BufferedKVStorage bufferedStorage, LedgerDataStructure dataStructure, LedgerCache cacheService) {
 		this.ledgerHash = ledgerHash;
 		this.ledgerKeyPrefix = ledgerKeyPrefix;
 		this.cryptoSetting = cryptoSetting;
@@ -115,6 +119,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		this.baseStorage = bufferedStorage;
 		this.startingPoint = startingPoint;
 		this.txset = txset;
+		this.cacheService = cacheService;
 		this.dataStructure = dataStructure;
 
 //		this.stagedSnapshots.push(startingPoint);
@@ -134,7 +139,8 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 	 */
 	public static LedgerTransactionalEditor createEditor(LedgerBlock previousBlock, LedgerSettings ledgerSetting,
 														 String ledgerKeyPrefix, ExPolicyKVStorage ledgerExStorage,
-														 VersioningKVStorage ledgerVerStorage, LedgerDataStructure dataStructure) {
+														 VersioningKVStorage ledgerVerStorage, LedgerDataStructure dataStructure,
+														 LedgerCache cacheService) {
 		// new block;
 		HashDigest ledgerHash = previousBlock.getLedgerHash();
 		if (ledgerHash == null) {
@@ -156,7 +162,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 		// instantiate editor;
 		return new LedgerTransactionalEditor(ledgerHash, ledgerSetting.getCryptoSetting(), currBlock, startingPoint,
-				ledgerKeyPrefix, txset, txStagedStorage, dataStructure);
+				ledgerKeyPrefix, txset, txStagedStorage, dataStructure, cacheService);
 	}
 
 	/**
@@ -180,7 +186,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 				txStagedStorage, txStagedStorage, dataStructure);
 
 		return new LedgerTransactionalEditor(null, initSetting.getCryptoSetting(), genesisBlock, startingPoint,
-				ledgerKeyPrefix, txset, txStagedStorage, dataStructure);
+				ledgerKeyPrefix, txset, txStagedStorage, dataStructure, new LedgerLRUCache());
 	}
 
 	private void commitTxSnapshot(TxSnapshot snapshot) {
@@ -294,7 +300,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 		innerGetDataset();
 		innerGetEventset();
-		
+
 		currentTxCtx = new LedgerTransactionContextImpl(txRequest, this);
 
 		return currentTxCtx;
@@ -364,14 +370,14 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 				// 准备生成创世区块；
 				GenesisSnapshot snpht = (GenesisSnapshot) startingPoint;
 				txDataset = LedgerRepositoryImpl.newDataSet(snpht.initSetting, ledgerKeyPrefix, txBufferedStorage,
-						txBufferedStorage, dataStructure);
+						txBufferedStorage, dataStructure, cacheService);
 			} else if (startingPoint instanceof TxSnapshot) {
 				// 新的区块；
 				// TxSnapshot; reload dataset and eventset;
 				TxSnapshot snpht = (TxSnapshot) startingPoint;
 				// load dataset;
 				txDataset = LedgerRepositoryImpl.loadDataSet(currentBlock.getHeight() - 1, snpht.dataSnapshot, cryptoSetting, ledgerKeyPrefix,
-						txBufferedStorage, txBufferedStorage, dataStructure, false);
+						txBufferedStorage, txBufferedStorage, dataStructure, cacheService, false);
 			} else {
 				// Unreachable;
 				throw new IllegalStateException("Unreachable code was accidentally executed!");
@@ -381,7 +387,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			// Reuse previous object to optimize performance;
 			// load dataset;
 			txDataset = LedgerRepositoryImpl.loadDataSet(currentBlock.getHeight() - 1, previousTxSnapshot.dataSnapshot, cryptoSetting,
-					ledgerKeyPrefix, txBufferedStorage, txBufferedStorage, dataStructure,false);
+					ledgerKeyPrefix, txBufferedStorage, txBufferedStorage, dataStructure, cacheService, false);
 		}
 
 		return txDataset;
@@ -395,14 +401,14 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 				// 准备生成创世区块；
 				GenesisSnapshot snpht = (GenesisSnapshot) startingPoint;
 				eventSet = LedgerRepositoryImpl.newEventSet(snpht.initSetting.getCryptoSetting(), ledgerKeyPrefix,
-						txBufferedStorage, txBufferedStorage, dataStructure);
+						txBufferedStorage, txBufferedStorage, dataStructure, cacheService);
 			} else if (startingPoint instanceof TxSnapshot) {
 				// 新的区块；
 				// TxSnapshot; reload dataset and eventset;
 				TxSnapshot snpht = (TxSnapshot) startingPoint;
 				// load eventset
 				eventSet = LedgerRepositoryImpl.loadEventSet(currentBlock.getHeight() - 1, snpht.dataSnapshot, cryptoSetting, ledgerKeyPrefix,
-						txBufferedStorage, txBufferedStorage, dataStructure,false);
+						txBufferedStorage, txBufferedStorage, dataStructure,cacheService, false);
 			} else {
 				// Unreachable;
 				throw new IllegalStateException("Unreachable code was accidentally executed!");
@@ -411,7 +417,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 		} else {
 			// load eventset
 			eventSet = LedgerRepositoryImpl.loadEventSet(currentBlock.getHeight() - 1, previousTxSnapshot.dataSnapshot, cryptoSetting,
-					ledgerKeyPrefix, txBufferedStorage, txBufferedStorage, dataStructure,false);
+					ledgerKeyPrefix, txBufferedStorage, txBufferedStorage, dataStructure, cacheService, false);
 		}
 		return eventSet;
 	}
@@ -772,7 +778,7 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 
 		/**
 		 * 创建指定交易的快照；
-		 * 
+		 *
 		 * @param txHash
 		 * @param dataSnapshot
 		 * @param eventSnapshot
@@ -840,6 +846,11 @@ public class LedgerTransactionalEditor implements LedgerEditor {
 			for(Operation operation : operations) {
 				derivedOperations.add(operation);
 			}
+		}
+
+		@Override
+		public LedgerCache getCacheService() {
+			return ledgerEditor.cacheService;
 		}
 
 		@Override

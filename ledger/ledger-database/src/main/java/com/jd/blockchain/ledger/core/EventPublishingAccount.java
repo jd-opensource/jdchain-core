@@ -9,6 +9,7 @@ import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.EventInfo;
 import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.TypedValue;
+import com.jd.blockchain.ledger.cache.PermissionCache;
 import utils.Bytes;
 import utils.DataEntry;
 import utils.Dataset;
@@ -21,6 +22,10 @@ import java.util.List;
 
 public class EventPublishingAccount extends PermissionAccountDecorator implements EventAccount, EventPublisher {
 
+
+    public EventPublishingAccount(CompositeAccount account, PermissionCache cache) {
+        super(AccountType.EVENT, account, cache);
+    }
 
     public EventPublishingAccount(CompositeAccount account) {
         super(AccountType.EVENT, account);

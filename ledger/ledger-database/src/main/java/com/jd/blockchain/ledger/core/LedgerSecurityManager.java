@@ -25,8 +25,6 @@ public interface LedgerSecurityManager {
 	 */
 	SecurityPolicy getSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes);
 
-	SecurityPolicy getSecurityPolicy(Set<Bytes> endpoints, Set<Bytes> nodes, X509Certificate[] ledgerCAs);
-
 	/**
 	 * 返回指定用户的角色权限；
 	 * 

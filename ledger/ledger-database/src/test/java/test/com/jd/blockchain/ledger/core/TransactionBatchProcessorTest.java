@@ -309,7 +309,7 @@ public class TransactionBatchProcessorTest {
 		HashDigest txsetRootHash = ledgerRepo.getTransactionSet().getRootHash();
 
 		// 单独加载交易集合；
-		TransactionSetEditor txset = new TransactionSetEditor(-1, txsetRootHash, cryptoSetting, "LDG://3A3dP4", STORAGE, STORAGE, LedgerDataStructure.MERKLE_TREE,
+		TransactionSetEditor txset = new TransactionSetEditor(-1, txsetRootHash, cryptoSetting, "LDG://VKnN", STORAGE, STORAGE, LedgerDataStructure.MERKLE_TREE,
 				false);
 		tx1 = txset.getTransaction(transactionRequest1.getTransactionHash());
 //		tx2 = txset.get(transactionRequest2.getTransactionHash());

@@ -32,7 +32,7 @@ public class MerkleAccountSetTest {
 		cryptoConfig.setAutoVerifyHash(true);
 		cryptoConfig.setHashAlgorithm(Crypto.getAlgorithm("SHA256"));
 
-		MerkleAccountSetEditor accountsetEditor = new MerkleAccountSetEditor(cryptoConfig, KEY_PREFIX, STORAGE, STORAGE, POLICY);
+		MerkleAccountSetEditor accountsetEditor = new MerkleAccountSetEditor(cryptoConfig, KEY_PREFIX, STORAGE, STORAGE, null, POLICY);
 
 		BlockchainKeypair key1 = BlockchainKeyGenerator.getInstance().generate();
 		accountsetEditor.register(key1.getIdentity());

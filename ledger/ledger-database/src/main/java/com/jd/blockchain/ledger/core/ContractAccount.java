@@ -2,6 +2,7 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.ledger.cache.ContractCache;
 import utils.Bytes;
 import utils.io.BytesUtils;
 
@@ -16,8 +17,8 @@ public class ContractAccount extends PermissionAccountDecorator implements Contr
     private AccountState state;
     private ContractLang lang;
 
-    public ContractAccount(CompositeAccount mklAccount) {
-        super(AccountType.CONTRACT, mklAccount);
+    public ContractAccount(CompositeAccount mklAccount, ContractCache cache) {
+        super(AccountType.CONTRACT, mklAccount, cache);
     }
 
     @Override
@@ -54,7 +55,7 @@ public class ContractAccount extends PermissionAccountDecorator implements Contr
     }
 
     public void setLang(ContractLang lang) {
-        if(null == lang) {
+        if (null == lang) {
             lang = ContractLang.Java;
         }
         long version = getHeaders().getVersion(DATA_LANG);

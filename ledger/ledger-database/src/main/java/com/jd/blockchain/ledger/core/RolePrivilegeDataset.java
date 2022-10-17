@@ -14,6 +14,7 @@ import com.jd.blockchain.ledger.RolePrivilegeSettings;
 import com.jd.blockchain.ledger.RolePrivileges;
 import com.jd.blockchain.ledger.TransactionPermission;
 import com.jd.blockchain.ledger.TransactionPrivilegeBitset;
+import com.jd.blockchain.ledger.cache.AdminCache;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 
@@ -29,6 +30,8 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 
 	private LedgerDataStructure ledgerDataStructure;
 
+	private AdminCache cache;
+
 	// start: used only by kv ledger structure
 	private volatile long rolepri_index_in_block = 0;
 
@@ -38,8 +41,9 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	// end: used only by kv ledger structure
 
 	public RolePrivilegeDataset(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
-								VersioningKVStorage verStorage, LedgerDataStructure dataStructure) {
+								VersioningKVStorage verStorage, LedgerDataStructure dataStructure, AdminCache cache) {
 		ledgerDataStructure = dataStructure;
+		this.cache = cache;
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			dataset = new MerkleHashDataset(cryptoSetting, prefix, exPolicyStorage, verStorage);
 		} else {
@@ -48,8 +52,10 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	}
 
 	public RolePrivilegeDataset(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
-									  ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure, boolean readonly) {
+									  ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure,
+								AdminCache cache, boolean readonly) {
 		ledgerDataStructure = dataStructure;
+		this.cache = cache;
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage,
 					verStorage, readonly);
@@ -83,6 +89,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	@Override
 	public void cancel() {
 		dataset.cancel();
+		cache.clear();
 		rolepri_index_in_block = origin_rolepri_index_in_block;
 	}
 
@@ -131,6 +138,8 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 
 			rolepri_index_in_block++;
 		}
+
+		cache.setRolePrivileges(roleName, roleAuth);
 
 		return nv;
 	}
@@ -313,6 +322,10 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	 */
 	@Override
 	public RolePrivileges getRolePrivilege(String roleName) {
+		RolePrivileges rps = cache.getRolePrivileges(roleName);
+		if (null != rps) {
+			return rps;
+		}
 		// 只返回最新版本；
 		Bytes key = encodeKey(roleName);
 		DataEntry<Bytes, byte[]> kv = dataset.getDataEntry(key);
@@ -320,7 +333,10 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 			return null;
 		}
 		PrivilegeSet privilege = BinaryProtocol.decode(kv.getValue());
-		return new RolePrivileges(roleName, kv.getVersion(), privilege);
+		RolePrivileges rolePrivileges = new RolePrivileges(roleName, kv.getVersion(), privilege);
+		cache.setRolePrivileges(roleName, rolePrivileges);
+
+		return rolePrivileges;
 	}
 
 	@Override

@@ -2,6 +2,7 @@ package com.jd.blockchain.ledger.core;
 
 import com.jd.blockchain.contract.jvm.JVMContractRuntimeConfig;
 import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.ledger.cache.AdminCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +39,8 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 	private LedgerMetadata_V2 origMetadata;
 
 	private LedgerMetadataInfo metadata;
+
+	private AdminCache cache;
 
 	/**
 	 * 原来的账本设置；
@@ -122,10 +125,10 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 	 * @param versioningStorage
 	 */
 	public LedgerAdminDataSetEditor(LedgerInitSetting initSetting, String keyPrefix, ExPolicyKVStorage exPolicyStorage,
-			VersioningKVStorage versioningStorage) {
+			VersioningKVStorage versioningStorage, AdminCache cache) {
 		this.metaPrefix = Bytes.fromString(keyPrefix + LEDGER_META_PREFIX);
 		this.settingPrefix = Bytes.fromString(keyPrefix + LEDGER_SETTING_PREFIX);
-
+		this.cache = cache;
 		ParticipantNode[] parties = initSetting.getConsensusParticipants();
 		if (parties.length == 0) {
 			throw new LedgerException("No participant!");
@@ -149,7 +152,7 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 		// 基于原配置初始化参与者列表；
 		String partiPrefix = keyPrefix + LEDGER_PARTICIPANT_PREFIX;
 		this.participants = new ParticipantDataset(previousSettings.getCryptoSetting(), partiPrefix, exPolicyStorage,
-				versioningStorage, initSetting.getLedgerDataStructure());
+				versioningStorage, initSetting.getLedgerDataStructure(), cache);
 
 		for (ParticipantNode p : parties) {
 			this.participants.addConsensusParticipant(p);
@@ -157,11 +160,11 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 
 		String rolePrivilegePrefix = keyPrefix + ROLE_PRIVILEGE_PREFIX;
 		this.rolePrivileges = new RolePrivilegeDataset(this.settings.getCryptoSetting(), rolePrivilegePrefix,
-				exPolicyStorage, versioningStorage, initSetting.getLedgerDataStructure());
+				exPolicyStorage, versioningStorage, initSetting.getLedgerDataStructure(), cache);
 
 		String userRolePrefix = keyPrefix + USER_ROLE_PREFIX;
 		this.userRoles = new UserRoleDatasetEditor(this.settings.getCryptoSetting(), userRolePrefix, exPolicyStorage,
-				versioningStorage, initSetting.getLedgerDataStructure());
+				versioningStorage, initSetting.getLedgerDataStructure(), cache);
 
 		// 初始化其它属性；
 		this.storage = exPolicyStorage;
@@ -169,11 +172,12 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 	}
 
 	public LedgerAdminDataSetEditor(long preBlockHeight, HashDigest adminAccountHash, String keyPrefix, ExPolicyKVStorage kvStorage,
-			VersioningKVStorage versioningKVStorage, LedgerDataStructure dataStructure, boolean readonly) {
+			VersioningKVStorage versioningKVStorage, LedgerDataStructure dataStructure, AdminCache cache, boolean readonly) {
 		this.metaPrefix = Bytes.fromString(keyPrefix + LEDGER_META_PREFIX);
 		this.settingPrefix = Bytes.fromString(keyPrefix + LEDGER_SETTING_PREFIX);
 		this.storage = kvStorage;
 		this.readonly = readonly;
+		this.cache = cache;
 		this.origMetadata = loadAndVerifyMetadata(adminAccountHash);
 		this.metadata = new LedgerMetadataInfo(origMetadata);
 		this.settings = loadAndVerifySettings(metadata.getSettingsHash());
@@ -184,15 +188,15 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 
 		String partiPrefix = keyPrefix + LEDGER_PARTICIPANT_PREFIX;
 		this.participants = new ParticipantDataset(preBlockHeight, metadata.getParticipantsHash(), previousSettings.getCryptoSetting(),
-				partiPrefix, kvStorage, versioningKVStorage, dataStructure, readonly);
+				partiPrefix, kvStorage, versioningKVStorage, dataStructure, cache, readonly);
 
 		String rolePrivilegePrefix = keyPrefix + ROLE_PRIVILEGE_PREFIX;
 		this.rolePrivileges = new RolePrivilegeDataset(preBlockHeight, metadata.getRolePrivilegesHash(),
-				previousSettings.getCryptoSetting(), rolePrivilegePrefix, kvStorage, versioningKVStorage, dataStructure, readonly);
+				previousSettings.getCryptoSetting(), rolePrivilegePrefix, kvStorage, versioningKVStorage, dataStructure, cache, readonly);
 
 		String userRolePrefix = keyPrefix + USER_ROLE_PREFIX;
 		this.userRoles = new UserRoleDatasetEditor(preBlockHeight, metadata.getUserRolesHash(), previousSettings.getCryptoSetting(),
-				userRolePrefix, kvStorage, versioningKVStorage, dataStructure, readonly);
+				userRolePrefix, kvStorage, versioningKVStorage, dataStructure, cache, readonly);
 	}
 
 	private LedgerSettings loadAndVerifySettings(HashDigest settingsHash) {
@@ -200,14 +204,20 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 			return null;
 		}
 		Bytes key = encodeSettingsKey(settingsHash);
-		byte[] bytes = storage.get(key);
-		HashFunction hashFunc = Crypto.getHashFunction(settingsHash.getAlgorithm());
-		if (!hashFunc.verify(settingsHash, bytes)) {
-			String errorMsg = "Verification of the hash for ledger setting failed! --[HASH=" + key + "]";
-			LOGGER.error(errorMsg);
-			throw new LedgerException(errorMsg);
+		LedgerSettings settings = cache.get(key, LedgerSettings.class);
+		if (null == settings) {
+			byte[] bytes = storage.get(key);
+			HashFunction hashFunc = Crypto.getHashFunction(settingsHash.getAlgorithm());
+			if (!hashFunc.verify(settingsHash, bytes)) {
+				String errorMsg = "Verification of the hash for ledger setting failed! --[HASH=" + key + "]";
+				LOGGER.error(errorMsg);
+				throw new LedgerException(errorMsg);
+			}
+			settings = deserializeSettings(bytes);
+			cache.set(key, settings);
 		}
-		return deserializeSettings(bytes);
+
+		return settings;
 	}
 
 	private LedgerSettings deserializeSettings(byte[] bytes) {
@@ -220,14 +230,20 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 
 	private LedgerMetadata_V2 loadAndVerifyMetadata(HashDigest adminAccountHash) {
 		Bytes key = encodeMetadataKey(adminAccountHash);
-		byte[] bytes = storage.get(key);
-		HashFunction hashFunc = Crypto.getHashFunction(adminAccountHash.getAlgorithm());
-		if (!hashFunc.verify(adminAccountHash, bytes)) {
-			String errorMsg = "Verification of the hash for ledger metadata failed! --[HASH=" + key + "]";
-			LOGGER.error(errorMsg);
-			throw new LedgerException(errorMsg);
+		LedgerMetadata_V2 metadata = cache.get(key, LedgerMetadata_V2.class);
+		if(null == metadata) {
+			byte[] bytes = storage.get(key);
+			HashFunction hashFunc = Crypto.getHashFunction(adminAccountHash.getAlgorithm());
+			if (!hashFunc.verify(adminAccountHash, bytes)) {
+				String errorMsg = "Verification of the hash for ledger metadata failed! --[HASH=" + key + "]";
+				LOGGER.error(errorMsg);
+				throw new LedgerException(errorMsg);
+			}
+			metadata = deserializeMetadata(bytes);
+			cache.set(key, metadata);
 		}
-		return deserializeMetadata(bytes);
+
+		return metadata;
 	}
 
 	private Bytes encodeSettingsKey(HashDigest settingsHash) {
@@ -382,7 +398,7 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 
 			adminDataHash = metadataHash;
 		}
-
+		cache.clear();
 		updated = false;
 	}
 
@@ -399,6 +415,7 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 		if (!isUpdated()) {
 			return;
 		}
+		cache.clear();
 		participants.cancel();
 		metadata =origMetadata == null ? new LedgerMetadataInfo() :  new LedgerMetadataInfo(origMetadata);
 	}

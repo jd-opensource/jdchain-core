@@ -7,33 +7,55 @@ import com.jd.blockchain.ledger.AccountType;
 import com.jd.blockchain.ledger.DataPermission;
 import com.jd.blockchain.ledger.PermissionAccount;
 import com.jd.blockchain.ledger.TypedValue;
+import com.jd.blockchain.ledger.cache.PermissionCache;
 import utils.Bytes;
 
 public class PermissionAccountDecorator extends AccountDecorator implements PermissionAccount {
 
     private static final String KEY_PERMISSION = "PERMISSION";
     private AccountType accountType;
+    private PermissionCache cache;
 
     public PermissionAccountDecorator(AccountType accountType, CompositeAccount mklAccount) {
         super(mklAccount);
         this.accountType = accountType;
     }
 
+    public PermissionAccountDecorator(AccountType accountType, CompositeAccount mklAccount, PermissionCache cache) {
+        super(mklAccount);
+        this.accountType = accountType;
+        this.cache = cache;
+    }
+
     @Override
     public DataPermission getPermission() {
-        TypedValue ptv = getHeaders().getValue(KEY_PERMISSION);
-        if (null != ptv && !ptv.isNil()) {
-            DataPermission dp = BinaryProtocol.decode(ptv.bytesValue());
-            return new AccountDataPermission(dp.getModeBits(), dp.getOwners(), dp.getRole());
-        } else {
-            return new AccountDataPermission(accountType, new Bytes[]{});
+        DataPermission permission = null;
+        if(null != cache) {
+            permission = cache.getPermission(getID().getAddress());
         }
+        if (null == permission) {
+            TypedValue ptv = getHeaders().getValue(KEY_PERMISSION);
+            if (null != ptv && !ptv.isNil()) {
+                DataPermission dp = BinaryProtocol.decode(ptv.bytesValue());
+                permission = new AccountDataPermission(dp.getModeBits(), dp.getOwners(), dp.getRole());
+            } else {
+                permission = new AccountDataPermission(accountType, new Bytes[]{});
+            }
+            if(null != cache) {
+                cache.setPermission(getID().getAddress(), permission);
+            }
+        }
+
+        return permission;
     }
 
     @Override
     public void setPermission(DataPermission permission) {
         long version = getHeaders().getVersion(KEY_PERMISSION);
         getHeaders().setValue(KEY_PERMISSION, TypedValue.fromBytes(BinaryProtocol.encode(permission)), version);
+        if(null != cache) {
+            cache.setPermission(getID().getAddress(), permission);
+        }
     }
 
     @Override

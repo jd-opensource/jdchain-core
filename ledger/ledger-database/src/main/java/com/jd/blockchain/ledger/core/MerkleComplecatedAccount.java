@@ -10,6 +10,7 @@ import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.AccountSnapshot;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.TypedValue;
+import com.jd.blockchain.ledger.cache.PubkeyCache;
 import com.jd.blockchain.ledger.core.DatasetHelper.DataChangedListener;
 import com.jd.blockchain.ledger.core.DatasetHelper.TypeMapper;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
@@ -48,6 +49,8 @@ public class MerkleComplecatedAccount implements CompositeAccount, HashProvable,
 
     private BaseDataset<String, TypedValue> typedData;
 
+    private PubkeyCache pubkeyCache;
+
     /**
      * Create a new Account with the specified identity(address and pubkey); <br>
      *
@@ -63,7 +66,8 @@ public class MerkleComplecatedAccount implements CompositeAccount, HashProvable,
      * @param verStorage    The base storage for versioning operation;
      */
     public MerkleComplecatedAccount(BlockchainIdentity accountID, CryptoSetting cryptoSetting, Bytes keyPrefix,
-                                    ExPolicyKVStorage exStorage, VersioningKVStorage verStorage) {
+                                    ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, PubkeyCache pubkeyCache) {
+        this.pubkeyCache = pubkeyCache;
         // 初始化数据集；
         initializeDatasets(null, null, cryptoSetting, keyPrefix, exStorage, verStorage, false);
 
@@ -85,7 +89,8 @@ public class MerkleComplecatedAccount implements CompositeAccount, HashProvable,
      * @param readonly      Readonly about this account's dataset;
      */
     public MerkleComplecatedAccount(Bytes address, HashDigest headerRoot, HashDigest dataRoot, CryptoSetting cryptoSetting,
-                                    Bytes keyPrefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly) {
+                                    Bytes keyPrefix, ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, PubkeyCache pubkeyCache, boolean readonly) {
+        this.pubkeyCache = pubkeyCache;
         if (headerRoot == null) {
             throw new IllegalArgumentException(
                     "Specified a null header-root hash for account[" + address.toBase58() + "]!");
@@ -99,7 +104,7 @@ public class MerkleComplecatedAccount implements CompositeAccount, HashProvable,
         initializeDatasets(headerRoot, dataRoot, cryptoSetting, keyPrefix, exStorage, verStorage, readonly);
 
         // 初始化账户的身份；
-        PubKey pubKey = loadPubKey();
+        PubKey pubKey = loadPubKey(address);
         this.accountID = new AccountID(address, pubKey);
     }
 
@@ -144,30 +149,6 @@ public class MerkleComplecatedAccount implements CompositeAccount, HashProvable,
         this.typedData = DatasetHelper.listen(DatasetHelper.map(dataDataset, valueMapper), dataChangedListener);
     }
 
-//	private HashDigest loadHeaderRoot() {
-//		byte[] hashBytes = rootDataset.getValue(KEY_HEADER_ROOT);
-//		if (hashBytes == null) {
-//			return null;
-//		}
-//		return Crypto.resolveAsHashDigest(hashBytes);
-//	}
-//
-//	private HashDigest loadDataRoot() {
-//		byte[] hashBytes = rootDataset.getValue(KEY_DATA_ROOT);
-//		if (hashBytes == null) {
-//			return null;
-//		}
-//		return Crypto.resolveAsHashDigest(hashBytes);
-//	}
-//
-//	private long getHeaderRootVersion() {
-//		return rootDataset.getVersion(KEY_HEADER_ROOT);
-//	}
-//
-//	private long getDataRootVersion() {
-//		return rootDataset.getVersion(KEY_DATA_ROOT);
-//	}
-
     public Bytes getAddress() {
         return accountID.getAddress();
     }
@@ -190,16 +171,6 @@ public class MerkleComplecatedAccount implements CompositeAccount, HashProvable,
         return typedData;
     }
 
-//	/*
-//	 * (non-Javadoc)
-//	 *
-//	 * @see com.jd.blockchain.ledger.core.AccountDataSet#getRootHash()
-//	 */
-//	@Override
-//	public HashDigest getRootHash() {
-//		return rootDataset.getRootHash();
-//	}
-
     @Override
     public HashDigest getHeaderRootHash() {
         return headerDataset.getRootHash();
@@ -216,13 +187,6 @@ public class MerkleComplecatedAccount implements CompositeAccount, HashProvable,
         if (dataProof == null) {
             return null;
         }
-//		MerkleProof rootProof = rootDataset.getProof(KEY_DATA_ROOT);
-//		if (rootProof == null) {
-//			return null;
-//		}
-//		MerkleProof proof = MerkleProofBuilder.combine(rootProof, dataProof);
-//		return proof;
-
         // TODO Auto-generated method stub
         throw new IllegalStateException("Not implemented!");
     }
@@ -253,12 +217,21 @@ public class MerkleComplecatedAccount implements CompositeAccount, HashProvable,
      *
      * @return
      */
-    private PubKey loadPubKey() {
-        TypedValue value = typedHeader.getValue(KEY_PUBKEY);
-        if (value == null) {
-            return null;
+    private PubKey loadPubKey(Bytes address) {
+        PubKey pubkey = null;
+        if(null != pubkeyCache) {
+            pubkey = pubkeyCache.getPubkey(address);
         }
-        return value.pubKeyValue();
+        if (null == pubkey) {
+            TypedValue value = typedHeader.getValue(KEY_PUBKEY);
+            if (value != null) {
+                pubkey = value.pubKeyValue();
+                if(null != pubkeyCache) {
+                    pubkeyCache.setPubkey(address, pubkey);
+                }
+            }
+        }
+        return pubkey;
     }
 
     /**

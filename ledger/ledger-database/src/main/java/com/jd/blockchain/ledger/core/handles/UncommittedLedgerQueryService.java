@@ -335,9 +335,7 @@ public class UncommittedLedgerQueryService implements LedgerQueryService {
     public UserPrivilegeSet getUserPrivileges(String userAddress) {
         LedgerDataSet ledgerDataQuery = transactionContext.getDataset();
         LedgerAdminDataSet previousAdminDataset = ledgerDataQuery.getAdminDataset();
-        LedgerSecurityManager securityManager = new LedgerSecurityManagerImpl(previousAdminDataset.getAdminSettings().getRolePrivileges(),
-                previousAdminDataset.getAdminSettings().getAuthorizations(), previousAdminDataset.getParticipantDataset(),
-                ledgerDataQuery.getUserAccountSet());
+        LedgerSecurityManager securityManager = new LedgerSecurityManagerImpl(previousAdminDataset.getAdminSettings(), previousAdminDataset.getParticipantDataset(),ledgerDataQuery.getUserAccountSet());
         UserPrivilegeSet userPrivilegeSet = securityManager.getUserRolesPrivilegs(Bytes.fromBase58(userAddress));
         return userPrivilegeSet;
     }

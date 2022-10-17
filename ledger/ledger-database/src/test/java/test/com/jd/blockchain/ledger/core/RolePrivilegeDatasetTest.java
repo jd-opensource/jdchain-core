@@ -4,6 +4,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.jd.blockchain.ledger.LedgerDataStructure;
+import com.jd.blockchain.ledger.cache.AdminLRUCache;
 import org.junit.Test;
 
 import com.jd.blockchain.crypto.Crypto;
@@ -46,7 +47,7 @@ public class RolePrivilegeDatasetTest {
 		String roleName = "DEFAULT";
 		String prefix = "role-privilege/";
 		RolePrivilegeDataset rolePrivilegeDataset = new RolePrivilegeDataset(cryptoConfig, prefix, testStorage,
-				testStorage, LedgerDataStructure.MERKLE_TREE);
+				testStorage, LedgerDataStructure.MERKLE_TREE, new AdminLRUCache());
 		rolePrivilegeDataset.addRolePrivilege(roleName, new LedgerPermission[] { LedgerPermission.REGISTER_USER },
 				new TransactionPermission[] { TransactionPermission.CONTRACT_OPERATION });
 
@@ -57,7 +58,7 @@ public class RolePrivilegeDatasetTest {
 
 		HashDigest rootHash = rolePrivilegeDataset.getRootHash();
 		RolePrivilegeDataset newRolePrivilegeDataset = new RolePrivilegeDataset(-1, rootHash, cryptoConfig, prefix,
-				testStorage, testStorage, LedgerDataStructure.MERKLE_TREE, true);
+				testStorage, testStorage, LedgerDataStructure.MERKLE_TREE, new AdminLRUCache(), true);
 		rolePrivilege = newRolePrivilegeDataset.getRolePrivilege(roleName);
 		assertNotNull(rolePrivilege);
 		

@@ -9,6 +9,7 @@ import com.jd.blockchain.ledger.DigitalSignature;
 import com.jd.blockchain.ledger.Event;
 import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.MerkleProof;
+import com.jd.blockchain.ledger.cache.EventAccountCache;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 
@@ -24,11 +25,13 @@ public class EventAccountSetEditor implements EventAccountSet, Transactional {
     }
 
     private BaseAccountSetEditor accountSet;
+    private EventAccountCache cache;
 
     public EventAccountSetEditor(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage,
-                           VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy, LedgerDataStructure dataStructure) {
+                           VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy, LedgerDataStructure dataStructure, EventAccountCache cache) {
+        this.cache = cache;
         if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
-            accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+            accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, cache, accessPolicy);
         } else {
             accountSet = new KvAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy, DatasetType.EVENTS);
         }
@@ -36,10 +39,11 @@ public class EventAccountSetEditor implements EventAccountSet, Transactional {
 
     public EventAccountSetEditor(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
                                        ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly, LedgerDataStructure dataStructure,
-                                 AccountAccessPolicy accessPolicy) {
+                                 EventAccountCache cache, AccountAccessPolicy accessPolicy) {
+        this.cache = cache;
         if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
             accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
-                    readonly, accessPolicy);
+                    readonly, cache, accessPolicy);
         } else {
             accountSet = new KvAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
                     readonly, accessPolicy, DatasetType.EVENTS);
@@ -73,7 +77,11 @@ public class EventAccountSetEditor implements EventAccountSet, Transactional {
 
     @Override
     public EventPublishingAccount getAccount(Bytes address) {
-        return getAccount(address, -1);
+        CompositeAccount account = accountSet.getAccount(address);
+        if (null == account) {
+            return null;
+        }
+        return new EventPublishingAccount(account, cache);
     }
 
     @Override
@@ -102,13 +110,16 @@ public class EventAccountSetEditor implements EventAccountSet, Transactional {
 
     @Override
     public void cancel() {
-        accountSet.cancel();
+        if(accountSet.isUpdated()) {
+            accountSet.cancel();
+            cache.clear();
+        }
     }
 
     public EventPublishingAccount register(Bytes address, PubKey pubKey, DigitalSignature addressSignature) {
         // TODO: 未实现对地址签名的校验和记录；
         CompositeAccount accBase = accountSet.register(address, pubKey);
-        return new EventPublishingAccount(accBase);
+        return new EventPublishingAccount(accBase, cache);
     }
 
     // used only by kv type ledger structure, if add new account

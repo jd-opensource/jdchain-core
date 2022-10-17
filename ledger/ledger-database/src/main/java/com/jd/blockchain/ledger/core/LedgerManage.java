@@ -12,7 +12,7 @@ import com.jd.blockchain.storage.service.KVStorageService;
  */
 public interface LedgerManage extends LedgerService {
 	
-	static final String LEDGER_PREFIX = "L:/";
+	static final String LEDGER_PREFIX = "LDG://";
 	
 	LedgerQuery register(HashDigest ledgerHash, KVStorageService storageService, LedgerDataStructure dataStructure);
 	

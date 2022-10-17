@@ -8,6 +8,7 @@ import com.jd.blockchain.ledger.TypedValue;
 import com.jd.blockchain.ledger.UserInfo;
 
 import com.jd.blockchain.ledger.AccountState;
+import com.jd.blockchain.ledger.cache.UserCache;
 import utils.Bytes;
 import utils.io.BytesUtils;
 
@@ -24,9 +25,15 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 	private static final String DATA_PUB_KEY = "D-PK";
 	private static final String DATA_CA = "D-CA";
 	private static final String DATA_STATE = "D-ST";
+	private UserCache cache;
 
 	public UserAccount(CompositeAccount baseAccount) {
 		super(baseAccount);
+	}
+
+	public UserAccount(CompositeAccount baseAccount, UserCache cache) {
+		super(baseAccount);
+		this.cache = cache;
 	}
 
 	private PubKey dataPubKey;
@@ -73,11 +80,19 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 	@Override
 	public AccountState getState() {
 		if(state == null) {
-			BytesValue rbs = getHeaders().getValue(DATA_STATE);
-			if (rbs == null) {
-				state = AccountState.NORMAL;
-			} else {
-				state = AccountState.valueOf(BytesUtils.toString(rbs.getBytes().toBytes()));
+			if(null != cache) {
+				state = cache.getState(getAddress());
+			}
+			if (null == state) {
+				BytesValue rbs = getHeaders().getValue(DATA_STATE);
+				if (rbs == null) {
+					state = AccountState.NORMAL;
+				} else {
+					state = AccountState.valueOf(BytesUtils.toString(rbs.getBytes().toBytes()));
+				}
+			}
+			if(null != cache) {
+				cache.setState(getAddress(), this.state);
 			}
 		}
 		return state;
@@ -87,14 +102,25 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 		long version = getHeaders().getVersion(DATA_STATE);
 		getHeaders().setValue(DATA_STATE, TypedValue.fromText(state.name()), version);
 		this.state = state;
+		if(null != cache) {
+			cache.setState(getAddress(), this.state);
+		}
 	}
 
 	@Override
 	public String getCertificate() {
 		if(certificate == null) {
-			BytesValue crt = getHeaders().getValue(DATA_CA);
-			if (crt != null) {
-				certificate = BytesUtils.toString(crt.getBytes().toBytes());
+			if(null != cache) {
+				certificate = cache.getCertificate(getAddress());
+			}
+			if (null == certificate) {
+				BytesValue crt = getHeaders().getValue(DATA_CA);
+				if (crt != null) {
+					certificate = BytesUtils.toString(crt.getBytes().toBytes());
+					if(null != cache) {
+						cache.setCertificate(getAddress(), certificate);
+					}
+				}
 			}
 		}
 		return certificate;
@@ -103,6 +129,9 @@ public class UserAccount extends AccountDecorator implements UserInfo { // imple
 	public void setCertificate(String certificate) {
 		long version = getHeaders().getVersion(DATA_CA);
 		getHeaders().setValue(DATA_CA, TypedValue.fromText(certificate), version);
+		if(null != cache) {
+			cache.setCertificate(getAddress(), certificate);
+		}
 	}
 
 	public long setProperty(String key, String value, long version) {

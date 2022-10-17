@@ -13,6 +13,7 @@ import com.jd.blockchain.ledger.RoleSet;
 import com.jd.blockchain.ledger.RolesPolicy;
 import com.jd.blockchain.ledger.UserRoles;
 import com.jd.blockchain.ledger.UserAuthorizationSettings;
+import com.jd.blockchain.ledger.cache.AdminCache;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 
@@ -32,6 +33,8 @@ public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Byte
 
 	private LedgerDataStructure ledgerDataStructure;
 
+	private AdminCache cache;
+
 	// start: used only by kv ledger structure
 	private volatile long userrole_index_in_block = 0;
 
@@ -41,9 +44,9 @@ public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Byte
 	// end: used only by kv ledger structure
 
 	public UserRoleDatasetEditor(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exPolicyStorage,
-								 VersioningKVStorage verStorage, LedgerDataStructure dataStructure) {
+								 VersioningKVStorage verStorage, LedgerDataStructure dataStructure, AdminCache cache) {
 		ledgerDataStructure = dataStructure;
-
+		this.cache = cache;
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			dataset = new MerkleHashDataset(cryptoSetting, prefix, exPolicyStorage, verStorage);
 		} else {
@@ -52,9 +55,10 @@ public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Byte
 	}
 
 	public UserRoleDatasetEditor(long preBlockHeight, HashDigest merkleRootHash, CryptoSetting cryptoSetting, String prefix,
-									   ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure, boolean readonly) {
+									   ExPolicyKVStorage exPolicyStorage, VersioningKVStorage verStorage, LedgerDataStructure dataStructure,
+								 AdminCache cache, boolean readonly) {
 		ledgerDataStructure = dataStructure;
-
+		this.cache = cache;
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			dataset = new MerkleHashDataset(merkleRootHash, cryptoSetting, Bytes.fromString(prefix), exPolicyStorage, verStorage, readonly);
 		} else {
@@ -86,6 +90,7 @@ public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Byte
 	@Override
 	public void cancel() {
 		dataset.cancel();
+		cache.clear();
 		userrole_index_in_block = origin_userrole_index_in_block;
 	}
 
@@ -121,6 +126,8 @@ public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Byte
 
 			userrole_index_in_block++;
 		}
+
+		cache.setUserRoles(userAddress, roleAuth);
 	}
 
 	/**
@@ -179,6 +186,7 @@ public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Byte
 			throw new AuthorizationException("Update to roles of user[" + userRoles.getUserAddress()
 					+ "] failed due to wrong version[" + userRoles.getVersion() + "] !");
 		}
+		cache.setUserRoles(userRoles.getUserAddress(), userRoles);
 	}
 
 	/**
@@ -211,13 +219,20 @@ public class UserRoleDatasetEditor implements Transactional, MerkleProvable<Byte
 	 */
 	@Override
 	public UserRoles getUserRoles(Bytes userAddress) {
+		UserRoles urs = cache.getUserRoles(userAddress);
+		if (null != urs) {
+			return urs;
+		}
 		// 只返回最新版本；
 		DataEntry<Bytes, byte[]> kv = dataset.getDataEntry(userAddress);
 		if (kv == null) {
 			return null;
 		}
 		RoleSet roleSet = BinaryProtocol.decode(kv.getValue());
-		return new UserRoles(userAddress, kv.getVersion(), roleSet);
+		UserRoles userRoles = new UserRoles(userAddress, kv.getVersion(), roleSet);
+		cache.setUserRoles(userAddress, userRoles);
+
+		return userRoles;
 	}
 
 	@Override

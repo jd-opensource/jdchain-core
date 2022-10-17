@@ -3,6 +3,7 @@ package com.jd.blockchain.ledger.core;
 import com.jd.blockchain.crypto.HashDigest;
 import com.jd.blockchain.crypto.PubKey;
 import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.ledger.cache.ContractCache;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 
@@ -13,11 +14,13 @@ import utils.Transactional;
 public class ContractAccountSetEditor implements Transactional, ContractAccountSet {
 
 	private BaseAccountSetEditor accountSet;
+	private ContractCache cache;
 
 	public ContractAccountSetEditor(CryptoSetting cryptoSetting, String prefix, ExPolicyKVStorage exStorage,
-			VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy, LedgerDataStructure dataStructure) {
+			VersioningKVStorage verStorage, AccountAccessPolicy accessPolicy, LedgerDataStructure dataStructure, ContractCache cache) {
+		this.cache = cache;
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
-			accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy);
+			accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, cache, accessPolicy);
 		} else {
 			accountSet = new KvAccountSetEditor(cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage, accessPolicy, DatasetType.CONTS);
 		}
@@ -25,10 +28,11 @@ public class ContractAccountSetEditor implements Transactional, ContractAccountS
 
 	public ContractAccountSetEditor(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String prefix,
 										  ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly, LedgerDataStructure dataStructure,
-									AccountAccessPolicy accessPolicy) {
+									ContractCache cache, AccountAccessPolicy accessPolicy) {
+		this.cache = cache;
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
-					readonly, accessPolicy);
+					readonly, cache, accessPolicy);
 		} else {
 			accountSet = new KvAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(prefix), exStorage, verStorage,
 					readonly, accessPolicy, DatasetType.CONTS);
@@ -76,7 +80,7 @@ public class ContractAccountSetEditor implements Transactional, ContractAccountS
 		if(null == accBase) {
 			return null;
 		}
-		return new ContractAccount(accBase);
+		return new ContractAccount(accBase, cache);
 	}
 
 	@Override
@@ -90,7 +94,7 @@ public class ContractAccountSetEditor implements Transactional, ContractAccountS
 		if(null == accBase) {
 			return null;
 		}
-		return new ContractAccount(accBase);
+		return new ContractAccount(accBase, cache);
 	}
 
 	/**
@@ -109,7 +113,7 @@ public class ContractAccountSetEditor implements Transactional, ContractAccountS
 		ContractAccount contractAcc;
 		if(!accountSet.contains(address)){
 			CompositeAccount accBase = accountSet.register(address, pubKey);
-			contractAcc = new ContractAccount(accBase);
+			contractAcc = new ContractAccount(accBase, cache);
 			contractAcc.setChaincode(chaincode, -1);
 		}else {
 			//exist the address;
@@ -132,7 +136,7 @@ public class ContractAccountSetEditor implements Transactional, ContractAccountS
 	 */
 	public long update(Bytes address, byte[] chaincode, long version, ContractLang lang) {
 		CompositeAccount accBase = accountSet.getAccount(address);
-		ContractAccount contractAcc = new ContractAccount(accBase);
+		ContractAccount contractAcc = new ContractAccount(accBase, cache);
 		contractAcc.setLang(lang);
 		return contractAcc.setChaincode(chaincode, version);
 	}
@@ -149,7 +153,10 @@ public class ContractAccountSetEditor implements Transactional, ContractAccountS
 
 	@Override
 	public void cancel() {
-		accountSet.cancel();
+		if(accountSet.isUpdated()) {
+			accountSet.cancel();
+			cache.clear();
+		}
 	}
 
 	public void setState(Bytes address, AccountState state) {

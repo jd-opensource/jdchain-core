@@ -51,7 +51,7 @@ public class BaseAccountTest {
 
 		// 新建账户；
 		MerkleComplecatedAccount baseAccount = new MerkleComplecatedAccount(bck.getIdentity(), cryptoConf, Bytes.fromString(keyPrefix),
-				testStorage, testStorage);
+				testStorage, testStorage, null);
 		assertTrue(baseAccount.isUpdated());//初始化新账户时，先写入PubKey；
 		assertFalse(baseAccount.isReadonly());
 

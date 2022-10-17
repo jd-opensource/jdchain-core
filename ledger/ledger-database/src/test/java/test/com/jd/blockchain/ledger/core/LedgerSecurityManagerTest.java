@@ -6,7 +6,9 @@ import static org.junit.Assert.assertTrue;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.jd.blockchain.ledger.LedgerDataStructure;
+import com.jd.blockchain.ledger.*;
+import com.jd.blockchain.ledger.cache.AdminLRUCache;
+import com.jd.blockchain.ledger.core.*;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -15,22 +17,6 @@ import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.CryptoProvider;
 import com.jd.blockchain.crypto.service.classic.ClassicCryptoService;
 import com.jd.blockchain.crypto.service.sm.SMCryptoService;
-import com.jd.blockchain.ledger.BlockchainKeyGenerator;
-import com.jd.blockchain.ledger.BlockchainKeypair;
-import com.jd.blockchain.ledger.CryptoSetting;
-import com.jd.blockchain.ledger.LedgerPermission;
-import com.jd.blockchain.ledger.Privileges;
-import com.jd.blockchain.ledger.RolesPolicy;
-import com.jd.blockchain.ledger.TransactionPermission;
-import com.jd.blockchain.ledger.core.CryptoConfig;
-import com.jd.blockchain.ledger.core.LedgerSecurityManager;
-import com.jd.blockchain.ledger.core.LedgerSecurityManagerImpl;
-import com.jd.blockchain.ledger.MultiIDsPolicy;
-import com.jd.blockchain.ledger.core.ParticipantCollection;
-import com.jd.blockchain.ledger.core.RolePrivilegeDataset;
-import com.jd.blockchain.ledger.SecurityPolicy;
-import com.jd.blockchain.ledger.core.UserAccountSet;
-import com.jd.blockchain.ledger.core.UserRoleDatasetEditor;
 import com.jd.blockchain.storage.service.utils.MemoryKVStorage;
 
 import utils.Bytes;
@@ -62,14 +48,14 @@ public class LedgerSecurityManagerTest {
 	private RolePrivilegeDataset createRolePrivilegeDataset(MemoryKVStorage testStorage) {
 		String prefix = "role-privilege/";
 		RolePrivilegeDataset rolePrivilegeDataset = new RolePrivilegeDataset(CRYPTO_SETTINGS, prefix, testStorage,
-				testStorage, LedgerDataStructure.MERKLE_TREE);
+				testStorage, LedgerDataStructure.MERKLE_TREE, new AdminLRUCache());
 
 		return rolePrivilegeDataset;
 	}
 
 	private UserRoleDatasetEditor createUserRoleDataset(MemoryKVStorage testStorage) {
 		String prefix = "user-roles/";
-		UserRoleDatasetEditor userRolesDataset = new UserRoleDatasetEditor(CRYPTO_SETTINGS, prefix, testStorage, testStorage, LedgerDataStructure.MERKLE_TREE);
+		UserRoleDatasetEditor userRolesDataset = new UserRoleDatasetEditor(CRYPTO_SETTINGS, prefix, testStorage, testStorage, LedgerDataStructure.MERKLE_TREE, new AdminLRUCache());
 
 		return userRolesDataset;
 	}
@@ -131,9 +117,15 @@ public class LedgerSecurityManagerTest {
 
 		ParticipantCollection partisQuery = Mockito.mock(ParticipantCollection.class);
 		UserAccountSet usersQuery = Mockito.mock(UserAccountSet.class);
+		Mockito.doReturn(new UserAccount(null)).when(usersQuery).getAccount(kpManager.getAddress());
+		Mockito.doReturn(new UserAccount(null)).when(usersQuery).getAccount(kpEmployee.getAddress());
+		Mockito.doReturn(new UserAccount(null)).when(usersQuery).getAccount(kpDevoice.getAddress());
+		Mockito.doReturn(new UserAccount(null)).when(usersQuery).getAccount(kpPlatform.getAddress());
+		LedgerAdminDataSetEditor.LedgerMetadataInfo  metadataInfo = new LedgerAdminDataSetEditor.LedgerMetadataInfo();
+		metadataInfo.setIdentityMode(IdentityMode.KEYPAIR);
 
 		// 创建安全管理器；
-		LedgerSecurityManager securityManager = new LedgerSecurityManagerImpl(rolePrivilegeDataset, userRolesDataset,
+		LedgerSecurityManager securityManager = new LedgerSecurityManagerImpl(new LedgerAdminSettingsHolder(rolePrivilegeDataset, userRolesDataset, metadataInfo),
 				partisQuery, usersQuery);
 
 		// 定义终端用户列表；终端用户一起共同具有 ADMIN、OPERATOR 角色；

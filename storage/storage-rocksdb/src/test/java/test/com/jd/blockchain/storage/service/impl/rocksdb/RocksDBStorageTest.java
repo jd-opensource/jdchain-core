@@ -114,7 +114,7 @@ public class RocksDBStorageTest {
 		v = verStorage.set(key, data, -1);
 		assertEquals(0, v);
 		v = verStorage.set(key, data, -1);
-		assertEquals(-1, v);
+		assertEquals(0, v);
 		v = verStorage.set(key, data, 0);
 		assertEquals(1, v);
 		return v;

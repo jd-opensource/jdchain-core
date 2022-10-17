@@ -8,6 +8,7 @@ import com.jd.blockchain.ledger.LedgerDataStructure;
 import com.jd.blockchain.ledger.LedgerException;
 import com.jd.blockchain.ledger.MerkleProof;
 import com.jd.blockchain.ledger.AccountState;
+import com.jd.blockchain.ledger.cache.UserCache;
 import com.jd.blockchain.storage.service.ExPolicyKVStorage;
 import com.jd.blockchain.storage.service.VersioningKVStorage;
 
@@ -23,12 +24,14 @@ import utils.Transactional;
 public class UserAccountSetEditor implements Transactional, UserAccountSet {
 
 	private BaseAccountSetEditor accountSet;
+	private UserCache cache;
 
 	public UserAccountSetEditor(CryptoSetting cryptoSetting, String keyPrefix, ExPolicyKVStorage simpleStorage,
-								VersioningKVStorage versioningStorage, AccountAccessPolicy accessPolicy, LedgerDataStructure dataStructure) {
+								VersioningKVStorage versioningStorage, AccountAccessPolicy accessPolicy,
+								LedgerDataStructure dataStructure, UserCache cache) {
+		this.cache = cache;
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
-			accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(keyPrefix), simpleStorage, versioningStorage,
-				accessPolicy);
+			accountSet = new MerkleAccountSetEditor(cryptoSetting, Bytes.fromString(keyPrefix), simpleStorage, versioningStorage, cache, accessPolicy);
 		} else {
 			accountSet = new KvAccountSetEditor(cryptoSetting, Bytes.fromString(keyPrefix), simpleStorage, versioningStorage,
 					accessPolicy, DatasetType.USERS);
@@ -37,10 +40,11 @@ public class UserAccountSetEditor implements Transactional, UserAccountSet {
 
 	public UserAccountSetEditor(long preBlockHeight, HashDigest dataRootHash, CryptoSetting cryptoSetting, String keyPrefix,
 									  ExPolicyKVStorage exStorage, VersioningKVStorage verStorage, boolean readonly, LedgerDataStructure dataStructure,
-									  AccountAccessPolicy accessPolicy) {
+								UserCache cache, AccountAccessPolicy accessPolicy) {
+		this.cache = cache;
 		if (dataStructure.equals(LedgerDataStructure.MERKLE_TREE)) {
 			accountSet = new MerkleAccountSetEditor(dataRootHash, cryptoSetting, Bytes.fromString(keyPrefix), exStorage,
-					verStorage, readonly, accessPolicy);
+					verStorage, readonly, cache, accessPolicy);
 		} else {
 			accountSet = new KvAccountSetEditor(preBlockHeight, dataRootHash, cryptoSetting, Bytes.fromString(keyPrefix), exStorage,
 				verStorage, readonly, accessPolicy, DatasetType.USERS);
@@ -91,7 +95,7 @@ public class UserAccountSetEditor implements Transactional, UserAccountSet {
 		if(null == baseAccount) {
 			return null;
 		}
-		return new UserAccount(baseAccount);
+		return new UserAccount(baseAccount, cache);
 	}
 
 	@Override
@@ -119,7 +123,7 @@ public class UserAccountSetEditor implements Transactional, UserAccountSet {
 	 */
 	public UserAccount register(Bytes address, PubKey pubKey, String ca) {
 		CompositeAccount baseAccount = accountSet.register(address, pubKey);
-		UserAccount userAccount = new UserAccount(baseAccount);
+		UserAccount userAccount = new UserAccount(baseAccount, cache);
 		if(!StringUtils.isEmpty(ca)) {
 			userAccount.setCertificate(ca);
 		}
@@ -142,7 +146,10 @@ public class UserAccountSetEditor implements Transactional, UserAccountSet {
 
 	@Override
 	public void cancel() {
-		accountSet.cancel();
+		if(accountSet.isUpdated()) {
+			accountSet.cancel();
+			cache.clear();
+		}
 	}
 
 	public void setState(Bytes address, AccountState state) {
