@@ -108,6 +108,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	 * @param txPrivilege
 	 */
 	public long addRolePrivilege(String roleName, Privileges privileges) {
+		cache.clear();
 		return addRolePrivilege(roleName, privileges.getLedgerPrivilege(), privileges.getTransactionPrivilege());
 	}
 
@@ -120,7 +121,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	 * @param ledgerPrivilege
 	 * @param txPrivilege
 	 */
-	public long addRolePrivilege(String roleName, LedgerPrivilegeBitset ledgerPrivilege, TransactionPrivilegeBitset txPrivilege) {
+	private long addRolePrivilege(String roleName, LedgerPrivilegeBitset ledgerPrivilege, TransactionPrivilegeBitset txPrivilege) {
 		RolePrivileges roleAuth = new RolePrivileges(roleName, -1, ledgerPrivilege, txPrivilege);
 		long nv = setRolePrivilege(roleAuth);
 		if (nv < 0) {
@@ -139,8 +140,6 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 			rolepri_index_in_block++;
 		}
 
-		cache.setRolePrivileges(roleName, roleAuth);
-
 		return nv;
 	}
 
@@ -157,6 +156,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	 */
 	public long addRolePrivilege(String roleName, LedgerPermission[] ledgerPermissions,
 			TransactionPermission[] txPermissions) {
+		cache.clear();
 		LedgerPrivilegeBitset ledgerPrivilege = new LedgerPrivilegeBitset();
 		for (LedgerPermission lp : ledgerPermissions) {
 			ledgerPrivilege.enable(lp);
@@ -188,7 +188,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	 * 更新角色权限； <br>
 	 * 如果指定的角色不存在，或者版本不匹配，则引发 {@link LedgerException} 异常；
 	 * 
-	 * @param participant
+	 * @param roleAuth
 	 */
 	public void updateRolePrivilege(RolePrivileges roleAuth) {
 		long nv = setRolePrivilege(roleAuth);
@@ -196,12 +196,13 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 			throw new LedgerException("Update to RoleAuthorization[" + roleAuth.getRoleName()
 					+ "] failed due to wrong version[" + roleAuth.getVersion() + "] !");
 		}
+		cache.clear();
 	}
 
 	/**
 	 * 授权角色指定的权限； <br>
 	 * 如果角色不存在，则返回 -1；
-	 * 
+	 *
 	 * @param roleName    角色；
 	 * @param permissions 权限列表；
 	 * @return
@@ -211,6 +212,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 		if (roleAuth == null) {
 			return -1;
 		}
+		cache.clear();
 		roleAuth.getLedgerPrivilege().enable(permissions);
 		return setRolePrivilege(roleAuth);
 	}
@@ -218,7 +220,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	/**
 	 * 授权角色指定的权限； <br>
 	 * 如果角色不存在，则返回 -1；
-	 * 
+	 *
 	 * @param roleName    角色；
 	 * @param permissions 权限列表；
 	 * @return
@@ -228,6 +230,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 		if (roleAuth == null) {
 			return -1;
 		}
+		cache.clear();
 		roleAuth.getTransactionPrivilege().enable(permissions);
 		return setRolePrivilege(roleAuth);
 	}
@@ -235,7 +238,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	/**
 	 * 禁止角色指定的权限； <br>
 	 * 如果角色不存在，则返回 -1；
-	 * 
+	 *
 	 * @param roleName    角色；
 	 * @param permissions 权限列表；
 	 * @return
@@ -245,6 +248,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 		if (roleAuth == null) {
 			return -1;
 		}
+		cache.clear();
 		roleAuth.getLedgerPrivilege().disable(permissions);
 		return setRolePrivilege(roleAuth);
 	}
@@ -252,7 +256,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	/**
 	 * 禁止角色指定的权限； <br>
 	 * 如果角色不存在，则返回 -1；
-	 * 
+	 *
 	 * @param roleName    角色；
 	 * @param permissions 权限列表；
 	 * @return
@@ -262,6 +266,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 		if (roleAuth == null) {
 			return -1;
 		}
+		cache.clear();
 		roleAuth.getTransactionPrivilege().disable(permissions);
 		return setRolePrivilege(roleAuth);
 	}
@@ -269,18 +274,19 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	/**
 	 * 授权角色指定的权限； <br>
 	 * 如果角色不存在，则返回 -1；
-	 * 
+	 *
 	 * @param roleName
 	 * @param ledgerPermissions
 	 * @param txPermissions
 	 * @return
 	 */
 	public long enablePermissions(String roleName, LedgerPermission[] ledgerPermissions,
-			TransactionPermission[] txPermissions) {
+								  TransactionPermission[] txPermissions) {
 		RolePrivileges roleAuth = getRolePrivilege(roleName);
 		if (roleAuth == null) {
 			return -1;
 		}
+		cache.clear();
 		roleAuth.getLedgerPrivilege().enable(ledgerPermissions);
 		roleAuth.getTransactionPrivilege().enable(txPermissions);
 		return setRolePrivilege(roleAuth);
@@ -289,18 +295,19 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	/**
 	 * 禁用角色指定的权限； <br>
 	 * 如果角色不存在，则返回 -1；
-	 * 
+	 *
 	 * @param roleName
 	 * @param ledgerPermissions
 	 * @param txPermissions
 	 * @return
 	 */
 	public long disablePermissions(String roleName, LedgerPermission[] ledgerPermissions,
-			TransactionPermission[] txPermissions) {
+								   TransactionPermission[] txPermissions) {
 		RolePrivileges roleAuth = getRolePrivilege(roleName);
 		if (roleAuth == null) {
 			return -1;
 		}
+		cache.clear();
 		roleAuth.getLedgerPrivilege().disable(ledgerPermissions);
 		roleAuth.getTransactionPrivilege().disable(txPermissions);
 		return setRolePrivilege(roleAuth);
@@ -317,7 +324,7 @@ public class RolePrivilegeDataset implements Transactional, MerkleProvable<Bytes
 	 * <br>
 	 * 如果不存在，则返回 null；
 	 * 
-	 * @param address
+	 * @param roleName
 	 * @return
 	 */
 	@Override
