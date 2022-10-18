@@ -56,7 +56,7 @@ public class BlockFullRollBackTest {
         DataContractRegistry.register(DataAccountRegisterOperation.class);
     }
 
-    private static final String LEDGER_KEY_PREFIX = "LDG://";
+    private static final String LEDGER_KEY_PREFIX = "L:/";
 
     private HashDigest ledgerHash = null;
 

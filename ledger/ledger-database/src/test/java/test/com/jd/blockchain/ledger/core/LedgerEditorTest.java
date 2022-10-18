@@ -56,7 +56,7 @@ public class LedgerEditorTest {
 		DataContractRegistry.register(com.jd.blockchain.ledger.BlockBody.class);
 	}
 
-	private static final String LEDGER_KEY_PREFIX = "LDG://";
+	private static final String LEDGER_KEY_PREFIX = "L:/";
 	private SignatureFunction signatureFunction;
 
 	private BlockchainKeypair parti0 = BlockchainKeyGenerator.getInstance().generate();

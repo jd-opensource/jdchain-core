@@ -38,7 +38,7 @@ import utils.net.NetworkAddress;
 
 public class LedgerTestUtils {
 	
-	public static final String LEDGER_KEY_PREFIX = "LDG://";
+	public static final String LEDGER_KEY_PREFIX = "L:/";
 
 	public static final SignatureFunction ED25519_SIGN_FUNC = Crypto.getSignatureFunction("ED25519");
 

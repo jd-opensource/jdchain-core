@@ -48,7 +48,7 @@ import utils.codec.Base58Utils;
 
 public class TransactionSetTest {
 
-	private static final String keyPrefix = "LDG://3A3dP4";
+	private static final String keyPrefix = "L:/3A3dP4";
 
 	private Random rand = new Random();
 

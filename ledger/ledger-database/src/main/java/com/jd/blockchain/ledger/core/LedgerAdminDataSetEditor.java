@@ -213,7 +213,7 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 				LOGGER.error(errorMsg);
 				throw new LedgerException(errorMsg);
 			}
-			settings = deserializeSettings(bytes);
+			settings = new LedgerConfiguration(deserializeSettings(bytes));
 			cache.set(key, settings);
 		}
 
@@ -240,7 +240,7 @@ public class LedgerAdminDataSetEditor implements Transactional, LedgerAdminDataS
 				throw new LedgerException(errorMsg);
 			}
 			metadata = deserializeMetadata(bytes);
-			cache.set(key, metadata);
+			cache.set(key, new LedgerMetadataInfo(metadata));
 		}
 
 		return metadata;

@@ -35,7 +35,7 @@
 //		DataContractRegistry.register(UserRegisterOperation.class);
 //	}
 //
-//	private static final String LEDGER_KEY_PREFIX = "LDG://";
+//	private static final String LEDGER_KEY_PREFIX = "L:/";
 //
 //	private BlockchainKeypair parti0 = BlockchainKeyGenerator.getInstance().generate();
 //	private BlockchainKeypair parti1 = BlockchainKeyGenerator.getInstance().generate();
