@@ -355,7 +355,9 @@ public abstract class AbstractMQMessageDispatcher implements MQMessageDispatcher
     private void onTopology(String key) throws Exception {
         synchronized (serverTopology) {
             if (serverTopology.size() > 0) {
-                LOGGER.info("TOPOLOGY message");
+                if(LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("TOPOLOGY message");
+                }
                 byte[] topology =
                         BinaryProtocol.encode(
                                 new NodeNetworkTopology(
